@@ -5,12 +5,12 @@ export function ContentSection() {
     <section className="py-20 bg-gradient-to-b from-gray-50 to-white">
       <div className="container mx-auto px-4">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-          <div className="relative h-[400px] lg:h-[500px] rounded-2xl overflow-hidden shadow-xl">
-            <Image
-              src="/content.jpg"
+          <div className="relative rounded-2xl overflow-hidden shadow-xl">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={`/content.png?v=${Date.now()}`}
               alt="Content"
-              fill
-              className="object-cover"
+              className="w-full h-auto object-contain"
             />
           </div>
 

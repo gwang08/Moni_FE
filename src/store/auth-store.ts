@@ -42,6 +42,8 @@ export const useAuthStore = create<AuthStore>()(
             email: userProfile.email,
             fullName: userProfile.full_name,
             avatarUrl: userProfile.avatar_url,
+            phoneNumber: userProfile.phoneNumber,
+            dateOfBirth: userProfile.dateOfBirth,
           };
 
           set({

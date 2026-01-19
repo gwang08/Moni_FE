@@ -39,8 +39,8 @@ export function LoginForm() {
       const { token, expiryTime } = response.result;
       await setAuth(token, expiryTime);
 
-      // Redirect to first module
-      router.push('/reading');
+      // Redirect to home
+      router.push('/');
     } catch (err) {
       setError(formatApiError(err));
     } finally {

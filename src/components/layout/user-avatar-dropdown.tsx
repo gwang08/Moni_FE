@@ -21,7 +21,8 @@ export function UserAvatarDropdown() {
     router.push('/');
   };
 
-  const getInitials = (name: string): string => {
+  const getInitials = (name: string | null | undefined): string => {
+    if (!name) return 'U';
     return name
       .split(' ')
       .map(n => n[0])
@@ -36,7 +37,7 @@ export function UserAvatarDropdown() {
     <DropdownMenu>
       <DropdownMenuTrigger className="focus:outline-none">
         <Avatar className="h-10 w-10 cursor-pointer border-2 border-primary/20 hover:border-primary transition-all">
-          <AvatarImage src={user.avatarUrl || undefined} alt={user.fullName} />
+          <AvatarImage src={user.avatarUrl || undefined} alt={user.fullName || 'User'} />
           <AvatarFallback className="bg-primary/10 text-primary font-semibold">
             {getInitials(user.fullName)}
           </AvatarFallback>
@@ -45,7 +46,7 @@ export function UserAvatarDropdown() {
 
       <DropdownMenuContent align="end" className="w-56">
         <div className="px-2 py-1.5">
-          <p className="text-sm font-medium truncate">{user.fullName}</p>
+          <p className="text-sm font-medium truncate">{user.fullName || 'User'}</p>
           <p className="text-xs text-muted-foreground truncate">{user.email}</p>
         </div>
 

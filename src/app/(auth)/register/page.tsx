@@ -20,17 +20,17 @@ export default function RegisterPage() {
       {/* Right side - Form */}
       <div className="flex-1 flex items-center justify-center p-8 bg-white">
         <div className="w-full max-w-md">
-          <Link href="/" className="flex justify-center mb-8">
+          <div className="flex justify-center mb-4">
             <Image
               src="/logo.png"
               alt="Moni IELTS"
-              width={120}
-              height={40}
-              className="h-10 w-auto"
+              width={200}
+              height={65}
+              className="h-20 w-auto"
             />
-          </Link>
+          </div>
 
-          <div className="text-center mb-8">
+          <div className="text-center mb-6">
             <h1 className="text-2xl font-bold mb-2">Đăng ký tài khoản</h1>
             <p className="text-muted-foreground">
               Tạo tài khoản miễn phí để bắt đầu luyện tập

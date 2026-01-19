@@ -41,8 +41,10 @@ export interface ApiResponse<T> {
 // Store Types
 export interface User {
   email: string;
-  fullName: string;
+  fullName: string | null;
   avatarUrl: string | null;
+  phoneNumber: string | null;
+  dateOfBirth: string | null;
 }
 
 export interface AuthState {

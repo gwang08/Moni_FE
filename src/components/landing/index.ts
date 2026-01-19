@@ -1,0 +1,8 @@
+export { Navbar } from "./navbar"
+export { HeroSection } from "./hero-section"
+export { FeaturesSection } from "./features-section"
+export { HowItWorksSection } from "./how-it-works-section"
+export { ContentSection } from "./content-section"
+export { CTASection } from "./cta-section"
+export { Footer } from "./footer"
+export { WaveDivider } from "./wave-divider"

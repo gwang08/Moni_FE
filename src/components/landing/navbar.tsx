@@ -8,9 +8,9 @@ import { useAuthStore } from '@/store/auth-store';
 import { UserAvatarDropdown } from '@/components/layout/user-avatar-dropdown';
 
 const navLinks = [
-  { label: "Trang chủ", href: "#" },
-  { label: "Luyện Tập", href: "#" },
-  { label: "Liên Hệ", href: "#" },
+  { label: "Trang chủ", href: "/" },
+  { label: "Luyện Tập", href: "/practice" },
+  { label: "Liên Hệ", href: "#contact" },
 ]
 
 export function Navbar() {

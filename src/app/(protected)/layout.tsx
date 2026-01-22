@@ -4,6 +4,7 @@ import { useAuthStore } from '@/store/auth-store';
 import { useRouter, usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Loader2 } from 'lucide-react';
+import { InnerNavbar } from '@/components/layout/inner-navbar';
 
 export default function ProtectedLayout({
   children,
@@ -33,5 +34,10 @@ export default function ProtectedLayout({
     );
   }
 
-  return <>{children}</>;
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <InnerNavbar />
+      <main>{children}</main>
+    </div>
+  );
 }

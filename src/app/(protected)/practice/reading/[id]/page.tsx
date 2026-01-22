@@ -1,15 +1,17 @@
 'use client';
 
-import { use } from 'react';
-import { notFound } from 'next/navigation';
+import { use, useEffect } from 'react';
+import { notFound, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, GraduationCap, BookMarked } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { getExerciseById } from '@/data/exercises';
 import { ReadingToolbar } from '@/components/reading/reading-toolbar';
 import { ReadingPassage } from '@/components/reading/reading-passage';
 import { NotesSidebar } from '@/components/reading/notes-sidebar';
 import { usePracticeStore } from '@/store/practice-store';
+import { useReadingStore } from '@/store/reading-store';
 
 // Mock passages for each exercise
 const MOCK_PASSAGES: Record<string, { title: string; content: string }> = {
@@ -45,8 +47,21 @@ interface Props {
 
 export default function ReadingExercisePage({ params }: Props) {
   const { id } = use(params);
+  const searchParams = useSearchParams();
+  const modeParam = searchParams.get('mode');
+
   const exercise = getExerciseById(id);
   const markCompleted = usePracticeStore((state) => state.markCompleted);
+  const { mode, setMode, clearAll } = useReadingStore();
+
+  // Set mode from URL params on mount
+  useEffect(() => {
+    if (modeParam === 'exam' || modeParam === 'practice') {
+      setMode(modeParam);
+    }
+    // Clear highlights when changing exercises
+    clearAll();
+  }, [modeParam, setMode, clearAll]);
 
   if (!exercise || exercise.skill !== 'reading') {
     notFound();
@@ -59,7 +74,7 @@ export default function ReadingExercisePage({ params }: Props) {
   };
 
   return (
-    <div className="h-screen flex flex-col">
+    <div className="h-[calc(100vh-56px)] flex flex-col">
       {/* Header */}
       <div className="bg-white border-b p-4 flex items-center justify-between">
         <div className="flex items-center gap-4">
@@ -69,7 +84,29 @@ export default function ReadingExercisePage({ params }: Props) {
             </Button>
           </Link>
           <div>
-            <h1 className="text-xl font-bold">{exercise.title}</h1>
+            <div className="flex items-center gap-2">
+              <h1 className="text-xl font-bold">{exercise.title}</h1>
+              <Badge
+                variant="outline"
+                className={
+                  mode === 'exam'
+                    ? 'bg-orange-100 text-orange-700 border-orange-300'
+                    : 'bg-blue-100 text-blue-700 border-blue-300'
+                }
+              >
+                {mode === 'exam' ? (
+                  <>
+                    <GraduationCap className="h-3 w-3 mr-1" />
+                    Thi thử
+                  </>
+                ) : (
+                  <>
+                    <BookMarked className="h-3 w-3 mr-1" />
+                    Luyện tập
+                  </>
+                )}
+              </Badge>
+            </div>
             <p className="text-sm text-muted-foreground">
               {exercise.questionCount} câu hỏi
             </p>

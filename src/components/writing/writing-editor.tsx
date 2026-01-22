@@ -21,6 +21,7 @@ export function WritingEditor({ taskPrompt }: WritingEditorProps) {
       }),
     ],
     content: '',
+    immediatelyRender: false,
     editorProps: {
       attributes: {
         class: 'prose max-w-none min-h-[400px] focus:outline-none p-4',

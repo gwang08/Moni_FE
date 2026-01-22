@@ -7,6 +7,13 @@ export interface Highlight {
   note?: string;
 }
 
+export interface VocabItem {
+  id: string;
+  word: string;
+  definition?: string;
+  highlightId?: string;
+}
+
 export interface ReadingPassage {
   id: string;
   title: string;

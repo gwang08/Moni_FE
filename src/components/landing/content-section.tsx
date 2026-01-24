@@ -7,7 +7,7 @@ export function ContentSection() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           <div className="relative h-[400px] lg:h-[500px] rounded-2xl overflow-hidden shadow-xl">
             <Image
-              src="/content.jpg"
+              src="/content.png"
               alt="Content"
               fill
               className="object-cover"

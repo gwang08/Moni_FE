@@ -1,5 +1,6 @@
 export { Navbar } from "./navbar"
 export { HeroSection } from "./hero-section"
+export { ProgramsIntroSection } from "./programs-intro-section"
 export { FeaturesSection } from "./features-section"
 export { HowItWorksSection } from "./how-it-works-section"
 export { ProgramBanner } from "./program-banner"

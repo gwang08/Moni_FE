@@ -1,9 +1,11 @@
 import {
   Navbar,
   HeroSection,
+  ProgramsIntroSection,
   FeaturesSection,
   HowItWorksSection,
   ProgramBanner,
+  CTASection,
   Footer,
 } from "@/components/landing";
 
@@ -12,6 +14,8 @@ export default function Home() {
     <>
       <Navbar />
       <HeroSection />
+
+      <ProgramsIntroSection />
 
       <ProgramBanner
         image="/Moni1.png"
@@ -50,6 +54,7 @@ export default function Home() {
         overlay="left"
       />
 
+      <CTASection />
       <Footer />
     </>
   );

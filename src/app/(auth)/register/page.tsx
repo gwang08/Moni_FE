@@ -22,7 +22,7 @@ export default function RegisterPage() {
         <div className="w-full max-w-md">
           <div className="flex justify-center mb-4">
             <Image
-              src="/logo.png"
+              src="/Moni-logo.png"
               alt="Moni IELTS"
               width={200}
               height={65}

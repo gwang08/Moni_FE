@@ -10,7 +10,7 @@ export function Footer() {
           <div className="flex flex-col h-full">
             <div className="h-6 flex items-center mb-4">
               <Image
-                src="/logo.png"
+                src="/Moni-logo.png"
                 alt="Moni"
                 width={80}
                 height={24}

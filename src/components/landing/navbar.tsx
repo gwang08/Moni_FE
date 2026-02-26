@@ -4,8 +4,8 @@ import { useState, useEffect } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { useAuthStore } from '@/store/auth-store';
-import { UserAvatarDropdown } from '@/components/layout/user-avatar-dropdown';
+import { useAuthStore } from "@/store/auth-store"
+import { UserAvatarDropdown } from "@/components/layout/user-avatar-dropdown"
 
 const navLinks = [
   { label: "Trang chủ", href: "/" },
@@ -16,7 +16,7 @@ const navLinks = [
 
 export function Navbar() {
   const [scrolled, setScrolled] = useState(false)
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated } = useAuthStore()
 
   useEffect(() => {
     const handleScroll = () => {
@@ -37,13 +37,11 @@ export function Navbar() {
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
         <Link href="/">
           <Image
-            src="/logo.png"
+            src="/Moni-logo.png"
             alt="Moni"
             width={100}
             height={40}
-            className={`object-contain transition-all duration-300 ${
-              scrolled ? "" : "brightness-0 invert"
-            }`}
+            className="object-contain rounded-lg"
           />
         </Link>
 
@@ -62,23 +60,21 @@ export function Navbar() {
         </div>
 
         {isAuthenticated ? (
-          <UserAvatarDropdown variant={scrolled ? 'light' : 'dark'} />
+          <UserAvatarDropdown variant={scrolled ? "light" : "dark"} />
         ) : (
           <div className="flex items-center gap-3">
             <Button
               variant="ghost"
               asChild
-              className={scrolled ? "" : "text-white hover:bg-white/20"}
+              className={`rounded-full ${scrolled ? "" : "text-white hover:bg-white/10"}`}
             >
               <Link href="/login">Đăng nhập</Link>
             </Button>
             <Button
               asChild
-              className={
-                scrolled
-                  ? ""
-                  : "bg-white text-black hover:bg-gray-100"
-              }
+              className={`rounded-full ${
+                scrolled ? "" : "bg-white text-black hover:bg-gray-100"
+              }`}
             >
               <Link href="/register">Bắt đầu ngay</Link>
             </Button>

@@ -18,7 +18,7 @@ export function InnerNavbar() {
         {/* Logo */}
         <Link href="/">
           <Image
-            src="/logo.png"
+            src="/Moni-logo.png"
             alt="Moni"
             width={80}
             height={32}

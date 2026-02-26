@@ -7,6 +7,7 @@ import { UserAvatarDropdown } from '@/components/layout/user-avatar-dropdown';
 const navLinks = [
   { label: 'Trang chủ', href: '/' },
   { label: 'Luyện Tập', href: '/practice' },
+  { label: 'Từ vựng', href: '/vocabulary' },
   { label: 'Liên Hệ', href: '/#contact' },
 ];
 

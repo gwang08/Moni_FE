@@ -1,37 +1,19 @@
 'use client';
 
 import { use } from 'react';
-import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { getExerciseById } from '@/data/exercises';
 import { VoiceRecorder } from '@/components/speaking/voice-recorder';
 import { FeedbackDisplay } from '@/components/speaking/feedback-display';
 import { usePracticeStore } from '@/store/practice-store';
 import { useSpeakingStore } from '@/store/speaking-store';
+import { useTestDetail } from '@/hooks/use-test-detail';
 import type { SpeakingFeedback } from '@/types/speaking.types';
 
-const MOCK_PROMPTS: Record<string, { question: string; prepTime: number; speakTime: number }> = {
-  'speaking-1': {
-    question:
-      'Describe a person who has influenced you in your life. You should say: Who this person is, How you know them, What influence they had on you, And explain why this person is important to you.',
-    prepTime: 60,
-    speakTime: 120,
-  },
-  'speaking-2': {
-    question:
-      'Describe a place you like to visit. You should say: Where it is, How often you go there, What you do there, And explain why you like this place.',
-    prepTime: 60,
-    speakTime: 120,
-  },
-  'speaking-3': {
-    question:
-      'Talk about your future career plans. You should say: What career you want to pursue, Why you chose this career, What steps you need to take, And explain how this career will benefit you.',
-    prepTime: 60,
-    speakTime: 120,
-  },
-};
+const DEFAULT_PREP_TIME = 60;
+const DEFAULT_SPEAK_TIME = 120;
+const FALLBACK_QUESTION = 'Hãy trả lời câu hỏi theo chủ đề được giao. Sử dụng ngôn ngữ tự nhiên và rõ ràng.';
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -39,19 +21,33 @@ interface Props {
 
 export default function SpeakingExercisePage({ params }: Props) {
   const { id } = use(params);
-  const exercise = getExerciseById(id);
+  const { testDetail, loading, error } = useTestDetail(id);
   const markCompleted = usePracticeStore((state) => state.markCompleted);
   const { currentRecording, addFeedback } = useSpeakingStore();
 
-  if (!exercise || exercise.skill !== 'speaking') {
-    notFound();
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-orange-600" />
+        <span className="ml-3 text-gray-600">Đang tải bài tập...</span>
+      </div>
+    );
   }
 
-  const prompt = MOCK_PROMPTS[id] || MOCK_PROMPTS['speaking-1'];
+  if (error || !testDetail) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen gap-4">
+        <p className="text-red-500">{error || 'Không tìm thấy bài tập.'}</p>
+        <Link href="/practice"><Button variant="outline">Quay lại danh sách</Button></Link>
+      </div>
+    );
+  }
+
+  const stimuli = testDetail.stimuli[0];
+  const question = stimuli?.content || testDetail.description || FALLBACK_QUESTION;
 
   const handleGetFeedback = () => {
     if (!currentRecording) return;
-
     const mockFeedback: SpeakingFeedback = {
       fluency: 6.5,
       pronunciation: 7.0,
@@ -60,7 +56,6 @@ export default function SpeakingExercisePage({ params }: Props) {
       overallScore: 6.5,
       comments: 'Bạn đã trả lời tốt câu hỏi. Hãy cải thiện độ trôi chảy và sử dụng thêm từ vựng đa dạng.',
     };
-
     addFeedback(currentRecording.id, mockFeedback);
   };
 
@@ -70,12 +65,10 @@ export default function SpeakingExercisePage({ params }: Props) {
         <div className="container mx-auto max-w-4xl flex items-center justify-between">
           <div className="flex items-center gap-4">
             <Link href="/practice">
-              <Button variant="ghost" size="icon">
-                <ArrowLeft className="h-5 w-5" />
-              </Button>
+              <Button variant="ghost" size="icon"><ArrowLeft className="h-5 w-5" /></Button>
             </Link>
             <div>
-              <h1 className="text-xl font-bold">{exercise.title}</h1>
+              <h1 className="text-xl font-bold">{testDetail.title}</h1>
               <p className="text-sm text-muted-foreground">Speaking Part 2</p>
             </div>
           </div>
@@ -84,27 +77,18 @@ export default function SpeakingExercisePage({ params }: Props) {
       </div>
 
       <div className="container mx-auto max-w-4xl p-6 space-y-6">
-        {/* Question card */}
         <div className="bg-white border rounded-lg p-6">
-          <p className="text-muted-foreground mb-4">{prompt.question}</p>
+          <p className="text-muted-foreground mb-4">{question}</p>
           <div className="flex gap-4 text-sm">
-            <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded">
-              Chuẩn bị: {prompt.prepTime}s
-            </span>
-            <span className="px-3 py-1 bg-green-100 text-green-800 rounded">
-              Nói: {prompt.speakTime}s
-            </span>
+            <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded">Chuẩn bị: {DEFAULT_PREP_TIME}s</span>
+            <span className="px-3 py-1 bg-green-100 text-green-800 rounded">Nói: {DEFAULT_SPEAK_TIME}s</span>
           </div>
         </div>
 
-        {/* Recorder */}
-        <VoiceRecorder taskId={id} maxDuration={prompt.speakTime} />
+        <VoiceRecorder taskId={id} maxDuration={DEFAULT_SPEAK_TIME} />
 
-        {/* Feedback section */}
         {currentRecording && !currentRecording.feedback && (
-          <Button onClick={handleGetFeedback} className="w-full">
-            Nhận đánh giá
-          </Button>
+          <Button onClick={handleGetFeedback} className="w-full">Nhận đánh giá</Button>
         )}
 
         {currentRecording?.feedback && (

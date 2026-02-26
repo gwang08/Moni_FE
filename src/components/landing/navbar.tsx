@@ -10,6 +10,7 @@ import { UserAvatarDropdown } from '@/components/layout/user-avatar-dropdown';
 const navLinks = [
   { label: "Trang chủ", href: "/" },
   { label: "Luyện Tập", href: "/practice" },
+  { label: "Từ vựng", href: "/vocabulary" },
   { label: "Liên Hệ", href: "#contact" },
 ]
 
@@ -61,7 +62,7 @@ export function Navbar() {
         </div>
 
         {isAuthenticated ? (
-          <UserAvatarDropdown />
+          <UserAvatarDropdown variant={scrolled ? 'light' : 'dark'} />
         ) : (
           <div className="flex items-center gap-3">
             <Button

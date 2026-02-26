@@ -7,6 +7,7 @@ import type {
   UserProfileResponse,
 } from '@/types/auth.types';
 import { apiClient } from '@/lib/api-client';
+import { getRoleFromToken } from '@/lib/jwt-utils';
 
 export const useAuthStore = create<AuthStore>()(
   persist(
@@ -20,6 +21,8 @@ export const useAuthStore = create<AuthStore>()(
       // Actions
       setAuth: async (token: string, expiryTime: string) => {
         try {
+          const role = getRoleFromToken(token) || 'USER';
+
           // First set the token so apiClient can use it
           set({
             token,
@@ -44,11 +47,10 @@ export const useAuthStore = create<AuthStore>()(
             avatarUrl: userProfile.avatar_url,
             phoneNumber: userProfile.phoneNumber,
             dateOfBirth: userProfile.dateOfBirth,
+            role,
           };
 
-          set({
-            user,
-          });
+          set({ user });
         } catch (error) {
           console.error('Failed to set auth:', error);
           get().clearAuth();
@@ -64,7 +66,6 @@ export const useAuthStore = create<AuthStore>()(
             await apiClient.post('/auth/logout', { token }, true);
           } catch (error) {
             console.error('Logout API call failed:', error);
-            // Continue with local logout even if API fails
           }
         }
 
@@ -78,7 +79,6 @@ export const useAuthStore = create<AuthStore>()(
           return false;
         }
 
-        // Check if token expired
         const now = new Date();
         if (now >= expiryTime) {
           get().clearAuth();
@@ -96,10 +96,43 @@ export const useAuthStore = create<AuthStore>()(
           isAuthenticated: false,
         });
       },
+
+      updateUser: (data: Partial<User>) => {
+        const { user } = get();
+        if (user) {
+          set({ user: { ...user, ...data } });
+        }
+      },
+
+      refreshProfile: async () => {
+        try {
+          const response = await apiClient.get<ApiResponse<UserProfileResponse>>(
+            '/users/me',
+            true
+          );
+          if (!response.result) return;
+
+          const { token } = get();
+          const role = token ? (getRoleFromToken(token) || 'USER') : 'USER';
+          const userProfile = response.result;
+
+          set({
+            user: {
+              email: userProfile.email,
+              fullName: userProfile.full_name,
+              avatarUrl: userProfile.avatar_url,
+              phoneNumber: userProfile.phoneNumber,
+              dateOfBirth: userProfile.dateOfBirth,
+              role,
+            },
+          });
+        } catch (error) {
+          console.error('Failed to refresh profile:', error);
+        }
+      },
     }),
     {
       name: 'auth-storage',
-      // Only persist specific fields
       partialize: (state) => ({
         token: state.token,
         expiryTime: state.expiryTime,

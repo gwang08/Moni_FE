@@ -38,6 +38,19 @@ export interface ApiResponse<T> {
   code?: number;
 }
 
+export interface UpdateProfileRequest {
+  fullName?: string;
+  phoneNumber?: string;
+  dateOfBirth?: string;
+  avatarUrl?: string;
+  targetBand?: number;
+}
+
+export interface ChangePasswordRequest {
+  currentPassword: string;
+  newPassword: string;
+}
+
 // Store Types
 export interface User {
   email: string;
@@ -45,6 +58,7 @@ export interface User {
   avatarUrl: string | null;
   phoneNumber: string | null;
   dateOfBirth: string | null;
+  role: string;
 }
 
 export interface AuthState {
@@ -59,6 +73,8 @@ export interface AuthActions {
   logout: () => Promise<void>;
   checkAuth: () => boolean;
   clearAuth: () => void;
+  updateUser: (data: Partial<User>) => void;
+  refreshProfile: () => Promise<void>;
 }
 
 export type AuthStore = AuthState & AuthActions;

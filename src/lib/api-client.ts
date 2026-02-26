@@ -122,6 +122,38 @@ export class ApiClient {
   async delete<T>(endpoint: string, requiresAuth = false): Promise<T> {
     return this.request<T>(endpoint, { method: 'DELETE', requiresAuth });
   }
+
+  async upload<T>(endpoint: string, file: File): Promise<T> {
+    const token = this.getAuthToken();
+    if (!token) {
+      throw new ApiError(401, undefined, 'No authentication token found');
+    }
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const url = `${this.baseUrl}${endpoint}`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: formData,
+    });
+
+    const contentType = response.headers.get('content-type');
+    if (!contentType?.includes('application/json')) {
+      if (!response.ok) {
+        throw new ApiError(response.status, undefined, 'Upload failed');
+      }
+      return {} as T;
+    }
+
+    const data = await response.json();
+    if (!response.ok) {
+      throw new ApiError(response.status, data.code, data.message || 'Upload failed');
+    }
+
+    return data;
+  }
 }
 
 // Export singleton instance

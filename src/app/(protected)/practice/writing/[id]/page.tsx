@@ -1,24 +1,16 @@
 'use client';
 
 import { use, useState } from 'react';
-import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { getExerciseById } from '@/data/exercises';
 import { WritingEditor } from '@/components/writing/writing-editor';
 import { GradingModal } from '@/components/writing/grading-modal';
 import { useWritingStore } from '@/store/writing-store';
 import { usePracticeStore } from '@/store/practice-store';
+import { useTestDetail } from '@/hooks/use-test-detail';
 
-const MOCK_PROMPTS: Record<string, string> = {
-  'writing-1':
-    'Some people think that the best way to improve public health is by increasing the number of sports facilities. Others, however, believe that this would have little effect on public health and that other measures are required. Discuss both views and give your own opinion.',
-  'writing-2':
-    'In many countries, online learning has become increasingly popular. Some people believe that online education will eventually replace traditional classroom teaching. To what extent do you agree or disagree?',
-  'writing-3':
-    "Some people think that individuals are responsible for protecting the environment, while others believe it is the government's responsibility. Discuss both views and give your opinion.",
-};
+const FALLBACK_PROMPT = 'Hãy viết một bài luận bày tỏ quan điểm của bạn về chủ đề được đề cập.';
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -26,17 +18,32 @@ interface Props {
 
 export default function WritingExercisePage({ params }: Props) {
   const { id } = use(params);
-  const exercise = getExerciseById(id);
+  const { testDetail, loading, error } = useTestDetail(id);
   const markCompleted = usePracticeStore((state) => state.markCompleted);
   const { wordCount, submitForGrading, gradingResult } = useWritingStore();
   const [showGrading, setShowGrading] = useState(false);
 
-  if (!exercise || exercise.skill !== 'writing') {
-    notFound();
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-green-600" />
+        <span className="ml-3 text-gray-600">Đang tải bài tập...</span>
+      </div>
+    );
   }
 
-  const prompt = MOCK_PROMPTS[id] || MOCK_PROMPTS['writing-1'];
-  const minWords = exercise.minWords || 250;
+  if (error || !testDetail) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen gap-4">
+        <p className="text-red-500">{error || 'Không tìm thấy bài tập.'}</p>
+        <Link href="/practice"><Button variant="outline">Quay lại danh sách</Button></Link>
+      </div>
+    );
+  }
+
+  const stimuli = testDetail.stimuli[0];
+  const prompt = stimuli?.content || testDetail.description || FALLBACK_PROMPT;
+  const minWords = 250;
 
   const handleSubmit = () => {
     submitForGrading();
@@ -50,48 +57,30 @@ export default function WritingExercisePage({ params }: Props) {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
       <div className="bg-white border-b p-4">
         <div className="container mx-auto max-w-4xl flex items-center justify-between">
           <div className="flex items-center gap-4">
             <Link href="/practice">
-              <Button variant="ghost" size="icon">
-                <ArrowLeft className="h-5 w-5" />
-              </Button>
+              <Button variant="ghost" size="icon"><ArrowLeft className="h-5 w-5" /></Button>
             </Link>
             <div>
-              <h1 className="text-xl font-bold">{exercise.title}</h1>
-              <p className="text-sm text-muted-foreground">
-                {wordCount} / {minWords} từ
-              </p>
+              <h1 className="text-xl font-bold">{testDetail.title}</h1>
+              <p className="text-sm text-muted-foreground">{wordCount} / {minWords} từ</p>
             </div>
           </div>
           <div className="flex gap-2">
-            <Button
-              onClick={handleSubmit}
-              disabled={wordCount < minWords}
-            >
-              Chấm điểm
-            </Button>
-            <Button onClick={() => markCompleted(id)} variant="outline">
-              Hoàn thành
-            </Button>
+            <Button onClick={handleSubmit} disabled={wordCount < minWords}>Chấm điểm</Button>
+            <Button onClick={() => markCompleted(id)} variant="outline">Hoàn thành</Button>
           </div>
         </div>
       </div>
 
-      {/* Content */}
       <div className="container mx-auto max-w-4xl p-6">
         <WritingEditor taskPrompt={prompt} />
       </div>
 
-      {/* Grading Modal */}
       {gradingResult && (
-        <GradingModal
-          isOpen={showGrading}
-          onClose={handleComplete}
-          result={gradingResult}
-        />
+        <GradingModal isOpen={showGrading} onClose={handleComplete} result={gradingResult} />
       )}
     </div>
   );

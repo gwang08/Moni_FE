@@ -26,12 +26,12 @@ export default function AdminDashboardPage() {
         const [testsData, tagsData, usersData] = await Promise.all([
           getTests(1, 1),
           getTags(),
-          getUsers(1, 1),
+          getUsers(),
         ]);
         setStats({
           tests: testsData.totalElements,
           tags: tagsData.length,
-          users: usersData.totalElements,
+          users: usersData.length,
         });
       } catch {
         setError('Không thể tải dữ liệu thống kê');

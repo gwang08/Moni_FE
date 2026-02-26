@@ -3,10 +3,9 @@
 import { useRef, useState } from 'react';
 import { Loader2, Upload } from 'lucide-react';
 import { uploadMedia } from '@/lib/admin-api';
-import type { MediaResponse } from '@/types/admin.types';
 
 interface Props {
-  onUploaded: (media: MediaResponse) => void;
+  onUploaded: (url: string) => void;
 }
 
 export function MediaUploadZone({ onUploaded }: Props) {
@@ -19,8 +18,8 @@ export function MediaUploadZone({ onUploaded }: Props) {
     setUploading(true);
     setError('');
     try {
-      const media = await uploadMedia(file);
-      onUploaded(media);
+      const url = await uploadMedia(file);
+      onUploaded(url);
     } catch {
       setError('Tải lên thất bại. Vui lòng thử lại.');
     } finally {

@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { apiClient } from '@/lib/api-client';
 import { formatApiError } from '@/lib/error-messages';
+import { getRoleFromToken } from '@/lib/jwt-utils';
 import type { ApiResponse, AuthenticationResponse } from '@/types/auth.types';
 import Link from 'next/link';
 import { Loader2 } from 'lucide-react';
@@ -46,7 +47,8 @@ export function LoginForm() {
       const { token, expiryTime } = response.result;
       await setAuth(token, expiryTime);
 
-      router.push('/');
+      const role = getRoleFromToken(token);
+      router.push(role === 'ADMIN' ? '/admin' : '/');
     } catch (err) {
       setError(formatApiError(err));
     } finally {

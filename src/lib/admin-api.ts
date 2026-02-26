@@ -6,9 +6,7 @@ import type {
   TestImportRequest,
   TestUpdateRequest,
   UserResponse,
-  MediaResponse,
 } from '@/types/admin.types';
-import type { PagedResponse } from '@/types/test.types';
 
 // Tags
 export async function getTags(): Promise<TagResponse[]> {
@@ -54,13 +52,10 @@ export async function deleteTest(id: string): Promise<void> {
   await apiClient.delete(`/api/v1/admin/tests/${id}`, true);
 }
 
-// Users
-export async function getUsers(
-  page = 1,
-  size = 20
-): Promise<PagedResponse<UserResponse>> {
-  const response = await apiClient.get<ApiResponse<PagedResponse<UserResponse>>>(
-    `/api/v1/admin/users?page=${page}&size=${size}`,
+// Users - backend: GET /users (returns List<UserProfileResponse>, not paged)
+export async function getUsers(): Promise<UserResponse[]> {
+  const response = await apiClient.get<ApiResponse<UserResponse[]>>(
+    '/users',
     true
   );
   if (!response.result) throw new Error('Failed to fetch users');
@@ -68,28 +63,19 @@ export async function getUsers(
 }
 
 export async function banUser(userId: string): Promise<void> {
-  await apiClient.put(`/api/v1/admin/users/${userId}/ban`, undefined, true);
+  await apiClient.put(`/users/${userId}/ban`, undefined, true);
 }
 
-// Media
-export async function uploadMedia(file: File): Promise<MediaResponse> {
-  const response = await apiClient.upload<ApiResponse<MediaResponse>>(
-    '/api/v1/media/upload',
+// Media - backend: /api/v1/admin/media (upload + delete only, no list endpoint)
+export async function uploadMedia(file: File): Promise<string> {
+  const response = await apiClient.upload<ApiResponse<string>>(
+    '/api/v1/admin/media/upload',
     file
   );
   if (!response.result) throw new Error('Failed to upload media');
   return response.result;
 }
 
-export async function getMediaList(): Promise<MediaResponse[]> {
-  const response = await apiClient.get<ApiResponse<MediaResponse[]>>(
-    '/api/v1/media',
-    true
-  );
-  if (!response.result) throw new Error('Failed to fetch media');
-  return response.result;
-}
-
-export async function deleteMedia(id: string): Promise<void> {
-  await apiClient.delete(`/api/v1/media/${id}`, true);
+export async function deleteMedia(url: string): Promise<void> {
+  await apiClient.delete(`/api/v1/admin/media?url=${encodeURIComponent(url)}`, true);
 }

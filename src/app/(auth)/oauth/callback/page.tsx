@@ -1,17 +1,17 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { Suspense, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuthStore } from '@/store/auth-store';
 import { apiClient } from '@/lib/api-client';
+import { getRoleFromToken } from '@/lib/jwt-utils';
 import type { ApiResponse, AuthenticationResponse } from '@/types/auth.types';
 import { Loader2 } from 'lucide-react';
 
-export default function OAuthCallbackPage() {
+function OAuthCallbackContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { setAuth } = useAuthStore();
-  // Prevent double-execution in React Strict Mode
   const hasRun = useRef(false);
 
   useEffect(() => {
@@ -37,7 +37,9 @@ export default function OAuthCallbackPage() {
 
         const { token, expiryTime } = response.result;
         await setAuth(token, expiryTime);
-        router.replace('/');
+
+        const role = getRoleFromToken(token);
+        router.replace(role === 'ADMIN' ? '/admin' : '/');
       } catch {
         router.replace('/login');
       }
@@ -51,5 +53,20 @@ export default function OAuthCallbackPage() {
       <Loader2 className="h-10 w-10 animate-spin text-primary" />
       <p className="text-muted-foreground text-sm">Đang xác thực tài khoản...</p>
     </div>
+  );
+}
+
+export default function OAuthCallbackPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex flex-col items-center justify-center gap-4">
+          <Loader2 className="h-10 w-10 animate-spin text-primary" />
+          <p className="text-muted-foreground text-sm">Đang xác thực tài khoản...</p>
+        </div>
+      }
+    >
+      <OAuthCallbackContent />
+    </Suspense>
   );
 }

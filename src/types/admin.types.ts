@@ -55,22 +55,12 @@ export interface TestUpdateRequest {
   tagIds?: string[];
 }
 
+// Matches backend UserProfileResponse (snake_case fields)
 export interface UserResponse {
-  id: string;
   email: string;
-  fullName: string;
-  avatarUrl: string | null;
+  full_name: string | null;
+  avatar_url: string | null;
   phoneNumber: string | null;
-  dateOfBirth: string;
-  isBanned: boolean;
-  createdAt: string;
-}
-
-export interface MediaResponse {
-  id: string;
-  fileName: string;
-  url: string;
-  contentType: string;
-  size: number;
-  createdAt: string;
+  dateOfBirth: string | null;
+  targetBand: number | null;
 }

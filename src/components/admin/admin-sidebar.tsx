@@ -1,9 +1,10 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { LayoutDashboard, FileText, Tag, Users, Image, ArrowLeft } from 'lucide-react';
+import { usePathname, useRouter } from 'next/navigation';
+import { LayoutDashboard, FileText, Tag, Users, Image, LogOut } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useAuthStore } from '@/store/auth-store';
 
 const navItems = [
   { href: '/admin', label: 'Dashboard', icon: LayoutDashboard },
@@ -15,6 +16,13 @@ const navItems = [
 
 export function AdminSidebar() {
   const pathname = usePathname();
+  const router = useRouter();
+  const { logout, user } = useAuthStore();
+
+  const handleLogout = async () => {
+    await logout();
+    router.push('/login');
+  };
 
   const isActive = (href: string) => {
     if (href === '/admin') return pathname === '/admin';
@@ -46,14 +54,20 @@ export function AdminSidebar() {
         ))}
       </nav>
 
-      <div className="p-4 border-t border-gray-700">
-        <Link
-          href="/"
-          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-300 hover:bg-gray-800 hover:text-white transition-colors"
+      <div className="p-4 border-t border-gray-700 space-y-2">
+        {user && (
+          <div className="px-3 py-2">
+            <p className="text-sm font-medium text-white truncate">{user.fullName || 'Admin'}</p>
+            <p className="text-xs text-gray-400 truncate">{user.email}</p>
+          </div>
+        )}
+        <button
+          onClick={handleLogout}
+          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-red-400 hover:bg-red-900/30 hover:text-red-300 transition-colors w-full"
         >
-          <ArrowLeft className="h-4 w-4 shrink-0" />
-          Quay lại trang chính
-        </Link>
+          <LogOut className="h-4 w-4 shrink-0" />
+          Đăng xuất
+        </button>
       </div>
     </aside>
   );

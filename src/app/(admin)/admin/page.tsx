@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import type { ElementType } from 'react';
 import { LayoutDashboard, FileText, Tag, Users } from 'lucide-react';
 import { Loader2 } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
 import { getTests } from '@/lib/tests-api';
 import { getTags, getUsers } from '@/lib/admin-api';
 import { AdminHeader } from '@/components/admin/admin-header';
@@ -16,48 +16,38 @@ interface StatCard {
 }
 
 export default function AdminDashboardPage() {
-  const [stats, setStats] = useState({ tests: 0, tags: 0, users: 0 });
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-
-  useEffect(() => {
-    async function fetchStats() {
-      try {
-        const [testsData, tagsData, usersData] = await Promise.all([
-          getTests(1, 1),
-          getTags(),
-          getUsers(),
-        ]);
-        setStats({
-          tests: testsData.totalElements,
-          tags: tagsData.length,
-          users: usersData.length,
-        });
-      } catch {
-        setError('Không thể tải dữ liệu thống kê');
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchStats();
-  }, []);
+  const { data: stats, isLoading, error } = useQuery({
+    queryKey: ['admin', 'dashboard-stats'],
+    queryFn: async () => {
+      const [testsData, tagsData, usersData] = await Promise.all([
+        getTests(1, 1),
+        getTags(),
+        getUsers(),
+      ]);
+      return {
+        tests: testsData.totalElements,
+        tags: tagsData.length,
+        users: usersData.length,
+      };
+    },
+  });
 
   const cards: StatCard[] = [
-    { label: 'Tổng bài thi', value: stats.tests, icon: FileText, color: 'bg-blue-500' },
-    { label: 'Tổng tags', value: stats.tags, icon: Tag, color: 'bg-green-500' },
-    { label: 'Tổng người dùng', value: stats.users, icon: Users, color: 'bg-purple-500' },
+    { label: 'Tổng bài thi', value: stats?.tests ?? 0, icon: FileText, color: 'bg-blue-500' },
+    { label: 'Tổng tags', value: stats?.tags ?? 0, icon: Tag, color: 'bg-green-500' },
+    { label: 'Tổng người dùng', value: stats?.users ?? 0, icon: Users, color: 'bg-purple-500' },
   ];
 
   return (
     <div>
       <AdminHeader title="Dashboard" />
       <div className="p-6">
-        {loading ? (
+        {isLoading ? (
           <div className="flex justify-center py-12">
             <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
           </div>
         ) : error ? (
-          <p className="text-red-500 text-center py-12">{error}</p>
+          <p className="text-red-500 text-center py-12">Không thể tải dữ liệu thống kê</p>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {cards.map(({ label, value, icon: Icon, color }) => (

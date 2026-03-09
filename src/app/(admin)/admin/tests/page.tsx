@@ -1,54 +1,41 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Loader2, Plus, Eye, Pencil, Trash2 } from 'lucide-react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { AdminHeader } from '@/components/admin/admin-header';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { getTests } from '@/lib/tests-api';
 import { deleteTest } from '@/lib/admin-api';
-import type { TestResponse } from '@/types/test.types';
+import { toast } from 'sonner';
 
 export default function AdminTestsPage() {
   const router = useRouter();
-  const [tests, setTests] = useState<TestResponse[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [confirmId, setConfirmId] = useState<string | null>(null);
-  const [error, setError] = useState('');
 
-  const fetchTests = async (p: number) => {
-    setLoading(true);
-    setError('');
-    try {
-      const data = await getTests(p, 20);
-      setTests(data.content);
-      setTotalPages(data.totalPages);
-    } catch {
-      setError('Không thể tải danh sách bài thi');
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['admin', 'tests', page],
+    queryFn: () => getTests(page, 20),
+  });
 
-  useEffect(() => { fetchTests(page); }, [page]);
+  const tests = data?.content ?? [];
+  const totalPages = data?.totalPages ?? 1;
 
-  const handleDelete = async (id: string) => {
-    setDeletingId(id);
-    try {
-      await deleteTest(id);
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => deleteTest(id),
+    onSuccess: () => {
+      toast.success('Đã xóa bài thi');
+      queryClient.invalidateQueries({ queryKey: ['admin', 'tests'] });
       setConfirmId(null);
-      fetchTests(page);
-    } catch {
-      setError('Xóa bài thi thất bại');
-    } finally {
-      setDeletingId(null);
-    }
-  };
+    },
+    onError: () => toast.error('Xóa bài thi thất bại'),
+  });
 
   return (
     <div>
@@ -62,9 +49,9 @@ export default function AdminTestsPage() {
           </Button>
         </div>
 
-        {error && <p className="text-red-500 mb-4 text-sm">{error}</p>}
+        {error && <p className="text-red-500 mb-4 text-sm">Không thể tải danh sách bài thi</p>}
 
-        {loading ? (
+        {isLoading ? (
           <div className="flex justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-blue-600" /></div>
         ) : (
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
@@ -116,20 +103,17 @@ export default function AdminTestsPage() {
           </div>
         )}
 
-        {confirmId && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-xl p-6 max-w-sm w-full mx-4 shadow-xl">
-              <h3 className="text-lg font-semibold mb-2">Xác nhận xóa</h3>
-              <p className="text-gray-600 text-sm mb-6">Bạn có chắc muốn xóa bài thi này? Hành động không thể hoàn tác.</p>
-              <div className="flex gap-3 justify-end">
-                <Button variant="outline" onClick={() => setConfirmId(null)}>Hủy</Button>
-                <Button variant="destructive" disabled={!!deletingId} onClick={() => handleDelete(confirmId)}>
-                  {deletingId ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Xóa'}
-                </Button>
-              </div>
-            </div>
-          </div>
-        )}
+        <ConfirmDialog
+          open={!!confirmId}
+          onOpenChange={(open) => !open && setConfirmId(null)}
+          title="Xác nhận xóa"
+          description="Bạn có chắc muốn xóa bài thi này? Hành động không thể hoàn tác."
+          confirmText="Xóa"
+          variant="destructive"
+          onConfirm={() => {
+            if (confirmId) return deleteMutation.mutateAsync(confirmId);
+          }}
+        />
       </div>
     </div>
   );

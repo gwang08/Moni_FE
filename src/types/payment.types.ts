@@ -1,28 +1,26 @@
 export interface PackagePricingResponse {
-  id: string;
+  id: number;
   name: string;
-  credits: number;
   price: number;
-  description: string;
+  creditAmount: number;
   isActive: boolean;
 }
 
 export interface PaymentInitResponse {
-  paymentId: string;
-  qrCodeUrl: string;
+  id: number;
+  txnCode: string;
   amount: number;
-  content: string;
-  expiresAt: string;
+  qrCodeUrl: string;
+  expiredAt: string;
 }
 
 export interface PaymentResponse {
-  id: string;
+  id: number;
+  packageId: number;
+  txnCode: string;
   amount: number;
-  credits: number;
+  updatedAt: string;
   status: string;
-  packageName: string;
-  createdAt: string;
-  completedAt: string | null;
 }
 
 export interface CreditTransactionResponse {
@@ -35,42 +33,36 @@ export interface CreditTransactionResponse {
 }
 
 export interface ServicePricingResponse {
-  id: string;
-  serviceName: string;
+  id: number;
   serviceCode: string;
-  creditCost: number;
+  name: string;
   description: string;
-  isActive: boolean;
+  creditCost: number;
 }
 
 export interface PackagePricingCreateRequest {
   name: string;
-  credits: number;
   price: number;
-  description: string;
-  isActive?: boolean;
+  creditAmount: number;
 }
 
 export interface PackagePricingUpdateRequest {
   name?: string;
-  credits?: number;
   price?: number;
-  description?: string;
+  creditAmount?: number;
   isActive?: boolean;
 }
 
 export interface ServicePricingCreateRequest {
-  serviceName: string;
   serviceCode: string;
+  name: string;
+  description?: string;
   creditCost: number;
-  description: string;
-  isActive?: boolean;
 }
 
 export interface ServicePricingUpdateRequest {
-  serviceName?: string;
-  serviceCode?: string;
-  creditCost?: number;
+  serviceCode: string;
+  name: string;
   description?: string;
-  isActive?: boolean;
+  creditCost: number;
 }

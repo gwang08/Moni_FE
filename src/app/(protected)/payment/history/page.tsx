@@ -11,16 +11,17 @@ import type { PaymentResponse } from '@/types/payment.types';
 const formatVND = (price: number) =>
   new Intl.NumberFormat('vi-VN').format(price) + ' đ';
 
-const formatDate = (dateStr: string) =>
-  new Date(dateStr).toLocaleString('vi-VN');
+const formatDate = (dateStr: string | null) =>
+  dateStr ? new Date(dateStr).toLocaleString('vi-VN') : '—';
 
-type StatusKey = 'COMPLETED' | 'PENDING' | 'FAILED' | 'EXPIRED';
+type StatusKey = 'SUCCESS' | 'PENDING' | 'FAILED' | 'CANCELLED' | 'EXPIRED';
 
 const STATUS_CONFIG: Record<StatusKey, { label: string; className: string }> = {
-  COMPLETED: { label: 'Thành công', className: 'bg-green-100 text-green-700 border-green-200' },
+  SUCCESS:   { label: 'Thành công', className: 'bg-green-100 text-green-700 border-green-200' },
   PENDING:   { label: 'Chờ xử lý', className: 'bg-yellow-100 text-yellow-700 border-yellow-200' },
   FAILED:    { label: 'Thất bại',  className: 'bg-red-100 text-red-700 border-red-200' },
-  EXPIRED:   { label: 'Hết hạn',  className: 'bg-gray-100 text-gray-600 border-gray-200' },
+  CANCELLED: { label: 'Đã hủy',   className: 'bg-gray-100 text-gray-600 border-gray-200' },
+  EXPIRED:   { label: 'Hết hạn',   className: 'bg-gray-100 text-gray-600 border-gray-200' },
 };
 
 function StatusBadge({ status }: { status: string }) {
@@ -70,7 +71,7 @@ export default function PaymentHistoryPage() {
           <table className="w-full text-sm">
             <thead className="bg-gray-50 border-b">
               <tr>
-                {['Gói', 'Số tiền', 'Tín dụng', 'Trạng thái', 'Ngày tạo', 'Hoàn thành'].map((h) => (
+                {['Mã GD', 'Số tiền', 'Trạng thái', 'Cập nhật'].map((h) => (
                   <th key={h} className="text-left px-4 py-3 font-medium text-gray-600">{h}</th>
                 ))}
               </tr>
@@ -78,19 +79,15 @@ export default function PaymentHistoryPage() {
             <tbody className="divide-y">
               {payments.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="text-center py-10 text-gray-400">Chưa có giao dịch nào</td>
+                  <td colSpan={4} className="text-center py-10 text-gray-400">Chưa có giao dịch nào</td>
                 </tr>
               ) : (
                 payments.map((p) => (
                   <tr key={p.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-4 py-3 font-medium">{p.packageName}</td>
+                    <td className="px-4 py-3 font-mono font-medium">{p.txnCode}</td>
                     <td className="px-4 py-3">{formatVND(p.amount)}</td>
-                    <td className="px-4 py-3">{p.credits.toLocaleString('vi-VN')}</td>
                     <td className="px-4 py-3"><StatusBadge status={p.status} /></td>
-                    <td className="px-4 py-3 text-gray-500">{formatDate(p.createdAt)}</td>
-                    <td className="px-4 py-3 text-gray-500">
-                      {p.completedAt ? formatDate(p.completedAt) : '—'}
-                    </td>
+                    <td className="px-4 py-3 text-gray-500">{formatDate(p.updatedAt)}</td>
                   </tr>
                 ))
               )}

@@ -2,9 +2,10 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { LayoutDashboard, FileText, Tag, Users, Image, LogOut } from 'lucide-react';
+import { LayoutDashboard, FileText, Tag, Users, Image, LogOut, Package, Cog } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/store/auth-store';
+import { toast } from 'sonner';
 
 const navItems = [
   { href: '/admin', label: 'Dashboard', icon: LayoutDashboard },
@@ -12,6 +13,8 @@ const navItems = [
   { href: '/admin/tags', label: 'Tags', icon: Tag },
   { href: '/admin/users', label: 'Người dùng', icon: Users },
   { href: '/admin/media', label: 'Media', icon: Image },
+  { href: '/admin/packages', label: 'Gói credits', icon: Package },
+  { href: '/admin/services', label: 'Dịch vụ', icon: Cog },
 ];
 
 export function AdminSidebar() {
@@ -19,8 +22,9 @@ export function AdminSidebar() {
   const router = useRouter();
   const { logout, user } = useAuthStore();
 
-  const handleLogout = async () => {
-    await logout();
+  const handleLogout = () => {
+    toast.success('Đăng xuất thành công!');
+    logout();
     router.push('/login');
   };
 

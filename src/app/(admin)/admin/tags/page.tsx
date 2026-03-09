@@ -1,51 +1,44 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Loader2, Plus, Pencil, Trash2 } from 'lucide-react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { AdminHeader } from '@/components/admin/admin-header';
 import { TagFormDialog } from '@/components/admin/tag-form-dialog';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { getTags, deleteTag } from '@/lib/admin-api';
+import { toast } from 'sonner';
 import type { TagResponse } from '@/types/admin.types';
 
 export default function AdminTagsPage() {
-  const [tags, setTags] = useState<TagResponse[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingTag, setEditingTag] = useState<TagResponse | undefined>();
   const [confirmId, setConfirmId] = useState<string | null>(null);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  const fetchTags = async () => {
-    setLoading(true);
-    setError('');
-    try {
-      setTags(await getTags());
-    } catch {
-      setError('Không thể tải danh sách tags');
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { data: tags = [], isLoading, error } = useQuery({
+    queryKey: ['admin', 'tags'],
+    queryFn: getTags,
+  });
 
-  useEffect(() => { fetchTags(); }, []);
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => deleteTag(id),
+    onSuccess: () => {
+      toast.success('Đã xóa tag');
+      queryClient.invalidateQueries({ queryKey: ['admin', 'tags'] });
+      setConfirmId(null);
+    },
+    onError: () => toast.error('Xóa tag thất bại'),
+  });
 
   const openCreate = () => { setEditingTag(undefined); setDialogOpen(true); };
   const openEdit = (tag: TagResponse) => { setEditingTag(tag); setDialogOpen(true); };
 
-  const handleDelete = async (id: string) => {
-    setDeletingId(id);
-    try {
-      await deleteTag(id);
-      setConfirmId(null);
-      setTags(prev => prev.filter(t => t.id !== id));
-    } catch {
-      setError('Xóa tag thất bại');
-    } finally {
-      setDeletingId(null);
-    }
+  const handleTagSuccess = () => {
+    queryClient.invalidateQueries({ queryKey: ['admin', 'tags'] });
+    toast.success(editingTag ? 'Đã cập nhật tag' : 'Đã tạo tag mới');
   };
 
   return (
@@ -57,9 +50,9 @@ export default function AdminTagsPage() {
           <Button onClick={openCreate}><Plus className="h-4 w-4" /> Tạo tag</Button>
         </div>
 
-        {error && <p className="text-red-500 mb-4 text-sm">{error}</p>}
+        {error && <p className="text-red-500 mb-4 text-sm">Không thể tải danh sách tags</p>}
 
-        {loading ? (
+        {isLoading ? (
           <div className="flex justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-blue-600" /></div>
         ) : (
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
@@ -98,22 +91,24 @@ export default function AdminTagsPage() {
           </div>
         )}
 
-        <TagFormDialog open={dialogOpen} onOpenChange={setDialogOpen} tag={editingTag} onSuccess={fetchTags} />
+        <TagFormDialog
+          open={dialogOpen}
+          onOpenChange={setDialogOpen}
+          tag={editingTag}
+          onSuccess={handleTagSuccess}
+        />
 
-        {confirmId && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-xl p-6 max-w-sm w-full mx-4 shadow-xl">
-              <h3 className="text-lg font-semibold mb-2">Xác nhận xóa tag</h3>
-              <p className="text-gray-600 text-sm mb-6">Bạn có chắc muốn xóa tag này?</p>
-              <div className="flex gap-3 justify-end">
-                <Button variant="outline" onClick={() => setConfirmId(null)}>Hủy</Button>
-                <Button variant="destructive" disabled={!!deletingId} onClick={() => handleDelete(confirmId)}>
-                  {deletingId ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Xóa'}
-                </Button>
-              </div>
-            </div>
-          </div>
-        )}
+        <ConfirmDialog
+          open={!!confirmId}
+          onOpenChange={(open) => !open && setConfirmId(null)}
+          title="Xác nhận xóa tag"
+          description="Bạn có chắc muốn xóa tag này?"
+          confirmText="Xóa"
+          variant="destructive"
+          onConfirm={() => {
+            if (confirmId) return deleteMutation.mutateAsync(confirmId);
+          }}
+        />
       </div>
     </div>
   );

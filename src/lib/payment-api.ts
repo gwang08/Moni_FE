@@ -33,14 +33,12 @@ export async function deletePackage(id: string): Promise<void> {
   await apiClient.delete(`/packages/${id}`, true);
 }
 
-export async function initPayment(packageId: string): Promise<PaymentInitResponse> {
-  const response = await apiClient.post<ApiResponse<PaymentInitResponse>>(
+export async function initPayment(packageId: number, amount: number): Promise<PaymentInitResponse> {
+  return apiClient.post<PaymentInitResponse>(
     '/payments/init',
-    { packageId },
+    { packageId, amount },
     true
   );
-  if (!response.result) throw new Error('Failed to init payment');
-  return response.result;
 }
 
 export async function getPaymentStatus(paymentId: string): Promise<PaymentResponse> {

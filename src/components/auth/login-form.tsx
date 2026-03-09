@@ -10,6 +10,7 @@ import { formatApiError } from '@/lib/error-messages';
 import { getRoleFromToken } from '@/lib/jwt-utils';
 import type { ApiResponse, AuthenticationResponse } from '@/types/auth.types';
 import { Loader2, Eye, EyeOff } from 'lucide-react';
+import { toast } from 'sonner';
 
 const GOOGLE_OAUTH_URL =
   'https://accounts.google.com/o/oauth2/v2/auth' +
@@ -42,8 +43,10 @@ export function LoginForm() {
 
       const { token, expiryTime } = response.result;
       await setAuth(token, expiryTime);
+      toast.success('Đăng nhập thành công!');
       router.push(getRoleFromToken(token) === 'ADMIN' ? '/admin' : '/');
     } catch (err) {
+      toast.error(formatApiError(err));
       setError(formatApiError(err));
     } finally {
       setLoading(false);

@@ -64,3 +64,26 @@ export interface UserResponse {
   dateOfBirth: string | null;
   targetBand: number | null;
 }
+
+export interface StimulusCreateRequest {
+  content: string;
+  mediaUrl?: string;
+  orderIndex: number;
+  questions: QuestionRequest[];
+}
+
+export interface StimulusResponse {
+  id: number;
+  content: string;
+  mediaUrl: string | null;
+  orderIndex: number;
+  createdAt: string;
+}
+
+export interface QuestionUpdateRequest {
+  content?: string;
+  questionType?: string;
+  orderIndex?: number;
+  options?: OptionRequest[];
+  tagIds?: string[];
+}

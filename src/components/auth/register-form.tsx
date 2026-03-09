@@ -8,6 +8,7 @@ import { apiClient } from '@/lib/api-client';
 import { formatApiError } from '@/lib/error-messages';
 import type { ApiResponse, RegisterRequest, UserProfileResponse } from '@/types/auth.types';
 import { Loader2, Eye, EyeOff } from 'lucide-react';
+import { toast } from 'sonner';
 
 export function RegisterForm() {
   const [formData, setFormData] = useState({
@@ -55,9 +56,14 @@ export function RegisterForm() {
         dateOfBirth: formData.dateOfBirth,
         phoneNumber: formData.phoneNumber || undefined,
       };
-      await apiClient.post<ApiResponse<UserProfileResponse>>('/credentials/register', payload);
-      router.push('/login?registered=true');
+      await apiClient.post<ApiResponse<UserProfileResponse>>(
+        '/credentials/register',
+        payload
+      );
+      toast.success('Đăng ký thành công! Vui lòng đăng nhập.');
+      router.push('/login');
     } catch (err) {
+      toast.error(formatApiError(err));
       setError(formatApiError(err));
     } finally {
       setLoading(false);

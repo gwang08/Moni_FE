@@ -37,7 +37,40 @@ export interface CreditTransactionResponse {
 export interface ServicePricingResponse {
   id: string;
   serviceName: string;
+  serviceCode: string;
   creditCost: number;
   description: string;
   isActive: boolean;
+}
+
+export interface PackagePricingCreateRequest {
+  name: string;
+  credits: number;
+  price: number;
+  description: string;
+  isActive?: boolean;
+}
+
+export interface PackagePricingUpdateRequest {
+  name?: string;
+  credits?: number;
+  price?: number;
+  description?: string;
+  isActive?: boolean;
+}
+
+export interface ServicePricingCreateRequest {
+  serviceName: string;
+  serviceCode: string;
+  creditCost: number;
+  description: string;
+  isActive?: boolean;
+}
+
+export interface ServicePricingUpdateRequest {
+  serviceName?: string;
+  serviceCode?: string;
+  creditCost?: number;
+  description?: string;
+  isActive?: boolean;
 }

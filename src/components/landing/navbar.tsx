@@ -31,7 +31,7 @@ export function Navbar() {
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
         scrolled
           ? "bg-white/95 backdrop-blur-md border-b shadow-sm"
-          : "bg-transparent"
+          : "bg-white/80 backdrop-blur-sm"
       }`}
     >
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
@@ -50,9 +50,7 @@ export function Navbar() {
             <a
               key={link.label}
               href={link.href}
-              className={`text-sm font-medium transition-colors hover:text-primary ${
-                scrolled ? "text-gray-700" : "text-white"
-              }`}
+              className="text-sm font-medium text-gray-700 transition-colors hover:text-primary"
             >
               {link.label}
             </a>
@@ -60,22 +58,17 @@ export function Navbar() {
         </div>
 
         {isAuthenticated ? (
-          <UserAvatarDropdown variant={scrolled ? "light" : "dark"} />
+          <UserAvatarDropdown variant="light" />
         ) : (
           <div className="flex items-center gap-3">
             <Button
               variant="ghost"
               asChild
-              className={`rounded-full ${scrolled ? "" : "text-white hover:bg-white/10"}`}
+              className="rounded-full text-gray-700 hover:text-primary"
             >
               <Link href="/login">Đăng nhập</Link>
             </Button>
-            <Button
-              asChild
-              className={`rounded-full ${
-                scrolled ? "" : "bg-white text-black hover:bg-gray-100"
-              }`}
-            >
+            <Button asChild className="rounded-full">
               <Link href="/register">Bắt đầu ngay</Link>
             </Button>
           </div>

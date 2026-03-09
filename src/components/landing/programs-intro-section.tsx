@@ -1,6 +1,6 @@
 export function ProgramsIntroSection() {
   return (
-    <section id="programs" className="py-16 bg-white">
+    <section id="programs" className="py-16 bg-gray-50">
       <div className="container mx-auto px-4 text-center">
         <span className="text-primary font-semibold text-sm uppercase tracking-wider">
           Chương trình

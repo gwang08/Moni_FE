@@ -5,7 +5,6 @@ import {
   FeaturesSection,
   HowItWorksSection,
   ProgramBanner,
-  CTASection,
   Footer,
 } from "@/components/landing";
 
@@ -54,7 +53,6 @@ export default function Home() {
         overlay="left"
       />
 
-      <CTASection />
       <Footer />
     </>
   );

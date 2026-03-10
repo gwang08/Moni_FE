@@ -1,14 +1,33 @@
 'use client';
 
 import { useReadingStore } from '@/store/reading-store';
-import { useRef } from 'react';
-import type { Highlight } from '@/types/reading.types';
+import { useRef, useMemo } from 'react';
+
+const COLOR_CLASSES: Record<string, string> = {
+  yellow: 'background-color: #fef08a',
+  green: 'background-color: #bbf7d0',
+  blue: 'background-color: #bfdbfe',
+};
+
+function injectHighlights(html: string, highlights: { text: string; color: string; id: string }[]): string {
+  if (!highlights.length) return html;
+  let result = html;
+  for (const hl of highlights) {
+    const escaped = hl.text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    result = result.replace(
+      new RegExp(`(${escaped})`, 'i'),
+      `<mark data-hl-id="${hl.id}" style="${COLOR_CLASSES[hl.color] || COLOR_CLASSES.yellow}; border-radius: 2px; padding: 0 2px; cursor: pointer;">$1</mark>`
+    );
+  }
+  return result;
+}
 
 interface Props {
   content: string;
+  onOpenNotes?: () => void;
 }
 
-export function ReadingPassage({ content }: Props) {
+export function ReadingPassage({ content, onOpenNotes }: Props) {
   const {
     activeTool,
     selectedColor,
@@ -45,7 +64,6 @@ export function ReadingPassage({ content }: Props) {
       });
       selected.removeAllRanges();
     } else if (activeTool === 'note') {
-      // Create highlight with note mode - will prompt for note
       const newId = `hl_${Date.now()}`;
       addHighlight({
         text,
@@ -53,86 +71,36 @@ export function ReadingPassage({ content }: Props) {
         endOffset: startOffset + text.length,
         color: 'yellow',
       });
-      // Open note editor for the new highlight
+      onOpenNotes?.();
       setTimeout(() => setEditingHighlightId(newId), 50);
       selected.removeAllRanges();
     } else if (activeTool === 'vocab') {
-      // Add word to vocab list
-      addVocab({
-        word: text,
-      });
+      addVocab({ word: text });
       selected.removeAllRanges();
     }
   };
 
-  const handleHighlightClick = (hl: Highlight) => {
-    if (activeTool === 'note') {
-      setEditingHighlightId(hl.id);
+  const handleClick = (e: React.MouseEvent) => {
+    const target = e.target as HTMLElement;
+    const mark = target.closest('mark[data-hl-id]');
+    if (mark && activeTool === 'note') {
+      setEditingHighlightId(mark.getAttribute('data-hl-id'));
     }
   };
 
-  const renderHighlightedText = () => {
-    if (highlights.length === 0) return content;
-
-    const parts: Array<{ text: string; highlight?: Highlight }> = [];
-    let lastIndex = 0;
-
-    const sorted = [...highlights].sort((a, b) => a.startOffset - b.startOffset);
-
-    // Handle overlapping highlights by taking the first one
-    const nonOverlapping: Highlight[] = [];
-    sorted.forEach((hl) => {
-      const overlaps = nonOverlapping.some(
-        (existing) => hl.startOffset < existing.endOffset && hl.endOffset > existing.startOffset
-      );
-      if (!overlaps) {
-        nonOverlapping.push(hl);
-      }
-    });
-
-    nonOverlapping.forEach((hl) => {
-      if (hl.startOffset > lastIndex) {
-        parts.push({ text: content.slice(lastIndex, hl.startOffset) });
-      }
-      parts.push({ text: content.slice(hl.startOffset, hl.endOffset), highlight: hl });
-      lastIndex = hl.endOffset;
-    });
-
-    if (lastIndex < content.length) {
-      parts.push({ text: content.slice(lastIndex) });
-    }
-
-    return parts.map((part, idx) =>
-      part.highlight ? (
-        <mark
-          key={idx}
-          onClick={() => handleHighlightClick(part.highlight!)}
-          className={`cursor-pointer transition-all ${
-            part.highlight.color === 'yellow'
-              ? 'bg-yellow-200 hover:bg-yellow-300'
-              : part.highlight.color === 'green'
-              ? 'bg-green-200 hover:bg-green-300'
-              : 'bg-blue-200 hover:bg-blue-300'
-          } ${activeTool === 'note' ? 'ring-2 ring-offset-1 ring-blue-400' : ''}`}
-          title={part.highlight.note ? `Ghi chú: ${part.highlight.note}` : 'Click để thêm ghi chú'}
-        >
-          {part.text}
-        </mark>
-      ) : (
-        <span key={idx}>{part.text}</span>
-      )
-    );
-  };
+  const renderedHtml = useMemo(() =>
+    injectHighlights(content, highlights),
+  [content, highlights]);
 
   return (
     <div
       ref={passageRef}
       onMouseUp={handleMouseUp}
-      className={`prose max-w-none p-6 bg-white rounded-lg select-text whitespace-pre-wrap leading-relaxed text-lg ${
+      onClick={handleClick}
+      className={`prose max-w-none p-6 bg-white rounded-lg select-text leading-relaxed text-lg ${
         activeTool ? 'cursor-text' : ''
       }`}
-    >
-      {renderHighlightedText()}
-    </div>
+      dangerouslySetInnerHTML={{ __html: renderedHtml }}
+    />
   );
 }

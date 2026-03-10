@@ -7,7 +7,7 @@ export async function getTests(
   size = 20,
   skill?: string
 ): Promise<PagedResponse<TestResponse>> {
-  let endpoint = `/api/v1/admin/tests?page=${page}&size=${size}`;
+  let endpoint = `/api/v1/admin/tests?page=${page - 1}&size=${size}`;
   if (skill) endpoint += `&skill=${skill.toUpperCase()}`;
 
   const response = await apiClient.get<ApiResponse<PagedResponse<TestResponse>>>(
@@ -25,6 +25,41 @@ export async function getTests(
 export async function getTestDetail(id: string): Promise<TestDetailResponse> {
   const response = await apiClient.get<ApiResponse<TestDetailResponse>>(
     `/api/v1/admin/tests/${id}`,
+    true
+  );
+
+  if (!response.result) {
+    throw new Error('Failed to fetch test detail');
+  }
+
+  return response.result;
+}
+
+// --- Public endpoints (for user/practice pages) ---
+
+export async function getPublishedTests(
+  page = 1,
+  size = 12,
+  skill?: string
+): Promise<PagedResponse<TestResponse>> {
+  let endpoint = `/api/v1/tests?page=${page - 1}&size=${size}`;
+  if (skill) endpoint += `&skill=${skill.toUpperCase()}`;
+
+  const response = await apiClient.get<ApiResponse<PagedResponse<TestResponse>>>(
+    endpoint,
+    true
+  );
+
+  if (!response.result) {
+    throw new Error('Failed to fetch tests');
+  }
+
+  return response.result;
+}
+
+export async function getPublicTestDetail(id: string): Promise<TestDetailResponse> {
+  const response = await apiClient.get<ApiResponse<TestDetailResponse>>(
+    `/api/v1/tests/${id}`,
     true
   );
 

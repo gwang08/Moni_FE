@@ -17,10 +17,10 @@ export function testResponseToExercise(test: TestResponse): Exercise {
   const difficulty: Difficulty = 'medium'; // backend doesn't have difficulty yet
 
   const base: Exercise = {
-    id: test.id,
+    id: String(test.id),
     skill,
     title: test.title,
-    description: test.description || '',
+    description: '',
     difficulty,
   };
 

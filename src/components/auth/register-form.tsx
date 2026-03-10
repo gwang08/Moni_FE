@@ -10,7 +10,11 @@ import type { ApiResponse, RegisterRequest, UserProfileResponse } from '@/types/
 import { Loader2, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
 
-export function RegisterForm() {
+interface RegisterFormProps {
+  onSuccess?: () => void;
+}
+
+export function RegisterForm({ onSuccess }: RegisterFormProps) {
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -61,7 +65,11 @@ export function RegisterForm() {
         payload
       );
       toast.success('Đăng ký thành công! Vui lòng đăng nhập.');
-      router.push('/login');
+      if (onSuccess) {
+        onSuccess();
+      } else {
+        router.push('/login');
+      }
     } catch (err) {
       toast.error(formatApiError(err));
       setError(formatApiError(err));

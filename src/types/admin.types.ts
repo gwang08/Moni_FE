@@ -19,32 +19,53 @@ export interface TagRequest {
   description?: string;
 }
 
-export interface StimulusRequest {
+// --- Question Type Codes matching backend QuestionType enum ---
+export type QuestionTypeCode =
+  | 'MCQ'
+  | 'MCQ_MULTIPLE'
+  | 'TFNG'
+  | 'YNNG'
+  | 'MATCHING'
+  | 'FILL_IN_THE_BLANK'
+  | 'SHORT_ANSWER';
+
+// --- Test Import Request (matches backend TestImportRequest DTO) ---
+
+export interface OptionRequest {
+  label?: string;
   content: string;
-  mediaUrl?: string;
-  orderIndex: number;
-  questions: QuestionRequest[];
+  isCorrect: boolean;
 }
 
 export interface QuestionRequest {
   content: string;
-  questionType: string;
-  orderIndex: number;
+  position?: number;
+  metadata?: Record<string, unknown>;
+  explanation?: { text?: string; evidence?: string };
+  tagIds?: number[];
   options: OptionRequest[];
 }
 
-export interface OptionRequest {
+export interface QuestionGroupRequest {
+  instruction?: string;
+  questionTypeCode: QuestionTypeCode;
+  questions: QuestionRequest[];
+}
+
+export interface StimulusRequest {
+  title: string;
   content: string;
-  isCorrect: boolean;
-  orderIndex: number;
+  mediaUrl?: string;
+  section?: number;
+  questionGroups: QuestionGroupRequest[];
 }
 
 export interface TestImportRequest {
   title: string;
-  description: string;
-  testType: string;
+  description?: string;
   skill: string;
-  tagIds?: string[];
+  testType?: string;
+  tagIds?: number[];
   stimuli: StimulusRequest[];
 }
 
@@ -52,7 +73,10 @@ export interface TestUpdateRequest {
   title?: string;
   description?: string;
   testType?: string;
-  tagIds?: string[];
+  duration?: number;
+  testMode?: string;
+  status?: string;
+  tagIds?: number[];
 }
 
 // Matches backend UserProfileResponse (snake_case fields)
@@ -66,10 +90,11 @@ export interface UserResponse {
 }
 
 export interface StimulusCreateRequest {
+  title: string;
   content: string;
   mediaUrl?: string;
-  orderIndex: number;
-  questions: QuestionRequest[];
+  section?: number;
+  questionGroups: QuestionGroupRequest[];
 }
 
 export interface StimulusResponse {
@@ -85,5 +110,6 @@ export interface QuestionUpdateRequest {
   questionType?: string;
   orderIndex?: number;
   options?: OptionRequest[];
+  explanation?: { text?: string; evidence?: string };
   tagIds?: string[];
 }

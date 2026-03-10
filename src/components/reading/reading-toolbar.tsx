@@ -2,10 +2,14 @@
 
 import { Button } from '@/components/ui/button';
 import { useReadingStore } from '@/store/reading-store';
-import { Highlighter, StickyNote, BookOpen, GraduationCap, BookMarked } from 'lucide-react';
+import { Highlighter, StickyNote, BookOpen, GraduationCap, BookMarked, PanelRightOpen } from 'lucide-react';
 import { useEffect } from 'react';
 
-export function ReadingToolbar() {
+interface Props {
+  onOpenNotes?: () => void;
+}
+
+export function ReadingToolbar({ onOpenNotes }: Props) {
   const { activeTool, selectedColor, setActiveTool, setColor, mode, setMode } = useReadingStore();
 
   useEffect(() => {
@@ -107,6 +111,19 @@ export function ReadingToolbar() {
           {activeTool === 'note' && 'Chọn text hoặc click highlight để thêm ghi chú'}
           {activeTool === 'vocab' && 'Chọn từ để thêm vào danh sách từ vựng'}
         </span>
+      )}
+
+      {/* Notes panel toggle */}
+      {onOpenNotes && (
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={onOpenNotes}
+          className={`gap-2 ${!activeTool ? 'ml-auto' : ''}`}
+        >
+          <PanelRightOpen className="h-4 w-4" />
+          Ghi chú
+        </Button>
       )}
     </div>
   );

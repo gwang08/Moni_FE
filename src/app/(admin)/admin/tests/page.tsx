@@ -10,31 +10,60 @@ import { Badge } from '@/components/ui/badge';
 import { AdminHeader } from '@/components/admin/admin-header';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { getTests } from '@/lib/tests-api';
-import { deleteTest } from '@/lib/admin-api';
+import { deleteTest, updateTest } from '@/lib/admin-api';
 import { toast } from 'sonner';
+
+const STATUS_OPTIONS = ['DRAFT', 'PUBLISHED', 'HIDDEN'] as const;
+const STATUS_COLORS: Record<string, string> = {
+  DRAFT: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+  PUBLISHED: 'bg-green-100 text-green-800 border-green-200',
+  HIDDEN: 'bg-gray-100 text-gray-600 border-gray-200',
+};
 
 export default function AdminTestsPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
-  const [confirmId, setConfirmId] = useState<string | null>(null);
+  const [confirmId, setConfirmId] = useState<number | null>(null);
+  const [pendingStatus, setPendingStatus] = useState<{ id: number; status: string } | null>(null);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['admin', 'tests', page],
     queryFn: () => getTests(page, 20),
+    staleTime: 30_000,
   });
 
   const tests = data?.content ?? [];
   const totalPages = data?.totalPages ?? 1;
 
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => deleteTest(id),
+    mutationFn: (id: number) => deleteTest(String(id)),
     onSuccess: () => {
       toast.success('Đã xóa bài thi');
       queryClient.invalidateQueries({ queryKey: ['admin', 'tests'] });
       setConfirmId(null);
     },
     onError: () => toast.error('Xóa bài thi thất bại'),
+  });
+
+  const statusMutation = useMutation({
+    mutationFn: ({ id, status }: { id: number; status: string }) => updateTest(String(id), { status }),
+    onMutate: async ({ id, status }) => {
+      await queryClient.cancelQueries({ queryKey: ['admin', 'tests', page] });
+      const previous = queryClient.getQueryData(['admin', 'tests', page]);
+      queryClient.setQueryData(['admin', 'tests', page], (old: typeof data) => {
+        if (!old) return old;
+        return { ...old, content: old.content.map(t => t.id === id ? { ...t, status } : t) };
+      });
+      return { previous };
+    },
+    onSuccess: () => toast.success('Đã cập nhật trạng thái'),
+    onError: (_err, _vars, context) => {
+      if (context?.previous) queryClient.setQueryData(['admin', 'tests', page], context.previous);
+      toast.error('Cập nhật thất bại');
+      setPendingStatus(null);
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ['admin', 'tests'] }),
   });
 
   return (
@@ -44,8 +73,7 @@ export default function AdminTestsPage() {
         <div className="flex justify-between items-center mb-6">
           <p className="text-sm text-gray-500">Danh sách tất cả bài thi trong hệ thống</p>
           <Button onClick={() => router.push('/admin/tests/import')}>
-            <Plus className="h-4 w-4" />
-            Tạo bài thi
+            <Plus className="h-4 w-4" /> Tạo bài thi
           </Button>
         </div>
 
@@ -61,7 +89,7 @@ export default function AdminTestsPage() {
                   <th className="px-4 py-3 text-left font-medium text-gray-600">Tiêu đề</th>
                   <th className="px-4 py-3 text-left font-medium text-gray-600">Kỹ năng</th>
                   <th className="px-4 py-3 text-left font-medium text-gray-600">Loại</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-600">Ngày tạo</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-600">Status</th>
                   <th className="px-4 py-3 text-right font-medium text-gray-600">Thao tác</th>
                 </tr>
               </thead>
@@ -73,7 +101,15 @@ export default function AdminTestsPage() {
                     <td className="px-4 py-3 font-medium text-gray-800 max-w-xs truncate">{test.title}</td>
                     <td className="px-4 py-3"><Badge variant="secondary">{test.skill}</Badge></td>
                     <td className="px-4 py-3 text-gray-600">{test.testType}</td>
-                    <td className="px-4 py-3 text-gray-500">{new Date(test.createdAt).toLocaleDateString('vi-VN')}</td>
+                    <td className="px-4 py-3">
+                      <select
+                        value={test.status}
+                        onChange={e => setPendingStatus({ id: test.id, status: e.target.value })}
+                        className={`text-xs font-medium px-2 py-1 rounded-md border cursor-pointer ${STATUS_COLORS[test.status] || ''}`}
+                      >
+                        {STATUS_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
+                      </select>
+                    </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-end gap-2">
                         <Link href={`/admin/tests/${test.id}`}>
@@ -112,6 +148,17 @@ export default function AdminTestsPage() {
           variant="destructive"
           onConfirm={() => {
             if (confirmId) return deleteMutation.mutateAsync(confirmId);
+          }}
+        />
+
+        <ConfirmDialog
+          open={!!pendingStatus}
+          onOpenChange={(open) => !open && setPendingStatus(null)}
+          title="Xác nhận đổi trạng thái"
+          description={`Bạn có chắc muốn đổi trạng thái sang ${pendingStatus?.status}?`}
+          confirmText="Xác nhận"
+          onConfirm={() => {
+            if (pendingStatus) return statusMutation.mutateAsync(pendingStatus).then(() => setPendingStatus(null));
           }}
         />
       </div>

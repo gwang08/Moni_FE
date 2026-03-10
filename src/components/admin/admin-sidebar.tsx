@@ -34,10 +34,10 @@ export function AdminSidebar() {
   };
 
   return (
-    <aside className="fixed left-0 top-0 h-full w-64 bg-gray-900 text-white flex flex-col z-40">
-      <div className="p-6 border-b border-gray-700">
-        <h1 className="text-xl font-bold text-white">Admin Panel</h1>
-        <p className="text-xs text-gray-400 mt-1">Quản trị hệ thống</p>
+    <aside className="fixed left-0 top-0 h-full w-64 bg-white border-r border-gray-200 text-gray-800 flex flex-col z-40">
+      <div className="p-6 border-b border-gray-200">
+        <h1 className="text-xl font-bold text-gray-900">Admin Panel</h1>
+        <p className="text-xs text-gray-500 mt-1">Quản trị hệ thống</p>
       </div>
 
       <nav className="flex-1 p-4 space-y-1">
@@ -49,7 +49,7 @@ export function AdminSidebar() {
               'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
               isActive(href)
                 ? 'bg-blue-600 text-white'
-                : 'text-gray-300 hover:bg-gray-800 hover:text-white'
+                : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
             )}
           >
             <Icon className="h-4 w-4 shrink-0" />
@@ -58,16 +58,16 @@ export function AdminSidebar() {
         ))}
       </nav>
 
-      <div className="p-4 border-t border-gray-700 space-y-2">
+      <div className="p-4 border-t border-gray-200 space-y-2">
         {user && (
           <div className="px-3 py-2">
-            <p className="text-sm font-medium text-white truncate">{user.fullName || 'Admin'}</p>
-            <p className="text-xs text-gray-400 truncate">{user.email}</p>
+            <p className="text-sm font-medium text-gray-900 truncate">{user.fullName || 'Admin'}</p>
+            <p className="text-xs text-gray-500 truncate">{user.email}</p>
           </div>
         )}
         <button
           onClick={handleLogout}
-          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-red-400 hover:bg-red-900/30 hover:text-red-300 transition-colors w-full"
+          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-red-500 hover:bg-red-50 hover:text-red-600 transition-colors w-full"
         >
           <LogOut className="h-4 w-4 shrink-0" />
           Đăng xuất

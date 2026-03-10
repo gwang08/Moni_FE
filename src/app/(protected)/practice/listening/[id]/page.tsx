@@ -58,7 +58,7 @@ export default function ListeningExercisePage({ params }: Props) {
   // Use API mediaUrl if available, otherwise fall back to sample
   const audioUrl = stimuli?.mediaUrl || '/audio/sample.mp3';
   const transcript = MOCK_TRANSCRIPTS[id] || DEFAULT_TRANSCRIPT;
-  const questionCount = stimuli?.questions?.length ?? 0;
+  const questionCount = stimuli?.questionGroups?.reduce((sum, g) => sum + g.questions.length, 0) ?? 0;
 
   const formatDuration = (seconds: number) => {
     const mins = Math.floor(seconds / 60);

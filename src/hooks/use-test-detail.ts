@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { getTestDetail } from '@/lib/tests-api';
+import { useQuery } from '@tanstack/react-query';
+import { getPublicTestDetail } from '@/lib/tests-api';
 import type { TestDetailResponse } from '@/types/test.types';
 
 interface UseTestDetailResult {
@@ -11,28 +11,16 @@ interface UseTestDetailResult {
 }
 
 export function useTestDetail(id: string): UseTestDetailResult {
-  const [testDetail, setTestDetail] = useState<TestDetailResponse | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['test', 'detail', id],
+    queryFn: () => getPublicTestDetail(id),
+    enabled: !!id,
+    staleTime: 30_000,
+  });
 
-  useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-    setError(null);
-
-    getTestDetail(id)
-      .then((data) => {
-        if (!cancelled) setTestDetail(data);
-      })
-      .catch(() => {
-        if (!cancelled) setError('Không thể tải bài tập. Vui lòng thử lại.');
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-
-    return () => { cancelled = true; };
-  }, [id]);
-
-  return { testDetail, loading, error };
+  return {
+    testDetail: data ?? null,
+    loading: isLoading,
+    error: error ? 'Không thể tải bài tập. Vui lòng thử lại.' : null,
+  };
 }

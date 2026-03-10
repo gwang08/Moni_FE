@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import { getTests } from '@/lib/tests-api';
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { getPublishedTests } from '@/lib/tests-api';
 import { testResponseToExercise } from '@/lib/skill-utils';
 import type { Exercise, Skill } from '@/types/practice.types';
 
@@ -16,41 +17,21 @@ interface UsePracticeExercisesResult {
 }
 
 export function usePracticeExercises(activeSkill: Skill | null): UsePracticeExercisesResult {
-  const [exercises, setExercises] = useState<Exercise[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [fetchTrigger, setFetchTrigger] = useState(0);
 
-  const retry = useCallback(() => setFetchTrigger((n) => n + 1), []);
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: ['practice', 'tests', page, activeSkill],
+    queryFn: () => getPublishedTests(page, 12, activeSkill ?? undefined),
+    staleTime: 30_000,
+  });
 
-  useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-    setError(null);
-
-    getTests(page, 12, activeSkill ?? undefined)
-      .then((data) => {
-        if (cancelled) return;
-        setExercises(data.content.map(testResponseToExercise));
-        setTotalPages(data.totalPages || 1);
-      })
-      .catch(() => {
-        if (cancelled) return;
-        setError('Không thể tải danh sách bài tập. Vui lòng thử lại.');
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-
-    return () => { cancelled = true; };
-  }, [activeSkill, page, fetchTrigger]);
-
-  // Reset to page 1 when skill filter changes
-  useEffect(() => {
-    setPage(1);
-  }, [activeSkill]);
-
-  return { exercises, loading, error, page, totalPages, setPage, retry };
+  return {
+    exercises: data?.content.map(testResponseToExercise) ?? [],
+    loading: isLoading,
+    error: error ? 'Không thể tải danh sách bài tập. Vui lòng thử lại.' : null,
+    page,
+    totalPages: data?.totalPages ?? 1,
+    setPage,
+    retry: () => { refetch(); },
+  };
 }

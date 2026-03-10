@@ -52,7 +52,7 @@ export function AuthPage({ initialMode = 'login' }: AuthPageProps) {
           }`}
         >
           <div className="w-full max-w-[340px]">
-            <RegisterForm />
+            <RegisterForm onSuccess={() => { setMode('login'); window.history.replaceState(null, '', '/login'); }} />
           </div>
         </div>
 
@@ -122,7 +122,7 @@ export function AuthPage({ initialMode = 'login' }: AuthPageProps) {
               Đăng ký
             </button>
           </div>
-          {mode === 'login' ? <LoginForm /> : <RegisterForm />}
+          {mode === 'login' ? <LoginForm /> : <RegisterForm onSuccess={() => { setMode('login'); window.history.replaceState(null, '', '/login'); }} />}
         </div>
       </div>
     </div>

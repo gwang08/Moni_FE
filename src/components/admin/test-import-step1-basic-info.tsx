@@ -7,8 +7,8 @@ import { Button } from '@/components/ui/button';
 export interface BasicInfo {
   title: string;
   description: string;
-  testType: string;
   skill: string;
+  testType: string;
 }
 
 interface Props {
@@ -17,11 +17,14 @@ interface Props {
   onNext: () => void;
 }
 
-const TEST_TYPES = ['MULTIPLE_CHOICE', 'FILL_IN_BLANK', 'MATCHING', 'TRUE_FALSE'];
 const SKILLS = ['LISTENING', 'READING', 'SPEAKING', 'WRITING'];
+const TEST_TYPES = [
+  { value: 'ACADEMIC', label: 'Academic' },
+  { value: 'GENERAL_TRAINING', label: 'General Training' },
+];
 
 export function TestImportStep1({ data, onChange, onNext }: Props) {
-  const isValid = data.title.trim() && data.description.trim() && data.testType && data.skill;
+  const isValid = data.title.trim() && data.description.trim() && data.skill && data.testType;
 
   const set = (key: keyof BasicInfo, value: string) => onChange({ ...data, [key]: value });
 
@@ -30,7 +33,7 @@ export function TestImportStep1({ data, onChange, onNext }: Props) {
       <div>
         <Label htmlFor="title" className="mb-1.5 block text-sm font-medium">Tiêu đề bài thi *</Label>
         <Input id="title" value={data.title} onChange={e => set('title', e.target.value)}
-          placeholder="Nhập tiêu đề bài thi" />
+          placeholder="VD: Cambridge 18 - Test 1" />
       </div>
 
       <div>
@@ -46,19 +49,6 @@ export function TestImportStep1({ data, onChange, onNext }: Props) {
       </div>
 
       <div>
-        <Label htmlFor="testType" className="mb-1.5 block text-sm font-medium">Loại bài thi *</Label>
-        <select
-          id="testType"
-          value={data.testType}
-          onChange={e => set('testType', e.target.value)}
-          className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        >
-          <option value="">Chọn loại bài thi</option>
-          {TEST_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-        </select>
-      </div>
-
-      <div>
         <Label htmlFor="skill" className="mb-1.5 block text-sm font-medium">Kỹ năng *</Label>
         <select
           id="skill"
@@ -68,6 +58,19 @@ export function TestImportStep1({ data, onChange, onNext }: Props) {
         >
           <option value="">Chọn kỹ năng</option>
           {SKILLS.map(s => <option key={s} value={s}>{s}</option>)}
+        </select>
+      </div>
+
+      <div>
+        <Label htmlFor="testType" className="mb-1.5 block text-sm font-medium">Loại bài thi *</Label>
+        <select
+          id="testType"
+          value={data.testType}
+          onChange={e => set('testType', e.target.value)}
+          className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <option value="">Chọn loại bài thi</option>
+          {TEST_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
         </select>
       </div>
 

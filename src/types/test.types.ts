@@ -1,51 +1,60 @@
 export interface OptionDetail {
-  id: string;
+  id: number;
+  label: string;
   content: string;
   isCorrect: boolean;
-  orderIndex: number;
 }
 
 export interface QuestionDetail {
-  id: string;
+  id: number;
   content: string;
-  questionType: string;
-  orderIndex: number;
+  position: number;
+  explanation?: { text?: string; evidence?: string };
+  tagIds: number[];
   options: OptionDetail[];
 }
 
-export interface StimulusDetail {
-  id: string;
-  content: string;
-  mediaUrl: string | null;
-  orderIndex: number;
+export interface QuestionGroupDetail {
+  id: number;
+  instruction: string;
+  questionTypeCode?: string;
   questions: QuestionDetail[];
 }
 
+export interface StimulusDetail {
+  id: number;
+  title: string;
+  content: string;
+  mediaUrl: string | null;
+  section: number;
+  questionGroups: QuestionGroupDetail[];
+}
+
 export interface TestDetailResponse {
-  id: string;
+  id: number;
   title: string;
   description: string;
-  testType: string;
   skill: string;
-  createdAt: string;
-  updatedAt: string;
+  duration: number | null;
+  testMode: string | null;
+  status: string;
+  tagIds: number[];
   stimuli: StimulusDetail[];
 }
 
 export interface TestResponse {
-  id: string;
+  id: number;
   title: string;
-  description: string;
-  testType: string;
   skill: string;
-  createdAt: string;
-  updatedAt: string;
+  testType: string;
+  duration: number | null;
+  testMode: string | null;
+  status: string;
+  tagIds: number[];
 }
 
 export interface PagedResponse<T> {
   content: T[];
-  page: number;
-  size: number;
   totalElements: number;
   totalPages: number;
   last: boolean;

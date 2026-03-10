@@ -7,9 +7,12 @@ export interface Exercise {
   title: string;
   description: string;
   difficulty: Difficulty;
-  questionCount?: number; // reading, listening
-  duration?: number; // listening (seconds), speaking (seconds)
-  minWords?: number; // writing
+  questionCount?: number;
+  duration?: number;
+  minWords?: number;
+  thumbnailUrl?: string;
+  attemptCount?: number;
+  questionTypes?: string[];
 }
 
 export interface ExerciseProgress {

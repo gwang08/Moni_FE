@@ -17,13 +17,11 @@ const SKILL_CONFIG = {
   speaking: { icon: Mic, color: 'text-orange-600', bgColor: 'bg-orange-100', borderColor: 'border-orange-500', label: 'Speaking' },
 };
 
-const DEFAULT_IMAGE = 'https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=400&h=200&fit=crop';
-const SKILL_IMAGES: Record<string, string> = {
-  'reading-1': 'https://images.unsplash.com/photo-1447933601403-0c6688de566e?w=400&h=200&fit=crop',
-  'reading-2': 'https://images.unsplash.com/photo-1569163139599-0f4517e36f51?w=400&h=200&fit=crop',
-  'writing-1': 'https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=400&h=200&fit=crop',
-  'listening-1': 'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=400&h=200&fit=crop',
-  'speaking-1': 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=200&fit=crop',
+const DEFAULT_IMAGES: Record<string, string> = {
+  reading: 'https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=400&h=200&fit=crop',
+  listening: 'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=400&h=200&fit=crop',
+  writing: 'https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=400&h=200&fit=crop',
+  speaking: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=200&fit=crop',
 };
 
 export default function PracticePage() {
@@ -143,12 +141,13 @@ export default function PracticePage() {
               {filteredExercises.map((exercise) => {
                 const config = SKILL_CONFIG[exercise.skill];
                 const isCompleted = completedExercises.includes(exercise.id);
+                const imgSrc = exercise.thumbnailUrl || DEFAULT_IMAGES[exercise.skill] || DEFAULT_IMAGES.reading;
                 return (
-                  <div key={exercise.id} className="bg-white rounded-xl overflow-hidden border hover:shadow-lg transition-shadow cursor-pointer group" onClick={() => handleStartExercise(exercise)}>
-                    <div className="relative h-36 bg-gray-200">
-                      <img src={SKILL_IMAGES[exercise.id] || DEFAULT_IMAGE} alt={exercise.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                  <div key={exercise.id} className="relative bg-white rounded-xl overflow-hidden border hover:shadow-lg transition-all cursor-pointer group" onClick={() => handleStartExercise(exercise)}>
+                    <div className="relative h-36 bg-gray-200 overflow-hidden">
+                      <img src={imgSrc} alt={exercise.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                       <div className="absolute top-2 left-2 bg-black/60 text-white text-xs px-2 py-1 rounded-full flex items-center gap-1">
-                        <Users className="h-3 w-3" />1000 lượt làm bài
+                        <Users className="h-3 w-3" />{exercise.attemptCount ?? 0} lượt làm bài
                       </div>
                       <Badge className={`absolute bottom-2 left-2 ${config.bgColor} ${config.color} border-0`}>{config.label}</Badge>
                       {isCompleted && (
@@ -158,13 +157,27 @@ export default function PracticePage() {
                       )}
                     </div>
                     <div className="p-4">
-                      <h3 className="font-semibold text-gray-800 mb-2 line-clamp-2 group-hover:text-blue-600 transition-colors">{exercise.title}</h3>
-                      <p className="text-sm text-gray-500 line-clamp-2">{exercise.description}</p>
-                      <div className="mt-3 flex items-center gap-2 text-xs text-gray-400">
-                        {exercise.questionCount && <span>{exercise.questionCount} câu hỏi</span>}
-                        {exercise.minWords && <span>{exercise.minWords}+ từ</span>}
-                        {exercise.duration && <span>{Math.floor(exercise.duration / 60)} phút</span>}
+                      <h3 className="font-semibold text-gray-800 mb-1 line-clamp-2">{exercise.title}</h3>
+                      <div className="flex items-center gap-2 text-xs text-gray-400">
+                        {(exercise.questionCount ?? 0) > 0 && <span>{exercise.questionCount} câu hỏi</span>}
+                        {exercise.duration && <span>· {Math.floor(exercise.duration / 60)} phút</span>}
                       </div>
+                    </div>
+                    {/* Hover overlay - covers entire card */}
+                    <div className="absolute inset-0 bg-white rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex flex-col p-4">
+                      <h3 className="font-bold text-gray-800 line-clamp-2 mb-2">{exercise.title}</h3>
+                      {exercise.questionTypes && exercise.questionTypes.length > 0 && (
+                        <ul className="text-sm text-gray-600 space-y-1 flex-1">
+                          {exercise.questionTypes.map((qt) => (
+                            <li key={qt} className="flex items-center gap-1">
+                              <span className="text-gray-400">·</span> {qt}
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                      <Button className="w-full mt-auto bg-orange-500 hover:bg-orange-600 text-white rounded-full">
+                        Làm bài
+                      </Button>
                     </div>
                   </div>
                 );

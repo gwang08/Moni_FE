@@ -2,11 +2,12 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Loader2 } from 'lucide-react';
+import { Loader2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { updateTest } from '@/lib/admin-api';
+import { MediaUploadZone } from '@/components/admin/media-upload-zone';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
 import type { TestDetailResponse } from '@/types/test.types';
@@ -29,6 +30,7 @@ export function TestEditBasicInfoTab({ test }: Props) {
   const [description, setDescription] = useState(test.description || '');
   const [status, setStatus] = useState(test.status || 'DRAFT');
   const [duration, setDuration] = useState(test.duration ? String(test.duration) : '');
+  const [thumbnailUrl, setThumbnailUrl] = useState(test.thumbnailUrl || '');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,6 +40,7 @@ export function TestEditBasicInfoTab({ test }: Props) {
       await updateTest(String(test.id), {
         title,
         description: description || undefined,
+        thumbnailUrl: thumbnailUrl || undefined,
         status,
         duration: duration ? Number(duration) : undefined,
       });
@@ -65,6 +68,20 @@ export function TestEditBasicInfoTab({ test }: Props) {
             placeholder="Mô tả bài thi" rows={3}
             className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-none"
           />
+        </div>
+        <div>
+          <Label className="mb-1.5 block text-sm font-medium">Ảnh bìa</Label>
+          {thumbnailUrl ? (
+            <div className="relative w-fit">
+              <img src={thumbnailUrl} alt="Thumbnail" className="h-32 rounded-lg object-cover border" />
+              <button type="button" onClick={() => setThumbnailUrl('')}
+                className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-0.5 hover:bg-red-600">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          ) : (
+            <MediaUploadZone onUploaded={setThumbnailUrl} />
+          )}
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div>

@@ -14,26 +14,18 @@ export function backendSkillToFrontend(skill: string): Skill {
 
 export function testResponseToExercise(test: TestResponse): Exercise {
   const skill = backendSkillToFrontend(test.skill);
-  const difficulty: Difficulty = 'medium'; // backend doesn't have difficulty yet
+  const difficulty: Difficulty = 'medium';
 
-  const base: Exercise = {
+  return {
     id: String(test.id),
     skill,
     title: test.title,
-    description: '',
+    description: test.description || '',
     difficulty,
+    questionCount: test.questionCount ?? 0,
+    duration: test.duration ? test.duration * 60 : undefined,
+    thumbnailUrl: test.thumbnailUrl,
+    attemptCount: test.attemptCount ?? 0,
+    questionTypes: test.questionTypes ?? [],
   };
-
-  // Add skill-specific fields with defaults
-  if (skill === 'reading' || skill === 'listening') {
-    base.questionCount = 10;
-  }
-  if (skill === 'listening' || skill === 'speaking') {
-    base.duration = skill === 'listening' ? 600 : 120;
-  }
-  if (skill === 'writing') {
-    base.minWords = 250;
-  }
-
-  return base;
 }

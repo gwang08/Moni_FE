@@ -65,6 +65,7 @@ export interface TestImportRequest {
   description?: string;
   skill: string;
   testType?: string;
+  thumbnailUrl?: string;
   tagIds?: number[];
   stimuli: StimulusRequest[];
 }
@@ -72,6 +73,7 @@ export interface TestImportRequest {
 export interface TestUpdateRequest {
   title?: string;
   description?: string;
+  thumbnailUrl?: string;
   testType?: string;
   duration?: number;
   testMode?: string;

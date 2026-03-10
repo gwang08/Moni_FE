@@ -37,8 +37,8 @@ export function TestImportStep4({ basicInfo, stimuli, submitting, error, onSubmi
         <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-sm">
           <p><span className="text-gray-500">Tiêu đề:</span> <span className="font-medium">{basicInfo.title}</span></p>
           <p><span className="text-gray-500">Kỹ năng:</span> <span className="font-medium">{basicInfo.skill}</span></p>
-          {basicInfo.testType && (
-            <p><span className="text-gray-500">Loại:</span> <span className="font-medium">{basicInfo.testType === 'GENERAL_TRAINING' ? 'General Training' : basicInfo.testType}</span></p>
+          {basicInfo.thumbnailUrl && (
+            <p><span className="text-gray-500">Ảnh bìa:</span> <span className="font-medium">Đã tải lên</span></p>
           )}
           {basicInfo.description && (
             <p className="col-span-2"><span className="text-gray-500">Mô tả:</span> {basicInfo.description}</p>

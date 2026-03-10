@@ -3,12 +3,14 @@
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
+import { MediaUploadZone } from '@/components/admin/media-upload-zone';
+import { X } from 'lucide-react';
 
 export interface BasicInfo {
   title: string;
   description: string;
   skill: string;
-  testType: string;
+  thumbnailUrl: string;
 }
 
 interface Props {
@@ -18,13 +20,9 @@ interface Props {
 }
 
 const SKILLS = ['LISTENING', 'READING', 'SPEAKING', 'WRITING'];
-const TEST_TYPES = [
-  { value: 'ACADEMIC', label: 'Academic' },
-  { value: 'GENERAL_TRAINING', label: 'General Training' },
-];
 
 export function TestImportStep1({ data, onChange, onNext }: Props) {
-  const isValid = data.title.trim() && data.description.trim() && data.skill && data.testType;
+  const isValid = data.title.trim() && data.description.trim() && data.skill;
 
   const set = (key: keyof BasicInfo, value: string) => onChange({ ...data, [key]: value });
 
@@ -62,16 +60,18 @@ export function TestImportStep1({ data, onChange, onNext }: Props) {
       </div>
 
       <div>
-        <Label htmlFor="testType" className="mb-1.5 block text-sm font-medium">Loại bài thi *</Label>
-        <select
-          id="testType"
-          value={data.testType}
-          onChange={e => set('testType', e.target.value)}
-          className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        >
-          <option value="">Chọn loại bài thi</option>
-          {TEST_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
-        </select>
+        <Label className="mb-1.5 block text-sm font-medium">Ảnh bìa</Label>
+        {data.thumbnailUrl ? (
+          <div className="relative w-fit">
+            <img src={data.thumbnailUrl} alt="Thumbnail" className="h-32 rounded-lg object-cover border" />
+            <button type="button" onClick={() => set('thumbnailUrl', '')}
+              className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-0.5 hover:bg-red-600">
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        ) : (
+          <MediaUploadZone onUploaded={(url) => set('thumbnailUrl', url)} />
+        )}
       </div>
 
       <div className="flex justify-end pt-2">

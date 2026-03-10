@@ -38,6 +38,7 @@ export interface TestDetailResponse {
   duration: number | null;
   testMode: string | null;
   status: string;
+  thumbnailUrl?: string;
   tagIds: number[];
   stimuli: StimulusDetail[];
 }
@@ -45,12 +46,17 @@ export interface TestDetailResponse {
 export interface TestResponse {
   id: number;
   title: string;
+  description?: string;
   skill: string;
   testType: string;
   duration: number | null;
   testMode: string | null;
   status: string;
   tagIds: number[];
+  thumbnailUrl?: string;
+  questionCount?: number;
+  attemptCount?: number;
+  questionTypes?: string[];
 }
 
 export interface PagedResponse<T> {

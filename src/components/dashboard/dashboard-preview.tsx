@@ -12,7 +12,7 @@ function DashboardSkeleton() {
       {[...Array(4)].map((_, i) => (
         <div
           key={i}
-          className="h-[300px] rounded-xl border bg-card animate-pulse"
+          className="h-[300px] rounded-2xl border bg-white animate-pulse"
         />
       ))}
     </div>
@@ -23,12 +23,12 @@ export function DashboardPreview() {
   const hydrated = useHydration();
 
   return (
-    <section className="relative bg-white pt-24 pb-16 wave-section">
+    <section className="relative bg-gray-50 pt-24 pb-16">
       <div className="container mx-auto px-4">
         <h2 className="text-3xl font-bold text-center mb-4">
           Theo dõi hành trình của bạn
         </h2>
-        <p className="text-center text-gray-600 mb-12">
+        <p className="text-center text-gray-500 mb-12">
           Đặt mục tiêu và theo dõi tiến độ học tập
         </p>
 

@@ -44,7 +44,7 @@ export function LoginForm() {
       const { token, expiryTime } = response.result;
       await setAuth(token, expiryTime);
       toast.success('Đăng nhập thành công!');
-      router.push(getRoleFromToken(token) === 'ADMIN' ? '/admin' : '/');
+      router.push(getRoleFromToken(token) === 'ADMIN' ? '/admin' : '/dashboard');
     } catch (err) {
       toast.error(formatApiError(err));
       setError(formatApiError(err));

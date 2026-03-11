@@ -9,6 +9,7 @@ import { ReadingReviewPanel } from '@/components/reading/reading-review-panel';
 import { useTestDetail } from '@/hooks/use-test-detail';
 
 interface ResultData {
+  attemptId?: number;
   testId: string;
   answers: Record<number, number>;
   elapsedSeconds: number;

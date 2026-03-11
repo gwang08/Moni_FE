@@ -10,6 +10,7 @@ import { useTestDetail } from '@/hooks/use-test-detail';
 import type { QuestionGroupDetail } from '@/types/test.types';
 
 interface ResultData {
+  attemptId?: number;
   testId: string;
   answers: Record<number, number>;
   elapsedSeconds: number;

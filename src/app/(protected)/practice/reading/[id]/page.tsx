@@ -49,25 +49,37 @@ export default function ReadingExercisePage({ params }: Props) {
     setAnswers(prev => ({ ...prev, [questionId]: optionId }));
   };
 
-  const handleComplete = () => {
-    const resultData = { testId: id, answers, elapsedSeconds: elapsed };
-    sessionStorage.setItem(`practice-result-${id}`, JSON.stringify(resultData));
+  const handleComplete = async () => {
     setSubmitted(true);
     setConfirmOpen(false);
     markCompleted(id);
 
-    // Submit to backend (fire-and-forget)
+    // Submit to backend, save attemptId for result page
     if (stimuli) {
       const answerList = Object.entries(answers).map(([qId, optId]) => ({
         questionId: Number(qId),
         selectedOptionId: optId,
       }));
-      submitAttempt({
-        testId: Number(id),
-        stimulusId: stimuli.id,
-        elapsedSeconds: elapsed,
-        answers: answerList,
-      }).catch(() => {}); // silently fail, result page uses local data
+      try {
+        const res = await submitAttempt({
+          testId: Number(id),
+          stimulusId: stimuli.id,
+          elapsedSeconds: elapsed,
+          answers: answerList,
+        });
+        sessionStorage.setItem(`practice-result-${id}`, JSON.stringify({
+          attemptId: res.attemptId, testId: id, answers, elapsedSeconds: elapsed,
+        }));
+      } catch {
+        // Fallback: save local data without attemptId
+        sessionStorage.setItem(`practice-result-${id}`, JSON.stringify({
+          testId: id, answers, elapsedSeconds: elapsed,
+        }));
+      }
+    } else {
+      sessionStorage.setItem(`practice-result-${id}`, JSON.stringify({
+        testId: id, answers, elapsedSeconds: elapsed,
+      }));
     }
 
     router.push(`/practice/reading/${id}/result`);

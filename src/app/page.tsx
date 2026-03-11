@@ -1,3 +1,8 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuthStore } from '@/store/auth-store';
 import {
   Navbar,
   HeroSection,
@@ -9,13 +14,30 @@ import {
 } from "@/components/landing";
 
 export default function Home() {
+  const router = useRouter();
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const [hydrated, setHydrated] = useState(false);
+
+  useEffect(() => {
+    setHydrated(true);
+  }, []);
+
+  useEffect(() => {
+    if (hydrated && isAuthenticated) {
+      router.replace('/dashboard');
+    }
+  }, [hydrated, isAuthenticated, router]);
+
+  // Show nothing while checking auth
+  if (!hydrated) return null;
+  // Redirect in progress
+  if (isAuthenticated) return null;
+
   return (
     <>
       <Navbar />
       <HeroSection />
-
       <ProgramsIntroSection />
-
       <ProgramBanner
         image="/Moni1.png"
         alt="Moni Preschool - Học bổng lên đến 50 triệu"
@@ -26,9 +48,7 @@ export default function Home() {
         ctaHref="/register"
         overlay="left"
       />
-
       <FeaturesSection />
-
       <ProgramBanner
         image="/Moni2.png"
         alt="Moni Du học - 30+ quốc gia, 20+ năm kinh nghiệm"
@@ -39,9 +59,7 @@ export default function Home() {
         ctaHref="#contact"
         overlay="left"
       />
-
       <HowItWorksSection />
-
       <ProgramBanner
         image="/Moni3.png"
         alt="Moni Du học - Tương lai đang gõ cửa"
@@ -52,7 +70,6 @@ export default function Home() {
         ctaHref="/register"
         overlay="left"
       />
-
       <Footer />
     </>
   );

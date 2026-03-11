@@ -15,7 +15,8 @@ export function useTestDetail(id: string): UseTestDetailResult {
     queryKey: ['test', 'detail', id],
     queryFn: () => getPublicTestDetail(id),
     enabled: !!id,
-    staleTime: 30_000,
+    staleTime: 5 * 60 * 1000, // 5 min — test content rarely changes
+    gcTime: 10 * 60 * 1000,   // keep in cache 10 min
   });
 
   return {

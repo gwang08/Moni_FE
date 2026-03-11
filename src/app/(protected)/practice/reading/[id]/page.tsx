@@ -3,13 +3,12 @@
 import { use, useEffect, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, GraduationCap, BookMarked, Loader2, Clock } from 'lucide-react';
+import { ArrowLeft, Loader2, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ReadingToolbar } from '@/components/reading/reading-toolbar';
 import { ReadingPassage } from '@/components/reading/reading-passage';
 import { ReadingQuestionsPanel } from '@/components/reading/reading-questions-panel';
-import { NotesSidebar } from '@/components/reading/notes-sidebar';
 import { usePracticeStore } from '@/store/practice-store';
 import { useReadingStore } from '@/store/reading-store';
 import { useTestDetail } from '@/hooks/use-test-detail';
@@ -34,10 +33,10 @@ export default function ReadingExercisePage({ params }: Props) {
 
   const { testDetail, loading, error } = useTestDetail(id);
   const markCompleted = usePracticeStore((state) => state.markCompleted);
-  const { mode, setMode, clearAll } = useReadingStore();
+  const { setMode, clearAll } = useReadingStore();
   const [submitted, setSubmitted] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const [notesOpen, setNotesOpen] = useState(false);
+  const [exitOpen, setExitOpen] = useState(false);
   const [answers, setAnswers] = useState<Record<number, number>>({});
   const { elapsed, formatted: elapsedTime } = useElapsedTimer(submitted);
 
@@ -103,15 +102,18 @@ export default function ReadingExercisePage({ params }: Props) {
       {/* Header */}
       <div className="bg-white border-b p-4 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-4">
-          <Link href="/practice">
-            <Button variant="ghost" size="icon"><ArrowLeft className="h-5 w-5" /></Button>
-          </Link>
+          {submitted ? (
+            <Link href="/practice">
+              <Button variant="ghost" size="icon"><ArrowLeft className="h-5 w-5" /></Button>
+            </Link>
+          ) : (
+            <Button variant="ghost" size="icon" onClick={() => setExitOpen(true)}>
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+          )}
           <div>
             <div className="flex items-center gap-2">
               <h1 className="text-xl font-bold">{testDetail.title}</h1>
-              <Badge variant="outline" className={mode === 'exam' ? 'bg-orange-100 text-orange-700 border-orange-300' : 'bg-blue-100 text-blue-700 border-blue-300'}>
-                {mode === 'exam' ? (<><GraduationCap className="h-3 w-3 mr-1" />Thi thử</>) : (<><BookMarked className="h-3 w-3 mr-1" />Luyện tập</>)}
-              </Badge>
               {submitted && <Badge className="bg-green-100 text-green-700 border-green-300">Đã hoàn thành</Badge>}
             </div>
             <div className="flex items-center gap-3 text-sm text-muted-foreground">
@@ -130,30 +132,27 @@ export default function ReadingExercisePage({ params }: Props) {
         )}
       </div>
 
-      {!submitted && <ReadingToolbar onOpenNotes={() => setNotesOpen(true)} />}
+      {!submitted && <ReadingToolbar />}
 
       {/* Main content */}
       <div className="flex-1 flex overflow-hidden">
         {/* Left: Passage */}
         <div className="w-1/2 overflow-y-auto p-6 border-r border-gray-200">
           <h2 className="text-2xl font-bold mb-6">{passage.title}</h2>
-          <ReadingPassage content={passage.content} onOpenNotes={() => setNotesOpen(true)} />
+          <ReadingPassage content={passage.content} />
         </div>
         {/* Right: Questions (+ Notes sidebar when active) */}
-        <div className="w-1/2 flex overflow-hidden">
-          <div className="flex-1 overflow-y-auto p-6">
-            {stimuli && stimuli.questionGroups.length > 0 ? (
-              <ReadingQuestionsPanel
-                stimulus={stimuli}
-                submitted={submitted}
-                answers={answers}
-                onAnswer={handleAnswer}
-              />
-            ) : (
-              <p className="text-gray-400 text-center py-8">Chưa có câu hỏi</p>
-            )}
-          </div>
-          <NotesSidebar open={notesOpen} onOpenChange={setNotesOpen} />
+        <div className="w-1/2 overflow-y-auto p-6">
+          {stimuli && stimuli.questionGroups.length > 0 ? (
+            <ReadingQuestionsPanel
+              stimulus={stimuli}
+              submitted={submitted}
+              answers={answers}
+              onAnswer={handleAnswer}
+            />
+          ) : (
+            <p className="text-gray-400 text-center py-8">Chưa có câu hỏi</p>
+          )}
         </div>
       </div>
 
@@ -164,6 +163,17 @@ export default function ReadingExercisePage({ params }: Props) {
         description="Sau khi hoàn thành, bạn sẽ xem được đáp án đúng và giải thích cho từng câu hỏi."
         confirmText="Hoàn thành"
         onConfirm={handleComplete}
+      />
+
+      <ConfirmDialog
+        open={exitOpen}
+        onOpenChange={setExitOpen}
+        title="Thoát khỏi bài làm"
+        description="Bạn ơi, bạn đang thoát khỏi phần làm bài, bạn có chắc chắn muốn thoát chứ"
+        cancelText="Quay lại làm bài"
+        confirmText="Thoát"
+        variant="destructive"
+        onConfirm={() => router.push('/practice')}
       />
     </div>
   );

@@ -2,15 +2,11 @@
 
 import { Button } from '@/components/ui/button';
 import { useReadingStore } from '@/store/reading-store';
-import { Highlighter, StickyNote, BookOpen, GraduationCap, BookMarked, PanelRightOpen } from 'lucide-react';
+import { Highlighter, StickyNote, BookOpen } from 'lucide-react';
 import { useEffect } from 'react';
 
-interface Props {
-  onOpenNotes?: () => void;
-}
-
-export function ReadingToolbar({ onOpenNotes }: Props) {
-  const { activeTool, selectedColor, setActiveTool, setColor, mode, setMode } = useReadingStore();
+export function ReadingToolbar() {
+  const { activeTool, selectedColor, setActiveTool, setColor } = useReadingStore();
 
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
@@ -22,39 +18,17 @@ export function ReadingToolbar({ onOpenNotes }: Props) {
       if (e.key === 'n' || e.key === 'N') {
         setActiveTool(activeTool === 'note' ? null : 'note');
       }
-      if ((e.key === 't' || e.key === 'T') && mode === 'practice') {
+      if (e.key === 't' || e.key === 'T') {
         setActiveTool(activeTool === 'vocab' ? null : 'vocab');
       }
     };
 
     window.addEventListener('keydown', handleKeyPress);
     return () => window.removeEventListener('keydown', handleKeyPress);
-  }, [activeTool, mode, setActiveTool]);
+  }, [activeTool, setActiveTool]);
 
   return (
     <div className="flex items-center gap-2 p-4 bg-white border-b flex-wrap">
-      {/* Mode toggle */}
-      <div className="flex items-center gap-1 mr-4 border-r pr-4">
-        <Button
-          variant={mode === 'practice' ? 'default' : 'outline'}
-          size="sm"
-          onClick={() => setMode('practice')}
-          className="gap-2"
-        >
-          <BookMarked className="h-4 w-4" />
-          Luyện tập
-        </Button>
-        <Button
-          variant={mode === 'exam' ? 'default' : 'outline'}
-          size="sm"
-          onClick={() => setMode('exam')}
-          className="gap-2"
-        >
-          <GraduationCap className="h-4 w-4" />
-          Thi thử
-        </Button>
-      </div>
-
       {/* Tools */}
       <Button
         variant={activeTool === 'highlight' ? 'default' : 'outline'}
@@ -76,17 +50,15 @@ export function ReadingToolbar({ onOpenNotes }: Props) {
         Ghi chú (N)
       </Button>
 
-      {mode === 'practice' && (
-        <Button
-          variant={activeTool === 'vocab' ? 'default' : 'outline'}
-          size="sm"
-          onClick={() => setActiveTool(activeTool === 'vocab' ? null : 'vocab')}
-          className="gap-2"
-        >
-          <BookOpen className="h-4 w-4" />
-          Từ vựng (T)
-        </Button>
-      )}
+      <Button
+        variant={activeTool === 'vocab' ? 'default' : 'outline'}
+        size="sm"
+        onClick={() => setActiveTool(activeTool === 'vocab' ? null : 'vocab')}
+        className="gap-2"
+      >
+        <BookOpen className="h-4 w-4" />
+        Từ vựng (T)
+      </Button>
 
       {/* Color picker for highlight tool */}
       {activeTool === 'highlight' && (
@@ -109,22 +81,10 @@ export function ReadingToolbar({ onOpenNotes }: Props) {
         <span className="text-sm text-muted-foreground ml-auto">
           {activeTool === 'highlight' && 'Chọn text để highlight'}
           {activeTool === 'note' && 'Chọn text hoặc click highlight để thêm ghi chú'}
-          {activeTool === 'vocab' && 'Chọn từ để thêm vào danh sách từ vựng'}
+          {activeTool === 'vocab' && 'Chọn từ để tra nghĩa'}
         </span>
       )}
 
-      {/* Notes panel toggle */}
-      {onOpenNotes && (
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={onOpenNotes}
-          className={`gap-2 ${!activeTool ? 'ml-auto' : ''}`}
-        >
-          <PanelRightOpen className="h-4 w-4" />
-          Ghi chú
-        </Button>
-      )}
     </div>
   );
 }

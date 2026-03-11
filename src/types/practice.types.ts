@@ -1,6 +1,8 @@
 export type Skill = 'reading' | 'writing' | 'listening' | 'speaking';
 export type Difficulty = 'easy' | 'medium' | 'hard';
 
+export type TestMode = 'PRACTICE' | 'FULL_TEST';
+
 export interface Exercise {
   id: string;
   skill: Skill;
@@ -13,6 +15,7 @@ export interface Exercise {
   thumbnailUrl?: string;
   attemptCount?: number;
   questionTypes?: string[];
+  testMode?: TestMode;
 }
 
 export interface ExerciseProgress {

@@ -22,7 +22,8 @@ export function usePracticeExercises(activeSkill: Skill | null): UsePracticeExer
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['practice', 'tests', page, activeSkill],
     queryFn: () => getPublishedTests(page, 12, activeSkill ?? undefined),
-    staleTime: 30_000,
+    staleTime: 5 * 60 * 1000, // 5 min — test list rarely changes
+    gcTime: 10 * 60 * 1000,
   });
 
   return {

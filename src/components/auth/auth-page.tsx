@@ -95,7 +95,21 @@ export function AuthPage({ initialMode = 'login' }: AuthPageProps) {
 
       {/* Mobile card — single column with tabs */}
       <div className="w-full max-w-md z-10 lg:hidden">
-        <div className="bg-white rounded-2xl p-6 shadow-xl">
+        <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
+          {/* Mobile hero image */}
+          <div className="relative h-40 overflow-hidden">
+            <Image src="/login.png" alt="" fill className="object-cover" priority />
+            <div className="absolute inset-0 bg-gradient-to-br from-teal-700/80 via-teal-600/70 to-emerald-700/75" />
+            <div className="relative z-10 flex flex-col items-center justify-center h-full text-white text-center px-6">
+              <h2 className="text-xl font-bold mb-1">
+                {isRegister ? 'Tạo tài khoản' : 'Chào mừng trở lại!'}
+              </h2>
+              <p className="text-white/80 text-xs">
+                {isRegister ? 'Bắt đầu hành trình chinh phục IELTS' : 'Đăng nhập để tiếp tục luyện thi IELTS'}
+              </p>
+            </div>
+          </div>
+          <div className="p-6">
           <div className="flex mb-6 bg-gray-100 rounded-lg p-1">
             <button
               type="button"
@@ -123,6 +137,7 @@ export function AuthPage({ initialMode = 'login' }: AuthPageProps) {
             </button>
           </div>
           {mode === 'login' ? <LoginForm /> : <RegisterForm onSuccess={() => { setMode('login'); window.history.replaceState(null, '', '/login'); }} />}
+          </div>
         </div>
       </div>
     </div>

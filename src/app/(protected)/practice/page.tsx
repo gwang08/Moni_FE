@@ -4,11 +4,12 @@ import { useState, useMemo } from 'react';
 import { usePracticeStore } from '@/store/practice-store';
 import { usePracticeExercises } from '@/hooks/use-practice-exercises';
 import { ModeSelectionModal } from '@/components/practice/mode-selection-modal';
+import { PracticeSidebar } from '@/components/practice/practice-sidebar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { BookOpen, Pencil, Headphones, Mic, Search, Clock, CheckCircle, Users } from 'lucide-react';
-import type { Exercise, Skill } from '@/types/practice.types';
+import type { Exercise, Skill, TestMode } from '@/types/practice.types';
 
 const SKILL_CONFIG = {
   reading: { icon: BookOpen, color: 'text-blue-600', bgColor: 'bg-blue-100', borderColor: 'border-blue-500', label: 'Reading' },
@@ -25,7 +26,9 @@ const DEFAULT_IMAGES: Record<string, string> = {
 };
 
 export default function PracticePage() {
-  const [activeSkill, setActiveSkill] = useState<Skill | null>(null);
+  const [activeSkill, setActiveSkill] = useState<Skill>('reading');
+  const [activeMode, setActiveMode] = useState<TestMode>('PRACTICE');
+  const [activePassage, setActivePassage] = useState<number | null>(null);
   const [showCompleted, setShowCompleted] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(null);
@@ -36,6 +39,9 @@ export default function PracticePage() {
 
   const filteredExercises = useMemo(() => {
     let list = exercises;
+    // Filter by testMode
+    list = list.filter((e) => (e.testMode || 'PRACTICE') === activeMode);
+    // Filter completed/not
     if (showCompleted) {
       list = list.filter((e) => completedExercises.includes(e.id));
     } else {
@@ -46,53 +52,37 @@ export default function PracticePage() {
       list = list.filter((e) => e.title.toLowerCase().includes(q) || e.description.toLowerCase().includes(q));
     }
     return list;
-  }, [exercises, showCompleted, searchQuery, completedExercises]);
+  }, [exercises, activeMode, showCompleted, searchQuery, completedExercises]);
 
   const handleStartExercise = (exercise: Exercise) => {
     setSelectedExercise(exercise);
     setModalOpen(true);
   };
 
+  const modeLabel = activeMode === 'FULL_TEST' ? 'Full đề' : 'Bài lẻ';
+
   return (
     <div className="flex min-h-[calc(100vh-56px)]">
-      {/* Sidebar */}
-      <aside className="w-64 bg-white border-r p-4 hidden lg:block">
-        <h2 className="text-lg font-bold text-gray-800 mb-4">Luyện tập</h2>
-        <div className="space-y-1">
-          <button
-            onClick={() => setActiveSkill(null)}
-            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors ${activeSkill === null ? 'bg-gray-100 font-semibold' : 'hover:bg-gray-50'}`}
-          >
-            <span className="text-sm">Tất cả kỹ năng</span>
-          </button>
-          {(Object.keys(SKILL_CONFIG) as Skill[]).map((skill) => {
-            const config = SKILL_CONFIG[skill];
-            const Icon = config.icon;
-            return (
-              <button
-                key={skill}
-                onClick={() => setActiveSkill(activeSkill === skill ? null : skill)}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${activeSkill === skill ? `${config.bgColor} ${config.color} font-semibold` : 'hover:bg-gray-50'}`}
-              >
-                <Icon className={`h-5 w-5 ${activeSkill === skill ? config.color : 'text-gray-400'}`} />
-                <span className="text-sm">{config.label}</span>
-              </button>
-            );
-          })}
-        </div>
-      </aside>
+      <PracticeSidebar
+        activeSkill={activeSkill}
+        activeMode={activeMode}
+        activePassage={activePassage}
+        onSkillChange={setActiveSkill}
+        onModeChange={setActiveMode}
+        onPassageChange={setActivePassage}
+      />
 
       {/* Main Content */}
       <main className="flex-1 p-6">
-        {/* Skill Tabs */}
-        <div className="flex items-center gap-4 mb-6 border-b pb-4">
+        {/* Mobile Skill Tabs */}
+        <div className="flex items-center gap-4 mb-6 border-b pb-4 lg:hidden">
           {(Object.keys(SKILL_CONFIG) as Skill[]).map((skill) => {
             const config = SKILL_CONFIG[skill];
             const Icon = config.icon;
             return (
               <button
                 key={skill}
-                onClick={() => setActiveSkill(activeSkill === skill ? null : skill)}
+                onClick={() => setActiveSkill(skill)}
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${activeSkill === skill ? `${config.bgColor} ${config.color}` : 'hover:bg-gray-100'}`}
               >
                 <Icon className="h-4 w-4" />
@@ -100,6 +90,16 @@ export default function PracticePage() {
               </button>
             );
           })}
+        </div>
+
+        {/* Page title */}
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold text-gray-900">
+            {SKILL_CONFIG[activeSkill].label} — {modeLabel}
+          </h1>
+          {activePassage && (
+            <p className="text-sm text-gray-500 mt-1">Passage {activePassage}</p>
+          )}
         </div>
 
         {/* Filter Row */}
@@ -112,11 +112,6 @@ export default function PracticePage() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
             <Input placeholder="Tìm theo tên bài tập" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9 w-64" />
           </div>
-        </div>
-
-        <div className="flex items-center gap-2 mb-6 text-blue-600 hover:text-blue-700">
-          <Clock className="h-4 w-4" />
-          <a href="#" className="text-sm font-medium">Xem lịch sử làm bài</a>
         </div>
 
         {/* Content Area */}
@@ -163,7 +158,7 @@ export default function PracticePage() {
                         {exercise.duration && <span>· {Math.floor(exercise.duration / 60)} phút</span>}
                       </div>
                     </div>
-                    {/* Hover overlay - covers entire card */}
+                    {/* Hover overlay */}
                     <div className="absolute inset-0 bg-white rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex flex-col p-4">
                       <h3 className="font-bold text-gray-800 line-clamp-2 mb-2">{exercise.title}</h3>
                       {exercise.questionTypes && exercise.questionTypes.length > 0 && (

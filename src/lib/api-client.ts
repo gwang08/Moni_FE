@@ -91,8 +91,8 @@ export class ApiClient {
   }
 
   // Convenience methods
-  async get<T>(endpoint: string, requiresAuth = false): Promise<T> {
-    return this.request<T>(endpoint, { method: 'GET', requiresAuth });
+  async get<T>(endpoint: string, requiresAuth = false, options?: { signal?: AbortSignal }): Promise<T> {
+    return this.request<T>(endpoint, { method: 'GET', requiresAuth, signal: options?.signal });
   }
 
   async post<T>(

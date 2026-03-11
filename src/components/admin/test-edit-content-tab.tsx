@@ -4,6 +4,7 @@ import { useCallback, useMemo, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Highlighter } from 'lucide-react';
 import { TestEditQuestionCard } from '@/components/admin/test-edit-question-card';
+import { TestEditMatchingHeadings } from '@/components/admin/test-edit-matching-headings';
 import type { TestDetailResponse, QuestionGroupDetail } from '@/types/test.types';
 import type { QuestionTypeCode } from '@/types/admin.types';
 
@@ -119,6 +120,7 @@ export function TestEditContentTab({ test }: Props) {
 
           {stimulus.questionGroups.map((group, gi) => {
             const typeCode = (group.questionTypeCode as QuestionTypeCode) || inferQuestionType(group);
+            const isMatchingHeadings = typeCode === 'MATCHING_HEADINGS';
             return (
               <div key={group.id}>
                 <div className="flex items-center gap-2 mb-2">
@@ -126,19 +128,31 @@ export function TestEditContentTab({ test }: Props) {
                   <span className="text-xs text-gray-400">{TYPE_LABELS[typeCode] || typeCode} · {group.questions.length} câu</span>
                 </div>
                 {group.instruction && <p className="text-xs text-gray-500 italic mb-2">{group.instruction}</p>}
-                <div className="space-y-2">
-                  {group.questions.map(question => (
-                    <TestEditQuestionCard
-                      key={question.id}
-                      question={question}
-                      questionTypeCode={typeCode}
-                      testId={String(test.id)}
-                      pendingEvidence={pendingEvidence}
-                      onAssignEvidence={() => setPendingEvidence(null)}
-                      onEvidenceChange={(ev) => handleEvidenceChange(question.id, ev)}
-                    />
-                  ))}
-                </div>
+
+                {isMatchingHeadings ? (
+                  <TestEditMatchingHeadings
+                    questions={group.questions}
+                    passageHtml={stimulus.content || ''}
+                    testId={String(test.id)}
+                    pendingEvidence={pendingEvidence}
+                    onAssignEvidence={() => setPendingEvidence(null)}
+                    onEvidenceChange={handleEvidenceChange}
+                  />
+                ) : (
+                  <div className="space-y-2">
+                    {group.questions.map(question => (
+                      <TestEditQuestionCard
+                        key={question.id}
+                        question={question}
+                        questionTypeCode={typeCode}
+                        testId={String(test.id)}
+                        pendingEvidence={pendingEvidence}
+                        onAssignEvidence={() => setPendingEvidence(null)}
+                        onEvidenceChange={(ev) => handleEvidenceChange(question.id, ev)}
+                      />
+                    ))}
+                  </div>
+                )}
               </div>
             );
           })}

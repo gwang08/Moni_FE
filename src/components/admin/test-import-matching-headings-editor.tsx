@@ -125,9 +125,8 @@ export function MatchingHeadingsEditor({ paragraphs, questions, pendingEvidence,
     <div className="space-y-3">
       {/* Paragraph → Heading table */}
       <div className="rounded-lg border border-gray-200 overflow-hidden divide-y divide-gray-100">
-        <div className="grid grid-cols-[36px_36px_1fr_28px] bg-gray-50 px-3 py-2 text-xs font-medium text-gray-500">
+        <div className="grid grid-cols-[36px_1fr_28px] bg-gray-50 px-3 py-2 text-xs font-medium text-gray-500">
           <span>Para</span>
-          <span>No.</span>
           <span>Heading</span>
           <span />
         </div>
@@ -141,9 +140,8 @@ export function MatchingHeadingsEditor({ paragraphs, questions, pendingEvidence,
 
           return (
             <div key={p} className="bg-white">
-              <div className="grid grid-cols-[36px_36px_1fr_28px] items-center px-3 py-2 gap-1">
+              <div className="grid grid-cols-[36px_1fr_28px] items-center px-3 py-2 gap-1">
                 <span className="text-sm font-bold text-blue-600">{p}</span>
-                <span className="text-xs text-gray-400 font-medium">{ROMAN[i]}</span>
                 <Input value={heading} onChange={e => onHeading(p, e.target.value)} placeholder="Nội dung heading..." className="text-sm h-8" />
                 <button
                   type="button" onClick={() => setExpanded(isOpen ? null : p)}
@@ -155,7 +153,7 @@ export function MatchingHeadingsEditor({ paragraphs, questions, pendingEvidence,
               </div>
 
               {isOpen && (
-                <div className="px-3 pb-3 grid grid-cols-2 gap-2 ml-[72px] mr-[28px] border-t border-dashed border-gray-100">
+                <div className="px-3 pb-3 grid grid-cols-2 gap-2 ml-[36px] mr-[28px] border-t border-dashed border-gray-100">
                   <div className="pt-2">
                     <span className="text-[10px] font-medium text-gray-400 uppercase tracking-wide">Giải thích</span>
                     <textarea

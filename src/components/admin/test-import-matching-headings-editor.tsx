@@ -87,8 +87,7 @@ export function MatchingHeadingsEditor({ paragraphs, questions, pendingEvidence,
   };
   const onAssign = (p: string, qi: number) => {
     const k = `Paragraph ${p}`;
-    const prev = explanationMap[k]?.evidence;
-    rebuild(headingMap, { ...explanationMap, [k]: { ...explanationMap[k], evidence: prev ? `${prev}\n---\n${pendingEvidence}` : pendingEvidence! } }, distractors);
+    rebuild(headingMap, { ...explanationMap, [k]: { ...explanationMap[k], evidence: pendingEvidence! } }, distractors);
     onAssignEvidence(qi);
   };
   const onClear = (p: string) => {

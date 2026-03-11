@@ -80,10 +80,8 @@ export function TestEditMatchingHeadings({ questions, passageHtml, testId, pendi
 
   const handleAssign = (para: string, questionId: number) => {
     if (!pendingEvidence) return;
-    const prev = explanations[para]?.evidence;
-    const ev = prev ? `${prev}\n---\n${pendingEvidence}` : pendingEvidence;
-    setExplanations(e => ({ ...e, [para]: { ...e[para], evidence: ev } }));
-    onEvidenceChange(questionId, ev);
+    setExplanations(e => ({ ...e, [para]: { ...e[para], evidence: pendingEvidence } }));
+    onEvidenceChange(questionId, pendingEvidence);
     onAssignEvidence();
   };
 

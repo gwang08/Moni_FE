@@ -2,22 +2,10 @@
 
 import { Button } from '@/components/ui/button';
 import { Plus, Highlighter } from 'lucide-react';
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { QuestionGroupEditor } from '@/components/admin/test-import-question-group-editor';
+import { applyHighlights, type EvidenceEntry } from '@/components/admin/test-edit-highlight-evidence';
 import type { StimulusRequest, QuestionGroupRequest } from '@/types/admin.types';
-
-function highlightEvidence(html: string, evidences: string[]): string {
-  if (!evidences.length) return html;
-  let result = html;
-  for (const ev of evidences) {
-    const parts = ev.split(/\n---\n/);
-    for (const part of parts) {
-      const escaped = part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      result = result.replace(new RegExp(`(${escaped})`, 'gi'), '<mark class="bg-yellow-200 rounded px-0.5">$1</mark>');
-    }
-  }
-  return result;
-}
 
 interface Props {
   stimuli: StimulusRequest[];
@@ -36,6 +24,8 @@ export function TestImportStep3({ stimuli, onChange, onNext, onBack }: Props) {
   const [activeStimulus, setActiveStimulus] = useState(0);
   const [pendingEvidence, setPendingEvidence] = useState<string | null>(null);
   const passageRef = useRef<HTMLDivElement>(null);
+  const pendingOffsetRef = useRef(-1);
+  const [offsetMap, setOffsetMap] = useState<Record<string, number>>({});
 
   const stimulus = stimuli[activeStimulus];
 
@@ -56,24 +46,30 @@ export function TestImportStep3({ stimuli, onChange, onNext, onBack }: Props) {
   const captureSelection = useCallback(() => {
     const selection = window.getSelection();
     const text = selection?.toString().trim();
-    if (!text) return;
-    if (passageRef.current && selection?.anchorNode && passageRef.current.contains(selection.anchorNode)) {
-      setPendingEvidence(text);
-      selection.removeAllRanges();
-    }
+    if (!text || !passageRef.current || !selection?.anchorNode) return;
+    if (!passageRef.current.contains(selection.anchorNode)) return;
+    try {
+      const range = selection.getRangeAt(0);
+      const preRange = document.createRange();
+      preRange.selectNodeContents(passageRef.current);
+      preRange.setEnd(range.startContainer, range.startOffset);
+      pendingOffsetRef.current = preRange.toString().length;
+    } catch { pendingOffsetRef.current = -1; }
+    setPendingEvidence(text);
+    selection.removeAllRanges();
   }, []);
 
   const assignEvidence = useCallback((gi: number, qi: number) => {
     if (!pendingEvidence) return;
+    const key = `${gi}-${qi}`;
+    setOffsetMap(prev => ({ ...prev, [key]: pendingOffsetRef.current }));
     updateStimulus(s => ({
       ...s,
       questionGroups: s.questionGroups.map((g, gIdx) => {
         if (gIdx !== gi) return g;
         return { ...g, questions: g.questions.map((q, qIdx) => {
           if (qIdx !== qi) return q;
-          const existing = q.explanation?.evidence;
-          const evidence = existing ? `${existing}\n---\n${pendingEvidence}` : pendingEvidence;
-          return { ...q, explanation: { ...q.explanation, evidence } };
+          return { ...q, explanation: { ...q.explanation, evidence: pendingEvidence } };
         })};
       }),
     }));
@@ -89,15 +85,28 @@ export function TestImportStep3({ stimuli, onChange, onNext, onBack }: Props) {
     )
   );
 
-  const allEvidences = useMemo(() =>
-    stimulus?.questionGroups.flatMap(g =>
-      g.questions.map(q => q.explanation?.evidence).filter(Boolean) as string[]
-    ) ?? [],
-  [stimulus]);
+  const allEvidences = useMemo((): EvidenceEntry[] => {
+    if (!stimulus) return [];
+    const entries: EvidenceEntry[] = [];
+    stimulus.questionGroups.forEach((g, gi) => {
+      g.questions.forEach((q, qi) => {
+        if (q.explanation?.evidence) {
+          entries.push({ text: q.explanation.evidence, offset: offsetMap[`${gi}-${qi}`] ?? -1 });
+        }
+      });
+    });
+    return entries;
+  }, [stimulus, offsetMap]);
 
-  const passageHtml = useMemo(() =>
-    highlightEvidence(stimulus?.content || '<p class="text-gray-400 italic">Chưa có nội dung. Quay lại bước 2 để nhập.</p>', allEvidences),
-  [stimulus?.content, allEvidences]);
+  const passageContent = stimulus?.content || '<p class="text-gray-400 italic">Chưa có nội dung. Quay lại bước 2 để nhập.</p>';
+
+  // Manage innerHTML via ref — React never touches passage DOM, so highlights survive re-renders
+  useEffect(() => {
+    const el = passageRef.current;
+    if (!el) return;
+    el.innerHTML = passageContent;
+    applyHighlights(el, allEvidences);
+  }, [passageContent, allEvidences]);
 
   const totalQuestions = stimulus?.questionGroups.reduce((sum, g) => sum + g.questions.length, 0) ?? 0;
 
@@ -155,7 +164,7 @@ export function TestImportStep3({ stimuli, onChange, onNext, onBack }: Props) {
           )}
         </div>
 
-        {/* RIGHT: Passage */}
+        {/* RIGHT: Passage — no dangerouslySetInnerHTML, managed via ref */}
         <div className="w-1/2 flex flex-col px-4">
           <div className="flex items-center justify-between py-2">
             <h4 className="text-sm font-semibold text-gray-700">Bài đọc / Bài nghe</h4>
@@ -167,7 +176,6 @@ export function TestImportStep3({ stimuli, onChange, onNext, onBack }: Props) {
           <div
             ref={passageRef}
             className="flex-1 overflow-y-auto rounded-lg border border-gray-300 bg-white px-5 py-4 text-sm text-gray-800 leading-relaxed cursor-text select-text prose prose-sm max-w-none"
-            dangerouslySetInnerHTML={{ __html: passageHtml }}
           />
 
           {pendingEvidence && (

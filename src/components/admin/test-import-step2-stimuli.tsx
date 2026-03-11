@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { StimulusCard } from '@/components/admin/test-import-stimulus-card';
 import type { StimulusRequest } from '@/types/admin.types';
@@ -21,10 +22,11 @@ const emptyStimulus = (section: number): StimulusRequest => ({
 
 export function TestImportStep2({ stimuli, onChange, onNext, onBack }: Props) {
   // Auto-create first stimulus if empty
-  if (stimuli.length === 0) {
-    onChange([emptyStimulus(1)]);
-    return null;
-  }
+  useEffect(() => {
+    if (stimuli.length === 0) onChange([emptyStimulus(1)]);
+  }, [stimuli.length, onChange]);
+
+  if (stimuli.length === 0) return null;
 
   const stimulus = stimuli[0];
   const updateStimulus = (updated: StimulusRequest) => onChange([updated]);

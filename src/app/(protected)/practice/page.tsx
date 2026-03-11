@@ -8,7 +8,8 @@ import { PracticeSidebar } from '@/components/practice/practice-sidebar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { BookOpen, Pencil, Headphones, Mic, Search, Clock, CheckCircle, Users } from 'lucide-react';
+import { BookOpen, Pencil, Headphones, Mic, Search, CheckCircle, Users } from 'lucide-react';
+import { QuestionTypeFilter } from '@/components/practice/question-type-filter';
 import type { Exercise, Skill, TestMode } from '@/types/practice.types';
 
 const SKILL_CONFIG = {
@@ -30,6 +31,7 @@ export default function PracticePage() {
   const [activeMode, setActiveMode] = useState<TestMode>('PRACTICE');
   const [activePassage, setActivePassage] = useState<number | null>(null);
   const [showCompleted, setShowCompleted] = useState(false);
+  const [activeQuestionType, setActiveQuestionType] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
@@ -37,10 +39,22 @@ export default function PracticePage() {
   const completedExercises = usePracticeStore((state) => state.completedExercises);
   const { exercises, loading, error, page, totalPages, setPage, retry } = usePracticeExercises(activeSkill, activePassage);
 
+  // Collect all unique question types from current exercises (for filter chips)
+  const availableQuestionTypes = useMemo(() => {
+    const modeFiltered = exercises.filter((e) => (e.testMode || 'PRACTICE') === activeMode);
+    const types = new Set<string>();
+    modeFiltered.forEach((e) => e.questionTypes?.forEach((qt) => types.add(qt)));
+    return Array.from(types).sort();
+  }, [exercises, activeMode]);
+
   const filteredExercises = useMemo(() => {
     let list = exercises;
     // Filter by testMode
     list = list.filter((e) => (e.testMode || 'PRACTICE') === activeMode);
+    // Filter by question type
+    if (activeQuestionType) {
+      list = list.filter((e) => e.questionTypes?.includes(activeQuestionType));
+    }
     // Filter completed/not
     if (showCompleted) {
       list = list.filter((e) => completedExercises.includes(e.id));
@@ -52,7 +66,7 @@ export default function PracticePage() {
       list = list.filter((e) => e.title.toLowerCase().includes(q) || e.description.toLowerCase().includes(q));
     }
     return list;
-  }, [exercises, activeMode, showCompleted, searchQuery, completedExercises]);
+  }, [exercises, activeMode, activeQuestionType, showCompleted, searchQuery, completedExercises]);
 
   const handleStartExercise = (exercise: Exercise) => {
     setSelectedExercise(exercise);
@@ -113,6 +127,13 @@ export default function PracticePage() {
             <Input placeholder="Tìm theo tên bài tập" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9 w-64" />
           </div>
         </div>
+
+        {/* Question Type Filter */}
+        <QuestionTypeFilter
+          availableTypes={availableQuestionTypes}
+          activeType={activeQuestionType}
+          onTypeChange={setActiveQuestionType}
+        />
 
         {/* Content Area */}
         {loading ? (

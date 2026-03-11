@@ -15,91 +15,126 @@ interface FetchOptions extends RequestInit {
   requiresAuth?: boolean;
 }
 
+interface AuthStorage {
+  state: { token?: string; expiryTime?: string; isAuthenticated?: boolean; user?: unknown };
+}
+
+function getStoredAuth(): AuthStorage['state'] {
+  try {
+    const raw = localStorage.getItem('auth-storage');
+    if (!raw) return {};
+    return JSON.parse(raw).state || {};
+  } catch { return {}; }
+}
+
+function setStoredToken(token: string, expiryTime: string) {
+  try {
+    const raw = localStorage.getItem('auth-storage');
+    const parsed = raw ? JSON.parse(raw) : { state: {}, version: 0 };
+    parsed.state.token = token;
+    parsed.state.expiryTime = expiryTime;
+    localStorage.setItem('auth-storage', JSON.stringify(parsed));
+  } catch { /* ignore */ }
+}
+
+function clearStoredAuth() {
+  try {
+    const raw = localStorage.getItem('auth-storage');
+    if (!raw) return;
+    const parsed = JSON.parse(raw);
+    parsed.state = { token: null, expiryTime: null, user: null, isAuthenticated: false };
+    localStorage.setItem('auth-storage', JSON.stringify(parsed));
+  } catch { /* ignore */ }
+}
+
 export class ApiClient {
   private baseUrl: string;
+  private refreshPromise: Promise<string | null> | null = null;
 
   constructor(baseUrl: string = API_BASE_URL) {
     this.baseUrl = baseUrl;
   }
 
   private getAuthToken(): string | null {
-    // Access Zustand store from localStorage
-    const stored = localStorage.getItem('auth-storage');
-    if (!stored) return null;
-
-    try {
-      const { state } = JSON.parse(stored);
-      return state?.token || null;
-    } catch {
-      return null;
-    }
+    return getStoredAuth().token || null;
   }
 
-  async request<T>(
-    endpoint: string,
-    options: FetchOptions = {}
-  ): Promise<T> {
+  /** Try to refresh the token. Deduplicates concurrent calls. */
+  private async refreshToken(): Promise<string | null> {
+    if (this.refreshPromise) return this.refreshPromise;
+
+    this.refreshPromise = (async () => {
+      const currentToken = this.getAuthToken();
+      if (!currentToken) return null;
+
+      try {
+        const res = await fetch(`${this.baseUrl}/auth/refresh`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token: currentToken }),
+        });
+        if (!res.ok) return null;
+        const data = await res.json();
+        const newToken = data.result?.token;
+        const newExpiry = data.result?.expiryTime;
+        if (!newToken) return null;
+        setStoredToken(newToken, newExpiry);
+        return newToken as string;
+      } catch {
+        return null;
+      } finally {
+        this.refreshPromise = null;
+      }
+    })();
+
+    return this.refreshPromise;
+  }
+
+  async request<T>(endpoint: string, options: FetchOptions = {}): Promise<T> {
     const { requiresAuth = false, headers = {}, ...restOptions } = options;
 
     const config: RequestInit = {
       ...restOptions,
-      headers: {
-        'Content-Type': 'application/json',
-        ...headers,
-      },
+      headers: { 'Content-Type': 'application/json', ...headers },
     };
 
-    // Add auth token if required
     if (requiresAuth) {
       const token = this.getAuthToken();
-      if (!token) {
-        throw new ApiError(401, undefined, 'No authentication token found');
-      }
-      config.headers = {
-        ...config.headers,
-        Authorization: `Bearer ${token}`,
-      };
+      if (!token) throw new ApiError(401, undefined, 'No authentication token found');
+      config.headers = { ...config.headers, Authorization: `Bearer ${token}` };
     }
 
     const url = `${this.baseUrl}${endpoint}`;
-    const response = await fetch(url, config);
+    let response = await fetch(url, config);
 
-    // Handle non-JSON responses
+    // Auto-refresh on 401 for authenticated requests
+    if (response.status === 401 && requiresAuth) {
+      const newToken = await this.refreshToken();
+      if (newToken) {
+        config.headers = { ...config.headers, Authorization: `Bearer ${newToken}` };
+        response = await fetch(url, config);
+      } else {
+        clearStoredAuth();
+        throw new ApiError(401, undefined, 'Session expired');
+      }
+    }
+
     const contentType = response.headers.get('content-type');
     if (!contentType?.includes('application/json')) {
-      if (!response.ok) {
-        throw new ApiError(
-          response.status,
-          undefined,
-          'Server error - non-JSON response'
-        );
-      }
+      if (!response.ok) throw new ApiError(response.status, undefined, 'Server error - non-JSON response');
       return {} as T;
     }
 
     const data = await response.json();
-
-    if (!response.ok) {
-      throw new ApiError(
-        response.status,
-        data.code,
-        data.message || 'Request failed'
-      );
-    }
-
+    if (!response.ok) throw new ApiError(response.status, data.code, data.message || 'Request failed');
     return data;
   }
 
-  // Convenience methods
   async get<T>(endpoint: string, requiresAuth = false, options?: { signal?: AbortSignal }): Promise<T> {
     return this.request<T>(endpoint, { method: 'GET', requiresAuth, signal: options?.signal });
   }
 
-  async post<T>(
-    endpoint: string,
-    body?: unknown,
-    requiresAuth = false
-  ): Promise<T> {
+  async post<T>(endpoint: string, body?: unknown, requiresAuth = false): Promise<T> {
     return this.request<T>(endpoint, {
       method: 'POST',
       body: body ? JSON.stringify(body) : undefined,
@@ -107,11 +142,7 @@ export class ApiClient {
     });
   }
 
-  async put<T>(
-    endpoint: string,
-    body?: unknown,
-    requiresAuth = false
-  ): Promise<T> {
+  async put<T>(endpoint: string, body?: unknown, requiresAuth = false): Promise<T> {
     return this.request<T>(endpoint, {
       method: 'PUT',
       body: body ? JSON.stringify(body) : undefined,
@@ -125,36 +156,43 @@ export class ApiClient {
 
   async upload<T>(endpoint: string, file: File): Promise<T> {
     const token = this.getAuthToken();
-    if (!token) {
-      throw new ApiError(401, undefined, 'No authentication token found');
-    }
+    if (!token) throw new ApiError(401, undefined, 'No authentication token found');
 
     const formData = new FormData();
     formData.append('file', file);
 
     const url = `${this.baseUrl}${endpoint}`;
-    const response = await fetch(url, {
+    let response = await fetch(url, {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}` },
       body: formData,
     });
 
+    // Auto-refresh on 401 for upload
+    if (response.status === 401) {
+      const newToken = await this.refreshToken();
+      if (newToken) {
+        response = await fetch(url, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${newToken}` },
+          body: formData,
+        });
+      } else {
+        clearStoredAuth();
+        throw new ApiError(401, undefined, 'Session expired');
+      }
+    }
+
     const contentType = response.headers.get('content-type');
     if (!contentType?.includes('application/json')) {
-      if (!response.ok) {
-        throw new ApiError(response.status, undefined, 'Upload failed');
-      }
+      if (!response.ok) throw new ApiError(response.status, undefined, 'Upload failed');
       return {} as T;
     }
 
     const data = await response.json();
-    if (!response.ok) {
-      throw new ApiError(response.status, data.code, data.message || 'Upload failed');
-    }
-
+    if (!response.ok) throw new ApiError(response.status, data.code, data.message || 'Upload failed');
     return data;
   }
 }
 
-// Export singleton instance
 export const apiClient = new ApiClient();

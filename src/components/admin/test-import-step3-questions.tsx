@@ -140,6 +140,7 @@ export function TestImportStep3({ stimuli, onChange, onNext, onBack }: Props) {
               group={group}
               groupIndex={gi}
               positionOffset={getPositionOffset(gi)}
+              stimulusContent={stimulus.content}
               pendingEvidence={pendingEvidence}
               onAssignEvidence={(qi) => assignEvidence(gi, qi)}
               onChange={updated => updateGroup(gi, updated)}

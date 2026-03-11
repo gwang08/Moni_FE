@@ -1,23 +1,55 @@
 'use client';
 
-import { CheckCircle2 } from 'lucide-react';
-import type { StimulusDetail } from '@/types/test.types';
+import { useMemo } from 'react';
+import type { StimulusDetail, OptionDetail } from '@/types/test.types';
+import { ReadingQuestionMcq } from '@/components/reading/reading-question-mcq';
+import { ReadingMatchingGroup } from '@/components/reading/reading-matching-group';
+import { ReadingMatchingPills } from '@/components/reading/reading-matching-pills';
+
+function seededShuffle<T>(arr: T[], seed: number): T[] {
+  const result = [...arr];
+  let s = seed;
+  for (let i = result.length - 1; i > 0; i--) {
+    s = (s * 1664525 + 1013904223) & 0x7fffffff;
+    const j = s % (i + 1);
+    [result[i], result[j]] = [result[j], result[i]];
+  }
+  return result;
+}
+
+const NO_SHUFFLE_TYPES = ['TFNG', 'YNNG', 'GAP_FILLING', 'DIAGRAM_LABEL'];
+const MATCHING_TYPES = ['MATCHING_HEADINGS', 'MATCHING_INFORMATION', 'MATCHING_FEATURE'];
 
 interface Props {
   stimulus: StimulusDetail;
   submitted?: boolean;
   answers: Record<number, number>;
   onAnswer: (questionId: number, optionId: number) => void;
+  selectedPillId?: number | null;
+  onPillSelect?: (id: number | null) => void;
 }
 
-export function ReadingQuestionsPanel({ stimulus, submitted = false, answers, onAnswer }: Props) {
+export function ReadingQuestionsPanel({ stimulus, submitted = false, answers, onAnswer, selectedPillId = null, onPillSelect }: Props) {
   const selectAnswer = (questionId: number, optionId: number) => {
     if (submitted) return;
     onAnswer(questionId, optionId);
   };
 
+  const shuffledOptionsMap = useMemo(() => {
+    const map: Record<number, OptionDetail[]> = {};
+    for (const group of stimulus.questionGroups) {
+      const typeCode = group.questionTypeCode || '';
+      if (MATCHING_TYPES.includes(typeCode)) continue;
+      const skipShuffle = NO_SHUFFLE_TYPES.includes(typeCode);
+      for (const q of group.questions) {
+        map[q.id] = skipShuffle ? q.options : seededShuffle(q.options, q.id);
+      }
+    }
+    return map;
+  }, [stimulus]);
+
   const totalQuestions = stimulus.questionGroups.reduce((sum, g) => sum + g.questions.length, 0);
-  const answeredCount = Object.keys(answers).length;
+  const answeredCount = Object.keys(answers).filter(k => answers[Number(k)] !== 0).length;
 
   return (
     <div className="space-y-6">
@@ -27,96 +59,59 @@ export function ReadingQuestionsPanel({ stimulus, submitted = false, answers, on
         </div>
       )}
 
-      {stimulus.questionGroups.map((group, gi) => (
-        <div key={group.id}>
-          <div className="flex items-center gap-2 mb-3">
-            <span className="text-xs font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded">
-              Nhóm {gi + 1}
-            </span>
+      {stimulus.questionGroups.map((group, gi) => {
+        const isMatching = MATCHING_TYPES.includes(group.questionTypeCode || '');
+        return (
+          <div key={group.id}>
+            <div className="flex items-center gap-2 mb-3">
+              <span className="text-xs font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded">
+                Nhóm {gi + 1}
+              </span>
+            </div>
+            {group.instruction && (
+              <p className="text-sm text-gray-600 italic mb-4 bg-gray-50 rounded-lg px-3 py-2">
+                {group.instruction}
+              </p>
+            )}
+
+            {group.questionTypeCode === 'MATCHING_HEADINGS' ? (
+              <ReadingMatchingPills
+                questions={group.questions}
+                answers={answers}
+                submitted={submitted}
+                selectedPillId={selectedPillId}
+                onPillSelect={onPillSelect || (() => {})}
+              />
+            ) : isMatching ? (
+              <ReadingMatchingGroup
+                questions={group.questions}
+                answers={answers}
+                submitted={submitted}
+                onAnswer={selectAnswer}
+              />
+            ) : (
+              <div className="space-y-4">
+                {group.questions.map((question) => {
+                  const displayOptions = shuffledOptionsMap[question.id] || question.options;
+                  return (
+                    <ReadingQuestionMcq
+                      key={question.id}
+                      questionId={question.id}
+                      position={question.position}
+                      content={question.content}
+                      options={displayOptions}
+                      selectedId={answers[question.id]}
+                      submitted={submitted}
+                      explanation={question.explanation}
+                      onAnswer={selectAnswer}
+                    />
+                  );
+                })}
+              </div>
+            )}
           </div>
-          {group.instruction && (
-            <p className="text-sm text-gray-600 italic mb-4 bg-gray-50 rounded-lg px-3 py-2">
-              {group.instruction}
-            </p>
-          )}
-
-          <div className="space-y-4">
-            {group.questions.map((question) => {
-              const selectedId = answers[question.id];
-              const showResult = submitted && selectedId != null;
-
-              return (
-                <div key={question.id} className="border border-gray-200 rounded-lg p-4">
-                  <p className="text-sm font-medium text-gray-800 mb-3">
-                    <span className="text-blue-600 font-bold mr-1">{question.position}.</span>
-                    {question.content}
-                  </p>
-
-                  <div className="space-y-2">
-                    {question.options.map((option) => {
-                      const isSelected = selectedId === option.id;
-                      const isCorrect = option.isCorrect;
-
-                      let className = 'w-full flex items-center gap-2 text-sm px-3 py-2 rounded-lg border transition-colors text-left ';
-                      if (showResult && isCorrect) {
-                        className += 'bg-green-50 text-green-700 border-green-300';
-                      } else if (showResult && isSelected && !isCorrect) {
-                        className += 'bg-red-50 text-red-700 border-red-300';
-                      } else if (isSelected) {
-                        className += 'bg-blue-50 text-blue-700 border-blue-300';
-                      } else {
-                        className += 'text-gray-600 border-gray-200 hover:bg-gray-50';
-                      }
-                      if (submitted) className += ' cursor-default';
-                      else className += ' cursor-pointer';
-
-                      return (
-                        <button
-                          key={option.id}
-                          type="button"
-                          onClick={() => selectAnswer(question.id, option.id)}
-                          className={className}
-                        >
-                          {showResult && isCorrect ? (
-                            <CheckCircle2 className="h-4 w-4 shrink-0" />
-                          ) : (
-                            <span className={`h-4 w-4 rounded-full border-2 shrink-0 flex items-center justify-center ${
-                              isSelected ? 'border-blue-500' : 'border-gray-300'
-                            }`}>
-                              {isSelected && <span className="h-2 w-2 rounded-full bg-blue-500" />}
-                            </span>
-                          )}
-                          <span>
-                            {option.label && <strong className="mr-1">{option.label}.</strong>}
-                            {option.content}
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
-
-                  {submitted && question.explanation?.text && (
-                    <div className="mt-3 pt-3 border-t border-gray-100">
-                      <p className="text-xs text-gray-500">
-                        <strong>Giải thích:</strong> {question.explanation.text}
-                      </p>
-                      {question.explanation.evidence && (
-                        <p className="text-xs text-amber-700 bg-amber-50 px-2 py-1 rounded mt-1">
-                          Dẫn chứng: &ldquo;{question.explanation.evidence}&rdquo;
-                        </p>
-                      )}
-                    </div>
-                  )}
-
-                  {submitted && selectedId == null && (
-                    <p className="mt-2 text-xs text-gray-400 italic">Chưa trả lời</p>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }

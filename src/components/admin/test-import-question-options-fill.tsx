@@ -7,7 +7,7 @@ import type { OptionRequest } from '@/types/admin.types';
 interface Props {
   options: OptionRequest[];
   onChange: (options: OptionRequest[]) => void;
-  variant: 'FILL_IN_THE_BLANK' | 'SHORT_ANSWER';
+  variant: string;
 }
 
 export function defaultFillOptions(): OptionRequest[] {

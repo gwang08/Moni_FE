@@ -8,7 +8,6 @@ import { Loader2, Save, ChevronDown, ChevronRight, Highlighter } from 'lucide-re
 import { McqOptions } from '@/components/admin/test-import-question-options-mcq';
 import { TfngOptions } from '@/components/admin/test-import-question-options-tfng';
 import { FillOptions } from '@/components/admin/test-import-question-options-fill';
-import { MatchingOptions } from '@/components/admin/test-import-question-options-matching';
 import { updateQuestion } from '@/lib/admin-api';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
@@ -82,16 +81,13 @@ export function TestEditQuestionCard({ question, questionTypeCode, testId, pendi
           </div>
 
           {(questionTypeCode === 'MCQ' || questionTypeCode === 'MCQ_MULTIPLE') && (
-            <McqOptions options={options} onChange={setOptions} />
+            <McqOptions options={options} onChange={setOptions} multiple={questionTypeCode === 'MCQ_MULTIPLE'} />
           )}
           {(questionTypeCode === 'TFNG' || questionTypeCode === 'YNNG') && (
             <TfngOptions options={options} onChange={setOptions} variant={questionTypeCode} />
           )}
-          {(questionTypeCode === 'FILL_IN_THE_BLANK' || questionTypeCode === 'SHORT_ANSWER') && (
+          {(questionTypeCode === 'GAP_FILLING' || questionTypeCode === 'DIAGRAM_LABEL') && (
             <FillOptions options={options} onChange={setOptions} variant={questionTypeCode} />
-          )}
-          {questionTypeCode === 'MATCHING' && (
-            <MatchingOptions options={options} onChange={setOptions} />
           )}
 
           {/* Explanation + Evidence */}

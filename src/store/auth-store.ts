@@ -73,19 +73,9 @@ export const useAuthStore = create<AuthStore>()(
       },
 
       checkAuth: () => {
-        const { token, expiryTime } = get();
-
-        if (!token || !expiryTime) {
-          return false;
-        }
-
-        const now = new Date();
-        if (now >= expiryTime) {
-          get().clearAuth();
-          return false;
-        }
-
-        return true;
+        const { token } = get();
+        // Only check if token exists — expiry is handled by api-client auto-refresh
+        return !!token;
       },
 
       clearAuth: () => {

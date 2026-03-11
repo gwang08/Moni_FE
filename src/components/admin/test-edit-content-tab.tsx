@@ -9,7 +9,7 @@ import type { QuestionTypeCode } from '@/types/admin.types';
 
 function inferQuestionType(group: QuestionGroupDetail): QuestionTypeCode {
   const q = group.questions[0];
-  if (!q || !q.options.length) return 'SHORT_ANSWER';
+  if (!q || !q.options.length) return 'GAP_FILLING';
   const opts = q.options;
   if (opts.length === 3) {
     const labels = opts.map(o => (o.label || o.content).toLowerCase());
@@ -17,8 +17,7 @@ function inferQuestionType(group: QuestionGroupDetail): QuestionTypeCode {
     if (labels.some(l => l === 'yes' || l === 'no')) return 'YNNG';
   }
   if (opts.length >= 2 && opts.length <= 5 && opts.some(o => ['A', 'B', 'C', 'D', 'E'].includes(o.label))) return 'MCQ';
-  if (opts.every(o => o.isCorrect) && opts.length > 1) return 'MATCHING';
-  if (opts.length === 1 && opts[0].isCorrect) return 'FILL_IN_THE_BLANK';
+  if (opts.length === 1 && opts[0].isCorrect) return 'GAP_FILLING';
   return 'MCQ';
 }
 
@@ -33,8 +32,11 @@ function highlightEvidence(html: string, evidences: string[]): string {
 }
 
 const TYPE_LABELS: Record<string, string> = {
-  MCQ: 'Trắc nghiệm', TFNG: 'True/False/Not Given', YNNG: 'Yes/No/Not Given',
-  FILL_IN_THE_BLANK: 'Điền chỗ trống', SHORT_ANSWER: 'Trả lời ngắn', MATCHING: 'Nối',
+  MCQ: 'Multiple Choice', MCQ_MULTIPLE: 'Multiple Choice',
+  TFNG: 'True / False / Not Given', YNNG: 'Yes / No / Not Given',
+  MATCHING_HEADINGS: 'Matching Headings', MATCHING_INFORMATION: 'Matching Information',
+  MATCHING_FEATURE: 'Matching Features', DIAGRAM_LABEL: 'Map, Diagram Label',
+  GAP_FILLING: 'Gap Filling',
 };
 
 interface Props {
@@ -116,7 +118,7 @@ export function TestEditContentTab({ test }: Props) {
           </div>
 
           {stimulus.questionGroups.map((group, gi) => {
-            const typeCode = inferQuestionType(group);
+            const typeCode = (group.questionTypeCode as QuestionTypeCode) || inferQuestionType(group);
             return (
               <div key={group.id}>
                 <div className="flex items-center gap-2 mb-2">

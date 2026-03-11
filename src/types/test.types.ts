@@ -18,6 +18,9 @@ export interface QuestionGroupDetail {
   id: number;
   instruction: string;
   questionTypeCode?: string;
+  groupContent?: string;
+  imageUrl?: string;
+  sharedOptions?: { label: string; content: string }[];
   questions: QuestionDetail[];
 }
 

@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, useCallback } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { AdminHeader } from '@/components/admin/admin-header';
 import { TestImportStep1, type BasicInfo } from '@/components/admin/test-import-step1-basic-info';
@@ -10,6 +10,8 @@ import { TestImportStep3 } from '@/components/admin/test-import-step3-questions'
 import { TestImportStep4 } from '@/components/admin/test-import-step4-review';
 import { importTest } from '@/lib/admin-api';
 import type { StimulusRequest } from '@/types/admin.types';
+
+const STORAGE_KEY = 'test-import-draft';
 
 const STEPS = ['Thông tin cơ bản', 'Nhập đề thi', 'Câu hỏi', 'Xem lại & Nộp'];
 
@@ -34,14 +36,38 @@ function StepIndicator({ step }: { step: number }) {
   );
 }
 
+function loadDraft(): { basicInfo: BasicInfo; stimuli: StimulusRequest[] } | null {
+  try {
+    const raw = sessionStorage.getItem(STORAGE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch { return null; }
+}
+
 export default function TestImportPage() {
   const router = useRouter();
-  const [step, setStep] = useState(1);
+  const searchParams = useSearchParams();
+  const initialStep = Math.min(4, Math.max(1, Number(searchParams.get('step')) || 1));
+
+  const [step, setStepRaw] = useState(initialStep);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
-  const [basicInfo, setBasicInfo] = useState<BasicInfo>({ title: '', description: '', skill: '', thumbnailUrl: '', testMode: '', section: null });
-  const [stimuli, setStimuli] = useState<StimulusRequest[]>([]);
+  const draft = loadDraft();
+  const [basicInfo, setBasicInfo] = useState<BasicInfo>(draft?.basicInfo ?? { title: '', description: '', skill: '', thumbnailUrl: '', testMode: '', section: null });
+  const [stimuli, setStimuli] = useState<StimulusRequest[]>(draft?.stimuli ?? []);
+
+  // Sync step → URL search param
+  const setStep = useCallback((s: number) => {
+    setStepRaw(s);
+    const url = new URL(window.location.href);
+    url.searchParams.set('step', String(s));
+    window.history.replaceState(null, '', url.toString());
+  }, []);
+
+  // Save draft to sessionStorage on data change
+  useEffect(() => {
+    sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ basicInfo, stimuli }));
+  }, [basicInfo, stimuli]);
 
   const handleSubmit = async () => {
     setSubmitting(true);
@@ -64,6 +90,7 @@ export default function TestImportPage() {
           })),
         })),
       });
+      sessionStorage.removeItem(STORAGE_KEY);
       router.push('/admin/tests');
     } catch {
       setError('Tạo bài thi thất bại. Vui lòng thử lại.');

@@ -25,9 +25,12 @@ export type QuestionTypeCode =
   | 'MCQ_MULTIPLE'
   | 'TFNG'
   | 'YNNG'
-  | 'MATCHING'
-  | 'FILL_IN_THE_BLANK'
-  | 'SHORT_ANSWER';
+  | 'MATCHING_HEADINGS'
+  | 'MATCHING_INFORMATION'
+  | 'MATCHING_FEATURE'
+  | 'DIAGRAM_LABEL'
+  | 'GAP_FILLING';
+
 
 // --- Test Import Request (matches backend TestImportRequest DTO) ---
 
@@ -49,6 +52,9 @@ export interface QuestionRequest {
 export interface QuestionGroupRequest {
   instruction?: string;
   questionTypeCode: QuestionTypeCode;
+  groupContent?: string;
+  imageUrl?: string;
+  sharedOptions?: { label: string; content: string }[];
   questions: QuestionRequest[];
 }
 

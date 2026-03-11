@@ -7,7 +7,7 @@ import { Trash2, Highlighter } from 'lucide-react';
 import { McqOptions } from '@/components/admin/test-import-question-options-mcq';
 import { TfngOptions } from '@/components/admin/test-import-question-options-tfng';
 import { FillOptions } from '@/components/admin/test-import-question-options-fill';
-import { MatchingOptions } from '@/components/admin/test-import-question-options-matching';
+import { MatchingSharedOptions } from '@/components/admin/test-import-question-options-matching-shared';
 import type { QuestionRequest, QuestionTypeCode, OptionRequest } from '@/types/admin.types';
 
 interface Props {
@@ -15,12 +15,13 @@ interface Props {
   questionTypeCode: QuestionTypeCode;
   position: number;
   pendingEvidence: string | null;
+  sharedOptions?: { label: string; content: string }[];
   onAssignEvidence: () => void;
   onChange: (updated: QuestionRequest) => void;
   onRemove: () => void;
 }
 
-export function QuestionEditor({ question, questionTypeCode, position, pendingEvidence, onAssignEvidence, onChange, onRemove }: Props) {
+export function QuestionEditor({ question, questionTypeCode, position, pendingEvidence, sharedOptions, onAssignEvidence, onChange, onRemove }: Props) {
   const setOptions = (options: OptionRequest[]) => onChange({ ...question, options });
 
   const clearEvidence = () => onChange({
@@ -48,16 +49,16 @@ export function QuestionEditor({ question, questionTypeCode, position, pendingEv
 
       {/* Options */}
       {(questionTypeCode === 'MCQ' || questionTypeCode === 'MCQ_MULTIPLE') && (
-        <McqOptions options={question.options} onChange={setOptions} />
+        <McqOptions options={question.options} onChange={setOptions} multiple={questionTypeCode === 'MCQ_MULTIPLE'} />
       )}
       {(questionTypeCode === 'TFNG' || questionTypeCode === 'YNNG') && (
         <TfngOptions options={question.options} onChange={setOptions} variant={questionTypeCode} />
       )}
-      {(questionTypeCode === 'FILL_IN_THE_BLANK' || questionTypeCode === 'SHORT_ANSWER') && (
+      {(questionTypeCode === 'GAP_FILLING' || questionTypeCode === 'DIAGRAM_LABEL') && (
         <FillOptions options={question.options} onChange={setOptions} variant={questionTypeCode} />
       )}
-      {questionTypeCode === 'MATCHING' && (
-        <MatchingOptions options={question.options} onChange={setOptions} />
+      {(['MATCHING_HEADINGS', 'MATCHING_INFORMATION', 'MATCHING_FEATURE'].includes(questionTypeCode)) && (
+        <MatchingSharedOptions options={question.options} onChange={setOptions} sharedOptions={sharedOptions || []} />
       )}
 
       {/* Explanation + Evidence — compact */}

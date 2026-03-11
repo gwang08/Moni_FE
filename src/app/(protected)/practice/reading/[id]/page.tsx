@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ReadingToolbar } from '@/components/reading/reading-toolbar';
 import { ReadingPassage } from '@/components/reading/reading-passage';
+import { ReadingPassageWithMatching } from '@/components/reading/reading-passage-with-matching';
 import { ReadingQuestionsPanel } from '@/components/reading/reading-questions-panel';
 import { usePracticeStore } from '@/store/practice-store';
 import { useReadingStore } from '@/store/reading-store';
@@ -38,6 +39,7 @@ export default function ReadingExercisePage({ params }: Props) {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [exitOpen, setExitOpen] = useState(false);
   const [answers, setAnswers] = useState<Record<number, number>>({});
+  const [selectedPillId, setSelectedPillId] = useState<number | null>(null);
   const { elapsed, formatted: elapsedTime } = useElapsedTimer(submitted);
 
   useEffect(() => {
@@ -46,7 +48,12 @@ export default function ReadingExercisePage({ params }: Props) {
   }, [modeParam, setMode, clearAll]);
 
   const handleAnswer = (questionId: number, optionId: number) => {
-    setAnswers(prev => ({ ...prev, [questionId]: optionId }));
+    if (optionId === 0) {
+      // Clear answer (matching group X button)
+      setAnswers(prev => { const next = { ...prev }; delete next[questionId]; return next; });
+    } else {
+      setAnswers(prev => ({ ...prev, [questionId]: optionId }));
+    }
   };
 
   const handleComplete = async () => {
@@ -151,7 +158,22 @@ export default function ReadingExercisePage({ params }: Props) {
         {/* Left: Passage */}
         <div className="w-1/2 overflow-y-auto p-6 border-r border-gray-200">
           <h2 className="text-2xl font-bold mb-6">{passage.title}</h2>
-          <ReadingPassage content={passage.content} />
+          {(() => {
+            const matchingGroup = stimuli?.questionGroups?.find(g => g.questionTypeCode === 'MATCHING_HEADINGS');
+            return matchingGroup ? (
+              <ReadingPassageWithMatching
+                content={passage.content}
+                questions={matchingGroup.questions}
+                answers={answers}
+                submitted={submitted}
+                onAnswer={handleAnswer}
+                selectedPillId={selectedPillId}
+                onPillAssigned={() => setSelectedPillId(null)}
+              />
+            ) : (
+              <ReadingPassage content={passage.content} />
+            );
+          })()}
         </div>
         {/* Right: Questions (+ Notes sidebar when active) */}
         <div className="w-1/2 overflow-y-auto p-6">
@@ -161,6 +183,8 @@ export default function ReadingExercisePage({ params }: Props) {
               submitted={submitted}
               answers={answers}
               onAnswer={handleAnswer}
+              selectedPillId={selectedPillId}
+              onPillSelect={setSelectedPillId}
             />
           ) : (
             <p className="text-gray-400 text-center py-8">Chưa có câu hỏi</p>

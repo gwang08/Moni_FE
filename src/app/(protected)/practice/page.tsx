@@ -35,7 +35,7 @@ export default function PracticePage() {
   const [modalOpen, setModalOpen] = useState(false);
 
   const completedExercises = usePracticeStore((state) => state.completedExercises);
-  const { exercises, loading, error, page, totalPages, setPage, retry } = usePracticeExercises(activeSkill);
+  const { exercises, loading, error, page, totalPages, setPage, retry } = usePracticeExercises(activeSkill, activePassage);
 
   const filteredExercises = useMemo(() => {
     let list = exercises;

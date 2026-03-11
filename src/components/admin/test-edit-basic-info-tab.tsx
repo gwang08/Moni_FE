@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { updateTest } from '@/lib/admin-api';
 import { MediaUploadZone } from '@/components/admin/media-upload-zone';
+import { SKILL_SECTIONS } from '@/components/admin/test-import-step1-basic-info';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
 import type { TestDetailResponse } from '@/types/test.types';
@@ -17,6 +18,20 @@ const STATUSES = [
   { value: 'PUBLISHED', label: 'Đã xuất bản' },
   { value: 'HIDDEN', label: 'Ẩn' },
 ];
+
+const SKILLS = ['LISTENING', 'READING', 'SPEAKING', 'WRITING'];
+
+const SKILL_MODES: Record<string, string[]> = {
+  READING: ['PRACTICE', 'FULL_TEST'],
+  LISTENING: ['PRACTICE', 'FULL_TEST'],
+  WRITING: ['PRACTICE'],
+  SPEAKING: ['PRACTICE', 'FULL_TEST'],
+};
+
+const MODE_LABELS: Record<string, string> = {
+  PRACTICE: 'Bài lẻ',
+  FULL_TEST: 'Full đề',
+};
 
 interface Props {
   test: TestDetailResponse;
@@ -31,6 +46,25 @@ export function TestEditBasicInfoTab({ test }: Props) {
   const [status, setStatus] = useState(test.status || 'DRAFT');
   const [duration, setDuration] = useState(test.duration ? String(test.duration) : '');
   const [thumbnailUrl, setThumbnailUrl] = useState(test.thumbnailUrl || '');
+  const [skill, setSkill] = useState(test.skill || '');
+  const [testMode, setTestMode] = useState(test.testMode || '');
+  const [section, setSection] = useState<number | null>(test.section ?? null);
+
+  const modes = skill ? (SKILL_MODES[skill] || []) : [];
+  const sections = skill && testMode === 'PRACTICE' ? (SKILL_SECTIONS[skill] || []) : [];
+  const needsSection = testMode === 'PRACTICE' && sections.length > 0;
+
+  const handleSkillChange = (newSkill: string) => {
+    setSkill(newSkill);
+    const skillModes = SKILL_MODES[newSkill] || [];
+    setTestMode(skillModes.length === 1 ? skillModes[0] : '');
+    setSection(null);
+  };
+
+  const handleModeChange = (newMode: string) => {
+    setTestMode(newMode);
+    setSection(null);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,6 +77,9 @@ export function TestEditBasicInfoTab({ test }: Props) {
         thumbnailUrl: thumbnailUrl || undefined,
         status,
         duration: duration ? Number(duration) : undefined,
+        skill: skill || undefined,
+        testMode: testMode || undefined,
+        section: section ?? undefined,
       });
       toast.success('Cập nhật thành công!');
       queryClient.invalidateQueries({ queryKey: ['admin', 'test', String(test.id)] });
@@ -69,6 +106,46 @@ export function TestEditBasicInfoTab({ test }: Props) {
             className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-none"
           />
         </div>
+
+        {/* Skill */}
+        <div>
+          <Label htmlFor="skill" className="mb-1.5 block text-sm font-medium">Kỹ năng</Label>
+          <select id="skill" value={skill} onChange={e => handleSkillChange(e.target.value)}
+            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+            <option value="">Chọn kỹ năng</option>
+            {SKILLS.map(s => <option key={s} value={s}>{s}</option>)}
+          </select>
+        </div>
+
+        {/* Test Mode */}
+        {skill && modes.length > 0 && (
+          <div>
+            <Label className="mb-1.5 block text-sm font-medium">Loại bài</Label>
+            <div className="flex gap-2">
+              {modes.map(mode => (
+                <button key={mode} type="button" onClick={() => handleModeChange(mode)}
+                  className={`px-4 py-2 rounded-lg border text-sm font-medium transition-colors ${
+                    testMode === mode ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                  }`}>
+                  {MODE_LABELS[mode] || mode}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Section */}
+        {needsSection && (
+          <div>
+            <Label className="mb-1.5 block text-sm font-medium">Phần</Label>
+            <select value={section ?? ''} onChange={e => setSection(e.target.value ? Number(e.target.value) : null)}
+              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+              <option value="">Chọn phần</option>
+              {sections.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+            </select>
+          </div>
+        )}
+
         <div>
           <Label className="mb-1.5 block text-sm font-medium">Ảnh bìa</Label>
           {thumbnailUrl ? (

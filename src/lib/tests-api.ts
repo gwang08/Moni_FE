@@ -40,10 +40,12 @@ export async function getTestDetail(id: string): Promise<TestDetailResponse> {
 export async function getPublishedTests(
   page = 1,
   size = 12,
-  skill?: string
+  skill?: string,
+  section?: number | null
 ): Promise<PagedResponse<TestResponse>> {
   let endpoint = `/api/v1/tests?page=${page - 1}&size=${size}`;
   if (skill) endpoint += `&skill=${skill.toUpperCase()}`;
+  if (section != null) endpoint += `&section=${section}`;
 
   const response = await apiClient.get<ApiResponse<PagedResponse<TestResponse>>>(
     endpoint,

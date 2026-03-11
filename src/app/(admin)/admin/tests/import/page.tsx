@@ -40,7 +40,7 @@ export default function TestImportPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
-  const [basicInfo, setBasicInfo] = useState<BasicInfo>({ title: '', description: '', skill: '', thumbnailUrl: '' });
+  const [basicInfo, setBasicInfo] = useState<BasicInfo>({ title: '', description: '', skill: '', thumbnailUrl: '', testMode: '', section: null });
   const [stimuli, setStimuli] = useState<StimulusRequest[]>([]);
 
   const handleSubmit = async () => {
@@ -51,6 +51,8 @@ export default function TestImportPage() {
         title: basicInfo.title,
         description: basicInfo.description || undefined,
         skill: basicInfo.skill,
+        testMode: basicInfo.testMode || undefined,
+        section: basicInfo.section ?? undefined,
         thumbnailUrl: basicInfo.thumbnailUrl || undefined,
         stimuli: stimuli.map((s, i) => ({
           ...s,

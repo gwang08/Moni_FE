@@ -16,12 +16,12 @@ interface UsePracticeExercisesResult {
   retry: () => void;
 }
 
-export function usePracticeExercises(activeSkill: Skill | null): UsePracticeExercisesResult {
+export function usePracticeExercises(activeSkill: Skill | null, activePassage: number | null = null): UsePracticeExercisesResult {
   const [page, setPage] = useState(1);
 
   const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ['practice', 'tests', page, activeSkill],
-    queryFn: () => getPublishedTests(page, 12, activeSkill ?? undefined),
+    queryKey: ['practice', 'tests', page, activeSkill, activePassage],
+    queryFn: () => getPublishedTests(page, 12, activeSkill ?? undefined, activePassage),
     staleTime: 5 * 60 * 1000, // 5 min — test list rarely changes
     gcTime: 10 * 60 * 1000,
   });

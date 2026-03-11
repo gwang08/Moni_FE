@@ -37,6 +37,7 @@ export interface TestDetailResponse {
   skill: string;
   duration: number | null;
   testMode: string | null;
+  section: number | null;
   status: string;
   thumbnailUrl?: string;
   tagIds: number[];
@@ -51,6 +52,7 @@ export interface TestResponse {
   testType: string;
   duration: number | null;
   testMode: string | null;
+  section: number | null;
   status: string;
   tagIds: number[];
   thumbnailUrl?: string;

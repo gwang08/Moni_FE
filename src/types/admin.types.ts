@@ -65,6 +65,8 @@ export interface TestImportRequest {
   description?: string;
   skill: string;
   testType?: string;
+  testMode?: string;
+  section?: number | null;
   thumbnailUrl?: string;
   tagIds?: number[];
   stimuli: StimulusRequest[];
@@ -76,7 +78,9 @@ export interface TestUpdateRequest {
   thumbnailUrl?: string;
   testType?: string;
   duration?: number;
+  skill?: string;
   testMode?: string;
+  section?: number | null;
   status?: string;
   tagIds?: number[];
 }

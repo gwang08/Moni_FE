@@ -18,7 +18,7 @@ const SKILLS = [
     icon: Headphones,
     color: 'text-orange-500',
     modes: ['PRACTICE', 'FULL_TEST'] as TestMode[],
-    subItems: null,
+    subItems: ['Section 1', 'Section 2', 'Section 3', 'Section 4'],
   },
   {
     key: 'writing' as Skill,
@@ -26,7 +26,7 @@ const SKILLS = [
     icon: Pencil,
     color: 'text-red-500',
     modes: ['PRACTICE'] as TestMode[],
-    subItems: null,
+    subItems: ['Task 1', 'Task 2', 'Task 1 Builder'],
   },
   {
     key: 'speaking' as Skill,
@@ -34,7 +34,7 @@ const SKILLS = [
     icon: Mic,
     color: 'text-teal-500',
     modes: ['PRACTICE', 'FULL_TEST'] as TestMode[],
-    subItems: null,
+    subItems: ['Part 1', 'Part 2', 'Part 3'],
   },
 ];
 

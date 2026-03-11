@@ -3,7 +3,7 @@
 import { Button } from '@/components/ui/button';
 import { Loader2, CheckCircle2, FileText, MessageSquare } from 'lucide-react';
 import type { StimulusRequest } from '@/types/admin.types';
-import type { BasicInfo } from '@/components/admin/test-import-step1-basic-info';
+import { type BasicInfo, SKILL_SECTIONS } from '@/components/admin/test-import-step1-basic-info';
 
 const TYPE_LABELS: Record<string, string> = {
   MCQ: 'Trắc nghiệm (MCQ)',
@@ -29,6 +29,11 @@ export function TestImportStep4({ basicInfo, stimuli, submitting, error, onSubmi
   );
   const totalGroups = stimuli.reduce((sum, s) => sum + s.questionGroups.length, 0);
 
+  const modeLabel = basicInfo.testMode === 'FULL_TEST' ? 'Full đề' : 'Bài lẻ';
+  const sectionLabel = basicInfo.section && basicInfo.skill
+    ? SKILL_SECTIONS[basicInfo.skill]?.find(s => s.value === basicInfo.section)?.label
+    : null;
+
   return (
     <div className="space-y-5">
       {/* Summary */}
@@ -37,6 +42,7 @@ export function TestImportStep4({ basicInfo, stimuli, submitting, error, onSubmi
         <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-sm">
           <p><span className="text-gray-500">Tiêu đề:</span> <span className="font-medium">{basicInfo.title}</span></p>
           <p><span className="text-gray-500">Kỹ năng:</span> <span className="font-medium">{basicInfo.skill}</span></p>
+          <p><span className="text-gray-500">Loại bài:</span> <span className="font-medium">{modeLabel}{sectionLabel ? ` — ${sectionLabel}` : ''}</span></p>
           {basicInfo.thumbnailUrl && (
             <p><span className="text-gray-500">Ảnh bìa:</span> <span className="font-medium">Đã tải lên</span></p>
           )}

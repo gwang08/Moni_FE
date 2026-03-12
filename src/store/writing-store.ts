@@ -21,32 +21,62 @@ interface WritingStore {
   reset: () => void;
 }
 
-function firstNum(data: Record<string, unknown>, ...keys: string[]): number {
-  for (const key of keys) {
-    const val = data[key];
+/* eslint-disable @typescript-eslint/no-explicit-any */
+function dig(obj: any, ...paths: string[]): number {
+  for (const path of paths) {
+    const keys = path.split('.');
+    let val: any = obj;
+    for (const k of keys) {
+      val = val?.[k];
+      if (val === undefined) break;
+    }
     if (typeof val === 'number') return val;
   }
   return 0;
 }
 
-function firstStr(data: Record<string, unknown>, ...keys: string[]): string {
-  for (const key of keys) {
-    const val = data[key];
-    if (typeof val === 'string' && val.length > 0) return val;
+function extractFeedback(data: any): string {
+  // Try nested feedback.overall_strategy first
+  if (typeof data?.feedback?.overall_strategy === 'string' && data.feedback.overall_strategy) {
+    return data.feedback.overall_strategy;
   }
-  return '';
+  // Try feedback.improvements array
+  if (Array.isArray(data?.feedback?.improvements) && data.feedback.improvements.length > 0) {
+    return data.feedback.improvements
+      .map((imp: any) => `[${imp.criterion}] ${imp.reason}`)
+      .join('\n');
+  }
+  // Try flat feedback string
+  if (typeof data?.feedback === 'string' && data.feedback) return data.feedback;
+  if (typeof data?.comment === 'string' && data.comment) return data.comment;
+  return 'Bài viết đã được chấm điểm.';
 }
 
 function mapApiResponse(data: Record<string, unknown>): GradingResult {
   return {
-    overallBand: firstNum(data, 'overallBand', 'overall_band', 'band', 'score'),
-    taskAchievement: firstNum(data, 'taskAchievement', 'task_achievement', 'taskResponse', 'task_response'),
-    coherenceCohesion: firstNum(data, 'coherenceCohesion', 'coherence_cohesion', 'coherence'),
-    lexicalResource: firstNum(data, 'lexicalResource', 'lexical_resource', 'lexical'),
-    grammaticalRange: firstNum(data, 'grammaticalRange', 'grammatical_range', 'grammar'),
-    feedback: firstStr(data, 'feedback', 'comment', 'remarks') || 'Bài viết đã được chấm điểm.',
+    overallBand: dig(data,
+      'assessment.final_band',
+      'overallBand', 'overall_band', 'band', 'score'),
+    taskAchievement: dig(data,
+      'assessment.criteria.TR.adjusted_band',
+      'assessment.criteria.TR.band',
+      'taskAchievement', 'task_achievement'),
+    coherenceCohesion: dig(data,
+      'assessment.criteria.CC.adjusted_band',
+      'assessment.criteria.CC.band',
+      'coherenceCohesion', 'coherence_cohesion'),
+    lexicalResource: dig(data,
+      'assessment.criteria.LR.adjusted_band',
+      'assessment.criteria.LR.band',
+      'lexicalResource', 'lexical_resource'),
+    grammaticalRange: dig(data,
+      'assessment.criteria.GRA.adjusted_band',
+      'assessment.criteria.GRA.band',
+      'grammaticalRange', 'grammatical_range'),
+    feedback: extractFeedback(data),
   };
 }
+/* eslint-enable @typescript-eslint/no-explicit-any */
 
 export const useWritingStore = create<WritingStore>((set) => ({
   content: '',

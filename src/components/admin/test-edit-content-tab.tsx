@@ -9,6 +9,8 @@ import { TestEditAddQuestionGroupForm } from '@/components/admin/test-edit-add-q
 import { TestEditAddQuestionForm } from '@/components/admin/test-edit-add-question-form';
 import { useTestEditMutations } from '@/components/admin/use-test-edit-mutations';
 import { applyHighlights, type EvidenceEntry } from '@/components/admin/test-edit-highlight-evidence';
+import { TestEditWritingContent } from '@/components/admin/test-edit-writing-content';
+import { TestEditSpeakingContent } from '@/components/admin/test-edit-speaking-content';
 import type { TestDetailResponse, QuestionGroupDetail } from '@/types/test.types';
 import type { QuestionTypeCode } from '@/types/admin.types';
 
@@ -37,6 +39,11 @@ const TYPE_LABELS: Record<string, string> = {
 interface Props { test: TestDetailResponse }
 
 export function TestEditContentTab({ test }: Props) {
+  // Skill-based routing: Writing and Speaking have different edit UIs
+  if (test.skill === 'WRITING') return <TestEditWritingContent test={test} />;
+  if (test.skill === 'SPEAKING') return <TestEditSpeakingContent test={test} />;
+
+  // Reading & Listening: existing split-pane with questions + passage
   const testId = String(test.id);
   const { handleDeleteGroup, handleDeleteQuestion } = useTestEditMutations(testId);
   const [activeStimulus, setActiveStimulus] = useState(0);
@@ -185,11 +192,17 @@ export function TestEditContentTab({ test }: Props) {
 
         <div className="w-1/2 flex flex-col pl-4">
           <div className="flex items-center justify-between py-2">
-            <h4 className="text-sm font-semibold text-gray-700">{stimulus.title || 'Bài đọc / Bài nghe'}</h4>
+            <h4 className="text-sm font-semibold text-gray-700">{stimulus.title || (test.skill === 'LISTENING' ? 'Bài nghe' : 'Bài đọc')}</h4>
             <Button type="button" size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={captureSelection}>
               <Highlighter className="h-3 w-3" /> Quét dẫn chứng
             </Button>
           </div>
+          {/* Audio player for Listening */}
+          {test.skill === 'LISTENING' && stimulus.mediaUrl && (
+            <div className="mb-2 bg-purple-50 border border-purple-200 rounded-lg p-2">
+              <audio controls src={stimulus.mediaUrl} className="w-full h-8" />
+            </div>
+          )}
           <div ref={passageRef}
             className="flex-1 overflow-y-auto rounded-lg border border-gray-300 bg-white px-5 py-4 text-sm text-gray-800 leading-relaxed cursor-text select-text prose prose-sm max-w-none" />
           {pendingEvidence && (

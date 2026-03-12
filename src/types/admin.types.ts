@@ -29,7 +29,8 @@ export type QuestionTypeCode =
   | 'MATCHING_INFORMATION'
   | 'MATCHING_FEATURE'
   | 'DIAGRAM_LABEL'
-  | 'GAP_FILLING';
+  | 'GAP_FILLING'
+  | 'SHORT_ANSWER';
 
 
 // --- Test Import Request (matches backend TestImportRequest DTO) ---
@@ -74,6 +75,7 @@ export interface TestImportRequest {
   testMode?: string;
   section?: number | null;
   thumbnailUrl?: string;
+  duration?: number;
   tagIds?: number[];
   stimuli: StimulusRequest[];
 }

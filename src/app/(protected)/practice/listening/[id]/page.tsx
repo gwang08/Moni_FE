@@ -1,31 +1,20 @@
 'use client';
 
-import { use } from 'react';
+import { use, useEffect, useState, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { AudioPlayer } from '@/components/listening/audio-player';
-import { TranscriptView } from '@/components/listening/transcript-view';
+import { ListeningPracticeHeader } from '@/components/listening/listening-practice-header';
+import { ListeningAudioPlayer } from '@/components/listening/listening-audio-player';
+import { ListeningQuestionNav } from '@/components/listening/listening-question-nav';
+import { ReadingQuestionsPanel } from '@/components/reading/reading-questions-panel';
+import { useListeningStore } from '@/store/listening-store';
 import { usePracticeStore } from '@/store/practice-store';
 import { useTestDetail } from '@/hooks/use-test-detail';
-import type { TranscriptSegment } from '@/types/listening.types';
-
-const MOCK_TRANSCRIPTS: Record<string, TranscriptSegment[]> = {
-  'listening-1': [
-    { id: '1', startTime: 0, endTime: 4, text: "Hello, I'm calling about student accommodation." },
-    { id: '2', startTime: 4, endTime: 8, text: 'Yes, how can I help you today?' },
-    { id: '3', startTime: 8, endTime: 13, text: "I'd like to know about the halls of residence for next year." },
-  ],
-  'listening-2': [
-    { id: '1', startTime: 0, endTime: 5, text: 'Good morning, welcome to Sunshine Travel Agency.' },
-    { id: '2', startTime: 5, endTime: 10, text: "Hi, I'm interested in booking a holiday package." },
-    { id: '3', startTime: 10, endTime: 15, text: 'Of course! What destination are you considering?' },
-  ],
-};
-
-const DEFAULT_TRANSCRIPT: TranscriptSegment[] = [
-  { id: '1', startTime: 0, endTime: 5, text: 'Transcript không khả dụng cho bài tập này.' },
-];
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { useElapsedTimer } from '@/hooks/use-elapsed-timer';
+import { submitAttempt } from '@/lib/practice-api';
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -33,13 +22,85 @@ interface Props {
 
 export default function ListeningExercisePage({ params }: Props) {
   const { id } = use(params);
+  const router = useRouter();
+
   const { testDetail, loading, error } = useTestDetail(id);
   const markCompleted = usePracticeStore((state) => state.markCompleted);
+  const { resetPlayer } = useListeningStore();
+
+  const [submitted, setSubmitted] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [exitOpen, setExitOpen] = useState(false);
+  const [answers, setAnswers] = useState<Record<number, number>>({});
+  const { elapsed, formatted: elapsedTime } = useElapsedTimer(submitted);
+
+  useEffect(() => {
+    resetPlayer();
+  }, [resetPlayer]);
+
+  const stimuli = testDetail?.stimuli[0];
+
+  const questionIds = useMemo(() => {
+    if (!stimuli) return [];
+    return stimuli.questionGroups.flatMap((g) => g.questions.map((q) => q.id));
+  }, [stimuli]);
+
+  const questionCount = questionIds.length;
+
+  const answeredSet = useMemo(() => {
+    const s = new Set<number>();
+    for (const [k, v] of Object.entries(answers)) {
+      if (v !== 0) s.add(Number(k));
+    }
+    return s;
+  }, [answers]);
+
+  const handleAnswer = (questionId: number, optionId: number) => {
+    if (optionId === 0) {
+      setAnswers((prev) => { const next = { ...prev }; delete next[questionId]; return next; });
+    } else {
+      setAnswers((prev) => ({ ...prev, [questionId]: optionId }));
+    }
+  };
+
+  const handleComplete = async () => {
+    setSubmitted(true);
+    setConfirmOpen(false);
+    markCompleted(id);
+
+    if (stimuli) {
+      const answerList = Object.entries(answers).map(([qId, optId]) => ({
+        questionId: Number(qId),
+        selectedOptionId: optId,
+      }));
+      try {
+        const res = await submitAttempt({
+          testId: Number(id),
+          stimulusId: stimuli.id,
+          elapsedSeconds: elapsed,
+          answers: answerList,
+        });
+        sessionStorage.setItem(`practice-result-${id}`, JSON.stringify({
+          attemptId: res.attemptId, testId: id, answers, elapsedSeconds: elapsed,
+        }));
+      } catch {
+        sessionStorage.setItem(`practice-result-${id}`, JSON.stringify({
+          testId: id, answers, elapsedSeconds: elapsed,
+        }));
+      }
+    } else {
+      sessionStorage.setItem(`practice-result-${id}`, JSON.stringify({
+        testId: id, answers, elapsedSeconds: elapsed,
+      }));
+    }
+
+    router.push(`/practice/listening/${id}/result`);
+  };
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="h-8 w-8 animate-spin text-purple-600" />
+      <div className="flex items-center justify-center h-[calc(100vh-56px)]">
+        <Loader2 className="h-8 w-8 animate-spin text-violet-600" />
         <span className="ml-3 text-gray-600">Đang tải bài tập...</span>
       </div>
     );
@@ -47,50 +108,72 @@ export default function ListeningExercisePage({ params }: Props) {
 
   if (error || !testDetail) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen gap-4">
+      <div className="flex flex-col items-center justify-center h-[calc(100vh-56px)] gap-4">
         <p className="text-red-500">{error || 'Không tìm thấy bài tập.'}</p>
         <Link href="/practice"><Button variant="outline">Quay lại danh sách</Button></Link>
       </div>
     );
   }
 
-  const stimuli = testDetail.stimuli[0];
-  // Use API mediaUrl if available, otherwise fall back to sample
-  const audioUrl = stimuli?.mediaUrl || '/audio/sample.mp3';
-  const transcript = MOCK_TRANSCRIPTS[id] || DEFAULT_TRANSCRIPT;
-  const questionCount = stimuli?.questionGroups?.reduce((sum, g) => sum + g.questions.length, 0) ?? 0;
-
-  const formatDuration = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
-
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="bg-white border-b p-4">
-        <div className="container mx-auto max-w-6xl flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Link href="/practice">
-              <Button variant="ghost" size="icon"><ArrowLeft className="h-5 w-5" /></Button>
-            </Link>
-            <div>
-              <h1 className="text-xl font-bold">{testDetail.title}</h1>
-              <p className="text-sm text-muted-foreground">
-                {questionCount > 0 && `${questionCount} câu hỏi`}
-                {questionCount > 0 && ' • '}
-                Thời lượng: {formatDuration(600)}
-              </p>
-            </div>
-          </div>
-          <Button onClick={() => markCompleted(id)}>Hoàn thành</Button>
+    <div className="h-[calc(100vh-56px)] flex flex-col">
+      <ListeningPracticeHeader
+        title={testDetail.title}
+        questionCount={questionCount}
+        elapsedTime={elapsedTime}
+        submitted={submitted}
+        answeredCount={answeredSet.size}
+        totalQuestions={questionCount}
+        onSubmit={() => setConfirmOpen(true)}
+        onExit={() => setExitOpen(true)}
+      />
+
+      {stimuli?.mediaUrl && (
+        <div className="px-4 pt-3 shrink-0">
+          <ListeningAudioPlayer audioUrl={stimuli.mediaUrl} />
         </div>
+      )}
+
+      {questionIds.length > 0 && (
+        <ListeningQuestionNav
+          totalQuestions={questionCount}
+          answeredQuestions={answeredSet}
+          questionIds={questionIds}
+        />
+      )}
+
+      <div className="flex-1 overflow-y-auto px-4 py-4">
+        {stimuli && stimuli.questionGroups.length > 0 ? (
+          <ReadingQuestionsPanel
+            stimulus={stimuli}
+            submitted={submitted}
+            answers={answers}
+            onAnswer={handleAnswer}
+          />
+        ) : (
+          <p className="text-gray-400 text-center py-8">Chưa có câu hỏi</p>
+        )}
       </div>
 
-      <div className="container mx-auto max-w-6xl p-6 space-y-6">
-        <AudioPlayer audioUrl={audioUrl} />
-        <TranscriptView segments={transcript} />
-      </div>
+      <ConfirmDialog
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        title="Hoàn thành bài tập?"
+        description="Sau khi hoàn thành, bạn sẽ xem được đáp án đúng và giải thích cho từng câu hỏi."
+        confirmText="Hoàn thành"
+        onConfirm={handleComplete}
+      />
+
+      <ConfirmDialog
+        open={exitOpen}
+        onOpenChange={setExitOpen}
+        title="Thoát khỏi bài làm"
+        description="Bạn đang thoát khỏi phần làm bài, bạn có chắc chắn muốn thoát không?"
+        cancelText="Quay lại làm bài"
+        confirmText="Thoát"
+        variant="destructive"
+        onConfirm={() => router.push('/practice')}
+      />
     </div>
   );
 }

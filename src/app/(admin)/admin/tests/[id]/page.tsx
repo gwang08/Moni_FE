@@ -5,6 +5,8 @@ import { Loader2, Pencil, ArrowLeft, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { AdminHeader } from '@/components/admin/admin-header';
+import { TestDetailWritingView } from '@/components/admin/test-detail-writing-view';
+import { TestDetailSpeakingView } from '@/components/admin/test-detail-speaking-view';
 import { getTestDetail } from '@/lib/tests-api';
 import { useQuery } from '@tanstack/react-query';
 
@@ -49,16 +51,28 @@ export default function TestDetailPage() {
               </div>
             </div>
 
-            {test.stimuli.map((stimulus, si) => (
+            {/* Skill-specific content views */}
+            {test.skill === 'WRITING' && <TestDetailWritingView stimuli={test.stimuli} />}
+            {test.skill === 'SPEAKING' && <TestDetailSpeakingView stimuli={test.stimuli} />}
+
+            {/* Reading/Listening: passage + question groups */}
+            {(test.skill === 'READING' || test.skill === 'LISTENING') && test.stimuli.map((stimulus, si) => (
               <div key={stimulus.id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                 <h3 className="text-sm font-semibold text-gray-700 mb-3">
                   {stimulus.title || `Passage ${si + 1}`}
                 </h3>
+                {/* Audio player for Listening */}
+                {test.skill === 'LISTENING' && stimulus.mediaUrl && (
+                  <div className="mb-4 bg-purple-50 border border-purple-200 rounded-lg p-3">
+                    <p className="text-xs font-medium text-purple-700 mb-1">Audio</p>
+                    <audio controls src={stimulus.mediaUrl} className="w-full h-8" />
+                  </div>
+                )}
                 <div
                   className="text-sm text-gray-700 bg-gray-50 rounded-lg p-4 mb-4 prose prose-sm max-w-none"
                   dangerouslySetInnerHTML={{ __html: stimulus.content }}
                 />
-                {stimulus.mediaUrl && (
+                {stimulus.mediaUrl && test.skill !== 'LISTENING' && (
                   <p className="text-xs text-blue-500 mb-4">
                     Media: <a href={stimulus.mediaUrl} target="_blank" rel="noopener noreferrer">{stimulus.mediaUrl}</a>
                   </p>

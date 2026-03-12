@@ -15,11 +15,15 @@ const MOCK_TASK = {
 };
 
 export default function WritingPage() {
-  const { wordCount, gradingResult, submitForGrading } = useWritingStore();
+  const { wordCount, gradingResult, submitForGrading, isGrading } = useWritingStore();
   const [showGrading, setShowGrading] = useState(false);
 
-  const handleSubmit = () => {
-    submitForGrading();
+  const handleSubmit = async () => {
+    await submitForGrading({
+      taskType: 2,
+      question: MOCK_TASK.prompt,
+      answer: useWritingStore.getState().content.replace(/<[^>]*>/g, '').trim(),
+    });
     setShowGrading(true);
   };
 
@@ -33,7 +37,6 @@ export default function WritingPage() {
           </h1>
         </div>
 
-        {/* Stats Bar */}
         <div className="bg-white border rounded-lg p-4 flex items-center justify-between">
           <div className="flex gap-6">
             <div>
@@ -48,18 +51,16 @@ export default function WritingPage() {
 
           <Button
             onClick={handleSubmit}
-            disabled={wordCount < MOCK_TASK.minWords}
+            disabled={wordCount < MOCK_TASK.minWords || isGrading}
             className="gap-2"
           >
             <Send className="h-4 w-4" />
-            Nộp bài
+            {isGrading ? 'Đang chấm...' : 'Nộp bài'}
           </Button>
         </div>
 
-        {/* Editor */}
-        <WritingEditor taskPrompt={MOCK_TASK.prompt} />
+        <WritingEditor />
 
-        {/* Grading Modal */}
         {gradingResult && (
           <GradingModal
             isOpen={showGrading}

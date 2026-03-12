@@ -98,6 +98,10 @@ export async function getStimuli(params?: {
   return response.result;
 }
 
+export async function updateStimulus(id: number, data: { content?: string; mediaUrl?: string }): Promise<void> {
+  await apiClient.put(`/api/v1/admin/stimuli/${id}`, data, true);
+}
+
 // Questions
 export async function updateQuestion(id: string, data: QuestionUpdateRequest): Promise<void> {
   await apiClient.put(`/api/v1/admin/questions/${id}`, data, true);

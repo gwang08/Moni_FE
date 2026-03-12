@@ -23,6 +23,71 @@ interface Props {
   onBack: () => void;
 }
 
+function WritingReview({ stimuli }: { stimuli: StimulusRequest[] }) {
+  const s = stimuli[0];
+  if (!s) return null;
+  return (
+    <div className="border border-gray-200 rounded-lg overflow-hidden">
+      <div className="bg-gray-50 px-4 py-2.5 border-b border-gray-200">
+        <span className="text-sm font-semibold text-gray-700">Đề bài Writing</span>
+      </div>
+      <div className="p-4 space-y-3">
+        <p className="text-sm text-gray-700 whitespace-pre-wrap">{s.content || <span className="text-red-400 italic">Chưa nhập đề bài</span>}</p>
+        {s.mediaUrl && (
+          <div>
+            <p className="text-xs text-gray-500 mb-1">Biểu đồ (Task 1):</p>
+            <img src={s.mediaUrl} alt="Chart" className="max-h-40 rounded-lg border" />
+          </div>
+        )}
+        {s.questionGroups[0]?.instruction && (
+          <div>
+            <p className="text-xs text-gray-500 mb-1">Bài mẫu:</p>
+            <p className="text-sm text-gray-600 bg-green-50 rounded-lg p-3 whitespace-pre-wrap">{s.questionGroups[0].instruction}</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function SpeakingReview({ stimuli }: { stimuli: StimulusRequest[] }) {
+  const s = stimuli[0];
+  if (!s) return null;
+  const questions = s.questionGroups[0]?.questions || [];
+  return (
+    <div className="border border-gray-200 rounded-lg overflow-hidden">
+      <div className="bg-gray-50 px-4 py-2.5 border-b border-gray-200 flex items-center justify-between">
+        <span className="text-sm font-semibold text-gray-700">Câu hỏi Speaking</span>
+        <span className="text-xs text-gray-400">{questions.length} câu</span>
+      </div>
+      <div className="p-4 space-y-3">
+        {s.content && <p className="text-sm text-gray-700 italic mb-2">Chủ đề: {s.content}</p>}
+        {questions.map((q, i) => (
+          <div key={i} className="border-l-2 border-orange-300 pl-3 py-1">
+            <p className="text-sm"><span className="font-medium text-gray-700">Câu {i + 1}.</span> {q.content}</p>
+            {q.explanation?.text && <p className="text-xs text-gray-500 mt-0.5">Gợi ý: {q.explanation.text}</p>}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ListeningReview({ stimuli }: { stimuli: StimulusRequest[] }) {
+  const s = stimuli[0];
+  if (!s) return null;
+  return (
+    <>
+      {s.mediaUrl && (
+        <div className="flex items-center gap-2 bg-purple-50 border border-purple-200 rounded-lg p-3 mb-4">
+          <span className="text-xs font-medium text-purple-700">Audio:</span>
+          <audio controls src={s.mediaUrl} className="h-8 flex-1" />
+        </div>
+      )}
+    </>
+  );
+}
+
 export function TestImportStep4({ basicInfo, stimuli, submitting, error, onSubmit, onBack }: Props) {
   const totalQuestions = stimuli.reduce(
     (sum, s) => sum + s.questionGroups.reduce((gs, g) => gs + g.questions.length, 0), 0
@@ -55,8 +120,13 @@ export function TestImportStep4({ basicInfo, stimuli, submitting, error, onSubmi
         </div>
       </div>
 
-      {/* Per stimulus detail */}
-      {stimuli.map((s, si) => (
+      {/* Skill-specific review */}
+      {basicInfo.skill === 'WRITING' && <WritingReview stimuli={stimuli} />}
+      {basicInfo.skill === 'SPEAKING' && <SpeakingReview stimuli={stimuli} />}
+      {basicInfo.skill === 'LISTENING' && <ListeningReview stimuli={stimuli} />}
+
+      {/* Per stimulus detail (Reading/Listening question groups) */}
+      {(basicInfo.skill === 'READING' || basicInfo.skill === 'LISTENING' || !basicInfo.skill) && stimuli.map((s, si) => (
         <div key={si} className="border border-gray-200 rounded-lg overflow-hidden">
           <div className="bg-gray-50 px-4 py-2.5 flex items-center gap-2 border-b border-gray-200">
             <FileText className="h-4 w-4 text-gray-500" />

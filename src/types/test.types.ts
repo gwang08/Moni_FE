@@ -43,6 +43,7 @@ export interface TestDetailResponse {
   section: number | null;
   status: string;
   thumbnailUrl?: string;
+  testType?: string;
   tagIds: number[];
   stimuli: StimulusDetail[];
 }

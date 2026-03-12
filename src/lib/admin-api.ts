@@ -10,6 +10,8 @@ import type {
   StimulusCreateRequest,
   StimulusResponse,
   QuestionUpdateRequest,
+  QuestionGroupRequest,
+  QuestionRequest,
 } from '@/types/admin.types';
 
 // Tags
@@ -99,6 +101,34 @@ export async function getStimuli(params?: {
 // Questions
 export async function updateQuestion(id: string, data: QuestionUpdateRequest): Promise<void> {
   await apiClient.put(`/api/v1/admin/questions/${id}`, data, true);
+}
+
+export async function batchUpdateQuestions(updates: Record<string, QuestionUpdateRequest>): Promise<void> {
+  await apiClient.put('/api/v1/admin/questions/batch', updates, true);
+}
+
+export async function createQuestionGroup(stimulusId: number, data: QuestionGroupRequest): Promise<number> {
+  const response = await apiClient.post<ApiResponse<number>>(
+    `/api/v1/admin/stimuli/${stimulusId}/question-groups`, data, true
+  );
+  if (!response.result) throw new Error('Failed to create question group');
+  return response.result;
+}
+
+export async function deleteQuestionGroup(id: number): Promise<void> {
+  await apiClient.delete(`/api/v1/admin/question-groups/${id}`, true);
+}
+
+export async function createQuestion(groupId: number, data: QuestionRequest): Promise<number> {
+  const response = await apiClient.post<ApiResponse<number>>(
+    `/api/v1/admin/question-groups/${groupId}/questions`, data, true
+  );
+  if (!response.result) throw new Error('Failed to create question');
+  return response.result;
+}
+
+export async function deleteQuestion(id: number): Promise<void> {
+  await apiClient.delete(`/api/v1/admin/questions/${id}`, true);
 }
 
 // Users

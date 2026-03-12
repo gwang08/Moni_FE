@@ -53,7 +53,7 @@ export default function TestImportPage() {
   const [error, setError] = useState('');
 
   const draft = loadDraft();
-  const [basicInfo, setBasicInfo] = useState<BasicInfo>(draft?.basicInfo ?? { title: '', description: '', skill: '', thumbnailUrl: '', testMode: '', section: null });
+  const [basicInfo, setBasicInfo] = useState<BasicInfo>(draft?.basicInfo ?? { title: '', description: '', skill: '', thumbnailUrl: '', testMode: '', section: null, testType: '', duration: null });
   const [stimuli, setStimuli] = useState<StimulusRequest[]>(draft?.stimuli ?? []);
 
   // Sync step → URL search param
@@ -80,6 +80,8 @@ export default function TestImportPage() {
         testMode: basicInfo.testMode || undefined,
         section: basicInfo.section ?? undefined,
         thumbnailUrl: basicInfo.thumbnailUrl || undefined,
+        testType: basicInfo.testType || undefined,
+        duration: basicInfo.duration ?? undefined,
         stimuli: stimuli.map((s, i) => ({
           ...s,
           title: s.title || `Passage ${i + 1}`,

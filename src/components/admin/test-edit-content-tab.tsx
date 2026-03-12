@@ -2,9 +2,12 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Highlighter } from 'lucide-react';
+import { Highlighter, Plus, Trash2 } from 'lucide-react';
 import { TestEditQuestionCard } from '@/components/admin/test-edit-question-card';
 import { TestEditMatchingHeadings } from '@/components/admin/test-edit-matching-headings';
+import { TestEditAddQuestionGroupForm } from '@/components/admin/test-edit-add-question-group-form';
+import { TestEditAddQuestionForm } from '@/components/admin/test-edit-add-question-form';
+import { useTestEditMutations } from '@/components/admin/use-test-edit-mutations';
 import { applyHighlights, type EvidenceEntry } from '@/components/admin/test-edit-highlight-evidence';
 import type { TestDetailResponse, QuestionGroupDetail } from '@/types/test.types';
 import type { QuestionTypeCode } from '@/types/admin.types';
@@ -34,6 +37,8 @@ const TYPE_LABELS: Record<string, string> = {
 interface Props { test: TestDetailResponse }
 
 export function TestEditContentTab({ test }: Props) {
+  const testId = String(test.id);
+  const { handleDeleteGroup, handleDeleteQuestion } = useTestEditMutations(testId);
   const [activeStimulus, setActiveStimulus] = useState(0);
   const [pendingEvidence, setPendingEvidence] = useState<string | null>(null);
   const pendingOffsetRef = useRef(-1);
@@ -47,6 +52,10 @@ export function TestEditContentTab({ test }: Props) {
   const [offsetMap, setOffsetMap] = useState<Record<number, number>>({});
   const passageRef = useRef<HTMLDivElement>(null);
   const stimulus = test.stimuli[activeStimulus];
+
+  // CRUD toggle state
+  const [addingGroup, setAddingGroup] = useState(false);
+  const [addingQuestionForGroup, setAddingQuestionForGroup] = useState<number | null>(null);
 
   const captureSelection = useCallback(() => {
     const selection = window.getSelection();
@@ -80,7 +89,6 @@ export function TestEditContentTab({ test }: Props) {
     return qIds.filter(id => evidenceMap[id]).map(id => ({ text: evidenceMap[id], offset: offsetMap[id] ?? -1 }));
   }, [stimulus, evidenceMap, offsetMap]);
 
-  // Manage innerHTML via ref — React never touches passage DOM, so highlights survive re-renders
   const passageContent = stimulus?.content || '';
   useEffect(() => {
     const el = passageRef.current;
@@ -98,7 +106,7 @@ export function TestEditContentTab({ test }: Props) {
         <div className="flex gap-1">
           {test.stimuli.map((s, i) => (
             <button key={s.id} type="button"
-              onClick={() => { setActiveStimulus(i); setPendingEvidence(null); }}
+              onClick={() => { setActiveStimulus(i); setPendingEvidence(null); setAddingGroup(false); setAddingQuestionForGroup(null); }}
               className={`px-3 py-1.5 text-xs rounded-md font-medium transition-colors ${
                 i === activeStimulus ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
@@ -122,23 +130,57 @@ export function TestEditContentTab({ test }: Props) {
                 <div className="flex items-center gap-2 mb-2">
                   <span className="text-xs font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded">Nhóm {gi + 1}</span>
                   <span className="text-xs text-gray-400">{TYPE_LABELS[typeCode] || typeCode} · {group.questions.length} câu</span>
+                  <button type="button" onClick={() => handleDeleteGroup(group.id)} title="Xóa nhóm"
+                    className="ml-auto text-gray-300 hover:text-red-500 transition-colors">
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
                 </div>
                 {group.instruction && <p className="text-xs text-gray-500 italic mb-2">{group.instruction}</p>}
                 {isMatchingHeadings ? (
-                  <TestEditMatchingHeadings questions={group.questions} passageHtml={stimulus.content || ''} testId={String(test.id)}
+                  <TestEditMatchingHeadings questions={group.questions} passageHtml={stimulus.content || ''} testId={testId}
                     pendingEvidence={pendingEvidence} onAssignEvidence={() => setPendingEvidence(null)} onEvidenceChange={handleEvidenceChange} />
                 ) : (
                   <div className="space-y-2">
                     {group.questions.map(question => (
-                      <TestEditQuestionCard key={question.id} question={question} questionTypeCode={typeCode} testId={String(test.id)}
-                        pendingEvidence={pendingEvidence} onAssignEvidence={() => setPendingEvidence(null)}
-                        onEvidenceChange={(ev) => handleEvidenceChange(question.id, ev)} />
+                      <div key={question.id} className="relative group/q">
+                        <TestEditQuestionCard question={question} questionTypeCode={typeCode} testId={testId}
+                          pendingEvidence={pendingEvidence} onAssignEvidence={() => setPendingEvidence(null)}
+                          onEvidenceChange={(ev) => handleEvidenceChange(question.id, ev)} />
+                        <button type="button" onClick={() => handleDeleteQuestion(question.id)} title="Xóa câu"
+                          className="absolute top-2 right-2 hidden group-hover/q:block text-gray-300 hover:text-red-500">
+                          <Trash2 className="h-3 w-3" />
+                        </button>
+                      </div>
                     ))}
                   </div>
+                )}
+                {/* Add question button */}
+                {addingQuestionForGroup === group.id ? (
+                  <div className="mt-2">
+                    <TestEditAddQuestionForm groupId={group.id} questionTypeCode={typeCode} testId={testId}
+                      nextPosition={group.questions.length + 1} onClose={() => setAddingQuestionForGroup(null)} />
+                  </div>
+                ) : (
+                  <button type="button" onClick={() => setAddingQuestionForGroup(group.id)}
+                    className="mt-2 flex items-center gap-1 text-xs text-blue-500 hover:text-blue-700 transition-colors">
+                    <Plus className="h-3 w-3" /> Thêm câu hỏi
+                  </button>
                 )}
               </div>
             );
           })}
+
+          {/* Add question group — only show types not already present */}
+          {addingGroup ? (
+            <TestEditAddQuestionGroupForm stimulusId={stimulus.id} testId={testId}
+              excludeTypeCodes={stimulus.questionGroups.map(g => ((g.questionTypeCode as QuestionTypeCode) || inferQuestionType(g)))}
+              onClose={() => setAddingGroup(false)} />
+          ) : (
+            <Button type="button" size="sm" variant="outline" className="w-full text-xs h-8 gap-1 border-dashed"
+              onClick={() => setAddingGroup(true)}>
+              <Plus className="h-3.5 w-3.5" /> Thêm nhóm câu hỏi
+            </Button>
+          )}
         </div>
 
         <div className="w-1/2 flex flex-col pl-4">

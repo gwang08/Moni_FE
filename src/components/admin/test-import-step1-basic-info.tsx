@@ -13,6 +13,8 @@ export interface BasicInfo {
   thumbnailUrl: string;
   testMode: string;
   section: number | null;
+  testType: string;
+  duration: number | null;
 }
 
 interface Props {
@@ -22,6 +24,14 @@ interface Props {
 }
 
 const SKILLS = ['LISTENING', 'READING', 'SPEAKING', 'WRITING'];
+
+const TEST_TYPES = ['ACADEMIC', 'GENERAL_TRAINING', 'BOTH'];
+const TEST_TYPE_LABELS: Record<string, string> = {
+  ACADEMIC: 'Academic',
+  GENERAL_TRAINING: 'General Training',
+  BOTH: 'Cả hai',
+};
+const SKILLS_WITH_TEST_TYPE = ['READING', 'LISTENING'];
 
 const SKILL_MODES: Record<string, string[]> = {
   READING: ['PRACTICE', 'FULL_TEST'],
@@ -70,7 +80,7 @@ export function TestImportStep1({ data, onChange, onNext }: Props) {
   const handleSkillChange = (skill: string) => {
     const skillModes = SKILL_MODES[skill] || [];
     const testMode = skillModes.length === 1 ? skillModes[0] : '';
-    onChange({ ...data, skill, testMode, section: null });
+    onChange({ ...data, skill, testMode, section: null, testType: '' });
   };
 
   const handleModeChange = (testMode: string) => {
@@ -147,6 +157,26 @@ export function TestImportStep1({ data, onChange, onNext }: Props) {
           </select>
         </div>
       )}
+
+      {/* Dạng đề: chỉ hiện cho READING / LISTENING */}
+      {SKILLS_WITH_TEST_TYPE.includes(data.skill) && (
+        <div>
+          <Label className="mb-1.5 block text-sm font-medium">Dạng đề</Label>
+          <select
+            value={data.testType}
+            onChange={e => onChange({ ...data, testType: e.target.value })}
+            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <option value="">Chọn dạng đề</option>
+            {TEST_TYPES.map(t => <option key={t} value={t}>{TEST_TYPE_LABELS[t]}</option>)}
+          </select>
+        </div>
+      )}
+
+      <div>
+        <Label htmlFor="duration" className="mb-1.5 block text-sm font-medium">Thời gian làm bài (phút)</Label>
+        <Input id="duration" type="number" value={data.duration ?? ''} onChange={e => onChange({ ...data, duration: e.target.value ? Number(e.target.value) : null })} placeholder="VD: 60" min={1} />
+      </div>
 
       <div>
         <Label className="mb-1.5 block text-sm font-medium">Ảnh bìa</Label>

@@ -33,6 +33,14 @@ const MODE_LABELS: Record<string, string> = {
   FULL_TEST: 'Full đề',
 };
 
+const TEST_TYPES = ['ACADEMIC', 'GENERAL_TRAINING', 'BOTH'];
+const TEST_TYPE_LABELS: Record<string, string> = {
+  ACADEMIC: 'Academic',
+  GENERAL_TRAINING: 'General Training',
+  BOTH: 'Cả hai',
+};
+const SKILLS_WITH_TEST_TYPE = ['READING', 'LISTENING'];
+
 interface Props {
   test: TestDetailResponse;
 }
@@ -49,6 +57,7 @@ export function TestEditBasicInfoTab({ test }: Props) {
   const [skill, setSkill] = useState(test.skill || '');
   const [testMode, setTestMode] = useState(test.testMode || '');
   const [section, setSection] = useState<number | null>(test.section ?? null);
+  const [testType, setTestType] = useState(test.testType || '');
 
   const modes = skill ? (SKILL_MODES[skill] || []) : [];
   const sections = skill && testMode === 'PRACTICE' ? (SKILL_SECTIONS[skill] || []) : [];
@@ -59,6 +68,7 @@ export function TestEditBasicInfoTab({ test }: Props) {
     const skillModes = SKILL_MODES[newSkill] || [];
     setTestMode(skillModes.length === 1 ? skillModes[0] : '');
     setSection(null);
+    setTestType('');
   };
 
   const handleModeChange = (newMode: string) => {
@@ -80,6 +90,7 @@ export function TestEditBasicInfoTab({ test }: Props) {
         skill: skill || undefined,
         testMode: testMode || undefined,
         section: section ?? undefined,
+        testType: testType || undefined,
       });
       toast.success('Cập nhật thành công!');
       queryClient.invalidateQueries({ queryKey: ['admin', 'test', String(test.id)] });
@@ -142,6 +153,18 @@ export function TestEditBasicInfoTab({ test }: Props) {
               className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
               <option value="">Chọn phần</option>
               {sections.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+            </select>
+          </div>
+        )}
+
+        {/* Dạng đề: chỉ hiện cho READING / LISTENING */}
+        {SKILLS_WITH_TEST_TYPE.includes(skill) && (
+          <div>
+            <Label className="mb-1.5 block text-sm font-medium">Dạng đề</Label>
+            <select value={testType} onChange={e => setTestType(e.target.value)}
+              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+              <option value="">Chọn dạng đề</option>
+              {TEST_TYPES.map(t => <option key={t} value={t}>{TEST_TYPE_LABELS[t]}</option>)}
             </select>
           </div>
         )}

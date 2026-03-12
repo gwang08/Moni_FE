@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { BookOpen, Pencil, Headphones, Mic, Search, CheckCircle, Users } from 'lucide-react';
 import { QuestionTypeFilter } from '@/components/practice/question-type-filter';
-import type { Exercise, Skill, TestMode } from '@/types/practice.types';
+import type { Exercise, Skill, TestMode, TestType } from '@/types/practice.types';
 
 const SKILL_CONFIG = {
   reading: { icon: BookOpen, color: 'text-blue-600', bgColor: 'bg-blue-100', borderColor: 'border-blue-500', label: 'Reading' },
@@ -32,6 +32,7 @@ export default function PracticePage() {
   const [activePassage, setActivePassage] = useState<number | null>(null);
   const [showCompleted, setShowCompleted] = useState(false);
   const [activeQuestionType, setActiveQuestionType] = useState<string | null>(null);
+  const [activeTestType, setActiveTestType] = useState<TestType | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
@@ -51,6 +52,10 @@ export default function PracticePage() {
     let list = exercises;
     // Filter by testMode
     list = list.filter((e) => (e.testMode || 'PRACTICE') === activeMode);
+    // Filter by testType (Academic / General Training)
+    if (activeTestType) {
+      list = list.filter((e) => !e.testType || e.testType === activeTestType || e.testType === 'BOTH');
+    }
     // Filter by question type
     if (activeQuestionType) {
       list = list.filter((e) => e.questionTypes?.includes(activeQuestionType));
@@ -66,7 +71,7 @@ export default function PracticePage() {
       list = list.filter((e) => e.title.toLowerCase().includes(q) || e.description.toLowerCase().includes(q));
     }
     return list;
-  }, [exercises, activeMode, activeQuestionType, showCompleted, searchQuery, completedExercises]);
+  }, [exercises, activeMode, activeTestType, activeQuestionType, showCompleted, searchQuery, completedExercises]);
 
   const handleStartExercise = (exercise: Exercise) => {
     setSelectedExercise(exercise);
@@ -81,7 +86,7 @@ export default function PracticePage() {
         activeSkill={activeSkill}
         activeMode={activeMode}
         activePassage={activePassage}
-        onSkillChange={setActiveSkill}
+        onSkillChange={(s) => { setActiveSkill(s); setActiveTestType(null); }}
         onModeChange={setActiveMode}
         onPassageChange={setActivePassage}
       />
@@ -127,6 +132,28 @@ export default function PracticePage() {
             <Input placeholder="Tìm theo tên bài tập" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9 w-64" />
           </div>
         </div>
+
+        {/* Test Type Filter (Academic / General Training) — only for Reading & Listening */}
+        {(activeSkill === 'reading' || activeSkill === 'listening') && (
+          <div className="flex items-center gap-2 mb-4">
+            <span className="text-sm text-gray-500 mr-1">Dạng đề:</span>
+            {([null, 'ACADEMIC', 'GENERAL_TRAINING'] as (TestType | null)[]).map((type) => {
+              const label = type === null ? 'Tất cả' : type === 'ACADEMIC' ? 'Academic' : 'General Training';
+              const isActive = activeTestType === type;
+              return (
+                <button
+                  key={type ?? 'all'}
+                  onClick={() => setActiveTestType(type)}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                    isActive ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+        )}
 
         {/* Question Type Filter */}
         <QuestionTypeFilter

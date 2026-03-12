@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Loader2, Save, ChevronDown, ChevronUp, Plus, Trash2, Highlighter } from 'lucide-react';
-import { updateQuestion } from '@/lib/admin-api';
+import { batchUpdateQuestions } from '@/lib/admin-api';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
 import { detectParagraphs } from '@/components/admin/test-import-matching-headings-editor';
@@ -65,14 +65,15 @@ export function TestEditMatchingHeadings({ questions, passageHtml, testId, pendi
       const allOptions: { label: string; content: string }[] = [];
       paragraphs.forEach((p, i) => { const c = headings[p] ?? ''; if (c.trim()) allOptions.push({ label: ROMAN[i], content: c }); });
       distractors.forEach((d, i) => { if (d.trim()) allOptions.push({ label: ROMAN[paragraphs.length + i], content: d }); });
-      const promises = paragraphs.map((p, i) => {
+      const updates: Record<string, { content: string; options: { label: string; content: string; isCorrect: boolean }[]; explanation?: { text?: string; evidence?: string } }> = {};
+      paragraphs.forEach((p, i) => {
         const q = paraToQuestion[p];
-        if (!q) return Promise.resolve();
+        if (!q) return;
         const myLabel = ROMAN[i];
         const options = allOptions.map(o => ({ label: o.label, content: o.content, isCorrect: o.label === myLabel }));
-        return updateQuestion(String(q.id), { content: q.content, options, explanation: explanations[p] || undefined });
+        updates[String(q.id)] = { content: q.content, options, explanation: explanations[p] || undefined };
       });
-      await Promise.all(promises);
+      await batchUpdateQuestions(updates);
       toast.success('Đã lưu tất cả câu matching headings');
       queryClient.invalidateQueries({ queryKey: ['admin', 'test', testId] });
     } catch { toast.error('Lưu thất bại'); } finally { setSaving(false); }
@@ -166,7 +167,7 @@ export function TestEditMatchingHeadings({ questions, passageHtml, testId, pendi
 
       <div className="flex items-center justify-between">
         <Button type="button" size="sm" variant="outline" className="text-xs h-7 gap-1" onClick={() => setDistractors(d => [...d, ''])}>
-          <Plus className="h-3 w-3" /> Thêm heading gây nhiễu
+          <Plus className="h-3 w-3" /> Thêm heading 
         </Button>
         <Button size="sm" onClick={handleSaveAll} disabled={saving}>
           {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}

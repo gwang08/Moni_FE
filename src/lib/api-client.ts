@@ -47,6 +47,13 @@ function clearStoredAuth() {
   } catch { /* ignore */ }
 }
 
+/** Fires a custom event so the UI can show a session-expired dialog. */
+function fireSessionExpired() {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('session-expired'));
+  }
+}
+
 export class ApiClient {
   private baseUrl: string;
   private refreshPromise: Promise<string | null> | null = null;
@@ -115,6 +122,7 @@ export class ApiClient {
         response = await fetch(url, config);
       } else {
         clearStoredAuth();
+        fireSessionExpired();
         throw new ApiError(401, undefined, 'Session expired');
       }
     }
@@ -179,6 +187,7 @@ export class ApiClient {
         });
       } else {
         clearStoredAuth();
+        fireSessionExpired();
         throw new ApiError(401, undefined, 'Session expired');
       }
     }

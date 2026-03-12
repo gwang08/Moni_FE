@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Loader2, Coins } from 'lucide-react';
+import { Coins } from 'lucide-react';
+import { SkeletonTable } from '@/components/ui/skeleton';
 import { getCreditTransactions } from '@/lib/payment-api';
 import { Badge } from '@/components/ui/badge';
 import type { CreditTransactionResponse } from '@/types/payment.types';
@@ -53,11 +54,7 @@ export default function TransactionsPage() {
         <h1 className="text-2xl font-bold">Lịch sử tín dụng</h1>
       </div>
 
-      {loading && (
-        <div className="flex justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
-      )}
+      {loading && <SkeletonTable rows={5} cols={4} />}
 
       {error && <p className="text-center text-red-500 py-8">{error}</p>}
 

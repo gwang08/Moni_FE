@@ -1,7 +1,7 @@
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
-import { Loader2, Pencil, ArrowLeft, CheckCircle2 } from 'lucide-react';
+import { Pencil, ArrowLeft, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { AdminHeader } from '@/components/admin/admin-header';
@@ -9,6 +9,7 @@ import { TestDetailWritingView } from '@/components/admin/test-detail-writing-vi
 import { TestDetailSpeakingView } from '@/components/admin/test-detail-speaking-view';
 import { getTestDetail } from '@/lib/tests-api';
 import { useQuery } from '@tanstack/react-query';
+import { SkeletonPage } from '@/components/ui/skeleton';
 
 export default function TestDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -36,7 +37,7 @@ export default function TestDetailPage() {
         </div>
 
         {isLoading ? (
-          <div className="flex justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-blue-600" /></div>
+          <SkeletonPage />
         ) : error ? (
           <p className="text-red-500 text-center py-12">Không thể tải thông tin bài thi</p>
         ) : test && (

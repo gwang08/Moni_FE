@@ -1,9 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowLeft, Clock } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import { X, Clock, CheckCircle2 } from 'lucide-react';
 
 interface Props {
   title: string;
@@ -18,65 +16,44 @@ interface Props {
 
 export function ListeningPracticeHeader({
   title,
-  questionCount,
   elapsedTime,
   submitted,
-  answeredCount,
-  totalQuestions,
-  onSubmit,
   onExit,
 }: Props) {
   return (
-    <div className="bg-white border-b px-4 py-3 flex items-center justify-between shrink-0">
-      <div className="flex items-center gap-3">
-        {submitted ? (
-          <Link href="/practice">
-            <Button variant="ghost" size="icon">
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
-          </Link>
-        ) : (
-          <Button variant="ghost" size="icon" onClick={onExit}>
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-        )}
+    <div className="shrink-0 flex items-center justify-between px-5 py-2 bg-white/60 backdrop-blur-sm border-b border-gray-100">
+      {/* Left: close */}
+      {submitted ? (
+        <Link href="/practice?skill=listening">
+          <button className="w-9 h-9 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-all hover:scale-105">
+            <X className="h-4 w-4 text-gray-500" />
+          </button>
+        </Link>
+      ) : (
+        <button
+          onClick={onExit}
+          className="w-9 h-9 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-all hover:scale-105"
+        >
+          <X className="h-4 w-4 text-gray-500" />
+        </button>
+      )}
 
-        <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-lg font-bold leading-tight">{title}</h1>
-            {submitted && (
-              <Badge className="bg-violet-100 text-violet-700 border-violet-200 text-xs">
-                Đã hoàn thành
-              </Badge>
-            )}
-          </div>
-          <div className="flex items-center gap-3 text-xs text-muted-foreground">
-            {questionCount > 0 && <span>{questionCount} câu hỏi</span>}
-            {!submitted && (
-              <span className="text-gray-400">
-                Đã trả lời: {answeredCount}/{totalQuestions}
-              </span>
-            )}
-            <span className={`flex items-center gap-1 font-mono tabular-nums ${submitted ? 'text-violet-600' : ''}`}>
-              <Clock className="h-3 w-3" />
-              {elapsedTime}
-            </span>
-          </div>
+      {/* Center: timer */}
+      <div className="flex items-center gap-2">
+        {submitted && (
+          <span className="px-3 py-1 rounded-full bg-emerald-50 text-emerald-600 text-xs font-semibold flex items-center gap-1 border border-emerald-200/60">
+            <CheckCircle2 className="h-3 w-3" />
+            Đã hoàn thành
+          </span>
+        )}
+        <div className="flex items-center gap-1.5 bg-emerald-500 text-white px-4 py-1.5 rounded-full shadow-sm">
+          <Clock className="h-3.5 w-3.5" />
+          <span className="text-sm font-bold font-mono tabular-nums">{elapsedTime}</span>
         </div>
       </div>
 
-      {!submitted ? (
-        <Button
-          onClick={onSubmit}
-          className="bg-violet-600 hover:bg-violet-700 text-white"
-        >
-          Hoàn thành
-        </Button>
-      ) : (
-        <Link href="/practice">
-          <Button variant="outline">Quay lại danh sách</Button>
-        </Link>
-      )}
+      {/* Right: title */}
+      <span className="text-sm font-medium text-gray-500 truncate max-w-[200px]">{title}</span>
     </div>
   );
 }

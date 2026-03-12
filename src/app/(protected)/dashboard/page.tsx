@@ -1,30 +1,25 @@
 'use client';
 
 import { useHydration } from '@/hooks/use-hydration';
+import { SkeletonCard } from '@/components/ui/skeleton';
 import { TargetScores } from '@/components/dashboard/target-scores';
 import { ExamCountdown } from '@/components/dashboard/exam-countdown';
 import { ActivityCalendar } from '@/components/dashboard/activity-calendar';
 import { WeeklyStats } from '@/components/dashboard/weekly-stats';
 import { PracticeHistory } from '@/components/dashboard/practice-history';
 
-function CardSkeleton({ className = '' }: { className?: string }) {
-  return (
-    <div className={`rounded-2xl bg-white border border-gray-100 animate-pulse ${className}`} />
-  );
-}
-
 function DashboardSkeleton() {
   return (
     <div className="space-y-6">
       <div className="grid gap-6 md:grid-cols-2">
-        <CardSkeleton className="h-64" />
-        <CardSkeleton className="h-64" />
+        <SkeletonCard className="h-64" />
+        <SkeletonCard className="h-64" />
       </div>
       <div className="grid gap-6 md:grid-cols-2">
-        <CardSkeleton className="h-72" />
-        <CardSkeleton className="h-72" />
+        <SkeletonCard className="h-72" />
+        <SkeletonCard className="h-72" />
       </div>
-      <CardSkeleton className="h-64" />
+      <SkeletonCard className="h-64" />
     </div>
   );
 }

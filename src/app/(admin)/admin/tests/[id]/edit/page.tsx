@@ -2,11 +2,12 @@
 
 import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { Loader2, ArrowLeft } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { AdminHeader } from '@/components/admin/admin-header';
 import { getTestDetail } from '@/lib/tests-api';
 import { useQuery } from '@tanstack/react-query';
+import { SkeletonPage } from '@/components/ui/skeleton';
 import { TestEditBasicInfoTab } from '@/components/admin/test-edit-basic-info-tab';
 import { TestEditContentTab } from '@/components/admin/test-edit-content-tab';
 
@@ -38,7 +39,7 @@ export default function TestEditPage() {
         </Button>
 
         {isLoading ? (
-          <div className="flex justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-blue-600" /></div>
+          <SkeletonPage />
         ) : error ? (
           <p className="text-red-500 text-center py-12">Không thể tải thông tin bài thi</p>
         ) : test && (

@@ -23,35 +23,51 @@ export function SpeakingTopicSidebar({
   onSelect,
 }: SpeakingTopicSidebarProps) {
   return (
-    <div className="space-y-2">
-      <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider pb-2 border-b">
-        Danh sách câu hỏi
+    <div className="rounded-3xl bg-white/80 backdrop-blur-sm border border-orange-100/60 shadow-sm p-4">
+      <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider pb-3 mb-3 border-b border-orange-100/40 flex items-center gap-2">
+        <div className="w-5 h-5 rounded-lg bg-gradient-to-br from-orange-100 to-amber-100 flex items-center justify-center">
+          <span className="text-[9px] font-bold text-orange-600">#</span>
+        </div>
+        {'Câu hỏi'}
       </h3>
 
-      <ul className="space-y-1">
+      <ul className="space-y-1.5">
         {questions.map((q, idx) => {
           const isCurrent = idx === currentIndex;
           const isCompleted = completedIds.has(q.id);
-          const preview = q.content.slice(0, 40) + (q.content.length > 40 ? '…' : '');
+          const preview = q.content.slice(0, 36) + (q.content.length > 36 ? '...' : '');
 
           return (
             <li key={q.id}>
               <button
                 onClick={() => onSelect(idx)}
                 className={cn(
-                  'w-full text-left px-3 py-2 rounded-lg text-sm transition-colors flex items-start gap-2',
-                  isCurrent && 'bg-orange-50 border border-orange-300 text-orange-800',
-                  !isCurrent && isCompleted && 'bg-green-50 text-green-700 hover:bg-green-100',
-                  !isCurrent && !isCompleted && 'text-gray-600 hover:bg-gray-100'
+                  'w-full text-left px-3 py-2.5 rounded-2xl text-sm transition-all duration-200 flex items-start gap-2.5 group',
+                  isCurrent && 'bg-gradient-to-r from-orange-50 to-amber-50 border border-orange-200/60 shadow-sm shadow-orange-100/30',
+                  !isCurrent && isCompleted && 'bg-green-50/60 hover:bg-green-50 border border-transparent hover:border-green-200/40',
+                  !isCurrent && !isCompleted && 'hover:bg-orange-50/40 border border-transparent hover:border-orange-100/40'
                 )}
               >
-                <span className="shrink-0 font-medium w-5 text-right">
-                  {q.position}.
+                <div className={cn(
+                  'shrink-0 w-6 h-6 rounded-xl flex items-center justify-center text-[10px] font-bold transition-all duration-200',
+                  isCurrent && 'bg-gradient-to-br from-orange-400 to-amber-400 text-white shadow-sm shadow-orange-300/30',
+                  !isCurrent && isCompleted && 'bg-gradient-to-br from-green-400 to-emerald-400 text-white',
+                  !isCurrent && !isCompleted && 'bg-gray-100 text-gray-500 group-hover:bg-orange-100 group-hover:text-orange-600'
+                )}>
+                  {isCompleted && !isCurrent ? (
+                    <CheckCircle2 className="h-3.5 w-3.5" />
+                  ) : (
+                    q.position
+                  )}
+                </div>
+                <span className={cn(
+                  'flex-1 leading-snug text-[13px]',
+                  isCurrent && 'text-orange-800 font-medium',
+                  !isCurrent && isCompleted && 'text-green-700',
+                  !isCurrent && !isCompleted && 'text-gray-600'
+                )}>
+                  {preview}
                 </span>
-                <span className="flex-1 leading-snug">{preview}</span>
-                {isCompleted && !isCurrent && (
-                  <CheckCircle2 className="h-4 w-4 text-green-500 shrink-0 mt-0.5" />
-                )}
               </button>
             </li>
           );

@@ -5,6 +5,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { InnerNavbar } from '@/components/layout/inner-navbar';
+import { SessionExpiredDialog } from '@/components/auth/session-expired-dialog';
 
 export default function ProtectedLayout({
   children,
@@ -38,6 +39,7 @@ export default function ProtectedLayout({
     <div className="min-h-screen bg-gray-50">
       <InnerNavbar />
       <main>{children}</main>
+      <SessionExpiredDialog />
     </div>
   );
 }

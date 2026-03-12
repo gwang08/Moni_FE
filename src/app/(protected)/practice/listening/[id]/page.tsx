@@ -3,8 +3,8 @@
 import { use, useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { SkeletonPractice } from '@/components/ui/skeleton';
 import { ListeningPracticeHeader } from '@/components/listening/listening-practice-header';
 import { ListeningAudioPlayer } from '@/components/listening/listening-audio-player';
 import { ListeningQuestionNav } from '@/components/listening/listening-question-nav';
@@ -34,19 +34,14 @@ export default function ListeningExercisePage({ params }: Props) {
   const [answers, setAnswers] = useState<Record<number, number>>({});
   const { elapsed, formatted: elapsedTime } = useElapsedTimer(submitted);
 
-  useEffect(() => {
-    resetPlayer();
-  }, [resetPlayer]);
+  useEffect(() => { resetPlayer(); }, [resetPlayer]);
 
   const stimuli = testDetail?.stimuli[0];
-
   const questionIds = useMemo(() => {
     if (!stimuli) return [];
     return stimuli.questionGroups.flatMap((g) => g.questions.map((q) => q.id));
   }, [stimuli]);
-
   const questionCount = questionIds.length;
-
   const answeredSet = useMemo(() => {
     const s = new Set<number>();
     for (const [k, v] of Object.entries(answers)) {
@@ -67,56 +62,40 @@ export default function ListeningExercisePage({ params }: Props) {
     setSubmitted(true);
     setConfirmOpen(false);
     markCompleted(id);
-
     if (stimuli) {
       const answerList = Object.entries(answers).map(([qId, optId]) => ({
-        questionId: Number(qId),
-        selectedOptionId: optId,
+        questionId: Number(qId), selectedOptionId: optId,
       }));
       try {
-        const res = await submitAttempt({
-          testId: Number(id),
-          stimulusId: stimuli.id,
-          elapsedSeconds: elapsed,
-          answers: answerList,
-        });
-        sessionStorage.setItem(`practice-result-${id}`, JSON.stringify({
-          attemptId: res.attemptId, testId: id, answers, elapsedSeconds: elapsed,
-        }));
+        const res = await submitAttempt({ testId: Number(id), stimulusId: stimuli.id, elapsedSeconds: elapsed, answers: answerList });
+        sessionStorage.setItem(`practice-result-${id}`, JSON.stringify({ attemptId: res.attemptId, testId: id, answers, elapsedSeconds: elapsed }));
       } catch {
-        sessionStorage.setItem(`practice-result-${id}`, JSON.stringify({
-          testId: id, answers, elapsedSeconds: elapsed,
-        }));
+        sessionStorage.setItem(`practice-result-${id}`, JSON.stringify({ testId: id, answers, elapsedSeconds: elapsed }));
       }
     } else {
-      sessionStorage.setItem(`practice-result-${id}`, JSON.stringify({
-        testId: id, answers, elapsedSeconds: elapsed,
-      }));
+      sessionStorage.setItem(`practice-result-${id}`, JSON.stringify({ testId: id, answers, elapsedSeconds: elapsed }));
     }
-
     router.push(`/practice/listening/${id}/result`);
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-[calc(100vh-56px)]">
-        <Loader2 className="h-8 w-8 animate-spin text-violet-600" />
-        <span className="ml-3 text-gray-600">Đang tải bài tập...</span>
-      </div>
-    );
-  }
+  if (loading) return <SkeletonPractice />;
 
   if (error || !testDetail) {
     return (
-      <div className="flex flex-col items-center justify-center h-[calc(100vh-56px)] gap-4">
-        <p className="text-red-500">{error || 'Không tìm thấy bài tập.'}</p>
-        <Link href="/practice"><Button variant="outline">Quay lại danh sách</Button></Link>
+      <div className="flex flex-col items-center justify-center h-[calc(100vh-56px)] gap-5 bg-gradient-to-b from-orange-50/40 via-white to-white">
+        <div className="rounded-3xl bg-white border border-gray-200 shadow-lg p-8 text-center max-w-sm">
+          <p className="text-red-400 font-medium mb-3">{error || 'Không tìm thấy bài tập.'}</p>
+          <Link href="/practice?skill=listening">
+            <Button variant="outline" className="rounded-full">Quay lại danh sách</Button>
+          </Link>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="h-[calc(100vh-56px)] flex flex-col">
+    <div className="h-[calc(100vh-56px)] flex flex-col bg-white">
+      {/* Top header: X + timer + title */}
       <ListeningPracticeHeader
         title={testDetail.title}
         questionCount={questionCount}
@@ -128,32 +107,35 @@ export default function ListeningExercisePage({ params }: Props) {
         onExit={() => setExitOpen(true)}
       />
 
-      {stimuli?.mediaUrl && (
-        <div className="px-4 pt-3 shrink-0">
-          <ListeningAudioPlayer audioUrl={stimuli.mediaUrl} />
+      {/* Main content: scrollable questions */}
+      <div className="flex-1 overflow-y-auto">
+        <div className="max-w-4xl mx-auto px-4 py-3">
+          {stimuli && stimuli.questionGroups.length > 0 ? (
+            <ReadingQuestionsPanel
+              stimulus={stimuli}
+              submitted={submitted}
+              answers={answers}
+              onAnswer={handleAnswer}
+            />
+          ) : (
+            <p className="text-gray-400 text-center py-8">Chưa có câu hỏi</p>
+          )}
         </div>
-      )}
-
-      {questionIds.length > 0 && (
-        <ListeningQuestionNav
-          totalQuestions={questionCount}
-          answeredQuestions={answeredSet}
-          questionIds={questionIds}
-        />
-      )}
-
-      <div className="flex-1 overflow-y-auto px-4 py-4">
-        {stimuli && stimuli.questionGroups.length > 0 ? (
-          <ReadingQuestionsPanel
-            stimulus={stimuli}
-            submitted={submitted}
-            answers={answers}
-            onAnswer={handleAnswer}
-          />
-        ) : (
-          <p className="text-gray-400 text-center py-8">Chưa có câu hỏi</p>
-        )}
       </div>
+
+      {/* Bottom: Audio player */}
+      {stimuli?.mediaUrl && (
+        <ListeningAudioPlayer audioUrl={stimuli.mediaUrl} />
+      )}
+
+      {/* Bottom bar: question nav + submit */}
+      <ListeningQuestionNav
+        totalQuestions={questionCount}
+        answeredQuestions={answeredSet}
+        questionIds={questionIds}
+        submitted={submitted}
+        onSubmit={() => setConfirmOpen(true)}
+      />
 
       <ConfirmDialog
         open={confirmOpen}
@@ -163,16 +145,15 @@ export default function ListeningExercisePage({ params }: Props) {
         confirmText="Hoàn thành"
         onConfirm={handleComplete}
       />
-
       <ConfirmDialog
         open={exitOpen}
         onOpenChange={setExitOpen}
-        title="Thoát khỏi bài làm"
+        title="Thoát khỏi bài làm?"
         description="Bạn đang thoát khỏi phần làm bài, bạn có chắc chắn muốn thoát không?"
         cancelText="Quay lại làm bài"
         confirmText="Thoát"
         variant="destructive"
-        onConfirm={() => router.push('/practice')}
+        onConfirm={() => router.push('/practice?skill=listening')}
       />
     </div>
   );

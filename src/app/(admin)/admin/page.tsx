@@ -2,7 +2,7 @@
 
 import type { ElementType } from 'react';
 import { LayoutDashboard, FileText, Tag, Users } from 'lucide-react';
-import { Loader2 } from 'lucide-react';
+import { SkeletonCard } from '@/components/ui/skeleton';
 import { useQuery } from '@tanstack/react-query';
 import { getTests } from '@/lib/tests-api';
 import { getTags, getUsers } from '@/lib/admin-api';
@@ -43,8 +43,10 @@ export default function AdminDashboardPage() {
       <AdminHeader title="Dashboard" />
       <div className="p-6">
         {isLoading ? (
-          <div className="flex justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <SkeletonCard className="h-32" />
+            <SkeletonCard className="h-32" />
+            <SkeletonCard className="h-32" />
           </div>
         ) : error ? (
           <p className="text-red-500 text-center py-12">Không thể tải dữ liệu thống kê</p>

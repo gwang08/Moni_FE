@@ -3,7 +3,8 @@
 import { use, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Loader2, Clock } from 'lucide-react';
+import { Clock } from 'lucide-react';
+import { SkeletonResult } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { ReadingScoreDonut } from '@/components/reading/reading-score-donut';
 import { useTestDetail } from '@/hooks/use-test-detail';
@@ -66,18 +67,14 @@ export default function ListeningResultPage({ params }: Props) {
   }, [id, router]);
 
   if (loading || !resultData) {
-    return (
-      <div className="flex items-center justify-center h-[calc(100vh-56px)]">
-        <Loader2 className="h-8 w-8 animate-spin text-violet-600" />
-      </div>
-    );
+    return <SkeletonResult />;
   }
 
   if (error || !testDetail) {
     return (
       <div className="flex flex-col items-center justify-center h-[calc(100vh-56px)] gap-4">
         <p className="text-red-500">{error || 'Không tìm thấy bài tập.'}</p>
-        <Link href="/practice"><Button variant="outline">Quay lại danh sách</Button></Link>
+        <Link href="/practice?skill=listening"><Button variant="outline">Quay lại danh sách</Button></Link>
       </div>
     );
   }
@@ -160,7 +157,7 @@ export default function ListeningResultPage({ params }: Props) {
 
       {/* Back button */}
       <div className="text-center">
-        <Link href="/practice">
+        <Link href="/practice?skill=listening">
           <Button variant="outline">Quay lại danh sách</Button>
         </Link>
       </div>

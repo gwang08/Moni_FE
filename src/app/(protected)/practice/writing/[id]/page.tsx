@@ -2,8 +2,8 @@
 
 import { use, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { SkeletonPractice } from '@/components/ui/skeleton';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { WritingPracticeHeader } from '@/components/writing/writing-practice-header';
 import { WritingPromptPanel } from '@/components/writing/writing-prompt-panel';
@@ -11,8 +11,10 @@ import { WritingEditor } from '@/components/writing/writing-editor';
 import { WritingToolbarPanel } from '@/components/writing/writing-toolbar-panel';
 import { GradingModal } from '@/components/writing/grading-modal';
 import { useWritingStore } from '@/store/writing-store';
+import { usePracticeStore } from '@/store/practice-store';
 import { useTestDetail } from '@/hooks/use-test-detail';
 import { useElapsedTimer } from '@/hooks/use-elapsed-timer';
+import { submitAttempt } from '@/lib/practice-api';
 import { useRouter } from 'next/navigation';
 import type { WritingTaskType } from '@/types/writing.types';
 
@@ -23,7 +25,6 @@ interface Props {
   params: Promise<{ id: string }>;
 }
 
-/** Strip HTML tags from editor HTML output to get plain text for API */
 function stripHtml(html: string): string {
   return html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
 }
@@ -41,51 +42,42 @@ export default function WritingExercisePage({ params }: Props) {
     submitForGrading,
     reset,
   } = useWritingStore();
+  const markCompleted = usePracticeStore((state) => state.markCompleted);
 
   const [showGrading, setShowGrading] = useState(false);
   const [exitOpen, setExitOpen] = useState(false);
   const [showSample, setShowSample] = useState(false);
 
-  const { formatted: elapsedTime } = useElapsedTimer(isGrading);
+  const { elapsed, formatted: elapsedTime } = useElapsedTimer(isGrading);
 
-  // Reset store on mount to clear previous session
   useEffect(() => {
     reset();
   }, [reset]);
 
-  // Open grading modal when result arrives
   useEffect(() => {
-    if (gradingResult) setShowGrading(true);
-  }, [gradingResult]);
+    if (isGrading || gradingResult) setShowGrading(true);
+  }, [isGrading, gradingResult]);
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-[calc(100vh-56px)]">
-        <Loader2 className="h-8 w-8 animate-spin text-emerald-600" />
-        <span className="ml-3 text-gray-600">Đang tải bài tập...</span>
-      </div>
-    );
+    return <SkeletonPractice />;
   }
 
   if (error || !testDetail) {
     return (
-      <div className="flex flex-col items-center justify-center h-[calc(100vh-56px)] gap-4">
+      <div className="flex flex-col items-center justify-center h-[calc(100vh-56px)] gap-4 bg-gradient-to-br from-teal-50 via-blue-50/30 to-emerald-50/40">
         <p className="text-red-500">{error || 'Không tìm thấy bài tập.'}</p>
-        <Link href="/practice">
-          <Button variant="outline">Quay lại danh sách</Button>
+        <Link href="/practice?skill=writing">
+          <Button variant="outline" className="rounded-full">Quay lại danh sách</Button>
         </Link>
       </div>
     );
   }
 
-  // Derive task info from test detail
   const taskType: WritingTaskType = testDetail.section === 1 ? 1 : 2;
   const minWords = MIN_WORDS[taskType];
   const stimulus = testDetail.stimuli[0];
   const prompt = stimulus?.content || testDetail.description || FALLBACK_PROMPT;
-  // Chart image only relevant for Task 1
   const chartImageUrl = taskType === 1 ? (stimulus?.mediaUrl ?? undefined) : undefined;
-  // Sample answer from first question group instruction
   const sampleAnswer = stimulus?.questionGroups[0]?.instruction || undefined;
 
   const canGrade = wordCount > 0 && !isGrading;
@@ -97,15 +89,30 @@ export default function WritingExercisePage({ params }: Props) {
       question: prompt,
       answer,
     });
+    markCompleted(id);
+    // Submit attempt to track in practice history
+    if (stimulus) {
+      try {
+        await submitAttempt({
+          testId: Number(id),
+          stimulusId: stimulus.id,
+          elapsedSeconds: elapsed,
+          answers: [{ questionId: stimulus.questionGroups[0]?.questions[0]?.id ?? 0, answerText: answer }],
+        });
+      } catch { /* ignore - grading already done */ }
+    }
   };
 
   return (
-    <div className="h-[calc(100vh-56px)] flex flex-col">
+    <div className="h-[calc(100vh-56px)] flex flex-col relative overflow-hidden">
+      {/* Decorative pastel blobs */}
+      <div className="pointer-events-none absolute -top-32 -left-32 w-80 h-80 rounded-full bg-teal-200/20 blur-3xl" />
+      <div className="pointer-events-none absolute top-1/3 -right-24 w-72 h-72 rounded-full bg-blue-200/20 blur-3xl" />
+      <div className="pointer-events-none absolute -bottom-20 left-1/3 w-64 h-64 rounded-full bg-emerald-200/15 blur-3xl" />
+
       <WritingPracticeHeader
         title={testDetail.title}
         taskType={taskType}
-        wordCount={wordCount}
-        minWords={minWords}
         elapsedTime={elapsedTime}
         isGrading={isGrading}
         canGrade={canGrade}
@@ -113,9 +120,9 @@ export default function WritingExercisePage({ params }: Props) {
         onExit={() => setExitOpen(true)}
       />
 
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 flex overflow-hidden bg-gradient-to-br from-teal-50/50 via-white to-blue-50/30 relative z-10">
         {/* Left: Prompt */}
-        <div className="w-1/4 overflow-y-auto border-r p-4">
+        <div className="w-[28%] overflow-y-auto p-4">
           <WritingPromptPanel
             prompt={prompt}
             chartImageUrl={chartImageUrl}
@@ -125,15 +132,14 @@ export default function WritingExercisePage({ params }: Props) {
         </div>
 
         {/* Center: Editor */}
-        <div className="w-1/2 overflow-y-auto">
+        <div className="flex-1 overflow-y-auto">
           <WritingEditor taskType={taskType} />
         </div>
 
         {/* Right: Toolbar */}
-        <div className="w-1/4 overflow-y-auto border-l p-4">
+        <div className="w-[24%] overflow-y-auto p-4">
           <WritingToolbarPanel
             wordCount={wordCount}
-            minWords={minWords}
             taskType={taskType}
             sampleAnswer={sampleAnswer}
             showSample={showSample}
@@ -157,7 +163,7 @@ export default function WritingExercisePage({ params }: Props) {
         confirmText="Thoát"
         cancelText="Quay lại làm bài"
         variant="destructive"
-        onConfirm={() => router.push('/practice')}
+        onConfirm={() => router.push('/practice?skill=writing')}
       />
     </div>
   );

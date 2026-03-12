@@ -1,7 +1,6 @@
 'use client';
 
-import { Button } from '@/components/ui/button';
-import { ChevronLeft, ChevronRight, Lightbulb } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Lightbulb, BookOpen } from 'lucide-react';
 
 interface Question {
   id: number;
@@ -32,30 +31,35 @@ export function SpeakingQuestionCenter({
   return (
     <div className="space-y-4">
       {/* Question card */}
-      <div className="bg-white rounded-xl border shadow-sm p-6">
-        <p className="text-xs font-semibold text-orange-500 uppercase tracking-wider mb-3">
-          Câu {question.position}
-        </p>
+      <div className="rounded-3xl bg-white/80 backdrop-blur-sm border border-orange-100/60 shadow-sm p-6">
+        <div className="flex items-center gap-2.5 mb-4">
+          <span className="px-3 py-1 rounded-full bg-gradient-to-r from-orange-400 to-amber-400 text-white text-[11px] font-bold shadow-sm shadow-orange-300/30">
+            {'Câu'} {question.position}
+          </span>
+        </div>
         <p className="text-lg font-medium text-gray-800 leading-relaxed">
           {question.content}
         </p>
 
         {/* Sample answer toggle */}
         {question.sampleAnswer && (
-          <div className="mt-4 pt-4 border-t">
-            <Button
-              variant="ghost"
-              size="sm"
+          <div className="mt-5 pt-4 border-t border-orange-100/40">
+            <button
               onClick={onToggleSample}
-              className="text-amber-600 hover:text-amber-700 hover:bg-amber-50 gap-2 px-0"
+              className="flex items-center gap-2 text-sm font-semibold text-amber-600 hover:text-amber-700 transition-colors"
             >
-              <Lightbulb className="h-4 w-4" />
+              <div className="w-7 h-7 rounded-xl bg-gradient-to-br from-amber-100 to-yellow-100 flex items-center justify-center">
+                <Lightbulb className="h-3.5 w-3.5 text-amber-500" />
+              </div>
               {showSample ? 'Ẩn gợi ý' : 'Hiện gợi ý'}
-            </Button>
+            </button>
 
             {showSample && (
-              <div className="mt-3 p-4 bg-green-50 border border-green-200 rounded-lg">
-                <p className="text-sm font-semibold text-green-700 mb-1">Bài mẫu</p>
+              <div className="mt-3 rounded-2xl bg-gradient-to-br from-green-50/80 to-emerald-50/60 border border-green-200/50 p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <BookOpen className="h-3.5 w-3.5 text-green-600" />
+                  <p className="text-xs font-bold text-green-700">{'Bài mẫu'}</p>
+                </div>
                 <p className="text-sm text-green-800 leading-relaxed">
                   {question.sampleAnswer}
                 </p>
@@ -67,24 +71,22 @@ export function SpeakingQuestionCenter({
 
       {/* Navigation */}
       <div className="flex justify-between">
-        <Button
-          variant="outline"
+        <button
           onClick={onPrev}
           disabled={!canPrev}
-          className="gap-1 text-gray-600"
+          className="flex items-center gap-1.5 px-5 py-2.5 rounded-full bg-white/80 backdrop-blur-sm border border-orange-100/60 text-sm font-medium text-gray-600 hover:text-orange-600 hover:border-orange-200/60 hover:shadow-md hover:shadow-orange-100/20 transition-all duration-200 hover:scale-105 disabled:opacity-40 disabled:hover:scale-100 disabled:hover:shadow-none"
         >
           <ChevronLeft className="h-4 w-4" />
-          Câu trước
-        </Button>
-        <Button
-          variant="outline"
+          {'Câu trước'}
+        </button>
+        <button
           onClick={onNext}
           disabled={!canNext}
-          className="gap-1 text-gray-600"
+          className="flex items-center gap-1.5 px-5 py-2.5 rounded-full bg-white/80 backdrop-blur-sm border border-orange-100/60 text-sm font-medium text-gray-600 hover:text-orange-600 hover:border-orange-200/60 hover:shadow-md hover:shadow-orange-100/20 transition-all duration-200 hover:scale-105 disabled:opacity-40 disabled:hover:scale-100 disabled:hover:shadow-none"
         >
-          Câu tiếp
+          {'Câu tiếp'}
           <ChevronRight className="h-4 w-4" />
-        </Button>
+        </button>
       </div>
     </div>
   );

@@ -1,6 +1,7 @@
 'use client';
 
 import { useHydration } from '@/hooks/use-hydration';
+import { SkeletonCard } from '@/components/ui/skeleton';
 import { TargetScores } from './target-scores';
 import { ExamCountdown } from './exam-countdown';
 import { ActivityCalendar } from './activity-calendar';
@@ -10,10 +11,7 @@ function DashboardSkeleton() {
   return (
     <div className="grid gap-6 md:grid-cols-2">
       {[...Array(4)].map((_, i) => (
-        <div
-          key={i}
-          className="h-[300px] rounded-2xl border bg-white animate-pulse"
-        />
+        <SkeletonCard key={i} className="h-[300px]" />
       ))}
     </div>
   );

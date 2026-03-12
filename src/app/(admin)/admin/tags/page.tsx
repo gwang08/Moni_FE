@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Loader2, Plus, Pencil, Trash2 } from 'lucide-react';
+import { Plus, Pencil, Trash2 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -10,6 +10,7 @@ import { TagFormDialog } from '@/components/admin/tag-form-dialog';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { getTags, deleteTag } from '@/lib/admin-api';
 import { toast } from 'sonner';
+import { SkeletonTable } from '@/components/ui/skeleton';
 import type { TagResponse } from '@/types/admin.types';
 
 export default function AdminTagsPage() {
@@ -53,7 +54,7 @@ export default function AdminTagsPage() {
         {error && <p className="text-red-500 mb-4 text-sm">Không thể tải danh sách tags</p>}
 
         {isLoading ? (
-          <div className="flex justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-blue-600" /></div>
+          <SkeletonTable rows={5} cols={3} />
         ) : (
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
             <table className="w-full text-sm">

@@ -3,7 +3,8 @@
 import { use, useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Loader2 } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
+import { SkeletonPractice } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { ReadingReviewPanel } from '@/components/reading/reading-review-panel';
 import { useTestDetail } from '@/hooks/use-test-detail';
@@ -58,18 +59,14 @@ export default function ReadingReviewPage({ params }: Props) {
   );
 
   if (loading || !resultData) {
-    return (
-      <div className="flex items-center justify-center h-[calc(100vh-56px)]">
-        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
-      </div>
-    );
+    return <SkeletonPractice />;
   }
 
   if (error || !testDetail || !stimuli) {
     return (
       <div className="flex flex-col items-center justify-center h-[calc(100vh-56px)] gap-4">
         <p className="text-red-500">{error || 'Không tìm thấy bài tập.'}</p>
-        <Link href="/practice"><Button variant="outline">Quay lại danh sách</Button></Link>
+        <Link href="/practice?skill=reading"><Button variant="outline">Quay lại danh sách</Button></Link>
       </div>
     );
   }

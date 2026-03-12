@@ -9,6 +9,7 @@ import { PackageFormDialog } from '@/components/admin/package-form-dialog';
 import { toast } from 'sonner';
 import { getPackages, deletePackage } from '@/lib/payment-api';
 import type { PackagePricingResponse } from '@/types/payment.types';
+import { SkeletonTable } from '@/components/ui/skeleton';
 
 export default function AdminPackagesPage() {
   const [packages, setPackages] = useState<PackagePricingResponse[]>([]);
@@ -62,7 +63,7 @@ export default function AdminPackagesPage() {
         {error && <p className="text-red-500 mb-4 text-sm">{error}</p>}
 
         {loading ? (
-          <div className="flex justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-blue-600" /></div>
+          <SkeletonTable rows={5} cols={5} />
         ) : (
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
             <table className="w-full text-sm">

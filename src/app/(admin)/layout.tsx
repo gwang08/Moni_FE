@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { getRoleFromToken } from '@/lib/jwt-utils';
 import { AdminSidebar } from '@/components/admin/admin-sidebar';
+import { SessionExpiredDialog } from '@/components/auth/session-expired-dialog';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -46,6 +47,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     <div className="min-h-screen bg-gray-50">
       <AdminSidebar />
       <main className="ml-64 min-h-screen">{children}</main>
+      <SessionExpiredDialog />
     </div>
   );
 }

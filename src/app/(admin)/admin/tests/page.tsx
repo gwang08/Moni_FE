@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Loader2, Plus, Eye, Pencil, Trash2 } from 'lucide-react';
+import { Plus, Eye, Pencil, Trash2 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -12,6 +12,7 @@ import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { getTests } from '@/lib/tests-api';
 import { deleteTest, updateTest } from '@/lib/admin-api';
 import { toast } from 'sonner';
+import { SkeletonTable } from '@/components/ui/skeleton';
 
 const STATUS_OPTIONS = ['DRAFT', 'PUBLISHED', 'HIDDEN'] as const;
 const STATUS_COLORS: Record<string, string> = {
@@ -80,7 +81,7 @@ export default function AdminTestsPage() {
         {error && <p className="text-red-500 mb-4 text-sm">Không thể tải danh sách bài thi</p>}
 
         {isLoading ? (
-          <div className="flex justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-blue-600" /></div>
+          <SkeletonTable rows={5} cols={6} />
         ) : (
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
             <table className="w-full text-sm">

@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Loader2, ArrowLeft, Receipt } from 'lucide-react';
+import { ArrowLeft, Receipt } from 'lucide-react';
+import { SkeletonTable } from '@/components/ui/skeleton';
 import { getPayments } from '@/lib/payment-api';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -58,11 +59,7 @@ export default function PaymentHistoryPage() {
         </div>
       </div>
 
-      {loading && (
-        <div className="flex justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
-      )}
+      {loading && <SkeletonTable rows={5} cols={5} />}
 
       {error && <p className="text-center text-red-500 py-8">{error}</p>}
 

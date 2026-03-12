@@ -3,7 +3,8 @@
 import { use, useEffect, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Loader2, Clock } from 'lucide-react';
+import { ArrowLeft, Clock } from 'lucide-react';
+import { SkeletonPractice } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ReadingToolbar } from '@/components/reading/reading-toolbar';
@@ -93,19 +94,14 @@ export default function ReadingExercisePage({ params }: Props) {
   };
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-[calc(100vh-56px)]">
-        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
-        <span className="ml-3 text-gray-600">Đang tải bài tập...</span>
-      </div>
-    );
+    return <SkeletonPractice />;
   }
 
   if (error || !testDetail) {
     return (
       <div className="flex flex-col items-center justify-center h-[calc(100vh-56px)] gap-4">
         <p className="text-red-500">{error || 'Không tìm thấy bài tập.'}</p>
-        <Link href="/practice"><Button variant="outline">Quay lại danh sách</Button></Link>
+        <Link href="/practice?skill=reading"><Button variant="outline">Quay lại danh sách</Button></Link>
       </div>
     );
   }
@@ -122,7 +118,7 @@ export default function ReadingExercisePage({ params }: Props) {
       <div className="bg-white border-b p-4 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-4">
           {submitted ? (
-            <Link href="/practice">
+            <Link href="/practice?skill=reading">
               <Button variant="ghost" size="icon"><ArrowLeft className="h-5 w-5" /></Button>
             </Link>
           ) : (
@@ -147,7 +143,7 @@ export default function ReadingExercisePage({ params }: Props) {
         {!submitted ? (
           <Button onClick={() => setConfirmOpen(true)}>Hoàn thành</Button>
         ) : (
-          <Link href="/practice"><Button variant="outline">Quay lại danh sách</Button></Link>
+          <Link href="/practice?skill=reading"><Button variant="outline">Quay lại danh sách</Button></Link>
         )}
       </div>
 
@@ -209,7 +205,7 @@ export default function ReadingExercisePage({ params }: Props) {
         cancelText="Quay lại làm bài"
         confirmText="Thoát"
         variant="destructive"
-        onConfirm={() => router.push('/practice')}
+        onConfirm={() => router.push('/practice?skill=reading')}
       />
     </div>
   );

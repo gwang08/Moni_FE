@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { Suspense, useState, useMemo, useCallback } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { usePracticeStore } from '@/store/practice-store';
 import { usePracticeExercises } from '@/hooks/use-practice-exercises';
 import { ModeSelectionModal } from '@/components/practice/mode-selection-modal';
@@ -9,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { BookOpen, Pencil, Headphones, Mic, Search, CheckCircle, Users } from 'lucide-react';
+import { SkeletonCard } from '@/components/ui/skeleton';
 import { QuestionTypeFilter } from '@/components/practice/question-type-filter';
 import type { Exercise, Skill, TestMode, TestType } from '@/types/practice.types';
 
@@ -26,9 +28,29 @@ const DEFAULT_IMAGES: Record<string, string> = {
   speaking: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=200&fit=crop',
 };
 
-export default function PracticePage() {
-  const [activeSkill, setActiveSkill] = useState<Skill>('reading');
+export default function PracticePageWrapper() {
+  return (
+    <Suspense fallback={<div className="flex min-h-[calc(100vh-56px)]"><div className="w-64 bg-gray-50" /><main className="flex-1 p-6"><div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">{Array.from({ length: 8 }).map((_, i) => (<SkeletonCard key={i} className="h-56" />))}</div></main></div>}
+    >
+      <PracticePage />
+    </Suspense>
+  );
+}
+
+function PracticePage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const initialSkill = (searchParams.get('skill') as Skill) || 'reading';
+  const [activeSkill, setActiveSkill] = useState<Skill>(initialSkill);
   const [activeMode, setActiveMode] = useState<TestMode>('PRACTICE');
+
+  const handleSkillChange = useCallback((skill: Skill) => {
+    setActiveSkill(skill);
+    setActiveTestType(null);
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('skill', skill);
+    router.replace(`/practice?${params.toString()}`, { scroll: false });
+  }, [router, searchParams]);
   const [activePassage, setActivePassage] = useState<number | null>(null);
   const [showCompleted, setShowCompleted] = useState(false);
   const [activeQuestionType, setActiveQuestionType] = useState<string | null>(null);
@@ -86,7 +108,7 @@ export default function PracticePage() {
         activeSkill={activeSkill}
         activeMode={activeMode}
         activePassage={activePassage}
-        onSkillChange={(s) => { setActiveSkill(s); setActiveTestType(null); }}
+        onSkillChange={handleSkillChange}
         onModeChange={setActiveMode}
         onPassageChange={setActivePassage}
       />
@@ -101,7 +123,7 @@ export default function PracticePage() {
             return (
               <button
                 key={skill}
-                onClick={() => setActiveSkill(skill)}
+                onClick={() => handleSkillChange(skill)}
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${activeSkill === skill ? `${config.bgColor} ${config.color}` : 'hover:bg-gray-100'}`}
               >
                 <Icon className="h-4 w-4" />
@@ -129,7 +151,7 @@ export default function PracticePage() {
           </div>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <Input placeholder="Tìm theo tên bài tập" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9 w-64" />
+            <Input placeholder="Tìm theo tên bài tập" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9 w-64 bg-white border-gray-300 focus:border-orange-400" />
           </div>
         </div>
 
@@ -166,7 +188,7 @@ export default function PracticePage() {
         {loading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {Array.from({ length: 8 }).map((_, i) => (
-              <div key={i} className="bg-gray-200 rounded-xl h-56 animate-pulse" />
+              <SkeletonCard key={i} className="h-56" />
             ))}
           </div>
         ) : error ? (

@@ -8,6 +8,7 @@ import { Sparkles, Zap, Receipt, Crown, Star } from 'lucide-react';
 import { getPackages, getServices } from '@/lib/payment-api';
 import { usePaymentStore } from '@/store/payment-store';
 import { Button } from '@/components/ui/button';
+import { SkeletonCard, SkeletonLine } from '@/components/ui/skeleton';
 import type { PackagePricingResponse } from '@/types/payment.types';
 
 const formatVND = (price: number) =>
@@ -39,12 +40,12 @@ const TIER_STYLES = [
 
 function PackageSkeleton() {
   return (
-    <div className="rounded-2xl p-6 bg-white animate-pulse border">
-      <div className="h-5 bg-gray-200 rounded w-3/4 mb-4" />
-      <div className="h-10 bg-gray-200 rounded w-1/2 mb-3" />
-      <div className="h-4 bg-gray-200 rounded w-full mb-5" />
-      <div className="h-11 bg-gray-200 rounded-xl" />
-    </div>
+    <SkeletonCard className="p-6 space-y-4">
+      <SkeletonLine className="w-3/4 h-5" />
+      <SkeletonLine className="w-1/2 h-10" />
+      <SkeletonLine className="w-full" />
+      <SkeletonLine className="h-11 rounded-xl" />
+    </SkeletonCard>
   );
 }
 

@@ -1,13 +1,14 @@
 'use client';
 
 import { useState } from 'react';
-import { Loader2, ShieldBan } from 'lucide-react';
+import { ShieldBan } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { AdminHeader } from '@/components/admin/admin-header';
 import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { getUsers, banUser } from '@/lib/admin-api';
 import { toast } from 'sonner';
+import { SkeletonTable } from '@/components/ui/skeleton';
 import type { UserResponse } from '@/types/admin.types';
 
 export default function AdminUsersPage() {
@@ -38,7 +39,7 @@ export default function AdminUsersPage() {
         {error && <p className="text-red-500 mb-4 text-sm">Không thể tải danh sách người dùng</p>}
 
         {isLoading ? (
-          <div className="flex justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-blue-600" /></div>
+          <SkeletonTable rows={5} cols={5} />
         ) : (
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
             <table className="w-full text-sm">

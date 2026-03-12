@@ -88,7 +88,7 @@ export default function WritingExercisePage({ params }: Props) {
   // Sample answer from first question group instruction
   const sampleAnswer = stimulus?.questionGroups[0]?.instruction || undefined;
 
-  const canGrade = wordCount >= minWords && !isGrading;
+  const canGrade = wordCount > 0 && !isGrading;
 
   const handleGrade = async () => {
     const answer = stripHtml(content);

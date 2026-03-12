@@ -1,77 +1,91 @@
 'use client';
 
-import { useEditor, EditorContent } from '@tiptap/react';
-import StarterKit from '@tiptap/starter-kit';
-import Placeholder from '@tiptap/extension-placeholder';
+import { useState, useCallback, useEffect } from 'react';
 import { useWritingStore } from '@/store/writing-store';
-import { useEffect } from 'react';
 import type { WritingTaskType } from '@/types/writing.types';
 
 interface WritingEditorProps {
   taskType?: WritingTaskType;
 }
 
-const PLACEHOLDER_BY_TASK: Record<number, string> = {
-  1: 'Bắt đầu với phần Mở bài - paraphrase đề bài...',
-  2: 'Bắt đầu với phần Mở bài - giới thiệu chủ đề và luận điểm...',
+interface SectionConfig {
+  label: string;
+  placeholder: string;
+}
+
+const SECTIONS: Record<number, SectionConfig[]> = {
+  1: [
+    { label: 'Introduction', placeholder: 'Nhập phần viết của bạn ở đây' },
+    { label: 'Overview', placeholder: 'Nhập phần viết của bạn ở đây' },
+    { label: 'Body 1', placeholder: 'Nhập phần viết của bạn ở đây' },
+    { label: 'Body 2', placeholder: 'Nhập phần viết của bạn ở đây' },
+  ],
+  2: [
+    { label: 'Introduction', placeholder: 'Nhập phần viết của bạn ở đây' },
+    { label: 'Body 1', placeholder: 'Nhập phần viết của bạn ở đây' },
+    { label: 'Body 2', placeholder: 'Nhập phần viết của bạn ở đây' },
+    { label: 'Conclusion', placeholder: 'Nhập phần viết của bạn ở đây' },
+  ],
 };
 
-// Paragraph structure info shown above editor (read-only guide)
-const PARA_LABELS: Record<number, string[]> = {
-  1: ['Mở bài', 'Tổng quan', 'Thân bài 1', 'Thân bài 2'],
-  2: ['Mở bài', 'Thân bài 1', 'Thân bài 2', 'Kết bài'],
-};
+function countWords(text: string): number {
+  return text.trim().split(/\s+/).filter((w) => w.length > 0).length;
+}
 
 export function WritingEditor({ taskType = 2 }: WritingEditorProps) {
   const { setContent, setWordCount } = useWritingStore();
-  const labels = PARA_LABELS[taskType] ?? PARA_LABELS[2];
+  const sections = SECTIONS[taskType] ?? SECTIONS[2];
 
-  const editor = useEditor({
-    extensions: [
-      StarterKit,
-      Placeholder.configure({
-        placeholder: PLACEHOLDER_BY_TASK[taskType] ?? 'Bắt đầu viết bài của bạn ở đây...',
-      }),
-    ],
-    content: '',
-    immediatelyRender: false,
-    editorProps: {
-      attributes: {
-        class: 'prose max-w-none min-h-[500px] focus:outline-none p-4 text-gray-800',
-      },
-    },
-    onUpdate: ({ editor }) => {
-      const html = editor.getHTML();
-      const text = editor.getText();
-      const wordCount = text
-        .trim()
-        .split(/\s+/)
-        .filter((w) => w.length > 0).length;
-      setContent(html);
-      setWordCount(wordCount);
-    },
-  });
+  const [texts, setTexts] = useState<string[]>(() => sections.map(() => ''));
 
   useEffect(() => {
-    return () => {
-      editor?.destroy();
-    };
-  }, [editor]);
+    setTexts(sections.map(() => ''));
+  }, [taskType, sections]);
+
+  const syncStore = useCallback(
+    (updatedTexts: string[]) => {
+      const combined = updatedTexts.filter((t) => t.trim()).join('\n\n');
+      setContent(combined);
+      setWordCount(countWords(combined));
+    },
+    [setContent, setWordCount]
+  );
+
+  const handleTextChange = (index: number, value: string) => {
+    const updated = [...texts];
+    updated[index] = value;
+    setTexts(updated);
+    syncStore(updated);
+  };
+
+  const totalWords = countWords(texts.filter((t) => t.trim()).join('\n\n'));
 
   return (
-    <div className="h-full flex flex-col">
-      {/* Paragraph structure labels */}
-      <div className="px-4 pt-3 pb-2 border-b bg-gray-50 flex items-center gap-2 flex-wrap">
-        {labels.map((label, idx) => (
-          <span key={idx} className="text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-medium">
-            {idx + 1}. {label}
-          </span>
-        ))}
+    <div className="h-full flex flex-col bg-gray-50/50">
+      {/* Header */}
+      <div className="px-5 py-3 border-b bg-white flex items-center justify-between">
+        <p className="text-sm font-semibold text-gray-700">Bài làm</p>
+        <p className="text-sm text-gray-500">
+          Word count: <span className="font-semibold text-gray-700">{totalWords}</span>
+        </p>
       </div>
 
-      {/* Editor area */}
-      <div className="flex-1 bg-white">
-        <EditorContent editor={editor} />
+      {/* All sections stacked */}
+      <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
+        {sections.map((section, idx) => (
+          <div key={idx}>
+            <label className="text-sm font-bold text-gray-700 mb-1.5 block">
+              {section.label}
+            </label>
+            <textarea
+              value={texts[idx]}
+              onChange={(e) => handleTextChange(idx, e.target.value)}
+              placeholder={section.placeholder}
+              rows={5}
+              className="w-full rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm text-gray-800 leading-relaxed resize-y focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 placeholder:text-gray-300"
+            />
+          </div>
+        ))}
       </div>
     </div>
   );

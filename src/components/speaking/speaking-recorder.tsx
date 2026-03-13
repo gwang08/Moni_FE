@@ -7,6 +7,7 @@ import { Mic, Square, Play, Pause, RotateCcw, AlertCircle } from 'lucide-react';
 interface SpeakingRecorderProps {
   taskId: string;
   maxDuration?: number;
+  existingBlob?: Blob | null;
   onRecordingComplete: (blob: Blob, duration: number) => void;
 }
 
@@ -19,6 +20,7 @@ function formatTime(seconds: number): string {
 export function SpeakingRecorder({
   taskId,
   maxDuration = 180,
+  existingBlob,
   onRecordingComplete,
 }: SpeakingRecorderProps) {
   const { isRecording, startRecording, stopRecording } = useSpeakingStore();
@@ -32,13 +34,17 @@ export function SpeakingRecorder({
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  // Cleanup audio URL on unmount
+  // Restore audio from existing blob when navigating back
   useEffect(() => {
+    if (existingBlob && !audioUrl) {
+      const url = URL.createObjectURL(existingBlob);
+      setAudioUrl(url);
+    }
     return () => {
       if (audioUrl) URL.revokeObjectURL(audioUrl);
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [existingBlob]);
 
   const handleStart = async () => {
     if (!navigator.mediaDevices) { setNoMicError(true); return; }

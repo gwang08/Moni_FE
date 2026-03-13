@@ -1,15 +1,12 @@
 'use client';
 
 import { useState } from 'react';
-import { ChevronDown, ChevronUp, BookOpen, Lightbulb, PenLine } from 'lucide-react';
+import { ChevronDown, ChevronUp, Lightbulb, PenLine } from 'lucide-react';
 import type { WritingTaskType } from '@/types/writing.types';
 
 interface WritingToolbarPanelProps {
   wordCount: number;
   taskType: WritingTaskType;
-  sampleAnswer?: string;
-  showSample: boolean;
-  onToggleSample: () => void;
 }
 
 const GUIDES: Record<number, { label: string; tip: string }[]> = {
@@ -30,9 +27,6 @@ const GUIDES: Record<number, { label: string; tip: string }[]> = {
 export function WritingToolbarPanel({
   wordCount,
   taskType,
-  sampleAnswer,
-  showSample,
-  onToggleSample,
 }: WritingToolbarPanelProps) {
   const [guideOpen, setGuideOpen] = useState(true);
   const guide = GUIDES[taskType] ?? GUIDES[2];
@@ -79,29 +73,6 @@ export function WritingToolbarPanel({
         )}
       </div>
 
-      {/* Sample answer card */}
-      {sampleAnswer && (
-        <div className="rounded-3xl bg-white/80 backdrop-blur-sm border border-teal-100/60 overflow-hidden shadow-sm">
-          <button
-            className="w-full flex items-center gap-2 px-4 py-3 hover:bg-teal-50/30 transition-colors"
-            onClick={onToggleSample}
-          >
-            <div className="w-7 h-7 rounded-xl bg-gradient-to-br from-emerald-100 to-teal-100 flex items-center justify-center">
-              <BookOpen className="h-3.5 w-3.5 text-emerald-500" />
-            </div>
-            <span className="text-sm font-bold text-gray-700">
-              {showSample ? 'Ẩn bài mẫu' : 'Hiện bài mẫu'}
-            </span>
-          </button>
-          {showSample && (
-            <div className="px-4 pb-4">
-              <div className="p-3 bg-teal-50/50 border border-teal-100/60 rounded-2xl text-[13px] text-gray-600 leading-relaxed max-h-60 overflow-y-auto">
-                {sampleAnswer}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
     </div>
   );
 }

@@ -44,8 +44,7 @@ export default function SpeakingPracticePage({ params }: Props) {
 
   const [showSample, setShowSample] = useState(false);
   const [showExitDialog, setShowExitDialog] = useState(false);
-  const [lastRecordedBlob, setLastRecordedBlob] = useState<Blob | null>(null);
-  const [hasMarkedCompleted, setHasMarkedCompleted] = useState(false);
+  const [recordedBlobs, setRecordedBlobs] = useState<Record<string, Blob>>({});
 
   useEffect(() => {
     reset();
@@ -88,8 +87,10 @@ export default function SpeakingPracticePage({ params }: Props) {
     ? recordings.filter((r) => r.taskId === taskId).at(-1) ?? null
     : null;
 
+  const lastRecordedBlob = taskId ? recordedBlobs[taskId] ?? null : null;
+
   const handleRecordingComplete = (blob: Blob) => {
-    setLastRecordedBlob(blob);
+    setRecordedBlobs((prev) => ({ ...prev, [taskId]: blob }));
   };
 
   const handleSubmitForScoring = async () => {
@@ -98,23 +99,31 @@ export default function SpeakingPracticePage({ params }: Props) {
     const ext = mimeType.includes('mp4') ? 'mp4' : 'webm';
     const file = new File([lastRecordedBlob], `recording.${ext}`, { type: mimeType });
     await submitForScoring(file, currentQuestion.content);
-    // Mark as completed on first scoring submission
-    if (!hasMarkedCompleted) {
-      markCompleted(id);
-      setHasMarkedCompleted(true);
-      const stimulus = testDetail?.stimuli[0];
-      if (stimulus) {
-        try {
+  };
+
+  const handleSubmitAll = async () => {
+    if (!testDetail || questions.length === 0) return;
+    markCompleted(id);
+    const stimulus = testDetail.stimuli[0];
+    if (stimulus) {
+      try {
+        const answers = questions
+          .filter((q) => recordedBlobs[`${id}-q${q.id}`])
+          .map((q) => ({ questionId: q.id, answerText: q.content }));
+        if (answers.length > 0) {
           await submitAttempt({
             testId: Number(id),
             stimulusId: stimulus.id,
             elapsedSeconds: 0,
-            answers: [{ questionId: currentQuestion.id, answerText: currentQuestion.content }],
+            answers,
           });
-        } catch { /* ignore */ }
-      }
+        }
+      } catch { /* ignore */ }
     }
+    router.push('/practice?skill=speaking');
   };
+
+  const allRecorded = questions.length > 0 && questions.every((q) => recordedBlobs[`${id}-q${q.id}`]);
 
   const handleExit = () => setShowExitDialog(true);
   const handleConfirmExit = () => router.push('/practice?skill=speaking');
@@ -159,7 +168,6 @@ export default function SpeakingPracticePage({ params }: Props) {
             onSelect={(idx) => {
               setCurrentQuestionIndex(idx);
               setShowSample(false);
-              setLastRecordedBlob(null);
             }}
           />
         </div>
@@ -175,12 +183,10 @@ export default function SpeakingPracticePage({ params }: Props) {
                 onPrev={() => {
                   setCurrentQuestionIndex(currentQuestionIndex - 1);
                   setShowSample(false);
-                  setLastRecordedBlob(null);
                 }}
                 onNext={() => {
                   setCurrentQuestionIndex(currentQuestionIndex + 1);
                   setShowSample(false);
-                  setLastRecordedBlob(null);
                 }}
                 canPrev={currentQuestionIndex > 0}
                 canNext={currentQuestionIndex < questions.length - 1}
@@ -190,6 +196,7 @@ export default function SpeakingPracticePage({ params }: Props) {
                 key={`${taskId}-recorder`}
                 taskId={taskId}
                 maxDuration={180}
+                existingBlob={lastRecordedBlob}
                 onRecordingComplete={handleRecordingComplete}
               />
 
@@ -210,6 +217,17 @@ export default function SpeakingPracticePage({ params }: Props) {
                 scoringError={scoringError}
               />
             </>
+          )}
+
+          {allRecorded && (
+            <div className="mt-6">
+              <button
+                onClick={handleSubmitAll}
+                className="w-full py-3 rounded-2xl bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white font-semibold text-sm shadow-lg shadow-green-300/30 transition-all duration-200 hover:scale-[1.01] hover:shadow-xl hover:shadow-green-300/40 border border-green-400/20"
+              >
+                Nộp bài ({Object.keys(recordedBlobs).length}/{questions.length} câu đã ghi âm)
+              </button>
+            </div>
           )}
         </div>
 

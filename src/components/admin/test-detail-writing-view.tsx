@@ -20,9 +20,11 @@ export function TestDetailWritingView({ stimuli }: Props) {
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 space-y-4">
       <h3 className="text-sm font-semibold text-gray-700">Đề bài Writing</h3>
-      <div className="text-sm text-gray-700 bg-gray-50 rounded-lg p-4 whitespace-pre-wrap">
-        {s.content || <span className="text-gray-400 italic">Chưa nhập đề bài</span>}
-      </div>
+      {s.content ? (
+        <div className="text-sm text-gray-700 bg-gray-50 rounded-lg p-4 prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: s.content }} />
+      ) : (
+        <div className="text-sm text-gray-400 italic bg-gray-50 rounded-lg p-4">Chưa nhập đề bài</div>
+      )}
 
       {s.mediaUrl && (
         <div>
@@ -49,8 +51,21 @@ export function TestDetailWritingView({ stimuli }: Props) {
             Bài mẫu
           </button>
           {showSample && (
-            <div className="mt-2 text-sm text-gray-600 bg-green-50 rounded-lg p-4 whitespace-pre-wrap border border-green-200">
-              {sampleAnswer}
+            <div className="mt-2 text-sm text-gray-600 bg-green-50 rounded-lg p-4 border border-green-200 space-y-2">
+              {sampleAnswer.includes('---SECTION---') ? (
+                sampleAnswer.split('\n---SECTION---\n').map((section, idx) => {
+                  if (!section.trim()) return null;
+                  const labels = ['Introduction', 'Overview', 'Body 1', 'Body 2'];
+                  return (
+                    <div key={idx}>
+                      <p className="text-xs font-bold text-green-700 mb-0.5">{labels[idx] || `Phần ${idx + 1}`}</p>
+                      <p className="whitespace-pre-wrap">{section.trim()}</p>
+                    </div>
+                  );
+                })
+              ) : (
+                <p className="whitespace-pre-wrap">{sampleAnswer}</p>
+              )}
             </div>
           )}
         </div>

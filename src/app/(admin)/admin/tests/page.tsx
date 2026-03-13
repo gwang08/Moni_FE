@@ -21,16 +21,28 @@ const STATUS_COLORS: Record<string, string> = {
   HIDDEN: 'bg-gray-100 text-gray-600 border-gray-200',
 };
 
+const SKILLS = ['ALL', 'READING', 'LISTENING', 'WRITING', 'SPEAKING'] as const;
+const SKILL_LABELS: Record<string, string> = {
+  ALL: 'Tất cả',
+  READING: 'Reading',
+  LISTENING: 'Listening',
+  WRITING: 'Writing',
+  SPEAKING: 'Speaking',
+};
+
 export default function AdminTestsPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
+  const [skillFilter, setSkillFilter] = useState<string>('ALL');
   const [confirmId, setConfirmId] = useState<number | null>(null);
   const [pendingStatus, setPendingStatus] = useState<{ id: number; status: string } | null>(null);
 
+  const activeSkill = skillFilter === 'ALL' ? undefined : skillFilter;
+
   const { data, isLoading, error } = useQuery({
-    queryKey: ['admin', 'tests', page],
-    queryFn: () => getTests(page, 20),
+    queryKey: ['admin', 'tests', page, skillFilter],
+    queryFn: () => getTests(page, 20, activeSkill),
     staleTime: 30_000,
   });
 
@@ -71,11 +83,27 @@ export default function AdminTestsPage() {
     <div>
       <AdminHeader title="Quản lý bài thi" />
       <div className="p-6">
-        <div className="flex justify-between items-center mb-6">
+        <div className="flex justify-between items-center mb-4">
           <p className="text-sm text-gray-500">Danh sách tất cả bài thi trong hệ thống</p>
           <Button onClick={() => router.push('/admin/tests/import')}>
             <Plus className="h-4 w-4" /> Tạo bài thi
           </Button>
+        </div>
+
+        <div className="flex gap-2 mb-4">
+          {SKILLS.map(skill => (
+            <button
+              key={skill}
+              onClick={() => { setSkillFilter(skill); setPage(1); }}
+              className={`px-3 py-1.5 text-xs font-medium rounded-full border transition-colors ${
+                skillFilter === skill
+                  ? 'bg-blue-600 text-white border-blue-600'
+                  : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
+              }`}
+            >
+              {SKILL_LABELS[skill]}
+            </button>
+          ))}
         </div>
 
         {error && <p className="text-red-500 mb-4 text-sm">Không thể tải danh sách bài thi</p>}
@@ -99,7 +127,11 @@ export default function AdminTestsPage() {
                   <tr><td colSpan={5} className="text-center py-8 text-gray-400">Chưa có bài thi nào</td></tr>
                 ) : tests.map((test) => (
                   <tr key={test.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 font-medium text-gray-800 max-w-xs truncate">{test.title}</td>
+                    <td className="px-4 py-3 font-medium max-w-xs truncate">
+                      <Link href={`/admin/tests/${test.id}`} className="text-blue-600 hover:underline">
+                        {test.title}
+                      </Link>
+                    </td>
                     <td className="px-4 py-3"><Badge variant="secondary">{test.skill}</Badge></td>
                     <td className="px-4 py-3 text-gray-600">{test.testType}</td>
                     <td className="px-4 py-3">

@@ -19,7 +19,6 @@ import { useRouter } from 'next/navigation';
 import type { WritingTaskType } from '@/types/writing.types';
 
 const FALLBACK_PROMPT = 'Hãy viết một bài luận bày tỏ quan điểm của bạn về chủ đề được đề cập.';
-const MIN_WORDS: Record<WritingTaskType, number> = { 1: 150, 2: 250 };
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -74,7 +73,6 @@ export default function WritingExercisePage({ params }: Props) {
   }
 
   const taskType: WritingTaskType = testDetail.section === 1 ? 1 : 2;
-  const minWords = MIN_WORDS[taskType];
   const stimulus = testDetail.stimuli[0];
   const prompt = stimulus?.content || testDetail.description || FALLBACK_PROMPT;
   const chartImageUrl = taskType === 1 ? (stimulus?.mediaUrl ?? undefined) : undefined;
@@ -127,13 +125,17 @@ export default function WritingExercisePage({ params }: Props) {
             prompt={prompt}
             chartImageUrl={chartImageUrl}
             taskType={taskType}
-            minWords={minWords}
           />
         </div>
 
         {/* Center: Editor */}
         <div className="flex-1 overflow-y-auto">
-          <WritingEditor taskType={taskType} />
+          <WritingEditor
+            taskType={taskType}
+            sampleAnswer={sampleAnswer}
+            showSample={showSample}
+            onToggleSample={() => setShowSample(v => !v)}
+          />
         </div>
 
         {/* Right: Toolbar */}
@@ -141,9 +143,6 @@ export default function WritingExercisePage({ params }: Props) {
           <WritingToolbarPanel
             wordCount={wordCount}
             taskType={taskType}
-            sampleAnswer={sampleAnswer}
-            showSample={showSample}
-            onToggleSample={() => setShowSample((v) => !v)}
           />
         </div>
       </div>

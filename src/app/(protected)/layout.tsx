@@ -22,9 +22,22 @@ export default function ProtectedLayout({
 
     if (!valid) {
       router.push(`/login?redirect=${encodeURIComponent(pathname)}`);
-    } else {
-      setIsChecking(false);
+      return;
     }
+
+    // Redirect admin users to admin panel
+    const stored = localStorage.getItem('auth-storage');
+    if (stored) {
+      try {
+        const { state } = JSON.parse(stored);
+        if (state?.user?.role === 'ADMIN') {
+          router.push('/admin');
+          return;
+        }
+      } catch { /* ignore */ }
+    }
+
+    setIsChecking(false);
   }, [checkAuth, router, pathname]);
 
   if (isChecking || !isAuthenticated) {

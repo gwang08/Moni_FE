@@ -32,17 +32,30 @@ function WritingReview({ stimuli }: { stimuli: StimulusRequest[] }) {
         <span className="text-sm font-semibold text-gray-700">Đề bài Writing</span>
       </div>
       <div className="p-4 space-y-3">
-        <p className="text-sm text-gray-700 whitespace-pre-wrap">{s.content || <span className="text-red-400 italic">Chưa nhập đề bài</span>}</p>
-        {s.mediaUrl && (
-          <div>
-            <p className="text-xs text-gray-500 mb-1">Biểu đồ (Task 1):</p>
-            <img src={s.mediaUrl} alt="Chart" className="max-h-40 rounded-lg border" />
-          </div>
+        {s.content ? (
+          <div className="text-sm text-gray-700 prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: s.content }} />
+        ) : (
+          <p className="text-red-400 italic text-sm">Chưa nhập đề bài</p>
         )}
         {s.questionGroups[0]?.instruction && (
           <div>
             <p className="text-xs text-gray-500 mb-1">Bài mẫu:</p>
-            <p className="text-sm text-gray-600 bg-green-50 rounded-lg p-3 whitespace-pre-wrap">{s.questionGroups[0].instruction}</p>
+            <div className="text-sm text-gray-600 bg-green-50 rounded-lg p-3 space-y-2">
+              {s.questionGroups[0].instruction.includes('---SECTION---') ? (
+                s.questionGroups[0].instruction.split('\n---SECTION---\n').map((section, idx) => {
+                  if (!section.trim()) return null;
+                  const labels = ['Introduction', 'Overview', 'Body 1', 'Body 2'];
+                  return (
+                    <div key={idx}>
+                      <p className="text-[11px] font-bold text-green-700 mb-0.5">{labels[idx] || `Phần ${idx + 1}`}</p>
+                      <p className="whitespace-pre-wrap">{section.trim()}</p>
+                    </div>
+                  );
+                })
+              ) : (
+                <p className="whitespace-pre-wrap">{s.questionGroups[0].instruction}</p>
+              )}
+            </div>
           </div>
         )}
       </div>

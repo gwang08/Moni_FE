@@ -1,13 +1,68 @@
 'use client';
 
 import { useState } from 'react';
+import { useEditor, EditorContent } from '@tiptap/react';
+import StarterKit from '@tiptap/starter-kit';
+import Placeholder from '@tiptap/extension-placeholder';
+import Underline from '@tiptap/extension-underline';
+import TextAlign from '@tiptap/extension-text-align';
+import LinkExtension from '@tiptap/extension-link';
+import ImageExtension from '@tiptap/extension-image';
+import Subscript from '@tiptap/extension-subscript';
+import Superscript from '@tiptap/extension-superscript';
+import HighlightExt from '@tiptap/extension-highlight';
+import { Table as TableExtension } from '@tiptap/extension-table';
+import TableRow from '@tiptap/extension-table-row';
+import TableCell from '@tiptap/extension-table-cell';
+import TableHeader from '@tiptap/extension-table-header';
+import { RichTextToolbar } from '@/components/admin/rich-text-toolbar';
 import { Button } from '@/components/ui/button';
-import { MediaUploadZone } from '@/components/admin/media-upload-zone';
-import { Loader2, Save, X } from 'lucide-react';
+import { Loader2, Save } from 'lucide-react';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
 import { updateStimulus, updateQuestion } from '@/lib/admin-api';
 import type { TestDetailResponse } from '@/types/test.types';
+
+const EDITOR_EXTENSIONS = [
+  StarterKit,
+  Placeholder.configure({ placeholder: 'Nhập đề bài Writing (có thể chèn ảnh biểu đồ)...' }),
+  Underline,
+  Subscript,
+  Superscript,
+  HighlightExt.configure({ multicolor: true }),
+  TextAlign.configure({ types: ['heading', 'paragraph'] }),
+  LinkExtension.configure({ openOnClick: false }),
+  ImageExtension,
+  TableExtension.configure({ resizable: true }),
+  TableRow,
+  TableCell,
+  TableHeader,
+];
+
+const SAMPLE_FIELDS = [
+  { key: 'introduction', label: 'Introduction', placeholder: 'Đoạn mở bài mẫu...', rows: 3 },
+  { key: 'overview', label: 'Overview', placeholder: 'Đoạn tổng quan mẫu...', rows: 3 },
+  { key: 'body1', label: 'Body 1', placeholder: 'Đoạn thân bài 1 mẫu...', rows: 4 },
+  { key: 'body2', label: 'Body 2', placeholder: 'Đoạn thân bài 2 mẫu...', rows: 4 },
+];
+
+const SEPARATOR = '\n---SECTION---\n';
+
+function parseSample(raw: string): Record<string, string> {
+  const parts = raw.split(SEPARATOR);
+  return {
+    introduction: parts[0]?.trim() || '',
+    overview: parts[1]?.trim() || '',
+    body1: parts[2]?.trim() || '',
+    body2: parts[3]?.trim() || '',
+  };
+}
+
+function buildSample(fields: Record<string, string>): string {
+  return [fields.introduction, fields.overview, fields.body1, fields.body2]
+    .map((s) => s || '')
+    .join(SEPARATOR);
+}
 
 interface Props {
   test: TestDetailResponse;
@@ -18,29 +73,44 @@ export function TestEditWritingContent({ test }: Props) {
   const testId = String(test.id);
   const stimulus = test.stimuli[0];
   const [saving, setSaving] = useState(false);
+  const [contentHtml, setContentHtml] = useState(stimulus?.content || '');
 
-  const [prompt, setPrompt] = useState(stimulus?.content || '');
-  const [imageUrl, setImageUrl] = useState(stimulus?.mediaUrl || '');
-  const [sampleAnswer, setSampleAnswer] = useState(
-    stimulus?.questionGroups[0]?.instruction || ''
-  );
+  const rawSample = stimulus?.questionGroups[0]?.instruction || '';
+  const [sampleFields, setSampleFields] = useState<Record<string, string>>(() => parseSample(rawSample));
+
+  const editor = useEditor({
+    extensions: EDITOR_EXTENSIONS,
+    content: stimulus?.content || '',
+    immediatelyRender: false,
+    editorProps: {
+      attributes: {
+        class: 'prose prose-sm max-w-none min-h-[300px] focus:outline-none p-4',
+      },
+    },
+    onUpdate: ({ editor: ed }) => {
+      setContentHtml(ed.getHTML());
+    },
+  });
 
   if (!stimulus) return <p className="text-gray-400 text-center py-8">Chưa có nội dung</p>;
+
+  const updateSampleField = (key: string, value: string) => {
+    setSampleFields((prev) => ({ ...prev, [key]: value }));
+  };
 
   const handleSave = async () => {
     setSaving(true);
     try {
-      // Update stimulus content and mediaUrl
       await updateStimulus(stimulus.id, {
-        content: prompt,
-        mediaUrl: imageUrl || undefined,
+        content: contentHtml,
+        mediaUrl: stimulus.mediaUrl || undefined,
       });
 
-      // Update sample answer via question explanation if a question exists
       const firstQuestion = stimulus.questionGroups[0]?.questions[0];
-      if (firstQuestion && sampleAnswer) {
+      const sampleText = buildSample(sampleFields);
+      if (firstQuestion && sampleText.replace(/\n---SECTION---\n/g, '').trim()) {
         await updateQuestion(String(firstQuestion.id), {
-          explanation: { text: sampleAnswer },
+          explanation: { text: sampleText },
         });
       }
 
@@ -54,49 +124,36 @@ export function TestEditWritingContent({ test }: Props) {
   };
 
   return (
-    <div className="space-y-5 max-w-2xl">
-      {/* Prompt editor */}
-      <div>
-        <label className="text-sm font-medium text-gray-700 mb-2 block">Đề bài Writing</label>
-        <textarea
-          value={prompt}
-          onChange={(e) => setPrompt(e.target.value)}
-          rows={8}
-          className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y"
-        />
-      </div>
-
-      {/* Chart/Image */}
+    <div className="space-y-5 max-w-3xl">
+      {/* Đề bài - Rich Text Editor */}
       <div>
         <label className="text-sm font-medium text-gray-700 mb-2 block">
-          Biểu đồ / Hình ảnh (Task 1)
+          Đề bài Writing
+          <span className="text-xs text-gray-400 font-normal ml-2">Có thể chèn ảnh biểu đồ trực tiếp vào đề</span>
         </label>
-        {imageUrl ? (
-          <div className="relative inline-block">
-            <img src={imageUrl} alt="Chart" className="max-h-48 rounded-lg border border-gray-200" />
-            <button
-              type="button"
-              onClick={() => setImageUrl('')}
-              className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
-            >
-              <X className="h-3 w-3" />
-            </button>
-          </div>
-        ) : (
-          <MediaUploadZone onUploaded={(url) => setImageUrl(url)} />
-        )}
+        <div className="border border-input rounded-md bg-white overflow-hidden">
+          <RichTextToolbar editor={editor} />
+          <EditorContent editor={editor} />
+        </div>
       </div>
 
-      {/* Sample Answer */}
+      {/* Bài mẫu - 4 fields */}
       <div>
-        <label className="text-sm font-medium text-gray-700 mb-2 block">Bài mẫu</label>
-        <textarea
-          value={sampleAnswer}
-          onChange={(e) => setSampleAnswer(e.target.value)}
-          rows={6}
-          placeholder="Nhập bài mẫu tham khảo..."
-          className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y"
-        />
+        <label className="text-sm font-medium text-gray-700 mb-3 block">Bài mẫu</label>
+        <div className="space-y-3">
+          {SAMPLE_FIELDS.map((field) => (
+            <div key={field.key}>
+              <label className="text-xs font-medium text-gray-500 mb-1 block">{field.label}</label>
+              <textarea
+                value={sampleFields[field.key] || ''}
+                onChange={(e) => updateSampleField(field.key, e.target.value)}
+                placeholder={field.placeholder}
+                rows={field.rows}
+                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y"
+              />
+            </div>
+          ))}
+        </div>
       </div>
 
       <div className="flex justify-end">

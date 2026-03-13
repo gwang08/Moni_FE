@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Highlighter, Plus, Trash2 } from 'lucide-react';
+import { Highlighter, Loader2, Pencil, Plus, Save, Trash2 } from 'lucide-react';
 import { TestEditQuestionCard } from '@/components/admin/test-edit-question-card';
 import { TestEditMatchingHeadings } from '@/components/admin/test-edit-matching-headings';
 import { TestEditAddQuestionGroupForm } from '@/components/admin/test-edit-add-question-group-form';
@@ -11,6 +11,10 @@ import { useTestEditMutations } from '@/components/admin/use-test-edit-mutations
 import { applyHighlights, type EvidenceEntry } from '@/components/admin/test-edit-highlight-evidence';
 import { TestEditWritingContent } from '@/components/admin/test-edit-writing-content';
 import { TestEditSpeakingContent } from '@/components/admin/test-edit-speaking-content';
+import { MediaUploadZone } from '@/components/admin/media-upload-zone';
+import { updateStimulus } from '@/lib/admin-api';
+import { toast } from 'sonner';
+import { useQueryClient } from '@tanstack/react-query';
 import type { TestDetailResponse, QuestionGroupDetail } from '@/types/test.types';
 import type { QuestionTypeCode } from '@/types/admin.types';
 
@@ -63,6 +67,31 @@ export function TestEditContentTab({ test }: Props) {
   // CRUD toggle state
   const [addingGroup, setAddingGroup] = useState(false);
   const [addingQuestionForGroup, setAddingQuestionForGroup] = useState<number | null>(null);
+
+  // Passage editing state
+  const queryClient = useQueryClient();
+  const [editingPassage, setEditingPassage] = useState(false);
+  const [passageEdit, setPassageEdit] = useState(stimulus?.content || '');
+  const [audioUrlEdit, setAudioUrlEdit] = useState(stimulus?.mediaUrl || '');
+  const [savingPassage, setSavingPassage] = useState(false);
+
+  const handleSavePassage = async () => {
+    if (!stimulus) return;
+    setSavingPassage(true);
+    try {
+      await updateStimulus(stimulus.id, {
+        content: passageEdit,
+        mediaUrl: audioUrlEdit || undefined,
+      });
+      toast.success('Đã lưu nội dung đề');
+      queryClient.invalidateQueries({ queryKey: ['admin', 'test', testId] });
+      setEditingPassage(false);
+    } catch {
+      toast.error('Lưu nội dung thất bại');
+    } finally {
+      setSavingPassage(false);
+    }
+  };
 
   const captureSelection = useCallback(() => {
     const selection = window.getSelection();
@@ -193,19 +222,68 @@ export function TestEditContentTab({ test }: Props) {
         <div className="w-1/2 flex flex-col pl-4">
           <div className="flex items-center justify-between py-2">
             <h4 className="text-sm font-semibold text-gray-700">{stimulus.title || (test.skill === 'LISTENING' ? 'Bài nghe' : 'Bài đọc')}</h4>
-            <Button type="button" size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={captureSelection}>
-              <Highlighter className="h-3 w-3" /> Quét dẫn chứng
-            </Button>
-          </div>
-          {/* Audio player for Listening */}
-          {test.skill === 'LISTENING' && stimulus.mediaUrl && (
-            <div className="mb-2 bg-purple-50 border border-purple-200 rounded-lg p-2">
-              <audio controls src={stimulus.mediaUrl} className="w-full h-8" />
+            <div className="flex items-center gap-2">
+              {editingPassage ? (
+                <>
+                  <Button type="button" size="sm" variant="outline" className="h-7 text-xs gap-1"
+                    onClick={() => { setEditingPassage(false); setPassageEdit(stimulus.content || ''); setAudioUrlEdit(stimulus.mediaUrl || ''); }}>
+                    Hủy
+                  </Button>
+                  <Button type="button" size="sm" className="h-7 text-xs gap-1" disabled={savingPassage} onClick={handleSavePassage}>
+                    {savingPassage ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />}
+                    Lưu đề
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button type="button" size="sm" variant="outline" className="h-7 text-xs gap-1"
+                    onClick={() => { setPassageEdit(stimulus.content || ''); setAudioUrlEdit(stimulus.mediaUrl || ''); setEditingPassage(true); }}>
+                    <Pencil className="h-3 w-3" /> Sửa đề
+                  </Button>
+                  <Button type="button" size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={captureSelection}>
+                    <Highlighter className="h-3 w-3" /> Quét dẫn chứng
+                  </Button>
+                </>
+              )}
             </div>
+          </div>
+
+          {/* Audio for Listening */}
+          {test.skill === 'LISTENING' && (
+            editingPassage ? (
+              <div className="mb-2 space-y-2">
+                <label className="text-xs font-medium text-gray-600">Audio URL</label>
+                {audioUrlEdit ? (
+                  <div className="space-y-1">
+                    <audio controls src={audioUrlEdit} className="w-full h-8" />
+                    <button type="button" onClick={() => setAudioUrlEdit('')}
+                      className="text-xs text-red-500 hover:text-red-700">Xóa audio</button>
+                  </div>
+                ) : (
+                  <MediaUploadZone onUploaded={(url) => setAudioUrlEdit(url)} />
+                )}
+              </div>
+            ) : stimulus.mediaUrl ? (
+              <div className="mb-2 bg-purple-50 border border-purple-200 rounded-lg p-2">
+                <audio controls src={stimulus.mediaUrl} className="w-full h-8" />
+              </div>
+            ) : null
           )}
-          <div ref={passageRef}
-            className="flex-1 overflow-y-auto rounded-lg border border-gray-300 bg-white px-5 py-4 text-sm text-gray-800 leading-relaxed cursor-text select-text prose prose-sm max-w-none" />
-          {pendingEvidence && (
+
+          {/* Passage content */}
+          {editingPassage ? (
+            <textarea
+              value={passageEdit}
+              onChange={(e) => setPassageEdit(e.target.value)}
+              className="flex-1 overflow-y-auto rounded-lg border border-blue-300 bg-white px-5 py-4 text-sm text-gray-800 leading-relaxed resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Nhập nội dung đề bài (HTML)..."
+            />
+          ) : (
+            <div ref={passageRef}
+              className="flex-1 overflow-y-auto rounded-lg border border-gray-300 bg-white px-5 py-4 text-sm text-gray-800 leading-relaxed cursor-text select-text prose prose-sm max-w-none" />
+          )}
+
+          {!editingPassage && pendingEvidence && (
             <div className="mt-2 rounded-md border border-green-300 bg-green-50 px-3 py-2">
               <p className="text-xs font-medium text-green-700 mb-1">Đã quét — chọn câu bên trái để gán:</p>
               <p className="text-xs text-green-800 line-clamp-3">&ldquo;{pendingEvidence}&rdquo;</p>

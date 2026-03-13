@@ -10,14 +10,12 @@ interface WritingPromptPanelProps {
   prompt: string;
   chartImageUrl?: string;
   taskType: WritingTaskType;
-  minWords: number;
 }
 
 export function WritingPromptPanel({
   prompt,
   chartImageUrl,
   taskType,
-  minWords,
 }: WritingPromptPanelProps) {
   const [zoomOpen, setZoomOpen] = useState(false);
 
@@ -36,12 +34,7 @@ export function WritingPromptPanel({
         <p className="text-[11px] font-bold text-teal-500 uppercase tracking-wider mb-2.5">
           Đề bài
         </p>
-        <p className="text-[13px] text-gray-700 leading-relaxed">{prompt}</p>
-        <div className="mt-3 flex items-center gap-1.5">
-          <span className="text-[11px] px-2.5 py-1 rounded-full bg-amber-50 text-amber-600 font-medium border border-amber-200/60">
-            Tối thiểu {minWords} từ
-          </span>
-        </div>
+        <div className="text-[13px] text-gray-700 leading-relaxed prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: prompt }} />
       </div>
 
       {/* Chart image */}

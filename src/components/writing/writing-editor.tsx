@@ -1,11 +1,15 @@
 'use client';
 
 import { useState, useCallback, useEffect } from 'react';
+import { BookOpen, PenLine } from 'lucide-react';
 import { useWritingStore } from '@/store/writing-store';
 import type { WritingTaskType } from '@/types/writing.types';
 
 interface WritingEditorProps {
   taskType?: WritingTaskType;
+  sampleAnswer?: string;
+  showSample: boolean;
+  onToggleSample: () => void;
 }
 
 interface SectionConfig {
@@ -33,15 +37,33 @@ function countWords(text: string): number {
   return text.trim().split(/\s+/).filter((w) => w.length > 0).length;
 }
 
-export function WritingEditor({ taskType = 2 }: WritingEditorProps) {
+const SEPARATOR = '\n---SECTION---\n';
+
+export function WritingEditor({ taskType = 2, sampleAnswer, showSample, onToggleSample }: WritingEditorProps) {
   const { setContent, setWordCount } = useWritingStore();
   const sections = SECTIONS[taskType] ?? SECTIONS[2];
 
   const [texts, setTexts] = useState<string[]>(() => sections.map(() => ''));
+  const [savedTexts, setSavedTexts] = useState<string[]>([]);
+
+  const sampleParts = sampleAnswer?.includes('---SECTION---')
+    ? sampleAnswer.split(SEPARATOR).map(s => s.trim())
+    : sampleAnswer ? [sampleAnswer] : [];
 
   useEffect(() => {
     setTexts(sections.map(() => ''));
   }, [taskType, sections]);
+
+  useEffect(() => {
+    if (showSample) {
+      setSavedTexts(texts);
+      setTexts(sections.map((_, i) => sampleParts[i] || ''));
+    } else if (savedTexts.length > 0) {
+      setTexts(savedTexts);
+      setSavedTexts([]);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showSample]);
 
   const syncStore = useCallback(
     (updatedTexts: string[]) => {
@@ -59,14 +81,24 @@ export function WritingEditor({ taskType = 2 }: WritingEditorProps) {
     syncStore(updated);
   };
 
-  const totalWords = countWords(texts.filter((t) => t.trim()).join('\n\n'));
-
   return (
     <div className="h-full flex flex-col">
       {/* Header */}
       <div className="px-5 py-3 border-b border-teal-100/40 flex items-center justify-between bg-white/50 backdrop-blur-sm">
-        <p className="text-sm font-bold text-gray-700">Bài làm</p>
-    
+        <p className="text-sm font-bold text-gray-700">{showSample ? 'Bài mẫu' : 'Bài làm'}</p>
+        {sampleAnswer && (
+          <button
+            onClick={onToggleSample}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+              showSample
+                ? 'bg-teal-100 text-teal-700 hover:bg-teal-200'
+                : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100 border border-emerald-200/60'
+            }`}
+          >
+            {showSample ? <PenLine className="h-3.5 w-3.5" /> : <BookOpen className="h-3.5 w-3.5" />}
+            {showSample ? 'Quay lại làm bài' : 'Xem bài mẫu'}
+          </button>
+        )}
       </div>
 
       {/* Sections */}
@@ -91,7 +123,12 @@ export function WritingEditor({ taskType = 2 }: WritingEditorProps) {
                 onChange={(e) => handleTextChange(idx, e.target.value)}
                 placeholder={section.placeholder}
                 rows={5}
-                className="w-full rounded-2xl border border-gray-200/80 bg-white/80 backdrop-blur-sm px-4 py-3 text-sm text-gray-800 leading-relaxed resize-y focus:outline-none focus:ring-2 focus:ring-teal-300/50 focus:border-teal-200 placeholder:text-gray-300 shadow-sm transition-all hover:shadow-md hover:border-teal-200/60"
+                disabled={showSample}
+                className={`w-full rounded-2xl border px-4 py-3 text-sm leading-relaxed resize-y shadow-sm transition-all ${
+                  showSample
+                    ? 'border-green-200 bg-green-50/60 text-gray-700 cursor-default'
+                    : 'border-gray-200/80 bg-white/80 backdrop-blur-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-teal-300/50 focus:border-teal-200 placeholder:text-gray-300 hover:shadow-md hover:border-teal-200/60'
+                }`}
               />
             </div>
           );

@@ -185,11 +185,12 @@ export function TestEditContentTab({ test }: Props) {
 
   const passageContent = stimulus?.content || '';
   useEffect(() => {
+    if (editingPassage) return;
     const el = passageRef.current;
     if (!el) return;
     el.innerHTML = passageContent;
     applyHighlights(el, allEvidences);
-  }, [passageContent, allEvidences]);
+  }, [passageContent, allEvidences, editingPassage]);
 
   if (!stimulus) return <p className="text-center text-gray-400 py-8">Bài thi chưa có nội dung</p>;
   const totalQuestions = stimulus.questionGroups.reduce((sum, g) => sum + g.questions.length, 0);

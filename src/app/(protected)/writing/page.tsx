@@ -59,7 +59,7 @@ export default function WritingPage() {
           </Button>
         </div>
 
-        <WritingEditor />
+        <WritingEditor showSample={false} onToggleSample={() => {}} />
 
         {gradingResult && (
           <GradingModal

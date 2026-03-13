@@ -4,7 +4,8 @@ import { useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { Loader2, Save, ChevronDown, ChevronRight, Highlighter } from 'lucide-react';
+import { Loader2, Save, ChevronDown, ChevronRight } from 'lucide-react';
+import { EvidenceList, appendEvidence } from '@/components/admin/evidence-list';
 import { McqOptions } from '@/components/admin/test-import-question-options-mcq';
 import { TfngOptions } from '@/components/admin/test-import-question-options-tfng';
 import { FillOptions } from '@/components/admin/test-import-question-options-fill';
@@ -36,11 +37,9 @@ export function TestEditQuestionCard({ question, questionTypeCode, testId, pendi
   const [evidence, setEvidence] = useState(question.explanation?.evidence ?? '');
   const isGapType = questionTypeCode === 'GAP_FILLING';
 
-  const handleAssign = () => {
-    if (!pendingEvidence) return;
-    setEvidence(pendingEvidence);
-    onEvidenceChange(pendingEvidence);
-    onAssignEvidence();
+  const handleEvidenceChange = (ev: string | undefined) => {
+    setEvidence(ev ?? '');
+    onEvidenceChange(ev ?? '');
   };
 
   const handleSave = async () => {
@@ -106,25 +105,12 @@ export function TestEditQuestionCard({ question, questionTypeCode, testId, pendi
                 placeholder="Tại sao đáp án này đúng?" rows={2}
                 className="w-full rounded-md border border-input bg-background px-2 py-1.5 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-none" />
             </div>
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <Label className="block text-xs text-gray-500">Dẫn chứng</Label>
-                {pendingEvidence && (
-                  <Button type="button" size="sm" variant="default" className="h-5 text-[10px] gap-0.5 px-1.5" onClick={handleAssign}>
-                    <Highlighter className="h-2.5 w-2.5" /> Gán vào câu này
-                  </Button>
-                )}
-              </div>
-              {evidence ? (
-                <div className="relative rounded-md border border-amber-200 bg-amber-50 px-2 py-1.5 text-xs text-amber-900 whitespace-pre-wrap max-h-20 overflow-y-auto">
-                  {evidence}
-                  <button type="button" onClick={() => { setEvidence(''); onEvidenceChange(''); }}
-                    className="absolute top-0.5 right-1 text-amber-400 hover:text-amber-600 text-xs">✕</button>
-                </div>
-              ) : (
-                <p className="text-[10px] text-gray-400 italic pt-1">Quét text bài đọc bên phải → bấm &quot;Gán vào câu này&quot;</p>
-              )}
-            </div>
+            <EvidenceList
+              evidence={evidence}
+              pendingEvidence={pendingEvidence}
+              onAssign={onAssignEvidence}
+              onChange={handleEvidenceChange}
+            />
           </div>
 
           <div className="flex justify-end">

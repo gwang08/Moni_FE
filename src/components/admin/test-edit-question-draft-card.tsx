@@ -3,7 +3,8 @@
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { Trash2, Highlighter } from 'lucide-react';
+import { Trash2 } from 'lucide-react';
+import { EvidenceList, appendEvidence } from '@/components/admin/evidence-list';
 import { McqOptions } from '@/components/admin/test-import-question-options-mcq';
 import { TfngOptions } from '@/components/admin/test-import-question-options-tfng';
 import { FillOptions } from '@/components/admin/test-import-question-options-fill';
@@ -76,26 +77,12 @@ export function TestEditQuestionDraftCard({ index, draft, typeCode, pendingEvide
             placeholder="Tại sao đáp án này đúng?" rows={2}
             className="w-full rounded-md border border-input bg-background px-2 py-1 text-[11px] resize-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" />
         </div>
-        <div>
-          <div className="flex items-center justify-between mb-0.5">
-            <Label className="block text-[10px] text-gray-400">Dẫn chứng</Label>
-            {pendingEvidence && onAssignEvidence && (
-              <Button type="button" size="sm" variant="default" className="h-5 text-[10px] gap-0.5 px-1.5"
-                onClick={() => onAssignEvidence(index)}>
-                <Highlighter className="h-2.5 w-2.5" /> Gán
-              </Button>
-            )}
-          </div>
-          {draft.explanation?.evidence ? (
-            <div className="relative rounded-md border border-amber-200 bg-amber-50 px-2 py-1 text-[11px] text-amber-900 whitespace-pre-wrap max-h-14 overflow-y-auto">
-              {draft.explanation.evidence}
-              <button type="button" onClick={() => onChange({ ...draft, explanation: { ...draft.explanation, evidence: undefined } })}
-                className="absolute top-0.5 right-1 text-amber-400 hover:text-amber-600 text-[10px]">✕</button>
-            </div>
-          ) : (
-            <p className="text-[10px] text-gray-400 italic pt-0.5">Quét text → bấm &quot;Gán&quot;</p>
-          )}
-        </div>
+        <EvidenceList
+          evidence={draft.explanation?.evidence}
+          pendingEvidence={pendingEvidence}
+          onAssign={() => onAssignEvidence?.(index)}
+          onChange={ev => onChange({ ...draft, explanation: { ...draft.explanation, evidence: ev } })}
+        />
       </div>
     </div>
   );

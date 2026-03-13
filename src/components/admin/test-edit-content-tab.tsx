@@ -1,6 +1,21 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useEditor, EditorContent } from '@tiptap/react';
+import StarterKit from '@tiptap/starter-kit';
+import Placeholder from '@tiptap/extension-placeholder';
+import UnderlineExt from '@tiptap/extension-underline';
+import TextAlign from '@tiptap/extension-text-align';
+import LinkExtension from '@tiptap/extension-link';
+import ImageExtension from '@tiptap/extension-image';
+import Subscript from '@tiptap/extension-subscript';
+import Superscript from '@tiptap/extension-superscript';
+import HighlightExt from '@tiptap/extension-highlight';
+import { Table as TableExtension } from '@tiptap/extension-table';
+import TableRow from '@tiptap/extension-table-row';
+import TableCell from '@tiptap/extension-table-cell';
+import TableHeader from '@tiptap/extension-table-header';
+import { RichTextToolbar } from '@/components/admin/rich-text-toolbar';
 import { Button } from '@/components/ui/button';
 import { Highlighter, Loader2, Pencil, Plus, Save, Trash2 } from 'lucide-react';
 import { TestEditQuestionCard } from '@/components/admin/test-edit-question-card';
@@ -42,27 +57,44 @@ const TYPE_LABELS: Record<string, string> = {
   GAP_FILLING: 'Gap Filling',
 };
 
+const EDITOR_EXTENSIONS = [
+  StarterKit,
+  Placeholder.configure({ placeholder: 'Nhập nội dung đề bài...' }),
+  UnderlineExt,
+  Subscript,
+  Superscript,
+  HighlightExt.configure({ multicolor: true }),
+  TextAlign.configure({ types: ['heading', 'paragraph'] }),
+  LinkExtension.configure({ openOnClick: false }),
+  ImageExtension,
+  TableExtension.configure({ resizable: true }),
+  TableRow,
+  TableCell,
+  TableHeader,
+];
+
 function PassageEditor({ value, onChange }: { value: string; onChange: (v: string) => void }) {
-  const editorRef = useRef<HTMLDivElement>(null);
-  const isInitialized = useRef(false);
+  const editor = useEditor({
+    extensions: EDITOR_EXTENSIONS,
+    content: value,
+    immediatelyRender: false,
+    editorProps: {
+      attributes: {
+        class: 'prose prose-sm max-w-none min-h-[200px] focus:outline-none p-4',
+      },
+    },
+    onUpdate: ({ editor: ed }) => onChange(ed.getHTML()),
+  });
 
   useEffect(() => {
-    if (editorRef.current && !isInitialized.current) {
-      editorRef.current.innerHTML = value;
-      isInitialized.current = true;
-    }
-  }, [value]);
+    return () => { editor?.destroy(); };
+  }, [editor]);
 
   return (
-    <div
-      ref={editorRef}
-      contentEditable
-      suppressContentEditableWarning
-      onInput={() => {
-        if (editorRef.current) onChange(editorRef.current.innerHTML);
-      }}
-      className="flex-1 overflow-y-auto rounded-lg border border-blue-300 bg-white px-5 py-4 text-sm text-gray-800 leading-relaxed focus:outline-none focus:ring-2 focus:ring-blue-500 prose prose-sm max-w-none"
-    />
+    <div className="flex-1 overflow-y-auto rounded-lg border border-blue-300 bg-white flex flex-col">
+      <RichTextToolbar editor={editor} />
+      <EditorContent editor={editor} className="flex-1" />
+    </div>
   );
 }
 

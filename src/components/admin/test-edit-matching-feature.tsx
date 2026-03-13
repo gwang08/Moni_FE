@@ -3,7 +3,8 @@
 import { useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Loader2, Save, ChevronDown, ChevronUp, Plus, Trash2, Highlighter } from 'lucide-react';
+import { Loader2, Save, ChevronDown, ChevronUp, Plus, Trash2 } from 'lucide-react';
+import { EvidenceList } from '@/components/admin/evidence-list';
 import { batchUpdateQuestions } from '@/lib/admin-api';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
@@ -85,11 +86,9 @@ export function TestEditMatchingFeature({ questions, testId, pendingEvidence, on
     }
   };
 
-  const handleAssign = (idx: number) => {
-    if (!pendingEvidence || !questions[idx]) return;
-    setExplanations(e => ({ ...e, [idx]: { ...e[idx], evidence: pendingEvidence } }));
-    onEvidenceChange(questions[idx].id, pendingEvidence);
-    onAssignEvidence();
+  const handleEvidenceChange = (idx: number, ev: string | undefined) => {
+    setExplanations(e => ({ ...e, [idx]: { ...e[idx], evidence: ev } }));
+    if (questions[idx]) onEvidenceChange(questions[idx].id, ev ?? '');
   };
 
   return (
@@ -167,29 +166,12 @@ export function TestEditMatchingFeature({ questions, testId, pendingEvidence, on
                     />
                   </div>
                   <div className="pt-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-medium text-gray-400 uppercase tracking-wide">Evidence</span>
-                      {pendingEvidence && (
-                        <Button type="button" size="sm" variant="default" className="h-5 text-[10px] gap-0.5 px-1.5" onClick={() => handleAssign(i)}>
-                          <Highlighter className="h-2.5 w-2.5" /> Assign
-                        </Button>
-                      )}
-                    </div>
-                    {expl?.evidence ? (
-                      <div className="relative mt-1 rounded-md border border-amber-200 bg-amber-50 px-2 py-1.5 text-xs text-amber-900 whitespace-pre-wrap max-h-20 overflow-y-auto">
-                        {expl.evidence}
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setExplanations(e => ({ ...e, [i]: { ...e[i], evidence: undefined } }));
-                            if (questions[i]) onEvidenceChange(questions[i].id, '');
-                          }}
-                          className="absolute top-0.5 right-1 text-amber-400 hover:text-amber-600 text-[10px]"
-                        >✕</button>
-                      </div>
-                    ) : (
-                      <p className="text-[10px] text-gray-400 italic mt-1">Select text → click &quot;Assign&quot;</p>
-                    )}
+                    <EvidenceList
+                      evidence={expl?.evidence}
+                      pendingEvidence={pendingEvidence}
+                      onAssign={onAssignEvidence}
+                      onChange={ev => handleEvidenceChange(i, ev)}
+                    />
                   </div>
                 </div>
               )}

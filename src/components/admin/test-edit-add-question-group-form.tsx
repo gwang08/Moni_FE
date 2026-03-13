@@ -161,12 +161,7 @@ export function TestEditAddQuestionGroupForm({ stimulusId, testId, stimulusConte
             {questions.map((q, i) => (
               <TestEditQuestionDraftCard key={i} index={i} draft={q} typeCode={typeCode}
                 pendingEvidence={pendingEvidence}
-                onAssignEvidence={(qi) => {
-                  if (pendingEvidence) {
-                    updateQuestion(qi, { ...questions[qi], explanation: { ...questions[qi].explanation, evidence: pendingEvidence } });
-                    onAssignEvidence?.();
-                  }
-                }}
+                onAssignEvidence={() => onAssignEvidence?.()}
                 onChange={d => updateQuestion(i, d)} onRemove={questions.length > 1 ? () => removeQuestion(i) : undefined} />
             ))}
           </div>

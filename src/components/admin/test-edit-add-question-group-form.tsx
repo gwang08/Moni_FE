@@ -10,6 +10,8 @@ import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
 import { TestEditQuestionDraftCard } from '@/components/admin/test-edit-question-draft-card';
 import { MatchingInformationEditor } from '@/components/admin/test-import-matching-information-editor';
+import { SharedOptionsEditor } from '@/components/admin/test-import-shared-options-editor';
+import { MatchingTableEditor } from '@/components/admin/test-import-matching-table-editor';
 import { detectParagraphs } from '@/components/admin/test-import-matching-headings-editor';
 import { defaultOptions } from '@/lib/question-defaults';
 import type { QuestionTypeCode, OptionRequest } from '@/types/admin.types';
@@ -52,9 +54,15 @@ export function TestEditAddQuestionGroupForm({ stimulusId, testId, stimulusConte
     { content: '', options: defaultOptions(availableTypes[0]?.value ?? 'MCQ') },
   ]);
 
+  const DEFAULT_CATEGORIES = [
+    { label: 'A', content: '' }, { label: 'B', content: '' }, { label: 'C', content: '' },
+  ];
+  const [sharedOptions, setSharedOptions] = useState<{ label: string; content: string }[]>(DEFAULT_CATEGORIES);
+
   const handleTypeChange = (code: QuestionTypeCode) => {
     setTypeCode(code);
     setQuestions([{ content: '', options: defaultOptions(code) }]);
+    if (code === 'MATCHING_FEATURE') setSharedOptions(DEFAULT_CATEGORIES);
   };
 
   const addQuestion = () => {
@@ -120,7 +128,21 @@ export function TestEditAddQuestionGroupForm({ stimulusId, testId, stimulusConte
         </div>
       </div>
 
-      {typeCode === 'MATCHING_INFORMATION' ? (
+      {typeCode === 'MATCHING_FEATURE' ? (
+        <div className="space-y-3">
+          <SharedOptionsEditor
+            options={sharedOptions}
+            onChange={setSharedOptions}
+            labelPrefix="alpha"
+          />
+          <MatchingTableEditor
+            questions={questions.map((q, i) => ({ content: q.content, options: q.options, position: i + 1 }))}
+            sharedOptions={sharedOptions}
+            positionOffset={0}
+            onChange={qs => setQuestions(qs.map(q => ({ content: q.content, options: q.options })))}
+          />
+        </div>
+      ) : typeCode === 'MATCHING_INFORMATION' ? (
         <MatchingInformationEditor
           paragraphs={detectParagraphs(stimulusContent || '')}
           questions={questions.map((q, i) => ({ content: q.content, options: q.options, explanation: q.explanation, position: i + 1 }))}

@@ -5,6 +5,7 @@ import type { StimulusDetail, OptionDetail } from '@/types/test.types';
 import { ReadingQuestionMcq } from '@/components/reading/reading-question-mcq';
 import { ReadingMatchingGroup } from '@/components/reading/reading-matching-group';
 import { ReadingMatchingInformation } from '@/components/reading/reading-matching-information';
+import { ReadingMatchingFeature } from '@/components/reading/reading-matching-feature';
 import { ReadingMatchingPills } from '@/components/reading/reading-matching-pills';
 import { ReadingGapFilling } from '@/components/reading/reading-gap-filling';
 
@@ -91,6 +92,13 @@ export function ReadingQuestionsPanel({ stimulus, submitted = false, answers, on
               />
             ) : group.questionTypeCode === 'MATCHING_INFORMATION' ? (
               <ReadingMatchingInformation
+                questions={group.questions}
+                answers={answers}
+                submitted={submitted}
+                onAnswer={selectAnswer}
+              />
+            ) : group.questionTypeCode === 'MATCHING_FEATURE' ? (
+              <ReadingMatchingFeature
                 questions={group.questions}
                 answers={answers}
                 submitted={submitted}

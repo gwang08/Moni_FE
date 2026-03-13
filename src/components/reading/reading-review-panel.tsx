@@ -11,14 +11,17 @@ import {
 } from '@/components/ui/dialog';
 import type { StimulusDetail } from '@/types/test.types';
 
+const GAP_TYPES = ['GAP_FILLING', 'DIAGRAM_LABEL'];
+
 interface Props {
   stimulus: StimulusDetail;
   answers: Record<number, number>;
+  textAnswers?: Record<number, string>;
   onLocateEvidence: (evidence: string) => void;
 }
 
 /** Review panel showing each question with user answer, correct answer, and explanation */
-export function ReadingReviewPanel({ stimulus, answers, onLocateEvidence }: Props) {
+export function ReadingReviewPanel({ stimulus, answers, textAnswers = {}, onLocateEvidence }: Props) {
   const questionRefs = useRef<Record<number, HTMLDivElement | null>>({});
 
   // Collect all questions flat for bottom nav
@@ -46,11 +49,25 @@ export function ReadingReviewPanel({ stimulus, answers, onLocateEvidence }: Prop
 
             <div className="space-y-4">
               {group.questions.map((question) => {
-                const selectedId = answers[question.id];
+                const isGap = GAP_TYPES.includes(group.questionTypeCode || '');
                 const correctOption = question.options.find(o => o.isCorrect);
+                const correctAnswer = correctOption?.content ?? '';
+
+                // Gap-type: use text answer
+                const userText = isGap ? (textAnswers[question.id] ?? '').trim() : null;
+                const isGapCorrect = isGap && userText
+                  ? userText.toLowerCase() === correctAnswer.trim().toLowerCase()
+                  : false;
+                const isGapSkipped = isGap && !userText;
+
+                // Option-type: use option answer
+                const selectedId = !isGap ? answers[question.id] : undefined;
                 const selectedOption = selectedId != null ? question.options.find(o => o.id === selectedId) : null;
-                const isCorrect = selectedOption?.isCorrect === true;
-                const isSkipped = selectedId == null;
+                const isOptionCorrect = selectedOption?.isCorrect === true;
+                const isOptionSkipped = !isGap && selectedId == null;
+
+                const isCorrect = isGap ? isGapCorrect : isOptionCorrect;
+                const isSkipped = isGap ? isGapSkipped : isOptionSkipped;
 
                 return (
                   <div
@@ -66,12 +83,18 @@ export function ReadingReviewPanel({ stimulus, answers, onLocateEvidence }: Prop
 
                     {/* User's answer badge */}
                     <div className="flex flex-wrap gap-2 items-center text-sm">
-                      <span className="text-gray-500">Bạn chọn:</span>
+                      <span className="text-gray-500">Bạn trả lời:</span>
                       {isSkipped ? (
                         <span className="px-2 py-0.5 rounded bg-gray-100 text-gray-500 text-xs">Bỏ qua</span>
+                      ) : isGap ? (
+                        <span className={`px-2 py-0.5 rounded text-xs font-medium ${
+                          isGapCorrect ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                        }`}>
+                          {userText}
+                        </span>
                       ) : (
                         <span className={`px-2 py-0.5 rounded text-xs font-medium ${
-                          isCorrect ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                          isOptionCorrect ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
                         }`}>
                           {selectedOption?.label && `${selectedOption.label}. `}{selectedOption?.content}
                         </span>
@@ -83,7 +106,7 @@ export function ReadingReviewPanel({ stimulus, answers, onLocateEvidence }: Prop
                       <div className="text-sm flex gap-2 items-center">
                         <span className="text-gray-500">Đáp án:</span>
                         <span className="px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-700">
-                          {correctOption.label && `${correctOption.label}. `}{correctOption.content}
+                          {!isGap && correctOption.label && `${correctOption.label}. `}{correctOption.content}
                         </span>
                       </div>
                     )}
@@ -130,9 +153,23 @@ export function ReadingReviewPanel({ stimulus, answers, onLocateEvidence }: Prop
       {/* Bottom navigation bar */}
       <div className="border-t bg-white px-4 py-3 flex flex-wrap gap-2">
         {allQuestions.map((q) => {
-          const selectedId = answers[q.id];
-          const isCorrect = selectedId != null && q.options.find(o => o.id === selectedId)?.isCorrect;
-          const isSkipped = selectedId == null;
+          // Determine group type for this question
+          const group = stimulus.questionGroups.find(g => g.questions.some(gq => gq.id === q.id));
+          const isGap = GAP_TYPES.includes(group?.questionTypeCode || '');
+
+          let isCorrect: boolean;
+          let isSkipped: boolean;
+          if (isGap) {
+            const userText = (textAnswers[q.id] ?? '').trim();
+            const correctAnswer = (q.options.find(o => o.isCorrect)?.content ?? '').trim();
+            isSkipped = !userText;
+            isCorrect = !isSkipped && userText.toLowerCase() === correctAnswer.toLowerCase();
+          } else {
+            const selectedId = answers[q.id];
+            isSkipped = selectedId == null;
+            isCorrect = !isSkipped && (q.options.find(o => o.id === selectedId)?.isCorrect ?? false);
+          }
+
           return (
             <button
               key={q.id}

@@ -13,6 +13,7 @@ interface ResultData {
   attemptId?: number;
   testId: string;
   answers: Record<number, number>;
+  textAnswers?: Record<number, string>;
   elapsedSeconds: number;
 }
 
@@ -100,6 +101,7 @@ export default function ReadingReviewPage({ params }: Props) {
           <ReadingReviewPanel
             stimulus={stimuli}
             answers={resultData.answers}
+            textAnswers={resultData.textAnswers}
             onLocateEvidence={setActiveEvidence}
           />
         </div>

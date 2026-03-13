@@ -14,6 +14,7 @@ interface ResultData {
   attemptId?: number;
   testId: string;
   answers: Record<number, number>;
+  textAnswers?: Record<number, string>;
   elapsedSeconds: number;
 }
 
@@ -31,14 +32,24 @@ function formatTime(seconds: number) {
   return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 }
 
-function calcGroupStats(groups: QuestionGroupDetail[], answers: Record<number, number>): GroupStat[] {
+const GAP_TYPES = ['GAP_FILLING', 'DIAGRAM_LABEL'];
+
+function calcGroupStats(groups: QuestionGroupDetail[], answers: Record<number, number>, textAnswers: Record<number, string> = {}): GroupStat[] {
   return groups.map((group) => {
+    const isGap = GAP_TYPES.includes(group.questionTypeCode || '');
     let correct = 0, wrong = 0, skipped = 0;
     for (const q of group.questions) {
-      const selectedId = answers[q.id];
-      if (selectedId == null) { skipped++; continue; }
-      const selected = q.options.find(o => o.id === selectedId);
-      selected?.isCorrect ? correct++ : wrong++;
+      if (isGap) {
+        const userText = (textAnswers[q.id] ?? '').trim();
+        if (!userText) { skipped++; continue; }
+        const correctAnswer = (q.options.find(o => o.isCorrect)?.content ?? '').trim();
+        userText.toLowerCase() === correctAnswer.toLowerCase() ? correct++ : wrong++;
+      } else {
+        const selectedId = answers[q.id];
+        if (selectedId == null) { skipped++; continue; }
+        const selected = q.options.find(o => o.id === selectedId);
+        selected?.isCorrect ? correct++ : wrong++;
+      }
     }
     return {
       typeCode: group.questionTypeCode || `Nhóm ${group.id}`,
@@ -80,7 +91,7 @@ export default function ReadingResultPage({ params }: Props) {
   }
 
   const allGroups = testDetail.stimuli.flatMap(s => s.questionGroups);
-  const groupStats = calcGroupStats(allGroups, resultData.answers);
+  const groupStats = calcGroupStats(allGroups, resultData.answers, resultData.textAnswers);
   const totalQuestions = groupStats.reduce((s, g) => s + g.total, 0);
   const totalCorrect = groupStats.reduce((s, g) => s + g.correct, 0);
   const totalWrong = groupStats.reduce((s, g) => s + g.wrong, 0);

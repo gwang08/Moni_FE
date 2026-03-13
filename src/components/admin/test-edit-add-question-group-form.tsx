@@ -9,11 +9,14 @@ import { createQuestionGroup } from '@/lib/admin-api';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
 import { TestEditQuestionDraftCard } from '@/components/admin/test-edit-question-draft-card';
+import { MatchingInformationEditor } from '@/components/admin/test-import-matching-information-editor';
+import { detectParagraphs } from '@/components/admin/test-import-matching-headings-editor';
 import { defaultOptions } from '@/lib/question-defaults';
 import type { QuestionTypeCode, OptionRequest } from '@/types/admin.types';
 
 const QUESTION_TYPES: { value: QuestionTypeCode; label: string }[] = [
-  { value: 'MCQ', label: 'Multiple Choice' },
+  { value: 'MCQ', label: 'Multiple Choice (One Answer)' },
+  { value: 'MCQ_MULTIPLE', label: 'Multiple Choice (Many Answers)' },
   { value: 'TFNG', label: 'True / False / Not Given' },
   { value: 'YNNG', label: 'Yes / No / Not Given' },
   { value: 'GAP_FILLING', label: 'Gap Filling' },
@@ -26,16 +29,20 @@ const QUESTION_TYPES: { value: QuestionTypeCode; label: string }[] = [
 export interface QuestionDraft {
   content: string;
   options: OptionRequest[];
+  explanation?: { text?: string; evidence?: string };
 }
 
 interface Props {
   stimulusId: number;
   testId: string;
+  stimulusContent?: string;
   excludeTypeCodes?: QuestionTypeCode[];
+  pendingEvidence?: string | null;
+  onAssignEvidence?: () => void;
   onClose: () => void;
 }
 
-export function TestEditAddQuestionGroupForm({ stimulusId, testId, excludeTypeCodes = [], onClose }: Props) {
+export function TestEditAddQuestionGroupForm({ stimulusId, testId, stimulusContent, excludeTypeCodes = [], pendingEvidence, onAssignEvidence, onClose }: Props) {
   const queryClient = useQueryClient();
   const [saving, setSaving] = useState(false);
   const [instruction, setInstruction] = useState('');
@@ -76,6 +83,7 @@ export function TestEditAddQuestionGroupForm({ stimulusId, testId, excludeTypeCo
           content: q.content,
           position: i + 1,
           options: q.options,
+          explanation: q.explanation?.text || q.explanation?.evidence ? q.explanation : undefined,
         })),
       });
       toast.success('Đã thêm nhóm câu hỏi');
@@ -112,17 +120,44 @@ export function TestEditAddQuestionGroupForm({ stimulusId, testId, excludeTypeCo
         </div>
       </div>
 
-      <div className="space-y-2 max-h-[400px] overflow-y-auto">
-        {questions.map((q, i) => (
-          <TestEditQuestionDraftCard key={i} index={i} draft={q} typeCode={typeCode}
-            onChange={d => updateQuestion(i, d)} onRemove={questions.length > 1 ? () => removeQuestion(i) : undefined} />
-        ))}
-      </div>
+      {typeCode === 'MATCHING_INFORMATION' ? (
+        <MatchingInformationEditor
+          paragraphs={detectParagraphs(stimulusContent || '')}
+          questions={questions.map((q, i) => ({ content: q.content, options: q.options, explanation: q.explanation, position: i + 1 }))}
+          pendingEvidence={pendingEvidence ?? null}
+          onAssignEvidence={(qi) => {
+            if (pendingEvidence) {
+              updateQuestion(qi, { ...questions[qi], explanation: { ...questions[qi].explanation, evidence: pendingEvidence } });
+              onAssignEvidence?.();
+            }
+          }}
+          onChange={qs => setQuestions(qs.map(q => ({ content: q.content, options: q.options, explanation: q.explanation })))}
+        />
+      ) : (
+        <>
+          <div className="space-y-2 max-h-[400px] overflow-y-auto">
+            {questions.map((q, i) => (
+              <TestEditQuestionDraftCard key={i} index={i} draft={q} typeCode={typeCode}
+                pendingEvidence={pendingEvidence}
+                onAssignEvidence={(qi) => {
+                  if (pendingEvidence) {
+                    updateQuestion(qi, { ...questions[qi], explanation: { ...questions[qi].explanation, evidence: pendingEvidence } });
+                    onAssignEvidence?.();
+                  }
+                }}
+                onChange={d => updateQuestion(i, d)} onRemove={questions.length > 1 ? () => removeQuestion(i) : undefined} />
+            ))}
+          </div>
+
+          <div className="flex items-center justify-between pt-1">
+            <Button type="button" size="sm" variant="ghost" className="text-xs h-7 gap-1" onClick={addQuestion}>
+              <Plus className="h-3 w-3" /> Thêm câu
+            </Button>
+          </div>
+        </>
+      )}
 
       <div className="flex items-center justify-between pt-1">
-        <Button type="button" size="sm" variant="ghost" className="text-xs h-7 gap-1" onClick={addQuestion}>
-          <Plus className="h-3 w-3" /> Thêm câu
-        </Button>
         <div className="flex gap-2">
           <Button type="button" size="sm" variant="outline" className="h-7 text-xs" onClick={onClose}>Hủy</Button>
           <Button type="button" size="sm" className="h-7 text-xs" onClick={handleSubmit} disabled={saving}>

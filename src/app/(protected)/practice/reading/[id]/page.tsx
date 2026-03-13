@@ -40,6 +40,7 @@ export default function ReadingExercisePage({ params }: Props) {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [exitOpen, setExitOpen] = useState(false);
   const [answers, setAnswers] = useState<Record<number, number>>({});
+  const [textAnswers, setTextAnswers] = useState<Record<number, string>>({});
   const [selectedPillId, setSelectedPillId] = useState<number | null>(null);
   const { elapsed, formatted: elapsedTime } = useElapsedTimer(submitted);
 
@@ -57,6 +58,10 @@ export default function ReadingExercisePage({ params }: Props) {
     }
   };
 
+  const handleTextAnswer = (questionId: number, text: string) => {
+    setTextAnswers(prev => ({ ...prev, [questionId]: text }));
+  };
+
   const handleComplete = async () => {
     setSubmitted(true);
     setConfirmOpen(false);
@@ -64,10 +69,14 @@ export default function ReadingExercisePage({ params }: Props) {
 
     // Submit to backend, save attemptId for result page
     if (stimuli) {
-      const answerList = Object.entries(answers).map(([qId, optId]) => ({
+      const optionAnswers = Object.entries(answers).map(([qId, optId]) => ({
         questionId: Number(qId),
         selectedOptionId: optId,
       }));
+      const textAnswerList = Object.entries(textAnswers)
+        .filter(([, text]) => text.trim() !== '')
+        .map(([qId, text]) => ({ questionId: Number(qId), answerText: text }));
+      const answerList = [...optionAnswers, ...textAnswerList];
       try {
         const res = await submitAttempt({
           testId: Number(id),
@@ -76,17 +85,17 @@ export default function ReadingExercisePage({ params }: Props) {
           answers: answerList,
         });
         sessionStorage.setItem(`practice-result-${id}`, JSON.stringify({
-          attemptId: res.attemptId, testId: id, answers, elapsedSeconds: elapsed,
+          attemptId: res.attemptId, testId: id, answers, textAnswers, elapsedSeconds: elapsed,
         }));
       } catch {
         // Fallback: save local data without attemptId
         sessionStorage.setItem(`practice-result-${id}`, JSON.stringify({
-          testId: id, answers, elapsedSeconds: elapsed,
+          testId: id, answers, textAnswers, elapsedSeconds: elapsed,
         }));
       }
     } else {
       sessionStorage.setItem(`practice-result-${id}`, JSON.stringify({
-        testId: id, answers, elapsedSeconds: elapsed,
+        testId: id, answers, textAnswers, elapsedSeconds: elapsed,
       }));
     }
 
@@ -179,6 +188,8 @@ export default function ReadingExercisePage({ params }: Props) {
               submitted={submitted}
               answers={answers}
               onAnswer={handleAnswer}
+              textAnswers={textAnswers}
+              onTextAnswer={handleTextAnswer}
               selectedPillId={selectedPillId}
               onPillSelect={setSelectedPillId}
             />

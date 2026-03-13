@@ -2,8 +2,9 @@
 
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 import { Plus, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { QuestionEditor } from '@/components/admin/test-import-question-editor';
 import { defaultMcqOptions } from '@/components/admin/test-import-question-options-mcq';
 import { defaultTfngOptions } from '@/components/admin/test-import-question-options-tfng';
@@ -11,6 +12,8 @@ import { defaultFillOptions } from '@/components/admin/test-import-question-opti
 import { SharedOptionsEditor } from '@/components/admin/test-import-shared-options-editor';
 import { MatchingTableEditor } from '@/components/admin/test-import-matching-table-editor';
 import { MatchingHeadingsEditor, detectParagraphs } from '@/components/admin/test-import-matching-headings-editor';
+import { MatchingInformationEditor } from '@/components/admin/test-import-matching-information-editor';
+import { GapFillingEditor } from '@/components/admin/test-import-gap-filling-editor';
 import type { QuestionGroupRequest, QuestionRequest, QuestionTypeCode, OptionRequest } from '@/types/admin.types';
 
 const SHARED_OPTION_TYPES: QuestionTypeCode[] = ['MATCHING_HEADINGS', 'MATCHING_INFORMATION', 'MATCHING_FEATURE'];
@@ -32,15 +35,15 @@ interface Props {
 }
 
 const QUESTION_TYPES: { value: QuestionTypeCode; label: string; instruction: string }[] = [
-  { value: 'MCQ', label: 'Single Choice', instruction: 'Choose the correct letter A, B, C or D.' },
-  { value: 'MCQ_MULTIPLE', label: 'Multiple Choice', instruction: 'Choose TWO/THREE correct letters.' },
+  { value: 'MCQ', label: 'Single Choice', instruction: 'Choose the correct letter, A, B, C or D.' },
+  { value: 'MCQ_MULTIPLE', label: 'Multiple Choice', instruction: 'Choose TWO correct letters, A–E.' },
   { value: 'TFNG', label: 'True / False / Not Given', instruction: 'Do the following statements agree with the information given in the reading passage? Write TRUE if the statement agrees with the information, FALSE if the statement contradicts the information, NOT GIVEN if there is no information on this.' },
-  { value: 'YNNG', label: 'Yes / No / Not Given', instruction: 'Do the following statements agree with the views of the writer? Write YES if the statement agrees with the views of the writer, NO if the statement contradicts the views of the writer, NOT GIVEN if it is impossible to say what the writer thinks about this.' },
-  { value: 'MATCHING_HEADINGS', label: 'Matching Headings', instruction: 'Choose the correct heading for each paragraph from the list of headings below.' },
-  { value: 'MATCHING_INFORMATION', label: 'Matching Information', instruction: 'Which paragraph contains the following information?' },
-  { value: 'MATCHING_FEATURE', label: 'Matching Features', instruction: 'Match each statement with the correct person/category.' },
-  { value: 'DIAGRAM_LABEL', label: 'Map, Diagram Label', instruction: 'Label the diagram/map below. Write NO MORE THAN TWO WORDS from the passage for each answer.' },
-  { value: 'GAP_FILLING', label: 'Gap Filling', instruction: 'Complete the summary/sentences below. Choose NO MORE THAN TWO WORDS from the passage for each answer.' },
+  { value: 'YNNG', label: 'Yes / No / Not Given', instruction: 'Do the following statements agree with the claims of the writer? Write YES if the statement agrees with the claims of the writer, NO if the statement contradicts the claims of the writer, NOT GIVEN if it is impossible to say what the writer thinks about this.' },
+  { value: 'MATCHING_HEADINGS', label: 'Matching Headings', instruction: 'Choose the correct heading for each section from the list of headings below.' },
+  { value: 'MATCHING_INFORMATION', label: 'Matching Information', instruction: 'Which paragraph contains the following information? NB You may use any letter more than once.' },
+  { value: 'MATCHING_FEATURE', label: 'Matching Features', instruction: 'Look at the following statements and the list of people/categories below. Match each statement with the correct person/category.' },
+  { value: 'DIAGRAM_LABEL', label: 'Map, Diagram Label', instruction: 'Label the diagram below. Write NO MORE THAN TWO WORDS from the passage for each answer.' },
+  { value: 'GAP_FILLING', label: 'Gap Filling', instruction: 'Complete the sentences below. Write NO MORE THAN TWO WORDS AND/OR A NUMBER from the passage for each answer.' },
 ];
 
 function getDefaultOptions(typeCode: QuestionTypeCode): OptionRequest[] {
@@ -116,14 +119,41 @@ export function QuestionGroupEditor({ group, groupIndex, positionOffset, stimulu
         <p className="text-xs text-gray-500 italic bg-gray-100 rounded px-2 py-1.5">{group.instruction}</p>
       )}
 
-      {/* MATCHING_HEADINGS: paragraph → heading editor */}
-      {group.questionTypeCode === 'MATCHING_HEADINGS' ? (
+      {/* DIAGRAM_LABEL: imageUrl */}
+      {group.questionTypeCode === 'DIAGRAM_LABEL' && (
+        <div>
+          <Label className="mb-1 block text-xs">URL hình ảnh (diagram/map)</Label>
+          <Input
+            value={group.imageUrl ?? ''}
+            onChange={e => onChange({ ...group, imageUrl: e.target.value })}
+            placeholder="https://example.com/diagram.png"
+            className="text-sm"
+          />
+        </div>
+      )}
+
+      {/* GAP_FILLING: custom editor with select-to-mark flow */}
+      {group.questionTypeCode === 'GAP_FILLING' ? (
+        <GapFillingEditor
+          questions={group.questions}
+          positionOffset={positionOffset}
+          onChange={qs => onChange({ ...group, questions: qs })}
+        />
+      ) : group.questionTypeCode === 'MATCHING_HEADINGS' ? (
         <MatchingHeadingsEditor
           paragraphs={detectParagraphs(stimulusContent || '')}
           questions={group.questions}
           pendingEvidence={pendingEvidence}
           onAssignEvidence={onAssignEvidence}
           onChange={(qs, sharedOpts) => onChange({ ...group, questions: qs, sharedOptions: sharedOpts })}
+        />
+      ) : group.questionTypeCode === 'MATCHING_INFORMATION' ? (
+        <MatchingInformationEditor
+          paragraphs={detectParagraphs(stimulusContent || '')}
+          questions={group.questions}
+          pendingEvidence={pendingEvidence}
+          onAssignEvidence={onAssignEvidence}
+          onChange={qs => onChange({ ...group, questions: qs })}
         />
       ) : isSharedType ? (
         <>

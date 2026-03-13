@@ -8,6 +8,7 @@ import { Loader2, X } from 'lucide-react';
 import { McqOptions } from '@/components/admin/test-import-question-options-mcq';
 import { TfngOptions } from '@/components/admin/test-import-question-options-tfng';
 import { FillOptions } from '@/components/admin/test-import-question-options-fill';
+import { GapSentenceInput, extractAnswer } from '@/components/admin/gap-sentence-input';
 import { createQuestion } from '@/lib/admin-api';
 import { defaultOptions } from '@/lib/question-defaults';
 import { toast } from 'sonner';
@@ -27,12 +28,17 @@ export function TestEditAddQuestionForm({ groupId, questionTypeCode, testId, nex
   const [saving, setSaving] = useState(false);
   const [content, setContent] = useState('');
   const [options, setOptions] = useState<OptionRequest[]>(defaultOptions(questionTypeCode));
+  const [explanationText, setExplanationText] = useState('');
+  const isGapType = questionTypeCode === 'GAP_FILLING';
 
   const handleSubmit = async () => {
     if (!content.trim()) { toast.error('Vui lòng nhập nội dung câu hỏi'); return; }
     setSaving(true);
     try {
-      await createQuestion(groupId, { content, position: nextPosition, options });
+      await createQuestion(groupId, {
+        content, position: nextPosition, options,
+        explanation: explanationText ? { text: explanationText } : undefined,
+      });
       toast.success(`Đã thêm câu ${nextPosition}`);
       queryClient.invalidateQueries({ queryKey: ['admin', 'test', testId] });
       onClose();
@@ -52,21 +58,38 @@ export function TestEditAddQuestionForm({ groupId, questionTypeCode, testId, nex
         </button>
       </div>
 
-      <div>
-        <Label className="mb-1 block text-xs text-gray-600">Nội dung câu hỏi *</Label>
-        <Input value={content} onChange={e => setContent(e.target.value)}
-          placeholder="Nhập nội dung câu hỏi..." className="text-xs h-7" />
-      </div>
+      {isGapType ? (
+        <GapSentenceInput value={content} onChange={val => {
+          setContent(val);
+          const answer = extractAnswer(val);
+          setOptions([{ label: '', content: answer, isCorrect: true }]);
+        }} placeholder="VD: The tomato is thought to have first grown in the Americas." />
+      ) : (
+        <>
+          <div>
+            <Label className="mb-1 block text-xs text-gray-600">Nội dung câu hỏi *</Label>
+            <Input value={content} onChange={e => setContent(e.target.value)}
+              placeholder="Nhập nội dung câu hỏi..." className="text-xs h-7" />
+          </div>
+          {(questionTypeCode === 'MCQ' || questionTypeCode === 'MCQ_MULTIPLE') && (
+            <McqOptions options={options} onChange={setOptions} multiple={questionTypeCode === 'MCQ_MULTIPLE'} />
+          )}
+          {(questionTypeCode === 'TFNG' || questionTypeCode === 'YNNG') && (
+            <TfngOptions options={options} onChange={setOptions} variant={questionTypeCode} />
+          )}
+          {questionTypeCode === 'DIAGRAM_LABEL' && (
+            <FillOptions options={options} onChange={setOptions} variant={questionTypeCode} />
+          )}
+        </>
+      )}
 
-      {(questionTypeCode === 'MCQ' || questionTypeCode === 'MCQ_MULTIPLE') && (
-        <McqOptions options={options} onChange={setOptions} multiple={questionTypeCode === 'MCQ_MULTIPLE'} />
-      )}
-      {(questionTypeCode === 'TFNG' || questionTypeCode === 'YNNG') && (
-        <TfngOptions options={options} onChange={setOptions} variant={questionTypeCode} />
-      )}
-      {(questionTypeCode === 'GAP_FILLING' || questionTypeCode === 'DIAGRAM_LABEL') && (
-        <FillOptions options={options} onChange={setOptions} variant={questionTypeCode} />
-      )}
+      {/* Explanation */}
+      <div>
+        <Label className="mb-1 block text-xs text-gray-500">Giải thích (tùy chọn)</Label>
+        <textarea value={explanationText} onChange={e => setExplanationText(e.target.value)}
+          placeholder="Tại sao đáp án này đúng?" rows={2}
+          className="w-full rounded-md border border-input bg-background px-2 py-1.5 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-none" />
+      </div>
 
       <div className="flex justify-end gap-2">
         <Button type="button" size="sm" variant="outline" className="h-7 text-xs" onClick={onClose}>Hủy</Button>

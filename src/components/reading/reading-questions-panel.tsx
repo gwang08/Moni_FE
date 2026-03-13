@@ -4,7 +4,9 @@ import { useMemo } from 'react';
 import type { StimulusDetail, OptionDetail } from '@/types/test.types';
 import { ReadingQuestionMcq } from '@/components/reading/reading-question-mcq';
 import { ReadingMatchingGroup } from '@/components/reading/reading-matching-group';
+import { ReadingMatchingInformation } from '@/components/reading/reading-matching-information';
 import { ReadingMatchingPills } from '@/components/reading/reading-matching-pills';
+import { ReadingGapFilling } from '@/components/reading/reading-gap-filling';
 
 function seededShuffle<T>(arr: T[], seed: number): T[] {
   const result = [...arr];
@@ -19,17 +21,20 @@ function seededShuffle<T>(arr: T[], seed: number): T[] {
 
 const NO_SHUFFLE_TYPES = ['TFNG', 'YNNG', 'GAP_FILLING', 'DIAGRAM_LABEL'];
 const MATCHING_TYPES = ['MATCHING_HEADINGS', 'MATCHING_INFORMATION', 'MATCHING_FEATURE'];
+const GAP_TYPES = ['GAP_FILLING', 'DIAGRAM_LABEL'];
 
 interface Props {
   stimulus: StimulusDetail;
   submitted?: boolean;
   answers: Record<number, number>;
   onAnswer: (questionId: number, optionId: number) => void;
+  textAnswers?: Record<number, string>;
+  onTextAnswer?: (questionId: number, text: string) => void;
   selectedPillId?: number | null;
   onPillSelect?: (id: number | null) => void;
 }
 
-export function ReadingQuestionsPanel({ stimulus, submitted = false, answers, onAnswer, selectedPillId = null, onPillSelect }: Props) {
+export function ReadingQuestionsPanel({ stimulus, submitted = false, answers, onAnswer, textAnswers = {}, onTextAnswer, selectedPillId = null, onPillSelect }: Props) {
   const selectAnswer = (questionId: number, optionId: number) => {
     if (submitted) return;
     onAnswer(questionId, optionId);
@@ -39,7 +44,7 @@ export function ReadingQuestionsPanel({ stimulus, submitted = false, answers, on
     const map: Record<number, OptionDetail[]> = {};
     for (const group of stimulus.questionGroups) {
       const typeCode = group.questionTypeCode || '';
-      if (MATCHING_TYPES.includes(typeCode)) continue;
+      if (MATCHING_TYPES.includes(typeCode) || GAP_TYPES.includes(typeCode)) continue;
       const skipShuffle = NO_SHUFFLE_TYPES.includes(typeCode);
       for (const q of group.questions) {
         map[q.id] = skipShuffle ? q.options : seededShuffle(q.options, q.id);
@@ -49,7 +54,9 @@ export function ReadingQuestionsPanel({ stimulus, submitted = false, answers, on
   }, [stimulus]);
 
   const totalQuestions = stimulus.questionGroups.reduce((sum, g) => sum + g.questions.length, 0);
-  const answeredCount = Object.keys(answers).filter(k => answers[Number(k)] !== 0).length;
+  const answeredOptionCount = Object.keys(answers).filter(k => answers[Number(k)] !== 0).length;
+  const answeredTextCount = Object.keys(textAnswers).filter(k => (textAnswers[Number(k)] ?? '').trim() !== '').length;
+  const answeredCount = answeredOptionCount + answeredTextCount;
 
   return (
     <div className="space-y-6">
@@ -82,12 +89,28 @@ export function ReadingQuestionsPanel({ stimulus, submitted = false, answers, on
                 selectedPillId={selectedPillId}
                 onPillSelect={onPillSelect || (() => {})}
               />
+            ) : group.questionTypeCode === 'MATCHING_INFORMATION' ? (
+              <ReadingMatchingInformation
+                questions={group.questions}
+                answers={answers}
+                submitted={submitted}
+                onAnswer={selectAnswer}
+              />
             ) : isMatching ? (
               <ReadingMatchingGroup
                 questions={group.questions}
                 answers={answers}
                 submitted={submitted}
                 onAnswer={selectAnswer}
+              />
+            ) : GAP_TYPES.includes(group.questionTypeCode || '') ? (
+              <ReadingGapFilling
+                questions={group.questions}
+                groupContent={group.groupContent}
+                imageUrl={group.imageUrl}
+                submitted={submitted}
+                textAnswers={textAnswers}
+                onTextAnswer={onTextAnswer || (() => {})}
               />
             ) : (
               <div className="space-y-4">

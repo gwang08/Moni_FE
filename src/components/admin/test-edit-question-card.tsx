@@ -8,6 +8,7 @@ import { Loader2, Save, ChevronDown, ChevronRight, Highlighter } from 'lucide-re
 import { McqOptions } from '@/components/admin/test-import-question-options-mcq';
 import { TfngOptions } from '@/components/admin/test-import-question-options-tfng';
 import { FillOptions } from '@/components/admin/test-import-question-options-fill';
+import { GapSentenceInput, extractAnswer } from '@/components/admin/gap-sentence-input';
 import { updateQuestion } from '@/lib/admin-api';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
@@ -33,6 +34,7 @@ export function TestEditQuestionCard({ question, questionTypeCode, testId, pendi
   );
   const [explanationText, setExplanationText] = useState(question.explanation?.text ?? '');
   const [evidence, setEvidence] = useState(question.explanation?.evidence ?? '');
+  const isGapType = questionTypeCode === 'GAP_FILLING';
 
   const handleAssign = () => {
     if (!pendingEvidence) return;
@@ -45,8 +47,7 @@ export function TestEditQuestionCard({ question, questionTypeCode, testId, pendi
     setSaving(true);
     try {
       await updateQuestion(String(question.id), {
-        content,
-        options,
+        content, options,
         explanation: { text: explanationText || undefined, evidence: evidence || undefined },
       });
       toast.success(`Câu ${question.position} đã lưu`);
@@ -63,42 +64,47 @@ export function TestEditQuestionCard({ question, questionTypeCode, testId, pendi
 
   return (
     <div className="border border-gray-200 rounded-lg overflow-hidden bg-white">
-      <button
-        type="button" onClick={() => setExpanded(!expanded)}
-        className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-50 text-sm"
-      >
+      <button type="button" onClick={() => setExpanded(!expanded)}
+        className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-50 text-sm">
         {expanded ? <ChevronDown className="h-3.5 w-3.5 text-gray-400 shrink-0" /> : <ChevronRight className="h-3.5 w-3.5 text-gray-400 shrink-0" />}
         <span className="font-medium text-gray-700 shrink-0">Câu {question.position}</span>
-        <span className="text-gray-500 truncate flex-1">{question.content}</span>
+        <span className="text-gray-500 truncate flex-1">{question.content.replace(/\{\{(.+?)\}\}/g, '___')}</span>
         <span className="text-xs text-green-600 bg-green-50 px-1.5 py-0.5 rounded shrink-0">{correctLabel}</span>
       </button>
 
       {expanded && (
         <div className="px-3 pb-3 pt-1 space-y-3 border-t border-gray-100">
-          <div>
-            <Label className="mb-1 block text-xs text-gray-500">Nội dung câu hỏi</Label>
-            <Input value={content} onChange={e => setContent(e.target.value)} className="text-sm" />
-          </div>
-
-          {(questionTypeCode === 'MCQ' || questionTypeCode === 'MCQ_MULTIPLE') && (
-            <McqOptions options={options} onChange={setOptions} multiple={questionTypeCode === 'MCQ_MULTIPLE'} />
-          )}
-          {(questionTypeCode === 'TFNG' || questionTypeCode === 'YNNG') && (
-            <TfngOptions options={options} onChange={setOptions} variant={questionTypeCode} />
-          )}
-          {(questionTypeCode === 'GAP_FILLING' || questionTypeCode === 'DIAGRAM_LABEL') && (
-            <FillOptions options={options} onChange={setOptions} variant={questionTypeCode} />
+          {isGapType ? (
+            <GapSentenceInput value={content} onChange={val => {
+              setContent(val);
+              const answer = extractAnswer(val);
+              setOptions([{ label: '', content: answer, isCorrect: true }]);
+            }} />
+          ) : (
+            <>
+              <div>
+                <Label className="mb-1 block text-xs text-gray-500">Nội dung câu hỏi</Label>
+                <Input value={content} onChange={e => setContent(e.target.value)} className="text-sm" />
+              </div>
+              {(questionTypeCode === 'MCQ' || questionTypeCode === 'MCQ_MULTIPLE') && (
+                <McqOptions options={options} onChange={setOptions} multiple={questionTypeCode === 'MCQ_MULTIPLE'} />
+              )}
+              {(questionTypeCode === 'TFNG' || questionTypeCode === 'YNNG') && (
+                <TfngOptions options={options} onChange={setOptions} variant={questionTypeCode} />
+              )}
+              {questionTypeCode === 'DIAGRAM_LABEL' && (
+                <FillOptions options={options} onChange={setOptions} variant={questionTypeCode} />
+              )}
+            </>
           )}
 
           {/* Explanation + Evidence */}
           <div className="grid grid-cols-2 gap-3 pt-2 border-t border-gray-100">
             <div>
               <Label className="mb-1 block text-xs text-gray-500">Giải thích</Label>
-              <textarea
-                value={explanationText} onChange={e => setExplanationText(e.target.value)}
+              <textarea value={explanationText} onChange={e => setExplanationText(e.target.value)}
                 placeholder="Tại sao đáp án này đúng?" rows={2}
-                className="w-full rounded-md border border-input bg-background px-2 py-1.5 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-none"
-              />
+                className="w-full rounded-md border border-input bg-background px-2 py-1.5 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-none" />
             </div>
             <div>
               <div className="flex items-center justify-between mb-1">
@@ -112,7 +118,8 @@ export function TestEditQuestionCard({ question, questionTypeCode, testId, pendi
               {evidence ? (
                 <div className="relative rounded-md border border-amber-200 bg-amber-50 px-2 py-1.5 text-xs text-amber-900 whitespace-pre-wrap max-h-20 overflow-y-auto">
                   {evidence}
-                  <button type="button" onClick={() => { setEvidence(''); onEvidenceChange(''); }} className="absolute top-0.5 right-1 text-amber-400 hover:text-amber-600 text-xs">✕</button>
+                  <button type="button" onClick={() => { setEvidence(''); onEvidenceChange(''); }}
+                    className="absolute top-0.5 right-1 text-amber-400 hover:text-amber-600 text-xs">✕</button>
                 </div>
               ) : (
                 <p className="text-[10px] text-gray-400 italic pt-1">Quét text bài đọc bên phải → bấm &quot;Gán vào câu này&quot;</p>

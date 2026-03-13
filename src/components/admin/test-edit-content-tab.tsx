@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Highlighter, Loader2, Pencil, Plus, Save, Trash2 } from 'lucide-react';
 import { TestEditQuestionCard } from '@/components/admin/test-edit-question-card';
 import { TestEditMatchingHeadings } from '@/components/admin/test-edit-matching-headings';
+import { TestEditMatchingInformation } from '@/components/admin/test-edit-matching-information';
 import { TestEditAddQuestionGroupForm } from '@/components/admin/test-edit-add-question-group-form';
 import { TestEditAddQuestionForm } from '@/components/admin/test-edit-add-question-form';
 import { useTestEditMutations } from '@/components/admin/use-test-edit-mutations';
@@ -33,12 +34,36 @@ function inferQuestionType(group: QuestionGroupDetail): QuestionTypeCode {
 }
 
 const TYPE_LABELS: Record<string, string> = {
-  MCQ: 'Multiple Choice', MCQ_MULTIPLE: 'Multiple Choice',
+  MCQ: 'Multiple Choice (One Answer)', MCQ_MULTIPLE: 'Multiple Choice (Many Answers)',
   TFNG: 'True / False / Not Given', YNNG: 'Yes / No / Not Given',
   MATCHING_HEADINGS: 'Matching Headings', MATCHING_INFORMATION: 'Matching Information',
   MATCHING_FEATURE: 'Matching Features', DIAGRAM_LABEL: 'Map, Diagram Label',
   GAP_FILLING: 'Gap Filling',
 };
+
+function PassageEditor({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const editorRef = useRef<HTMLDivElement>(null);
+  const isInitialized = useRef(false);
+
+  useEffect(() => {
+    if (editorRef.current && !isInitialized.current) {
+      editorRef.current.innerHTML = value;
+      isInitialized.current = true;
+    }
+  }, [value]);
+
+  return (
+    <div
+      ref={editorRef}
+      contentEditable
+      suppressContentEditableWarning
+      onInput={() => {
+        if (editorRef.current) onChange(editorRef.current.innerHTML);
+      }}
+      className="flex-1 overflow-y-auto rounded-lg border border-blue-300 bg-white px-5 py-4 text-sm text-gray-800 leading-relaxed focus:outline-none focus:ring-2 focus:ring-blue-500 prose prose-sm max-w-none"
+    />
+  );
+}
 
 interface Props { test: TestDetailResponse }
 
@@ -175,6 +200,9 @@ export function TestEditContentTab({ test }: Props) {
                 {isMatchingHeadings ? (
                   <TestEditMatchingHeadings questions={group.questions} passageHtml={stimulus.content || ''} testId={testId}
                     pendingEvidence={pendingEvidence} onAssignEvidence={() => setPendingEvidence(null)} onEvidenceChange={handleEvidenceChange} />
+                ) : typeCode === 'MATCHING_INFORMATION' ? (
+                  <TestEditMatchingInformation questions={group.questions} passageHtml={stimulus.content || ''} testId={testId}
+                    pendingEvidence={pendingEvidence} onAssignEvidence={() => setPendingEvidence(null)} onEvidenceChange={handleEvidenceChange} />
                 ) : (
                   <div className="space-y-2">
                     {group.questions.map(question => (
@@ -209,7 +237,10 @@ export function TestEditContentTab({ test }: Props) {
           {/* Add question group — only show types not already present */}
           {addingGroup ? (
             <TestEditAddQuestionGroupForm stimulusId={stimulus.id} testId={testId}
+              stimulusContent={stimulus.content || ''}
               excludeTypeCodes={stimulus.questionGroups.map(g => ((g.questionTypeCode as QuestionTypeCode) || inferQuestionType(g)))}
+              pendingEvidence={pendingEvidence}
+              onAssignEvidence={() => setPendingEvidence(null)}
               onClose={() => setAddingGroup(false)} />
           ) : (
             <Button type="button" size="sm" variant="outline" className="w-full text-xs h-8 gap-1 border-dashed"
@@ -272,12 +303,7 @@ export function TestEditContentTab({ test }: Props) {
 
           {/* Passage content */}
           {editingPassage ? (
-            <textarea
-              value={passageEdit}
-              onChange={(e) => setPassageEdit(e.target.value)}
-              className="flex-1 overflow-y-auto rounded-lg border border-blue-300 bg-white px-5 py-4 text-sm text-gray-800 leading-relaxed resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Nhập nội dung đề bài (HTML)..."
-            />
+            <PassageEditor value={passageEdit} onChange={setPassageEdit} />
           ) : (
             <div ref={passageRef}
               className="flex-1 overflow-y-auto rounded-lg border border-gray-300 bg-white px-5 py-4 text-sm text-gray-800 leading-relaxed cursor-text select-text prose prose-sm max-w-none" />

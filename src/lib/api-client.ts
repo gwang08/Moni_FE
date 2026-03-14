@@ -158,6 +158,14 @@ export class ApiClient {
     });
   }
 
+  async patch<T>(endpoint: string, body?: unknown, requiresAuth = false): Promise<T> {
+    return this.request<T>(endpoint, {
+      method: 'PATCH',
+      body: body ? JSON.stringify(body) : undefined,
+      requiresAuth,
+    });
+  }
+
   async delete<T>(endpoint: string, requiresAuth = false): Promise<T> {
     return this.request<T>(endpoint, { method: 'DELETE', requiresAuth });
   }

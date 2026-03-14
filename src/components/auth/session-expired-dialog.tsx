@@ -5,12 +5,11 @@ import { useRouter, usePathname } from 'next/navigation';
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
   DialogTitle,
-  DialogDescription,
 } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { LogIn, Clock } from 'lucide-react';
+import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
+import { LogIn } from 'lucide-react';
+import { ChibiMascot, ChibiAnimationStyles } from '@/components/ui/chibi-mascot';
 
 export function SessionExpiredDialog() {
   const [open, setOpen] = useState(false);
@@ -29,22 +28,37 @@ export function SessionExpiredDialog() {
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent className="sm:max-w-sm" onInteractOutside={(e) => e.preventDefault()}>
-        <DialogHeader className="items-center text-center">
-          <div className="mx-auto mb-3 w-14 h-14 rounded-full bg-orange-100 flex items-center justify-center">
-            <Clock className="h-7 w-7 text-orange-500" />
+    <>
+      <ChibiAnimationStyles />
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent
+          className="max-w-sm p-0 overflow-hidden border-0 rounded-3xl shadow-2xl"
+          onInteractOutside={(e) => e.preventDefault()}
+          showCloseButton={false}
+        >
+          <VisuallyHidden><DialogTitle>Phiên đăng nhập đã hết hạn</DialogTitle></VisuallyHidden>
+
+          <div className="bg-gradient-to-b from-blue-50 via-blue-50/50 to-white pt-6 pb-2 px-6">
+            <ChibiMascot mood="sad" size={72} />
+            <div className="text-center space-y-1.5">
+              <h2 className="text-lg font-bold text-gray-800">Phiên đăng nhập đã hết hạn</h2>
+              <p className="text-sm text-gray-500 leading-relaxed">
+                Vui lòng đăng nhập lại để tiếp tục sử dụng nhé!
+              </p>
+            </div>
           </div>
-          <DialogTitle className="text-lg">Phiên đăng nhập đã hết hạn</DialogTitle>
-          <DialogDescription className="text-sm text-gray-500">
-            Vui lòng đăng nhập lại để tiếp tục sử dụng.
-          </DialogDescription>
-        </DialogHeader>
-        <Button onClick={handleLogin} className="w-full mt-2 bg-orange-500 hover:bg-orange-600 text-white rounded-full">
-          <LogIn className="h-4 w-4 mr-2" />
-          Đăng nhập lại
-        </Button>
-      </DialogContent>
-    </Dialog>
+
+          <div className="px-6 pb-5 pt-3">
+            <button
+              onClick={handleLogin}
+              className="w-full rounded-2xl h-11 text-sm font-semibold shadow-md hover:shadow-lg transition-all bg-gradient-to-r from-orange-400 to-rose-400 hover:from-orange-500 hover:to-rose-500 text-white flex items-center justify-center gap-2"
+            >
+              <LogIn className="h-4 w-4" />
+              Đăng nhập lại
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

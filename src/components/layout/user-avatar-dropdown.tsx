@@ -9,11 +9,12 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useAuthStore } from '@/store/auth-store';
-import { User, LogOut, Shield, CreditCard, Plus } from 'lucide-react';
+import { User, LogOut, Shield, CreditCard, Plus, LogIn } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
 
 interface UserAvatarDropdownProps {
   /** 'dark' = navbar on dark bg (unscrolled landing), 'light' = normal white bg */
@@ -41,7 +42,18 @@ export function UserAvatarDropdown({ variant = 'light' }: UserAvatarDropdownProp
       .slice(0, 2);
   };
 
-  if (!user) return null;
+  if (!user) {
+    return (
+      <div className="flex items-center gap-2">
+        <Button variant="ghost" size="sm" asChild className="rounded-full text-gray-700 hover:text-primary">
+          <Link href="/login"><LogIn className="h-4 w-4 mr-1.5" />Đăng nhập</Link>
+        </Button>
+        <Button size="sm" asChild className="rounded-full hidden sm:inline-flex">
+          <Link href="/register">Bắt đầu ngay</Link>
+        </Button>
+      </div>
+    );
+  }
 
   // TODO: Replace with real credit balance from backend when available
   const creditBalance = 0;

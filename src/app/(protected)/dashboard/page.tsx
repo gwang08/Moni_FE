@@ -9,7 +9,7 @@ import { ActivityCalendar } from '@/components/dashboard/activity-calendar';
 import { WeeklyStats } from '@/components/dashboard/weekly-stats';
 import { PracticeHistory } from '@/components/dashboard/practice-history';
 import { PlacementDialog } from '@/components/dashboard/placement-dialog';
-import { AiRecommendation } from '@/components/dashboard/ai-recommendation';
+import { LearningRoadmap } from '@/components/dashboard/learning-roadmap';
 import { useUserStore } from '@/store/user-store';
 import { getPlacementResult } from '@/lib/placement-api';
 import { apiClient } from '@/lib/api-client';
@@ -103,8 +103,8 @@ export default function DashboardPage() {
               <ExamCountdown />
             </div>
 
-            {/* AI Recommendation */}
-            <AiRecommendation />
+            {/* Learning Roadmap */}
+            <LearningRoadmap />
 
             {/* Middle Row: Calendar + Weekly Stats */}
             <div className="grid gap-6 md:grid-cols-2">

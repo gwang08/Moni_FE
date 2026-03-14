@@ -1,29 +1,24 @@
 'use client';
 
-import { useState, useMemo } from 'react';
-import { useUserStore } from '@/store/user-store';
-import { getCalendarData } from '@/lib/calendar-utils';
+import { useState, useMemo, useEffect } from 'react';
+import { getAttemptHistory } from '@/lib/practice-api';
+import type { AttemptHistory } from '@/lib/practice-api';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 const VI_WEEKDAYS = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
 
 function getMonthGrid(year: number, month: number) {
-  // month is 0-indexed
   const firstDay = new Date(year, month, 1);
   const lastDay = new Date(year, month + 1, 0);
 
-  // Monday=0, ..., Sunday=6
-  let startDow = firstDay.getDay(); // 0=Sun..6=Sat
-  startDow = startDow === 0 ? 6 : startDow - 1; // convert to Mon=0
+  let startDow = firstDay.getDay();
+  startDow = startDow === 0 ? 6 : startDow - 1;
 
   const days: (number | null)[] = [];
   for (let i = 0; i < startDow; i++) days.push(null);
   for (let d = 1; d <= lastDay.getDate(); d++) days.push(d);
-
-  // Pad to full weeks
   while (days.length % 7 !== 0) days.push(null);
 
-  // Split into weeks
   const weeks: (number | null)[][] = [];
   for (let i = 0; i < days.length; i += 7) {
     weeks.push(days.slice(i, i + 7));
@@ -42,14 +37,30 @@ function toDateStr(year: number, month: number, day: number): string {
 }
 
 export function ActivityCalendar() {
-  const activities = useUserStore((s) => s.activities);
+  const [attempts, setAttempts] = useState<AttemptHistory[]>([]);
   const today = new Date();
   const [viewYear, setViewYear] = useState(today.getFullYear());
   const [viewMonth, setViewMonth] = useState(today.getMonth());
   const [selectedWeek, setSelectedWeek] = useState<number | null>(null);
 
-  const calendarData = useMemo(() => getCalendarData(activities), [activities]);
-  const activitySet = useMemo(() => new Set(calendarData.map((d) => d.date)), [calendarData]);
+  useEffect(() => {
+    async function fetch() {
+      try {
+        const data = await getAttemptHistory();
+        setAttempts(data);
+      } catch { /* ignore */ }
+    }
+    fetch();
+  }, []);
+
+  const activityDates = useMemo(() => {
+    const dates = new Set<string>();
+    attempts.forEach((a) => {
+      const dateStr = a.submittedAt?.slice(0, 10);
+      if (dateStr) dates.add(dateStr);
+    });
+    return dates;
+  }, [attempts]);
 
   const weeks = useMemo(() => getMonthGrid(viewYear, viewMonth), [viewYear, viewMonth]);
 
@@ -86,7 +97,7 @@ export function ActivityCalendar() {
         </div>
       </div>
       <p className="text-xs text-gray-400 mb-4">
-        Bấm vào ngày/tuần để xem thống kê chi tiết số bài đã làm
+        Các ngày có chấm xanh là ngày bạn đã luyện tập
       </p>
 
       {/* Weekday Labels */}
@@ -101,7 +112,6 @@ export function ActivityCalendar() {
       <div className="space-y-1">
         {weeks.map((week, wi) => (
           <div key={wi} className="grid grid-cols-8 gap-1 items-center">
-            {/* Week label */}
             <button
               onClick={() => setSelectedWeek(selectedWeek === wi ? null : wi)}
               className={`text-xs rounded-md py-1 font-medium transition-colors ${
@@ -112,14 +122,13 @@ export function ActivityCalendar() {
             >
               T{wi + 1}
             </button>
-            {/* Day cells */}
             {week.map((day, di) => {
               if (day === null) {
                 return <div key={di} />;
               }
               const dateStr = toDateStr(viewYear, viewMonth, day);
               const isToday = dateStr === todayStr;
-              const hasActivity = activitySet.has(dateStr);
+              const hasActivity = activityDates.has(dateStr);
               const isHighlighted = selectedWeek === wi;
 
               return (

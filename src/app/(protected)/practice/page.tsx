@@ -13,6 +13,8 @@ import { BookOpen, Pencil, Headphones, Mic, Search, CheckCircle, Users } from 'l
 import { SkeletonCard } from '@/components/ui/skeleton';
 import { QuestionTypeFilter } from '@/components/practice/question-type-filter';
 import type { Exercise, Skill, TestMode, TestType } from '@/types/practice.types';
+import { useLoginPrompt } from '@/hooks/use-login-prompt';
+import { LoginPromptDialog } from '@/components/auth/login-prompt-dialog';
 
 const SKILL_CONFIG = {
   reading: { icon: BookOpen, color: 'text-blue-600', bgColor: 'bg-blue-100', borderColor: 'border-blue-500', label: 'Reading' },
@@ -58,6 +60,7 @@ function PracticePage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const { showPrompt, setShowPrompt, requireAuth } = useLoginPrompt();
 
   const completedExercises = usePracticeStore((state) => state.completedExercises);
   const { exercises, loading, error, page, totalPages, setPage, retry } = usePracticeExercises(activeSkill, activePassage);
@@ -96,8 +99,10 @@ function PracticePage() {
   }, [exercises, activeMode, activeTestType, activeQuestionType, showCompleted, searchQuery, completedExercises]);
 
   const handleStartExercise = (exercise: Exercise) => {
-    setSelectedExercise(exercise);
-    setModalOpen(true);
+    requireAuth(() => {
+      setSelectedExercise(exercise);
+      setModalOpen(true);
+    });
   };
 
   const modeLabel = activeMode === 'FULL_TEST' ? 'Full đề' : 'Bài lẻ';
@@ -262,6 +267,7 @@ function PracticePage() {
       </main>
 
       <ModeSelectionModal exercise={selectedExercise} open={modalOpen} onOpenChange={setModalOpen} />
+      <LoginPromptDialog open={showPrompt} onOpenChange={setShowPrompt} />
     </div>
   );
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { toast } from 'sonner';
 import { useUserStore } from '@/store/user-store';
 import { calculateOverallScore } from '@/lib/calendar-utils';
@@ -29,21 +29,25 @@ export default function PlacementPage() {
   const [result, setResult] = useState<PlacementResult | null>(null);
   const [loading, setLoading] = useState(false);
 
+  // Guard against React strict mode double-firing the effect
+  const loadedRef = useRef(false);
+
   // Load pre-generated test from sessionStorage
   useEffect(() => {
+    if (loadedRef.current) return;
+    loadedRef.current = true;
+
     const stored = sessionStorage.getItem('pending-placement-test');
     if (stored) {
+      sessionStorage.removeItem('pending-placement-test');
       try {
         const pair: PlacementTestPair = JSON.parse(stored);
         setTestPair(pair);
         setStep('reading');
-        sessionStorage.removeItem('pending-placement-test');
       } catch {
-        // Invalid data, redirect back
         window.location.href = '/dashboard';
       }
     } else {
-      // No test data, go back to dashboard
       window.location.href = '/dashboard';
     }
   }, []);

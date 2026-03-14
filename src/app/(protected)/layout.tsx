@@ -7,6 +7,13 @@ import { Loader2 } from 'lucide-react';
 import { InnerNavbar } from '@/components/layout/inner-navbar';
 import { SessionExpiredDialog } from '@/components/auth/session-expired-dialog';
 
+// Pages that can be viewed without authentication
+const PUBLIC_PATHS = ['/practice', '/vocabulary'];
+
+function isPublicPath(pathname: string) {
+  return PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(p + '/'));
+}
+
 export default function ProtectedLayout({
   children,
 }: {
@@ -19,6 +26,12 @@ export default function ProtectedLayout({
 
   useEffect(() => {
     const valid = checkAuth();
+
+    // Allow public paths without auth
+    if (!valid && isPublicPath(pathname)) {
+      setIsChecking(false);
+      return;
+    }
 
     if (!valid) {
       router.push(`/login?redirect=${encodeURIComponent(pathname)}`);
@@ -40,7 +53,7 @@ export default function ProtectedLayout({
     setIsChecking(false);
   }, [checkAuth, router, pathname]);
 
-  if (isChecking || !isAuthenticated) {
+  if (isChecking || (!isAuthenticated && !isPublicPath(pathname))) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -52,7 +65,7 @@ export default function ProtectedLayout({
     <div className="min-h-screen bg-gray-50">
       <InnerNavbar />
       <main>{children}</main>
-      <SessionExpiredDialog />
+      {isAuthenticated && <SessionExpiredDialog />}
     </div>
   );
 }

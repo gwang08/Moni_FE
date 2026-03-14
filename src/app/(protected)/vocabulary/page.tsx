@@ -9,10 +9,13 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { VocabCard } from '@/components/vocabulary/vocab-card';
 import { VOCAB_COLLECTIONS, VOCAB_WORDS } from '@/data/vocab-mock';
+import { useLoginPrompt } from '@/hooks/use-login-prompt';
+import { LoginPromptDialog } from '@/components/auth/login-prompt-dialog';
 
 export default function VocabularyPage() {
   const router = useRouter();
   const [search, setSearch] = useState('');
+  const { showPrompt, setShowPrompt, requireAuth } = useLoginPrompt();
 
   const filtered = search.trim()
     ? VOCAB_WORDS.filter(
@@ -31,7 +34,7 @@ export default function VocabularyPage() {
           <h1 className="text-2xl font-bold text-gray-900">Từ Vựng</h1>
           <p className="text-gray-500 mt-1">Học từ vựng theo bộ sưu tập</p>
         </div>
-        <Button onClick={() => router.push('/vocabulary/flashcard')} className="gap-2">
+        <Button onClick={() => requireAuth(() => router.push('/vocabulary/flashcard'))} className="gap-2">
           <Zap className="h-4 w-4" />
           Luyện Flashcard
         </Button>
@@ -90,6 +93,7 @@ export default function VocabularyPage() {
           </div>
         )}
       </section>
+      <LoginPromptDialog open={showPrompt} onOpenChange={setShowPrompt} />
     </div>
   );
 }

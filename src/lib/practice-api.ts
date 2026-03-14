@@ -39,6 +39,25 @@ export async function submitAttempt(request: SubmitAttemptRequest): Promise<Subm
   return response.result;
 }
 
+export interface AttemptHistory {
+  attemptId: number;
+  stimulusId: number | null;
+  stimulusTitle: string | null;
+  skill: string | null;
+  score: number;
+  totalQuestions: number;
+  elapsedSeconds: number;
+  submittedAt: string;
+}
+
+export async function getAttemptHistory(): Promise<AttemptHistory[]> {
+  const response = await apiClient.get<ApiResponse<AttemptHistory[]>>(
+    '/api/v1/practice/attempts',
+    true
+  );
+  return response.result ?? [];
+}
+
 export async function getAttemptResult(attemptId: number): Promise<SubmitAttemptResponse> {
   const response = await apiClient.get<ApiResponse<SubmitAttemptResponse>>(
     `/api/v1/practice/attempts/${attemptId}`,

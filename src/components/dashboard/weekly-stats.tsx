@@ -1,8 +1,9 @@
 'use client';
 
-import { useMemo } from 'react';
-import { useUserStore } from '@/store/user-store';
-import type { Activity, SkillKey } from '@/types';
+import { useEffect, useMemo, useState } from 'react';
+import { getAttemptHistory } from '@/lib/practice-api';
+import type { AttemptHistory } from '@/lib/practice-api';
+import type { SkillKey } from '@/types';
 
 const SKILLS: SkillKey[] = ['reading', 'listening', 'writing', 'speaking'];
 
@@ -24,8 +25,7 @@ interface DayStats {
 
 function getWeekDates(): { dateStr: string; label: string }[] {
   const today = new Date();
-  // Monday of this week
-  const dow = today.getDay(); // 0=Sun
+  const dow = today.getDay();
   const monday = new Date(today);
   monday.setDate(today.getDate() - (dow === 0 ? 6 : dow - 1));
 
@@ -37,21 +37,24 @@ function getWeekDates(): { dateStr: string; label: string }[] {
   });
 }
 
-function buildDayStats(activities: Activity[], weekDates: ReturnType<typeof getWeekDates>): DayStats[] {
-  const actsByDate = new Map<string, Activity[]>();
-  activities.forEach((a) => {
-    const list = actsByDate.get(a.date) ?? [];
+function buildDayStats(attempts: AttemptHistory[], weekDates: ReturnType<typeof getWeekDates>): DayStats[] {
+  const byDate = new Map<string, AttemptHistory[]>();
+  attempts.forEach((a) => {
+    const dateStr = a.submittedAt?.slice(0, 10);
+    if (!dateStr) return;
+    const list = byDate.get(dateStr) ?? [];
     list.push(a);
-    actsByDate.set(a.date, list);
+    byDate.set(dateStr, list);
   });
 
   return weekDates.map(({ dateStr, label }) => {
-    const acts = actsByDate.get(dateStr) ?? [];
-    const skills = { reading: 0, listening: 0, writing: 0, speaking: 0 } as Record<SkillKey, number>;
+    const acts = byDate.get(dateStr) ?? [];
+    const skills: Record<SkillKey, number> = { reading: 0, listening: 0, writing: 0, speaking: 0 };
     let totalMinutes = 0;
     acts.forEach((a) => {
-      skills[a.skill]++;
-      totalMinutes += a.duration;
+      const sk = a.skill?.toLowerCase() as SkillKey;
+      if (sk && sk in skills) skills[sk]++;
+      totalMinutes += Math.round(a.elapsedSeconds / 60);
     });
     return { dateStr, label, skills, totalMinutes };
   });
@@ -71,13 +74,24 @@ function getTodayStr(): string {
 }
 
 export function WeeklyStats() {
-  const activities = useUserStore((s) => s.activities);
+  const [attempts, setAttempts] = useState<AttemptHistory[]>([]);
   const weekDates = useMemo(() => getWeekDates(), []);
-  const dayStats = useMemo(() => buildDayStats(activities, weekDates), [activities, weekDates]);
   const todayStr = useMemo(() => getTodayStr(), []);
 
+  useEffect(() => {
+    async function fetch() {
+      try {
+        const data = await getAttemptHistory();
+        setAttempts(data);
+      } catch { /* ignore */ }
+    }
+    fetch();
+  }, []);
+
+  const dayStats = useMemo(() => buildDayStats(attempts, weekDates), [attempts, weekDates]);
+
   const totals = useMemo(() => {
-    const skills = { reading: 0, listening: 0, writing: 0, speaking: 0 } as Record<SkillKey, number>;
+    const skills: Record<SkillKey, number> = { reading: 0, listening: 0, writing: 0, speaking: 0 };
     let totalMinutes = 0;
     dayStats.forEach((d) => {
       SKILLS.forEach((s) => { skills[s] += d.skills[s]; });

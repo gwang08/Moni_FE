@@ -8,9 +8,17 @@ import { generatePlacement, resetPlacement } from '@/lib/placement-api';
 import { apiClient } from '@/lib/api-client';
 import type { ApiResponse } from '@/types/auth.types';
 import type { SkillKey } from '@/types';
-import { Pencil, Check, X, RotateCcw } from 'lucide-react';
+import { Pencil, Check, X, RotateCcw, Sparkles, CheckCircle2, Circle } from 'lucide-react';
 import { toast } from 'sonner';
 import { PlacementGenerateLoading } from '@/components/placement/placement-generate-loading';
+import { AiRecommendationDialog } from '@/components/dashboard/ai-recommendation';
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
+import { ChibiMascot, ChibiAnimationStyles } from '@/components/ui/chibi-mascot';
 
 const SKILL_LABELS: Record<SkillKey, string> = {
   reading: 'Reading',
@@ -33,10 +41,13 @@ export function TargetScores() {
   const targetScores = useUserStore((s) => s.targetScores);
   const setTargetScore = useUserStore((s) => s.setTargetScore);
   const placementResult = useUserStore((s) => s.placementResult);
+  const examDate = useUserStore((s) => s.examDate);
   const clearPlacementResult = useUserStore((s) => s.clearPlacementResult);
   const [editing, setEditing] = useState(false);
   const [resetting, setResetting] = useState(false);
   const [generating, setGenerating] = useState(false);
+  const [showMissingDialog, setShowMissingDialog] = useState(false);
+  const [showAiDialog, setShowAiDialog] = useState(false);
   const [draft, setDraft] = useState<Record<SkillKey, string>>({
     reading: '',
     listening: '',
@@ -44,7 +55,6 @@ export function TargetScores() {
     speaking: '',
   });
 
-  // Compute overall from draft (live) when editing, from store otherwise
   const liveScores = editing
     ? { reading: parseFloat(draft.reading) || 0, listening: parseFloat(draft.listening) || 0, writing: parseFloat(draft.writing) || 0, speaking: parseFloat(draft.speaking) || 0 }
     : targetScores;
@@ -73,7 +83,6 @@ export function TargetScores() {
       }
     });
     setEditing(false);
-    // Sync to backend (fire & forget)
     const overall = calculateOverallScore(newScores);
     apiClient.put<ApiResponse<unknown>>('/users/me', {
       targetReading: newScores.reading,
@@ -103,7 +112,6 @@ export function TargetScores() {
     try {
       await resetPlacement();
       clearPlacementResult();
-      // After reset, generate new test and go directly
       const pair = await generatePlacement();
       sessionStorage.setItem('pending-placement-test', JSON.stringify(pair));
       router.push('/placement');
@@ -114,7 +122,16 @@ export function TargetScores() {
     }
   };
 
-  // Get current band for a skill from placement result
+  const allReady = hasScores && !!examDate && !!placementResult;
+
+  const handleAiClick = () => {
+    if (allReady) {
+      setShowAiDialog(true);
+    } else {
+      setShowMissingDialog(true);
+    }
+  };
+
   const getCurrentBand = (skill: SkillKey): number | null => {
     if (!placementResult) return null;
     const map: Record<SkillKey, number> = {
@@ -138,30 +155,41 @@ export function TargetScores() {
       {/* Header */}
       <div className="flex items-center justify-between mb-5">
         <h3 className="text-base font-semibold text-gray-800">Mục tiêu của bạn</h3>
-        {!editing ? (
-          <button
-            onClick={startEdit}
-            className="p-1.5 rounded-lg hover:bg-orange-50 text-gray-400 hover:text-orange-500 transition-colors"
-            title="Chỉnh sửa mục tiêu"
-          >
-            <Pencil className="h-4 w-4" />
-          </button>
-        ) : (
-          <div className="flex gap-1">
-            <button
-              onClick={saveEdit}
-              className="p-1.5 rounded-lg hover:bg-green-50 text-gray-400 hover:text-green-600 transition-colors"
-            >
-              <Check className="h-4 w-4" />
-            </button>
-            <button
-              onClick={cancelEdit}
-              className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          </div>
-        )}
+        <div className="flex gap-1">
+          {!editing ? (
+            <>
+              <button
+                onClick={handleAiClick}
+                className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-gradient-to-r from-violet-500 to-purple-500 hover:from-violet-600 hover:to-purple-600 text-white text-xs font-medium shadow-sm transition-all"
+              >
+                <Sparkles className="h-3.5 w-3.5" />
+                Gợi ý từ AI
+              </button>
+              <button
+                onClick={startEdit}
+                className="p-1.5 rounded-lg hover:bg-orange-50 text-gray-400 hover:text-orange-500 transition-colors"
+                title="Chỉnh sửa mục tiêu"
+              >
+                <Pencil className="h-4 w-4" />
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                onClick={saveEdit}
+                className="p-1.5 rounded-lg hover:bg-green-50 text-gray-400 hover:text-green-600 transition-colors"
+              >
+                <Check className="h-4 w-4" />
+              </button>
+              <button
+                onClick={cancelEdit}
+                className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </>
+          )}
+        </div>
       </div>
 
       {/* Overall Score Badge */}
@@ -254,6 +282,78 @@ export function TargetScores() {
           </div>
         )}
       </div>
+
+      {/* Missing prerequisites dialog */}
+      <ChibiAnimationStyles />
+      <Dialog open={showMissingDialog} onOpenChange={setShowMissingDialog}>
+        <DialogContent className="max-w-sm p-0 overflow-hidden border-0 rounded-3xl shadow-2xl" showCloseButton={false}>
+          <VisuallyHidden><DialogTitle>Chuẩn bị nhận gợi ý từ AI</DialogTitle></VisuallyHidden>
+
+          <div className="bg-gradient-to-b from-violet-50 via-violet-50/50 to-white pt-6 pb-2 px-6">
+            <ChibiMascot mood="thinking" size={72} />
+            <div className="text-center space-y-1.5">
+              <h2 className="text-lg font-bold text-gray-800">Chuẩn bị nhận gợi ý</h2>
+              <p className="text-sm text-gray-500 leading-relaxed">
+                Hoàn thành các bước sau để Moni gợi ý mục tiêu phù hợp nhé!
+              </p>
+            </div>
+          </div>
+
+          <div className="px-6 pb-5 pt-3 space-y-3">
+            {[
+              {
+                done: hasScores,
+                label: 'Nhập mục tiêu band điểm',
+                action: () => { setShowMissingDialog(false); startEdit(); },
+              },
+              {
+                done: !!examDate,
+                label: 'Nhập ngày dự thi',
+                action: () => {
+                  setShowMissingDialog(false);
+                  setTimeout(() => {
+                    document.getElementById('exam-countdown-section')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                  }, 100);
+                },
+              },
+              {
+                done: !!placementResult,
+                label: 'Làm bài đánh giá trình độ',
+                action: () => { setShowMissingDialog(false); handleStartTest(); },
+              },
+            ].map((step) => (
+              <div key={step.label} className="flex items-center gap-3">
+                {step.done ? (
+                  <CheckCircle2 className="h-5 w-5 text-green-500 shrink-0" />
+                ) : (
+                  <Circle className="h-5 w-5 text-gray-300 shrink-0" />
+                )}
+                <span className={`text-sm flex-1 ${step.done ? 'text-gray-400 line-through' : 'text-gray-700 font-medium'}`}>
+                  {step.label}
+                </span>
+                {!step.done && (
+                  <button
+                    onClick={step.action}
+                    className="text-xs font-medium text-violet-600 hover:text-violet-700 bg-violet-50 hover:bg-violet-100 px-2.5 py-1 rounded-lg transition-colors shrink-0"
+                  >
+                    Làm ngay
+                  </button>
+                )}
+              </div>
+            ))}
+
+            <button
+              onClick={() => setShowMissingDialog(false)}
+              className="w-full mt-2 rounded-2xl h-11 text-sm font-semibold shadow-md hover:shadow-lg transition-all bg-gradient-to-r from-violet-500 to-purple-500 hover:from-violet-600 hover:to-purple-600 text-white"
+            >
+              Đã hiểu
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* AI Recommendation dialog */}
+      <AiRecommendationDialog open={showAiDialog} onOpenChange={setShowAiDialog} />
     </div>
   );
 }

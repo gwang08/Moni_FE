@@ -4,13 +4,11 @@ import { useState } from 'react';
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Loader2, AlertTriangle, CheckCircle2, Info } from 'lucide-react';
+import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
+import { Loader2 } from 'lucide-react';
+import { ChibiMascot, ChibiAnimationStyles, type ChibiMood } from '@/components/ui/chibi-mascot';
 
 interface ConfirmDialogProps {
   open: boolean;
@@ -23,18 +21,16 @@ interface ConfirmDialogProps {
   onConfirm: () => void | Promise<void>;
 }
 
-const ICON_MAP = {
+const VARIANT_CONFIG: Record<string, { mood: ChibiMood; gradient: string; btnClass: string }> = {
   default: {
-    icon: CheckCircle2,
-    bg: 'bg-emerald-50',
-    color: 'text-emerald-600',
-    ring: 'ring-emerald-100',
+    mood: 'happy',
+    gradient: 'from-orange-100 via-orange-50 to-white',
+    btnClass: 'bg-gradient-to-r from-orange-400 to-rose-400 hover:from-orange-500 hover:to-rose-500 text-white',
   },
   destructive: {
-    icon: AlertTriangle,
-    bg: 'bg-red-50',
-    color: 'text-red-500',
-    ring: 'ring-red-100',
+    mood: 'worried',
+    gradient: 'from-red-50 via-rose-50 to-white',
+    btnClass: 'bg-gradient-to-r from-red-400 to-rose-500 hover:from-red-500 hover:to-rose-600 text-white',
   },
 };
 
@@ -49,8 +45,7 @@ export function ConfirmDialog({
   onConfirm,
 }: ConfirmDialogProps) {
   const [loading, setLoading] = useState(false);
-  const iconStyle = ICON_MAP[variant];
-  const IconComp = iconStyle.icon;
+  const config = VARIANT_CONFIG[variant] ?? VARIANT_CONFIG.default;
 
   const handleConfirm = async () => {
     setLoading(true);
@@ -65,52 +60,49 @@ export function ConfirmDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[400px] p-0 overflow-hidden" showCloseButton={false}>
-        <div className="px-6 pt-6 pb-4">
-          <div className="flex flex-col items-center text-center">
-            <div className={`w-14 h-14 rounded-full ${iconStyle.bg} ring-8 ${iconStyle.ring} flex items-center justify-center mb-4`}>
-              <IconComp className={`h-7 w-7 ${iconStyle.color}`} />
-            </div>
-            <DialogHeader className="items-center">
-              <DialogTitle className="text-lg font-semibold text-gray-900">{title}</DialogTitle>
-              {description && (
-                <DialogDescription className="text-sm text-gray-500 mt-1.5 leading-relaxed max-w-[300px]">
-                  {description}
-                </DialogDescription>
-              )}
-            </DialogHeader>
-          </div>
-        </div>
+    <>
+      <ChibiAnimationStyles />
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-sm p-0 overflow-hidden border-0 rounded-3xl shadow-2xl" showCloseButton={false}>
+          <VisuallyHidden><DialogTitle>{title}</DialogTitle></VisuallyHidden>
 
-        <div className="border-t bg-gray-50/80 px-6 py-4">
-          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-center">
-            <Button
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              disabled={loading}
-              className="sm:min-w-[130px]"
-            >
-              {cancelText}
-            </Button>
-            <Button
-              variant={variant === 'destructive' ? 'destructive' : 'default'}
+          {/* Top gradient with mascot */}
+          <div className={`bg-gradient-to-b ${config.gradient} pt-6 pb-2 px-6`}>
+            <ChibiMascot mood={config.mood} size={72} />
+            <div className="text-center space-y-1.5">
+              <h2 className="text-lg font-bold text-gray-800">{title}</h2>
+              {description && (
+                <p className="text-sm text-gray-500 leading-relaxed">{description}</p>
+              )}
+            </div>
+          </div>
+
+          {/* Buttons */}
+          <div className="px-6 pb-5 pt-3 space-y-2">
+            <button
               onClick={handleConfirm}
               disabled={loading}
-              className="sm:min-w-[130px]"
+              className={`w-full rounded-2xl h-11 text-sm font-semibold shadow-md hover:shadow-lg transition-all disabled:opacity-60 flex items-center justify-center gap-2 ${config.btnClass}`}
             >
               {loading ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <Loader2 className="h-4 w-4 animate-spin" />
                   Đang xử lý...
                 </>
               ) : (
                 confirmText
               )}
-            </Button>
+            </button>
+            <button
+              onClick={() => onOpenChange(false)}
+              disabled={loading}
+              className="w-full rounded-2xl h-10 text-sm font-medium border border-gray-200 hover:bg-gray-50 text-gray-600 transition-all"
+            >
+              {cancelText}
+            </button>
           </div>
-        </div>
-      </DialogContent>
-    </Dialog>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

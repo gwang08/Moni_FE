@@ -25,13 +25,14 @@ export default function ProtectedLayout({
   const [isChecking, setIsChecking] = useState(true);
 
   useEffect(() => {
-    const valid = checkAuth();
-
-    // Allow public paths without auth
-    if (!valid && isPublicPath(pathname)) {
+    // Public paths always render (auth is optional)
+    if (isPublicPath(pathname)) {
+      checkAuth(); // still hydrate auth state if token exists
       setIsChecking(false);
       return;
     }
+
+    const valid = checkAuth();
 
     if (!valid) {
       router.push(`/login?redirect=${encodeURIComponent(pathname)}`);
@@ -51,7 +52,8 @@ export default function ProtectedLayout({
     }
 
     setIsChecking(false);
-  }, [checkAuth, router, pathname]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [checkAuth, isAuthenticated, router, pathname]);
 
   if (isChecking || (!isAuthenticated && !isPublicPath(pathname))) {
     return (

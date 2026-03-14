@@ -49,7 +49,7 @@ export async function getPublishedTests(
 
   const response = await apiClient.get<ApiResponse<PagedResponse<TestResponse>>>(
     endpoint,
-    true
+    false
   );
 
   if (!response.result) {
@@ -62,7 +62,7 @@ export async function getPublishedTests(
 export async function getPublicTestDetail(id: string): Promise<TestDetailResponse> {
   const response = await apiClient.get<ApiResponse<TestDetailResponse>>(
     `/api/v1/tests/${id}`,
-    true
+    false
   );
 
   if (!response.result) {

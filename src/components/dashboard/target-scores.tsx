@@ -1,10 +1,16 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useUserStore } from '@/store/user-store';
 import { calculateOverallScore } from '@/lib/calendar-utils';
+import { generatePlacement, resetPlacement } from '@/lib/placement-api';
+import { apiClient } from '@/lib/api-client';
+import type { ApiResponse } from '@/types/auth.types';
 import type { SkillKey } from '@/types';
-import { Pencil, Check, X } from 'lucide-react';
+import { Pencil, Check, X, RotateCcw } from 'lucide-react';
+import { toast } from 'sonner';
+import { PlacementGenerateLoading } from '@/components/placement/placement-generate-loading';
 
 const SKILL_LABELS: Record<SkillKey, string> = {
   reading: 'Reading',
@@ -23,9 +29,14 @@ const SKILL_COLORS: Record<SkillKey, string> = {
 const SKILLS: SkillKey[] = ['reading', 'listening', 'writing', 'speaking'];
 
 export function TargetScores() {
+  const router = useRouter();
   const targetScores = useUserStore((s) => s.targetScores);
   const setTargetScore = useUserStore((s) => s.setTargetScore);
+  const placementResult = useUserStore((s) => s.placementResult);
+  const clearPlacementResult = useUserStore((s) => s.clearPlacementResult);
   const [editing, setEditing] = useState(false);
+  const [resetting, setResetting] = useState(false);
+  const [generating, setGenerating] = useState(false);
   const [draft, setDraft] = useState<Record<SkillKey, string>>({
     reading: '',
     listening: '',
@@ -50,19 +61,77 @@ export function TargetScores() {
     setEditing(true);
   };
 
-  const saveEdit = () => {
+  const saveEdit = async () => {
+    const newScores: Record<SkillKey, number> = { reading: 0, listening: 0, writing: 0, speaking: 0 };
     SKILLS.forEach((skill) => {
       const val = parseFloat(draft[skill]);
       if (!isNaN(val) && val >= 0 && val <= 9) {
+        newScores[skill] = val;
         setTargetScore(skill, val);
-      } else if (draft[skill] === '') {
+      } else {
         setTargetScore(skill, 0);
       }
     });
     setEditing(false);
+    // Sync to backend (fire & forget)
+    const overall = calculateOverallScore(newScores);
+    apiClient.put<ApiResponse<unknown>>('/users/me', {
+      targetReading: newScores.reading,
+      targetListening: newScores.listening,
+      targetWriting: newScores.writing,
+      targetSpeaking: newScores.speaking,
+      targetBand: overall,
+    }, true).catch(() => {});
   };
 
   const cancelEdit = () => setEditing(false);
+
+  const handleStartTest = async () => {
+    setGenerating(true);
+    try {
+      const pair = await generatePlacement();
+      sessionStorage.setItem('pending-placement-test', JSON.stringify(pair));
+      router.push('/placement');
+    } catch {
+      toast.error('Không thể tạo bài test. Vui lòng thử lại.');
+      setGenerating(false);
+    }
+  };
+
+  const handleReset = async () => {
+    setResetting(true);
+    try {
+      await resetPlacement();
+      clearPlacementResult();
+      // After reset, generate new test and go directly
+      const pair = await generatePlacement();
+      sessionStorage.setItem('pending-placement-test', JSON.stringify(pair));
+      router.push('/placement');
+    } catch {
+      toast.error('Không thể đặt lại trình độ. Vui lòng thử lại.');
+    } finally {
+      setResetting(false);
+    }
+  };
+
+  // Get current band for a skill from placement result
+  const getCurrentBand = (skill: SkillKey): number | null => {
+    if (!placementResult) return null;
+    const map: Record<SkillKey, number> = {
+      reading: placementResult.readingBand,
+      listening: placementResult.listeningBand,
+      writing: placementResult.writingBand,
+      speaking: placementResult.speakingBand,
+    };
+    return map[skill];
+  };
+
+  const getBandComparisonClass = (current: number, target: number): string => {
+    const diff = target - current;
+    if (diff <= 0) return 'text-green-600';
+    if (diff <= 1.0) return 'text-yellow-600';
+    return 'text-red-500';
+  };
 
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 h-full">
@@ -133,6 +202,57 @@ export function TargetScores() {
             )}
           </div>
         ))}
+      </div>
+
+      {/* Placement result section */}
+      <div className="mt-4 pt-4 border-t border-gray-100">
+        <div className="flex items-center justify-between mb-3">
+          <h4 className="text-sm font-semibold text-gray-700">Trình độ hiện tại</h4>
+          {placementResult && (
+            <button
+              onClick={handleReset}
+              disabled={resetting}
+              className="p-1 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
+              title="Đánh giá lại trình độ"
+            >
+              {resetting
+                ? <span className="h-3.5 w-3.5 border border-gray-400 border-t-transparent rounded-full animate-spin inline-block" />
+                : <RotateCcw className="h-3.5 w-3.5" />
+              }
+            </button>
+          )}
+        </div>
+
+        {!placementResult ? (
+          <>
+            <PlacementGenerateLoading open={generating} />
+            <button
+              onClick={handleStartTest}
+              disabled={generating}
+              className="w-full text-center text-sm text-orange-500 hover:text-orange-600 font-medium py-2 border border-dashed border-orange-300 rounded-lg hover:bg-orange-50 transition-colors disabled:opacity-50"
+            >
+              Chưa đánh giá — Bắt đầu ngay
+            </button>
+          </>
+        ) : (
+          <div className="grid grid-cols-2 gap-2">
+            {SKILLS.map((skill) => {
+              const current = getCurrentBand(skill);
+              const target = targetScores[skill];
+              const compClass = current !== null && target > 0
+                ? getBandComparisonClass(current, target)
+                : 'text-gray-600';
+              return (
+                <div key={skill} className="flex items-center justify-between bg-gray-50 rounded-lg px-2.5 py-1.5">
+                  <span className="text-xs text-gray-500">{SKILL_LABELS[skill]}</span>
+                  <span className={`text-sm font-semibold ${compClass}`}>
+                    {current !== null ? current.toFixed(1) : '—'}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );

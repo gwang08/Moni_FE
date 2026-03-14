@@ -1,0 +1,101 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
+
+const STEPS = [
+  { label: 'Đang chuẩn bị bài test...', duration: 800 },
+  { label: 'Chọn đề Reading cho bạn...', duration: 1000 },
+  { label: 'Chọn đề Listening cho bạn...', duration: 1000 },
+  { label: 'Sắp xong rồi!', duration: 600 },
+];
+
+interface Props {
+  open: boolean;
+}
+
+function ChibiLoading() {
+  return (
+    <div className="relative w-20 h-20 mx-auto mb-4">
+      <div className="animate-bounce-slow">
+        <svg viewBox="0 0 120 120" className="w-20 h-20">
+          <circle cx="60" cy="65" r="35" fill="#FFA94D" />
+          <circle cx="60" cy="58" r="30" fill="#FFE0B2" />
+          {/* Eyes - focused/excited */}
+          <ellipse cx="48" cy="53" rx="3.5" ry="2" fill="#333" />
+          <ellipse cx="72" cy="53" rx="3.5" ry="2" fill="#333" />
+          {/* Excited mouth */}
+          <ellipse cx="60" cy="66" rx="6" ry="5" fill="#333" />
+          <ellipse cx="60" cy="64" rx="5" ry="3" fill="#FFE0B2" />
+          {/* Blush */}
+          <circle cx="40" cy="62" r="5" fill="#FFB3B3" opacity="0.6" />
+          <circle cx="80" cy="62" r="5" fill="#FFB3B3" opacity="0.6" />
+          {/* Graduation cap */}
+          <polygon points="60,20 30,35 60,42 90,35" fill="#333" />
+          <rect x="55" y="18" width="10" height="5" rx="2" fill="#333" />
+          <line x1="85" y1="35" x2="92" y2="45" stroke="#333" strokeWidth="2" />
+          <circle cx="93" cy="47" r="3" fill="#FFA94D" />
+        </svg>
+      </div>
+    </div>
+  );
+}
+
+export function PlacementGenerateLoading({ open }: Props) {
+  const [currentStep, setCurrentStep] = useState(0);
+
+  useEffect(() => {
+    if (!open) {
+      setCurrentStep(0);
+      return;
+    }
+
+    let stepIndex = 0;
+    const advance = () => {
+      if (stepIndex < STEPS.length - 1) {
+        stepIndex++;
+        setCurrentStep(stepIndex);
+        setTimeout(advance, STEPS[stepIndex].duration);
+      }
+    };
+    const timer = setTimeout(advance, STEPS[0].duration);
+    return () => clearTimeout(timer);
+  }, [open]);
+
+  const progress = ((currentStep + 1) / STEPS.length) * 100;
+
+  return (
+    <Dialog open={open} onOpenChange={() => {}}>
+      <DialogContent
+        className="max-w-xs p-0 overflow-hidden border-0 rounded-3xl shadow-2xl"
+        showCloseButton={false}
+        onPointerDownOutside={(e) => e.preventDefault()}
+        onEscapeKeyDown={(e) => e.preventDefault()}
+      >
+        <VisuallyHidden><DialogTitle>Đang tạo bài test</DialogTitle></VisuallyHidden>
+        <div className="bg-gradient-to-b from-orange-100 via-orange-50 to-white pt-8 pb-6 px-6">
+          <ChibiLoading />
+
+          <div className="text-center mb-5">
+            <p className="text-sm font-semibold text-gray-700">
+              {STEPS[currentStep].label}
+            </p>
+          </div>
+
+          {/* Progress bar */}
+          <div className="w-full bg-orange-100 rounded-full h-2 overflow-hidden">
+            <div
+              className="h-full bg-gradient-to-r from-orange-400 to-rose-400 rounded-full transition-all duration-500 ease-out"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}

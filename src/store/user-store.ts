@@ -1,14 +1,18 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { TargetScores, Activity, SkillKey } from '@/types';
+import type { PlacementResult } from '@/types/placement.types';
 
 interface UserState {
   targetScores: TargetScores;
   examDate: string | null;
   activities: Activity[];
+  placementResult: PlacementResult | null;
   setTargetScore: (skill: SkillKey, score: number) => void;
   setExamDate: (date: string | null) => void;
   addActivity: (activity: Activity) => void;
+  setPlacementResult: (result: PlacementResult | null) => void;
+  clearPlacementResult: () => void;
 }
 
 export const useUserStore = create<UserState>()(
@@ -22,6 +26,7 @@ export const useUserStore = create<UserState>()(
       },
       examDate: null,
       activities: [],
+      placementResult: null,
       setTargetScore: (skill, score) =>
         set((state) => ({
           targetScores: {
@@ -34,6 +39,8 @@ export const useUserStore = create<UserState>()(
         set((state) => ({
           activities: [...state.activities, activity],
         })),
+      setPlacementResult: (result) => set({ placementResult: result }),
+      clearPlacementResult: () => set({ placementResult: null }),
     }),
     {
       name: 'moni-user-storage',

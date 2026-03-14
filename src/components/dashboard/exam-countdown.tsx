@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { useUserStore } from '@/store/user-store';
+import { apiClient } from '@/lib/api-client';
+import type { ApiResponse } from '@/types/auth.types';
 import { Pencil, Check, X, CalendarDays, Clock } from 'lucide-react';
 
 function getDaysRemaining(examDate: string | null): number | null {
@@ -42,6 +44,10 @@ export function ExamCountdown() {
   const saveEdit = () => {
     setExamDate(draft || null);
     setEditing(false);
+    // Sync to backend (fire & forget)
+    if (draft) {
+      apiClient.put<ApiResponse<unknown>>('/users/me', { examDate: draft }, true).catch(() => {});
+    }
   };
 
   const cancelEdit = () => setEditing(false);

@@ -77,10 +77,10 @@ export function TestEditMatchingFeature({ questions, testId, pendingEvidence, on
       });
 
       await batchUpdateQuestions(updates);
-      toast.success('Matching Features saved');
+      toast.success('Đã lưu tất cả câu Matching Features');
       queryClient.invalidateQueries({ queryKey: ['admin', 'test', testId] });
     } catch {
-      toast.error('Save failed');
+      toast.error('Lưu thất bại');
     } finally {
       setSaving(false);
     }

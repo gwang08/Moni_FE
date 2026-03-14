@@ -107,7 +107,7 @@ export class ApiClient {
 
     if (requiresAuth) {
       const token = this.getAuthToken();
-      if (!token) throw new ApiError(401, undefined, 'No authentication token found');
+      if (!token) throw new ApiError(401, undefined, 'Chưa đăng nhập');
       config.headers = { ...config.headers, Authorization: `Bearer ${token}` };
     }
 
@@ -123,18 +123,18 @@ export class ApiClient {
       } else {
         clearStoredAuth();
         fireSessionExpired();
-        throw new ApiError(401, undefined, 'Session expired');
+        throw new ApiError(401, undefined, 'Phiên đăng nhập đã hết hạn');
       }
     }
 
     const contentType = response.headers.get('content-type');
     if (!contentType?.includes('application/json')) {
-      if (!response.ok) throw new ApiError(response.status, undefined, 'Server error - non-JSON response');
+      if (!response.ok) throw new ApiError(response.status, undefined, 'Lỗi server');
       return {} as T;
     }
 
     const data = await response.json();
-    if (!response.ok) throw new ApiError(response.status, data.code, data.message || 'Request failed');
+    if (!response.ok) throw new ApiError(response.status, data.code, data.message || 'Yêu cầu thất bại');
     return data;
   }
 
@@ -164,7 +164,7 @@ export class ApiClient {
 
   async upload<T>(endpoint: string, file: File): Promise<T> {
     const token = this.getAuthToken();
-    if (!token) throw new ApiError(401, undefined, 'No authentication token found');
+    if (!token) throw new ApiError(401, undefined, 'Chưa đăng nhập');
 
     const formData = new FormData();
     formData.append('file', file);
@@ -188,18 +188,18 @@ export class ApiClient {
       } else {
         clearStoredAuth();
         fireSessionExpired();
-        throw new ApiError(401, undefined, 'Session expired');
+        throw new ApiError(401, undefined, 'Phiên đăng nhập đã hết hạn');
       }
     }
 
     const contentType = response.headers.get('content-type');
     if (!contentType?.includes('application/json')) {
-      if (!response.ok) throw new ApiError(response.status, undefined, 'Upload failed');
+      if (!response.ok) throw new ApiError(response.status, undefined, 'Tải lên thất bại');
       return {} as T;
     }
 
     const data = await response.json();
-    if (!response.ok) throw new ApiError(response.status, data.code, data.message || 'Upload failed');
+    if (!response.ok) throw new ApiError(response.status, data.code, data.message || 'Tải lên thất bại');
     return data;
   }
 }

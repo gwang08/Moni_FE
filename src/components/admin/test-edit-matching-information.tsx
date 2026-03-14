@@ -64,10 +64,10 @@ export function TestEditMatchingInformation({ questions, passageHtml, testId, pe
       });
 
       await batchUpdateQuestions(updates);
-      toast.success('Matching Information saved');
+      toast.success('Đã lưu tất cả câu Matching Information');
       queryClient.invalidateQueries({ queryKey: ['admin', 'test', testId] });
     } catch {
-      toast.error('Save failed');
+      toast.error('Lưu thất bại');
     } finally {
       setSaving(false);
     }

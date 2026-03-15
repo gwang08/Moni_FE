@@ -2,11 +2,12 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowLeft, ArrowRight, Shuffle, RotateCcw, Loader2 } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Shuffle, RotateCcw, Loader2, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { FlashcardViewer } from '@/components/vocabulary/flashcard-viewer';
-import { getMyWords, getDueReview } from '@/lib/vocab-api';
-import { VocabWord } from '@/types/vocab.types';
+import { getMyWords, getDueReview, submitReview, getReviewStats } from '@/lib/vocab-api';
+import { VocabWord, ReviewStats } from '@/types/vocab.types';
+import { toast } from 'sonner';
 
 function shuffleArray<T>(arr: T[]): T[] {
   const copy = [...arr];
@@ -21,7 +22,7 @@ export default function FlashcardPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const collectionId = searchParams.get('collection');
-  const mode = searchParams.get('mode'); // 'review' for due-review mode
+  const mode = searchParams.get('mode'); // 'review' for SR mode
 
   const [baseWords, setBaseWords] = useState<VocabWord[]>([]);
   const [words, setWords] = useState<VocabWord[]>([]);
@@ -29,6 +30,11 @@ export default function FlashcardPage() {
   const [flipped, setFlipped] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+
+  // SR review mode state
+  const [reviewedCount, setReviewedCount] = useState(0);
+  const [done, setDone] = useState(false);
+  const [stats, setStats] = useState<ReviewStats | null>(null);
 
   useEffect(() => {
     const load = async () => {
@@ -76,10 +82,39 @@ export default function FlashcardPage() {
     setWords([...baseWords]);
     setIndex(0);
     setFlipped(false);
+    setReviewedCount(0);
+    setDone(false);
   };
 
-  // Keyboard shortcuts
+  // SR review: submit quality then advance
+  const handleReview = useCallback(async (quality: number) => {
+    const currentWord = words[index];
+    try {
+      await submitReview(currentWord.id, quality);
+    } catch {
+      toast.error('Không thể lưu đánh giá');
+    }
+    const nextCount = reviewedCount + 1;
+    setReviewedCount(nextCount);
+
+    if (nextCount >= words.length) {
+      // Completed all cards — fetch updated stats
+      try {
+        const s = await getReviewStats();
+        setStats(s);
+      } catch {
+        // non-critical
+      }
+      setDone(true);
+    } else {
+      setFlipped(false);
+      setIndex((i) => i + 1);
+    }
+  }, [words, index, reviewedCount]);
+
+  // Keyboard shortcuts (only in non-review or non-done mode)
   useEffect(() => {
+    if (done) return;
     const handler = (e: KeyboardEvent) => {
       if (e.code === 'Space') {
         e.preventDefault();
@@ -92,7 +127,7 @@ export default function FlashcardPage() {
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [goNext, goPrev]);
+  }, [goNext, goPrev, done]);
 
   if (loading) {
     return (
@@ -113,7 +148,40 @@ export default function FlashcardPage() {
     );
   }
 
+  // Completion screen for SR review mode
+  if (done) {
+    return (
+      <div className="max-w-2xl mx-auto px-4 py-16 text-center space-y-6">
+        <CheckCircle2 className="h-16 w-16 text-green-500 mx-auto" />
+        <h2 className="text-2xl font-bold text-gray-900">Hoàn thành ôn tập!</h2>
+        <p className="text-gray-600">Bạn đã ôn tập {reviewedCount} từ hôm nay.</p>
+        {stats && (
+          <div className="grid grid-cols-2 gap-4 max-w-xs mx-auto">
+            <div className="rounded-xl border bg-blue-50 p-4">
+              <p className="text-2xl font-bold text-blue-600">{stats.reviewedToday}</p>
+              <p className="text-xs text-gray-500 mt-1">Đã ôn hôm nay</p>
+            </div>
+            <div className="rounded-xl border bg-emerald-50 p-4">
+              <p className="text-2xl font-bold text-emerald-600">{stats.masteredCount}</p>
+              <p className="text-xs text-gray-500 mt-1">Đã thành thạo</p>
+            </div>
+          </div>
+        )}
+        <div className="flex gap-3 justify-center pt-2">
+          <Button variant="outline" onClick={handleReset}>
+            <RotateCcw className="h-4 w-4 mr-2" />
+            Ôn lại
+          </Button>
+          <Button onClick={() => router.push('/vocabulary')}>
+            Quay lại từ vựng
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   const currentWord = words[index];
+  const isReviewMode = mode === 'review';
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-8 space-y-8">
@@ -125,7 +193,7 @@ export default function FlashcardPage() {
         </Button>
         <div className="text-center">
           <h1 className="font-semibold text-gray-900">Flashcard</h1>
-          {mode === 'review' && (
+          {isReviewMode && (
             <p className="text-xs text-gray-500">Ôn tập hôm nay</p>
           )}
         </div>
@@ -152,26 +220,37 @@ export default function FlashcardPage() {
         </div>
       </div>
 
-      {/* Flashcard */}
-      <FlashcardViewer word={currentWord} flipped={flipped} onFlip={() => setFlipped((f) => !f)} />
+      {/* Flashcard — pass onReview only in SR mode */}
+      <FlashcardViewer
+        word={currentWord}
+        flipped={flipped}
+        onFlip={() => setFlipped((f) => !f)}
+        onReview={isReviewMode ? handleReview : undefined}
+      />
 
-      {/* Navigation */}
-      <div className="flex items-center justify-center gap-4">
-        <Button variant="outline" onClick={goPrev} disabled={index === 0} className="gap-2">
-          <ArrowLeft className="h-4 w-4" />
-          Trước
-        </Button>
-        <Button variant="outline" onClick={goNext} disabled={index === words.length - 1} className="gap-2">
-          Sau
-          <ArrowRight className="h-4 w-4" />
-        </Button>
-      </div>
+      {/* Navigation — hidden in SR review mode (buttons replace it) */}
+      {!isReviewMode && (
+        <div className="flex items-center justify-center gap-4">
+          <Button variant="outline" onClick={goPrev} disabled={index === 0} className="gap-2">
+            <ArrowLeft className="h-4 w-4" />
+            Trước
+          </Button>
+          <Button variant="outline" onClick={goNext} disabled={index === words.length - 1} className="gap-2">
+            Sau
+            <ArrowRight className="h-4 w-4" />
+          </Button>
+        </div>
+      )}
 
       {/* Keyboard hint */}
       <p className="text-center text-xs text-gray-400">
         Phím tắt: <kbd className="rounded border px-1 py-0.5 text-xs">Space</kbd> lật thẻ &nbsp;
-        <kbd className="rounded border px-1 py-0.5 text-xs">←</kbd>
-        <kbd className="rounded border px-1 py-0.5 text-xs">→</kbd> điều hướng
+        {!isReviewMode && (
+          <>
+            <kbd className="rounded border px-1 py-0.5 text-xs">←</kbd>
+            <kbd className="rounded border px-1 py-0.5 text-xs">→</kbd> điều hướng
+          </>
+        )}
       </p>
     </div>
   );

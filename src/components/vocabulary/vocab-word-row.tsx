@@ -2,10 +2,18 @@
 
 import { useState } from 'react';
 import { Trash2, Loader2, Volume2 } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
 import { deleteWord } from '@/lib/vocab-api';
 import type { VocabWord } from '@/types/vocab.types';
 import { toast } from 'sonner';
+
+const POS_BADGE: Record<string, string> = {
+  noun: 'bg-blue-500 text-white',
+  verb: 'bg-emerald-500 text-white',
+  adjective: 'bg-amber-500 text-white',
+  adverb: 'bg-purple-500 text-white',
+  adj: 'bg-amber-500 text-white',
+  adv: 'bg-purple-500 text-white',
+};
 
 interface VocabWordRowProps {
   word: VocabWord;
@@ -32,28 +40,68 @@ export function VocabWordRow({ word, onDelete }: VocabWordRowProps) {
     }
   };
 
+  const posColor = word.pos
+    ? (POS_BADGE[word.pos.toLowerCase()] ?? 'bg-gray-500 text-white')
+    : '';
+
   return (
-    <div className="flex items-center gap-3 p-3 rounded-lg border border-gray-100 bg-gray-50 hover:bg-white transition-colors">
+    <div className="group flex items-start gap-4 p-5 sm:p-6 rounded-2xl border border-gray-100
+      bg-white shadow-sm hover:shadow-md hover:border-gray-200 transition-all duration-200">
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2">
-          <span className="font-semibold text-gray-900">{word.word}</span>
-          {word.phonetic && <span className="text-xs text-gray-400">{word.phonetic}</span>}
+        {/* Word + phonetic + audio + POS */}
+        <div className="flex items-center gap-3 flex-wrap">
+          <span className="text-2xl font-bold text-gray-900 tracking-tight">
+            {word.word}
+          </span>
           {word.audioUrl && (
-            <button onClick={playAudio} className="text-gray-400 hover:text-blue-500">
-              <Volume2 className="h-3.5 w-3.5" />
+            <button
+              onClick={playAudio}
+              className="p-2 rounded-xl bg-indigo-50 text-indigo-500
+                hover:bg-indigo-100 transition-colors"
+            >
+              <Volume2 className="h-4 w-4" />
             </button>
           )}
-          {word.pos && <Badge variant="outline" className="text-xs">{word.pos}</Badge>}
+          {word.pos && (
+            <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase
+              tracking-wider ${posColor}`}>
+              {word.pos}
+            </span>
+          )}
         </div>
-        {word.meaning && <p className="text-xs text-blue-600 mt-0.5">{word.meaning}</p>}
+
+        {/* Phonetic */}
+        {word.phonetic && (
+          <p className="text-sm text-indigo-400 font-mono mt-0.5">{word.phonetic}</p>
+        )}
+
+        {/* Vietnamese meaning */}
+        {word.meaning && (
+          <p className="text-base sm:text-lg text-indigo-700 font-semibold mt-2 leading-snug">
+            {word.meaning}
+          </p>
+        )}
+
+        {/* English definition */}
+        {word.definition && (
+          <p className="text-sm text-gray-500 mt-1.5 line-clamp-2 leading-relaxed">
+            {word.definition}
+          </p>
+        )}
       </div>
+
+      {/* Delete button */}
       <button
         onClick={handleDelete}
         disabled={deleting}
-        className="text-gray-300 hover:text-red-500 transition-colors p-1"
+        className="shrink-0 p-2.5 rounded-xl text-gray-300 hover:text-red-500
+          hover:bg-red-50 transition-all opacity-0 group-hover:opacity-100"
         title="Xóa từ"
       >
-        {deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+        {deleting
+          ? <Loader2 className="h-5 w-5 animate-spin" />
+          : <Trash2 className="h-5 w-5" />
+        }
       </button>
     </div>
   );

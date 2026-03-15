@@ -123,7 +123,7 @@ export async function deleteList(id: number): Promise<void> {
 
 export async function searchWord(q: string): Promise<VocabSearchResult> {
   const params = new URLSearchParams({ q });
-  const res = await apiClient.get<ApiResponse<VocabSearchResult>>(`/api/v1/vocab/search?${params}`, true);
+  const res = await apiClient.get<ApiResponse<VocabSearchResult>>(`/api/v1/vocab/search?${params}`, false);
   if (!res.result) throw new Error('Không thể tìm từ');
   return res.result;
 }

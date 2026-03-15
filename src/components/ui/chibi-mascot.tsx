@@ -109,7 +109,7 @@ function Accessory({ mood }: { mood: ChibiMood }) {
 export function ChibiMascot({ mood = 'happy', size = 80 }: Props) {
   return (
     <div className="relative mx-auto mb-2" style={{ width: size, height: size }}>
-      <div className="animate-bounce-slow">
+      <div>
         <svg viewBox="0 0 120 120" style={{ width: size, height: size }}>
           {/* Body */}
           <circle cx="60" cy="65" r="35" fill="#FFA94D" />

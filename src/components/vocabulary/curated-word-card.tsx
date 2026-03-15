@@ -1,34 +1,95 @@
 'use client';
 
 import { Volume2 } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
 import type { CuratedWord } from '@/types/vocab.types';
+
+const POS_BADGE: Record<string, string> = {
+  noun: 'bg-blue-500 text-white',
+  verb: 'bg-emerald-500 text-white',
+  adj: 'bg-amber-500 text-white',
+  adv: 'bg-purple-500 text-white',
+  adjective: 'bg-amber-500 text-white',
+  adverb: 'bg-purple-500 text-white',
+};
 
 export function CuratedWordCard({ word }: { word: CuratedWord }) {
   const playAudio = () => {
     if (word.audioUrl) new Audio(word.audioUrl).play().catch(() => {});
   };
 
+  const posColor = word.pos
+    ? (POS_BADGE[word.pos.toLowerCase()] ?? 'bg-gray-500 text-white')
+    : '';
+
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm space-y-2">
-      <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0">
-          <div className="flex items-center gap-2">
-            <p className="font-semibold text-gray-900">{word.word}</p>
-            {word.audioUrl && (
-              <button onClick={playAudio} className="text-gray-400 hover:text-blue-500" title="Nghe phát âm">
-                <Volume2 className="h-3.5 w-3.5" />
-              </button>
-            )}
-          </div>
-          {word.phonetic && <p className="text-xs text-gray-400">{word.phonetic}</p>}
+    <div className="group rounded-2xl border border-gray-100 bg-white p-5 sm:p-6
+      shadow-sm hover:shadow-md hover:border-gray-200 transition-all duration-200">
+      {/* Row 1: Word + phonetic + audio */}
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-center gap-3 flex-wrap min-w-0">
+          <h3 className="text-2xl sm:text-3xl font-bold text-gray-900 leading-tight tracking-tight">
+            {word.word}
+          </h3>
+          {word.audioUrl && (
+            <button
+              onClick={playAudio}
+              className="p-2 rounded-xl bg-indigo-50 text-indigo-500
+                hover:bg-indigo-100 transition-colors shrink-0"
+              title="Nghe phát âm"
+            >
+              <Volume2 className="h-4 w-4" />
+            </button>
+          )}
         </div>
         {word.pos && (
-          <Badge variant="outline" className="text-xs shrink-0">{word.pos}</Badge>
+          <span className={`shrink-0 px-2.5 py-1 rounded-lg text-[10px] font-bold
+            uppercase tracking-wider ${posColor}`}>
+            {word.pos}
+          </span>
         )}
       </div>
-      {word.meaning && <p className="text-sm text-blue-600 font-medium">{word.meaning}</p>}
-      {word.definition && <p className="text-xs text-gray-600 line-clamp-2">{word.definition}</p>}
+
+      {/* Phonetic */}
+      {word.phonetic && (
+        <p className="text-sm text-indigo-400 font-mono mt-1">{word.phonetic}</p>
+      )}
+
+      {/* Vietnamese meaning - prominent */}
+      {word.meaning && (
+        <p className="mt-3 text-base sm:text-lg text-indigo-700 font-semibold leading-snug">
+          {word.meaning}
+        </p>
+      )}
+
+      {/* English definition */}
+      {word.definition && (
+        <p className="mt-2 text-sm text-gray-500 leading-relaxed line-clamp-2">
+          {word.definition}
+        </p>
+      )}
+
+      {/* Example */}
+      {word.example && (
+        <p className="mt-2 text-sm text-gray-400 italic line-clamp-1">
+          &ldquo;{word.example}&rdquo;
+        </p>
+      )}
+
+      {/* Band + Topic tags */}
+      {(word.band || word.topic) && (
+        <div className="mt-3 pt-3 border-t border-gray-50 flex items-center gap-2">
+          {word.band && (
+            <span className="text-[11px] text-gray-400 bg-gray-50 px-2.5 py-1 rounded-md font-medium">
+              Band {word.band}
+            </span>
+          )}
+          {word.topic && (
+            <span className="text-[11px] text-gray-400 bg-gray-50 px-2.5 py-1 rounded-md font-medium capitalize">
+              {word.topic}
+            </span>
+          )}
+        </div>
+      )}
     </div>
   );
 }

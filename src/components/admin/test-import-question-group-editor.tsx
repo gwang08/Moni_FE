@@ -14,6 +14,7 @@ import { MatchingTableEditor } from '@/components/admin/test-import-matching-tab
 import { MatchingHeadingsEditor, detectParagraphs } from '@/components/admin/test-import-matching-headings-editor';
 import { MatchingInformationEditor } from '@/components/admin/test-import-matching-information-editor';
 import { GapFillingEditor } from '@/components/admin/test-import-gap-filling-editor';
+import { MediaUploadZone } from '@/components/admin/media-upload-zone';
 import type { QuestionGroupRequest, QuestionRequest, QuestionTypeCode, OptionRequest } from '@/types/admin.types';
 
 const SHARED_OPTION_TYPES: QuestionTypeCode[] = ['MATCHING_HEADINGS', 'MATCHING_INFORMATION', 'MATCHING_FEATURE'];
@@ -119,15 +120,27 @@ export function QuestionGroupEditor({ group, groupIndex, positionOffset, stimulu
         <p className="text-xs text-gray-500 italic bg-gray-100 rounded px-2 py-1.5">{group.instruction}</p>
       )}
 
-      {/* DIAGRAM_LABEL: imageUrl */}
+      {/* DIAGRAM_LABEL: imageUrl with upload */}
       {group.questionTypeCode === 'DIAGRAM_LABEL' && (
-        <div>
-          <Label className="mb-1 block text-xs">URL hình ảnh (diagram/map)</Label>
+        <div className="space-y-2">
+          <Label className="mb-1 block text-xs">Hình ảnh diagram/map</Label>
+          {group.imageUrl ? (
+            <div className="relative rounded-lg border border-gray-200 overflow-hidden bg-white">
+              <img src={group.imageUrl} alt="Diagram preview" className="w-full max-h-48 object-contain bg-gray-50" />
+              <div className="flex items-center justify-between px-3 py-1.5 border-t bg-gray-50">
+                <span className="text-xs text-gray-400 truncate max-w-[70%]">{group.imageUrl}</span>
+                <button type="button" onClick={() => onChange({ ...group, imageUrl: '' })}
+                  className="text-xs text-red-500 hover:text-red-700">Xóa ảnh</button>
+              </div>
+            </div>
+          ) : (
+            <MediaUploadZone onUploaded={url => onChange({ ...group, imageUrl: url })} />
+          )}
           <Input
             value={group.imageUrl ?? ''}
             onChange={e => onChange({ ...group, imageUrl: e.target.value })}
-            placeholder="https://example.com/diagram.png"
-            className="text-sm"
+            placeholder="Hoặc nhập URL hình ảnh trực tiếp..."
+            className="text-xs h-8"
           />
         </div>
       )}
@@ -167,6 +180,8 @@ export function QuestionGroupEditor({ group, groupIndex, positionOffset, stimulu
             questions={group.questions}
             sharedOptions={group.sharedOptions || []}
             positionOffset={positionOffset}
+            pendingEvidence={pendingEvidence}
+            onAssignEvidence={onAssignEvidence}
             onChange={qs => onChange({ ...group, questions: qs })}
           />
         </>

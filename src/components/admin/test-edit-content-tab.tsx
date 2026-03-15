@@ -30,7 +30,7 @@ import { TestEditWritingContent } from '@/components/admin/test-edit-writing-con
 import { TestEditSpeakingContent } from '@/components/admin/test-edit-speaking-content';
 import { MediaUploadZone } from '@/components/admin/media-upload-zone';
 import { TranscriptEditor } from '@/components/admin/transcript-editor';
-import { updateStimulus } from '@/lib/admin-api';
+import { updateStimulus, updateQuestionGroupImageUrl } from '@/lib/admin-api';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
 import type { TestDetailResponse, QuestionGroupDetail } from '@/types/test.types';
@@ -95,6 +95,57 @@ function PassageEditor({ value, onChange }: { value: string; onChange: (v: strin
     <div className="flex-1 overflow-y-auto rounded-lg border border-blue-300 bg-white flex flex-col">
       <RichTextToolbar editor={editor} />
       <EditorContent editor={editor} className="flex-1" />
+    </div>
+  );
+}
+
+function DiagramImageSection({ groupId, imageUrl, testId }: { groupId: number; imageUrl?: string; testId: string }) {
+  const queryClient = useQueryClient();
+  const [saving, setSaving] = useState(false);
+
+  const handleUpload = async (url: string) => {
+    setSaving(true);
+    try {
+      await updateQuestionGroupImageUrl(groupId, url);
+      toast.success('Đã cập nhật hình ảnh');
+      queryClient.invalidateQueries({ queryKey: ['admin', 'test', testId] });
+    } catch {
+      toast.error('Cập nhật hình ảnh thất bại');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleRemove = async () => {
+    setSaving(true);
+    try {
+      await updateQuestionGroupImageUrl(groupId, '');
+      toast.success('Đã xóa hình ảnh');
+      queryClient.invalidateQueries({ queryKey: ['admin', 'test', testId] });
+    } catch {
+      toast.error('Xóa hình ảnh thất bại');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="mb-3">
+      <span className="text-xs font-medium text-gray-500 mb-1 block">Hình ảnh diagram/map</span>
+      {imageUrl ? (
+        <div className="rounded-lg border border-gray-200 overflow-hidden bg-white">
+          <img src={imageUrl} alt="Diagram" className="w-full max-h-40 object-contain bg-gray-50" />
+          <div className="flex items-center justify-between px-3 py-1.5 border-t bg-gray-50">
+            <span className="text-xs text-gray-400 truncate max-w-[70%]">{imageUrl}</span>
+            <button type="button" onClick={handleRemove} disabled={saving}
+              className="text-xs text-red-500 hover:text-red-700 disabled:opacity-50">
+              {saving ? 'Đang xử lý...' : 'Xóa ảnh'}
+            </button>
+          </div>
+        </div>
+      ) : (
+        <MediaUploadZone onUploaded={handleUpload} />
+      )}
     </div>
   );
 }
@@ -232,6 +283,9 @@ export function TestEditContentTab({ test }: Props) {
                   </button>
                 </div>
                 {group.instruction && <p className="text-xs text-gray-500 italic mb-2">{group.instruction}</p>}
+                {typeCode === 'DIAGRAM_LABEL' && (
+                  <DiagramImageSection groupId={group.id} imageUrl={group.imageUrl} testId={testId} />
+                )}
                 {isMatchingHeadings ? (
                   <TestEditMatchingHeadings questions={group.questions} passageHtml={stimulus.content || ''} testId={testId}
                     pendingEvidence={pendingEvidence} onAssignEvidence={() => setPendingEvidence(null)} onEvidenceChange={handleEvidenceChange} />

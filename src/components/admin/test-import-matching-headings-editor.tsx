@@ -3,7 +3,8 @@
 import { useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Highlighter, ChevronDown, ChevronUp, Plus, Trash2 } from 'lucide-react';
+import { ChevronDown, ChevronUp, Plus, Trash2 } from 'lucide-react';
+import { EvidenceList, appendEvidence } from '@/components/admin/evidence-list';
 import type { QuestionRequest } from '@/types/admin.types';
 
 const ROMAN = ['i', 'ii', 'iii', 'iv', 'v', 'vi', 'vii', 'viii', 'ix', 'x', 'xi', 'xii'];
@@ -97,14 +98,9 @@ export function MatchingHeadingsEditor({ paragraphs, questions, pendingEvidence,
     const k = `Paragraph ${p}`;
     rebuild(headingMap, { ...explanationMap, [k]: { ...explanationMap[k], text: v || undefined } }, distractors);
   };
-  const onAssign = (p: string, qi: number) => {
+  const onEvidenceChange = (p: string, qi: number, ev: string | undefined) => {
     const k = `Paragraph ${p}`;
-    rebuild(headingMap, { ...explanationMap, [k]: { ...explanationMap[k], evidence: pendingEvidence! } }, distractors);
-    onAssignEvidence(qi);
-  };
-  const onClear = (p: string) => {
-    const k = `Paragraph ${p}`;
-    rebuild(headingMap, { ...explanationMap, [k]: { ...explanationMap[k], evidence: undefined } }, distractors);
+    rebuild(headingMap, { ...explanationMap, [k]: { ...explanationMap[k], evidence: ev } }, distractors);
   };
 
   const addDistractor = () => {
@@ -174,22 +170,12 @@ export function MatchingHeadingsEditor({ paragraphs, questions, pendingEvidence,
                     />
                   </div>
                   <div className="pt-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-medium text-gray-400 uppercase tracking-wide">Dẫn chứng</span>
-                      {pendingEvidence && (
-                        <Button type="button" size="sm" variant="default" className="h-5 text-[10px] gap-0.5 px-1.5" onClick={() => onAssign(p, i)}>
-                          <Highlighter className="h-2.5 w-2.5" /> Gán
-                        </Button>
-                      )}
-                    </div>
-                    {expl?.evidence ? (
-                      <div className="relative mt-1 rounded-md border border-amber-200 bg-amber-50 px-2 py-1.5 text-xs text-amber-900 whitespace-pre-wrap max-h-20 overflow-y-auto">
-                        {expl.evidence}
-                        <button type="button" onClick={() => onClear(p)} className="absolute top-0.5 right-1 text-amber-400 hover:text-amber-600 text-[10px]">✕</button>
-                      </div>
-                    ) : (
-                      <p className="text-[10px] text-gray-400 italic mt-1">Quét text bên phải → bấm &quot;Gán&quot;</p>
-                    )}
+                    <EvidenceList
+                      evidence={expl?.evidence}
+                      pendingEvidence={pendingEvidence}
+                      onAssign={() => onAssignEvidence(i)}
+                      onChange={ev => onEvidenceChange(p, i, ev)}
+                    />
                   </div>
                 </div>
               )}

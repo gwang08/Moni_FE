@@ -150,6 +150,10 @@ export function QuestionGroupEditor({ group, groupIndex, positionOffset, stimulu
         <GapFillingEditor
           questions={group.questions}
           positionOffset={positionOffset}
+          groupContent={group.groupContent}
+          pendingEvidence={pendingEvidence}
+          onAssignEvidence={onAssignEvidence}
+          onGroupContentChange={gc => onChange({ ...group, groupContent: gc })}
           onChange={qs => onChange({ ...group, questions: qs })}
         />
       ) : group.questionTypeCode === 'MATCHING_HEADINGS' ? (

@@ -3,11 +3,12 @@
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { Trash2, Highlighter } from 'lucide-react';
+import { Trash2 } from 'lucide-react';
 import { McqOptions } from '@/components/admin/test-import-question-options-mcq';
 import { TfngOptions } from '@/components/admin/test-import-question-options-tfng';
 import { FillOptions } from '@/components/admin/test-import-question-options-fill';
 import { MatchingSharedOptions } from '@/components/admin/test-import-question-options-matching-shared';
+import { EvidenceList } from '@/components/admin/evidence-list';
 import type { QuestionRequest, QuestionTypeCode, OptionRequest } from '@/types/admin.types';
 
 interface Props {
@@ -24,9 +25,9 @@ interface Props {
 export function QuestionEditor({ question, questionTypeCode, position, pendingEvidence, sharedOptions, onAssignEvidence, onChange, onRemove }: Props) {
   const setOptions = (options: OptionRequest[]) => onChange({ ...question, options });
 
-  const clearEvidence = () => onChange({
+  const handleEvidenceChange = (ev: string | undefined) => onChange({
     ...question,
-    explanation: { ...question.explanation, evidence: undefined },
+    explanation: { ...question.explanation, evidence: ev },
   });
 
   return (
@@ -73,24 +74,12 @@ export function QuestionEditor({ question, questionTypeCode, position, pendingEv
             className="w-full rounded-md border border-input bg-background px-2 py-1.5 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-none"
           />
         </div>
-        <div>
-          <div className="flex items-center justify-between mb-0.5">
-            <Label className="block text-xs text-gray-500">Dẫn chứng</Label>
-            {pendingEvidence && (
-              <Button type="button" size="sm" variant="default" className="h-5 text-[10px] gap-0.5 px-1.5" onClick={onAssignEvidence}>
-                <Highlighter className="h-2.5 w-2.5" /> Gán vào câu này
-              </Button>
-            )}
-          </div>
-          {question.explanation?.evidence ? (
-            <div className="relative rounded-md border border-amber-200 bg-amber-50 px-2 py-1.5 text-xs text-amber-900 whitespace-pre-wrap max-h-16 overflow-y-auto">
-              {question.explanation.evidence}
-              <button type="button" onClick={clearEvidence} className="absolute top-0.5 right-1 text-amber-400 hover:text-amber-600 text-xs">✕</button>
-            </div>
-          ) : (
-            <p className="text-[10px] text-gray-400 italic pt-1">Quét text bài đọc bên phải → bấm &quot;Gán vào câu này&quot;</p>
-          )}
-        </div>
+        <EvidenceList
+          evidence={question.explanation?.evidence}
+          pendingEvidence={pendingEvidence}
+          onAssign={onAssignEvidence}
+          onChange={handleEvidenceChange}
+        />
       </div>
     </div>
   );

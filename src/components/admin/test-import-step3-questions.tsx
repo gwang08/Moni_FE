@@ -59,29 +59,20 @@ export function TestImportStep3({ stimuli, onChange, onNext, onBack }: Props) {
     selection.removeAllRanges();
   }, []);
 
-  const assignEvidence = useCallback((gi: number, qi: number) => {
-    if (!pendingEvidence) return;
-    const key = `${gi}-${qi}`;
-    setOffsetMap(prev => ({ ...prev, [key]: pendingOffsetRef.current }));
-    updateStimulus(s => ({
-      ...s,
-      questionGroups: s.questionGroups.map((g, gIdx) => {
-        if (gIdx !== gi) return g;
-        return { ...g, questions: g.questions.map((q, qIdx) => {
-          if (qIdx !== qi) return q;
-          return { ...q, explanation: { ...q.explanation, evidence: pendingEvidence } };
-        })};
-      }),
-    }));
+  const assignEvidence = useCallback((_gi: number, _qi: number) => {
     setPendingEvidence(null);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pendingEvidence, activeStimulus]);
+  }, []);
 
   const isValid = stimuli.every(s =>
     s.questionGroups.length > 0 &&
     s.questionGroups.every(g =>
       g.questions.length > 0 &&
-      g.questions.every(q => q.content.trim() && q.options.some(o => o.isCorrect))
+      g.questions.every(q => {
+        const hasAnswer = q.options.some(o => o.isCorrect && o.content.trim());
+        // Gap filling paragraph mode: content can be empty if groupContent + answer exist
+        if (g.questionTypeCode === 'GAP_FILLING' && g.groupContent?.trim()) return hasAnswer;
+        return q.content.trim() && q.options.some(o => o.isCorrect);
+      })
     )
   );
 

@@ -148,6 +148,10 @@ export async function updateQuestionGroupImageUrl(groupId: number, imageUrl: str
   await apiClient.patch<ApiResponse<void>>(`/api/v1/admin/question-groups/${groupId}/image-url`, { imageUrl }, true);
 }
 
+export async function updateQuestionGroupContent(groupId: number, groupContent: string): Promise<void> {
+  await apiClient.patch<ApiResponse<void>>(`/api/v1/admin/question-groups/${groupId}/group-content`, { groupContent }, true);
+}
+
 export async function createQuestion(groupId: number, data: QuestionRequest): Promise<number> {
   const response = await apiClient.post<ApiResponse<number>>(
     `/api/v1/admin/question-groups/${groupId}/questions`, data, true

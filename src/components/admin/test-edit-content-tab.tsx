@@ -22,6 +22,7 @@ import { TestEditQuestionCard } from '@/components/admin/test-edit-question-card
 import { TestEditMatchingHeadings } from '@/components/admin/test-edit-matching-headings';
 import { TestEditMatchingInformation } from '@/components/admin/test-edit-matching-information';
 import { TestEditMatchingFeature } from '@/components/admin/test-edit-matching-feature';
+import { TestEditGapFilling } from '@/components/admin/test-edit-gap-filling';
 import { TestEditAddQuestionGroupForm } from '@/components/admin/test-edit-add-question-group-form';
 import { TestEditAddQuestionForm } from '@/components/admin/test-edit-add-question-form';
 import { useTestEditMutations } from '@/components/admin/use-test-edit-mutations';
@@ -294,6 +295,9 @@ export function TestEditContentTab({ test }: Props) {
                     pendingEvidence={pendingEvidence} onAssignEvidence={() => setPendingEvidence(null)} onEvidenceChange={handleEvidenceChange} />
                 ) : typeCode === 'MATCHING_FEATURE' ? (
                   <TestEditMatchingFeature questions={group.questions} testId={testId}
+                    pendingEvidence={pendingEvidence} onAssignEvidence={() => setPendingEvidence(null)} onEvidenceChange={handleEvidenceChange} />
+                ) : typeCode === 'GAP_FILLING' ? (
+                  <TestEditGapFilling questions={group.questions} groupId={group.id} groupContent={group.groupContent} testId={testId}
                     pendingEvidence={pendingEvidence} onAssignEvidence={() => setPendingEvidence(null)} onEvidenceChange={handleEvidenceChange} />
                 ) : (
                   <div className="space-y-2">

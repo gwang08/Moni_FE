@@ -136,24 +136,26 @@ export async function browseCurated(
   band?: string,
   topic?: string,
   search?: string,
+  pos?: string,
 ): Promise<Page<CuratedWord>> {
   const params = new URLSearchParams({ page: String(page), size: String(size) });
   if (band) params.set('band', band);
   if (topic) params.set('topic', topic);
   if (search) params.set('search', search);
+  if (pos) params.set('pos', pos);
   const res = await apiClient.get<ApiResponse<Page<CuratedWord>>>(`/api/v1/vocab/browse?${params}`, false);
   if (!res.result) throw new Error('Không thể tải từ vựng');
   return res.result;
 }
 
 export async function getBands(): Promise<BandSummary[]> {
-  const res = await apiClient.get<ApiResponse<BandSummary[]>>('/api/v1/vocab/bands', false);
+  const res = await apiClient.get<ApiResponse<BandSummary[]>>('/api/v1/vocab/browse/bands', false);
   if (!res.result) throw new Error('Không thể tải band');
   return res.result;
 }
 
 export async function getTopics(): Promise<TopicSummary[]> {
-  const res = await apiClient.get<ApiResponse<TopicSummary[]>>('/api/v1/vocab/topics', false);
+  const res = await apiClient.get<ApiResponse<TopicSummary[]>>('/api/v1/vocab/browse/topics', false);
   if (!res.result) throw new Error('Không thể tải chủ đề');
   return res.result;
 }

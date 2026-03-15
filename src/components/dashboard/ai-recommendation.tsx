@@ -87,21 +87,25 @@ export function AiRecommendationDialog({ open, onOpenChange }: Props) {
       targetBand: recommendation.recommendedOverall,
     }, true).catch(() => {});
 
-    // Update roadmap goals with new targetBand
+    // Update roadmap goals with new targetBand, then trigger refresh
     const skillToRecommended: Record<string, number> = {
       READING: recommendation.recommendedReading,
       LISTENING: recommendation.recommendedListening,
       WRITING: recommendation.recommendedWriting,
       SPEAKING: recommendation.recommendedSpeaking,
     };
-    getRoadmapGoals().then(goals => {
-      for (const goal of goals) {
-        const newTarget = skillToRecommended[goal.skill];
-        if (newTarget && newTarget > 0 && newTarget !== goal.targetBand) {
+    getRoadmapGoals().then(async (goals) => {
+      const updates = goals
+        .filter(goal => {
+          const newTarget = skillToRecommended[goal.skill];
+          return newTarget && newTarget > 0 && newTarget !== goal.targetBand;
+        })
+        .map(goal => {
           const deadline = goal.deadline || examDate || new Date(Date.now() + 180 * 86400000).toISOString().split('T')[0];
-          updateGoal(goal.goalId, { targetBand: newTarget, deadline }).catch(() => {});
-        }
-      }
+          return updateGoal(goal.goalId, { targetBand: skillToRecommended[goal.skill], deadline });
+        });
+      await Promise.all(updates);
+      window.dispatchEvent(new Event('roadmap-updated'));
     }).catch(() => {});
 
     setApplied(true);

@@ -124,16 +124,22 @@ export function LearningRoadmap() {
   const [loading, setLoading] = useState(true);
   const [activeSkill, setActiveSkill] = useState<RoadmapSkill | null>(null);
 
+  const fetchGoals = async () => {
+    try {
+      const data = await getRoadmapGoals();
+      setGoals(data);
+      if (data.length > 0 && !activeSkill) setActiveSkill(data[0].skill);
+    } catch { /* ignore */ }
+    finally { setLoading(false); }
+  };
+
+  useEffect(() => { fetchGoals(); }, []);
+
+  // Refresh when AI recommendation updates goals
   useEffect(() => {
-    async function fetch() {
-      try {
-        const data = await getRoadmapGoals();
-        setGoals(data);
-        if (data.length > 0) setActiveSkill(data[0].skill);
-      } catch { /* ignore */ }
-      finally { setLoading(false); }
-    }
-    fetch();
+    const handler = () => fetchGoals();
+    window.addEventListener('roadmap-updated', handler);
+    return () => window.removeEventListener('roadmap-updated', handler);
   }, []);
 
   if (loading) return <SkeletonCard className="h-72" />;

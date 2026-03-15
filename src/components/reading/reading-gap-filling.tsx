@@ -125,35 +125,39 @@ function ParagraphGapFilling({ groupContent, questions, submitted, textAnswers, 
   // Build a map: position → question
   const posMap = new Map(questions.map(q => [q.position, q]));
 
-  // Split groupContent by number patterns like "10 ………." or "10..." or "10 __"
-  // Match: number + optional space + (dots/underscores/ellipsis)
-  const parts = groupContent.split(/(\b(\d+)\s*(?:\.{2,}|…+|_{2,}))/g);
-
+  // Find all "number + dots/underscores/ellipsis" patterns
+  // e.g. "1...", "10 ……….", "2…", "11 __"
+  const pattern = /(\d+)\s*(?:\.{2,}|…+|_{2,})/g;
   const rendered: React.ReactNode[] = [];
-  let i = 0;
-  while (i < parts.length) {
-    const part = parts[i];
-    // Check if this is a matched group (full match is at i, captured number at i+1)
-    if (i + 2 < parts.length && parts[i] === parts[i] && /^\d+\s*(?:\.{2,}|…+|_{2,})$/.test(parts[i])) {
-      const num = parseInt(parts[i + 1], 10);
-      const question = posMap.get(num);
-      if (question) {
-        const correctAnswer = question.options.find(o => o.isCorrect)?.content ?? '';
-        const userAnswer = textAnswers[question.id] ?? '';
-        rendered.push(
-          <span key={`q-${num}`} className="inline-flex items-baseline gap-0.5">
-            <strong className="text-blue-600">{num}</strong>
-            <GapInput questionId={question.id} userAnswer={userAnswer} submitted={submitted}
-              correctAnswer={correctAnswer} onTextAnswer={onTextAnswer} />
-          </span>
-        );
-        i += 3; // skip full match + captured group + extra
-        continue;
-      }
+  let lastIndex = 0;
+
+  for (const match of groupContent.matchAll(pattern)) {
+    const num = parseInt(match[1], 10);
+    const question = posMap.get(num);
+
+    // Only replace if this number maps to a question position
+    if (!question) continue;
+
+    // Add text before this match
+    if (match.index! > lastIndex) {
+      rendered.push(<span key={`t-${lastIndex}`}>{groupContent.slice(lastIndex, match.index!)}</span>);
     }
-    // Regular text
-    if (part) rendered.push(<span key={`t-${i}`}>{part}</span>);
-    i++;
+
+    const correctAnswer = question.options.find(o => o.isCorrect)?.content ?? '';
+    const userAnswer = textAnswers[question.id] ?? '';
+    rendered.push(
+      <span key={`q-${num}`} className="inline-flex items-baseline gap-0.5 mx-0.5">
+        <strong className="text-blue-600">{num}</strong>
+        <GapInput questionId={question.id} userAnswer={userAnswer} submitted={submitted}
+          correctAnswer={correctAnswer} onTextAnswer={onTextAnswer} />
+      </span>
+    );
+    lastIndex = match.index! + match[0].length;
+  }
+
+  // Add remaining text
+  if (lastIndex < groupContent.length) {
+    rendered.push(<span key={`t-${lastIndex}`}>{groupContent.slice(lastIndex)}</span>);
   }
 
   return (

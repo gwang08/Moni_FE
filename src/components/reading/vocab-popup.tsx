@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { X, Loader2, Copy, BookOpen, MessageSquareText, Link2, Quote } from 'lucide-react';
-import { lookupVocab, type VocabLookupResult } from '@/lib/vocab-api';
+import { X, Loader2, Copy, BookmarkPlus, MessageSquareText, Link2, Quote } from 'lucide-react';
+import { lookupVocab, saveWord, type VocabLookupResult } from '@/lib/vocab-api';
 import { toast } from 'sonner';
 
 interface Props {
@@ -16,6 +16,8 @@ export function VocabPopup({ word, sentence, position, onClose }: Props) {
   const [data, setData] = useState<VocabLookupResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -34,6 +36,19 @@ export function VocabPopup({ word, sentence, position, onClose }: Props) {
   const handleCopy = () => {
     navigator.clipboard.writeText(word);
     toast.success('Đã sao chép');
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      await saveWord(word, sentence);
+      setSaved(true);
+      toast.success(`Đã lưu từ "${word}"`);
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Không thể lưu từ');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const style: React.CSSProperties = {
@@ -73,6 +88,14 @@ export function VocabPopup({ word, sentence, position, onClose }: Props) {
               )}
             </div>
             <div className="flex items-center gap-1 ml-2">
+              <button
+                onClick={handleSave}
+                disabled={saving || saved}
+                className="p-1.5 rounded-lg text-gray-400 hover:text-emerald-600 hover:bg-white/60 transition-colors disabled:opacity-50"
+                title={saved ? 'Đã lưu' : 'Lưu từ'}
+              >
+                {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <BookmarkPlus className="h-3.5 w-3.5" />}
+              </button>
               <button onClick={handleCopy} className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-white/60 transition-colors" title="Sao chép">
                 <Copy className="h-3.5 w-3.5" />
               </button>

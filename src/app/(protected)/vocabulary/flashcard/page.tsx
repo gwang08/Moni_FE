@@ -2,10 +2,10 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowLeft, ArrowRight, Shuffle, RotateCcw } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Shuffle, RotateCcw, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { FlashcardViewer } from '@/components/vocabulary/flashcard-viewer';
-import { VOCAB_WORDS, VOCAB_COLLECTIONS } from '@/data/vocab-mock';
+import { getMyWords, getDueReview } from '@/lib/vocab-api';
 import { VocabWord } from '@/types/vocab.types';
 
 function shuffleArray<T>(arr: T[]): T[] {
@@ -21,18 +21,40 @@ export default function FlashcardPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const collectionId = searchParams.get('collection');
+  const mode = searchParams.get('mode'); // 'review' for due-review mode
 
-  const baseWords: VocabWord[] = collectionId
-    ? VOCAB_WORDS.filter((w) => w.collectionId === collectionId)
-    : VOCAB_WORDS;
-
-  const [words, setWords] = useState<VocabWord[]>(baseWords);
+  const [baseWords, setBaseWords] = useState<VocabWord[]>([]);
+  const [words, setWords] = useState<VocabWord[]>([]);
   const [index, setIndex] = useState(0);
   const [flipped, setFlipped] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
-  const collectionName = collectionId
-    ? VOCAB_COLLECTIONS.find((c) => c.id === collectionId)?.name
-    : null;
+  useEffect(() => {
+    const load = async () => {
+      setLoading(true);
+      setError('');
+      try {
+        let loaded: VocabWord[];
+        if (mode === 'review') {
+          loaded = await getDueReview(20);
+        } else if (collectionId) {
+          const page = await getMyWords(0, 100, Number(collectionId));
+          loaded = page.content;
+        } else {
+          const page = await getMyWords(0, 50);
+          loaded = page.content;
+        }
+        setBaseWords(loaded);
+        setWords(loaded);
+      } catch (err: unknown) {
+        setError(err instanceof Error ? err.message : 'Không thể tải từ vựng');
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, [collectionId, mode]);
 
   const goNext = useCallback(() => {
     setFlipped(false);
@@ -51,7 +73,7 @@ export default function FlashcardPage() {
   };
 
   const handleReset = () => {
-    setWords(baseWords);
+    setWords([...baseWords]);
     setIndex(0);
     setFlipped(false);
   };
@@ -72,10 +94,18 @@ export default function FlashcardPage() {
     return () => window.removeEventListener('keydown', handler);
   }, [goNext, goPrev]);
 
-  if (words.length === 0) {
+  if (loading) {
+    return (
+      <div className="max-w-2xl mx-auto px-4 py-16 flex justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-blue-400" />
+      </div>
+    );
+  }
+
+  if (error || words.length === 0) {
     return (
       <div className="max-w-2xl mx-auto px-4 py-16 text-center">
-        <p className="text-gray-500">Không có từ vựng nào trong bộ này.</p>
+        <p className="text-gray-500">{error || 'Không có từ vựng nào để luyện tập.'}</p>
         <Button className="mt-4" onClick={() => router.push('/vocabulary')}>
           Quay lại từ vựng
         </Button>
@@ -95,8 +125,8 @@ export default function FlashcardPage() {
         </Button>
         <div className="text-center">
           <h1 className="font-semibold text-gray-900">Flashcard</h1>
-          {collectionName && (
-            <p className="text-xs text-gray-500">{collectionName}</p>
+          {mode === 'review' && (
+            <p className="text-xs text-gray-500">Ôn tập hôm nay</p>
           )}
         </div>
         <div className="flex gap-1">
@@ -127,21 +157,11 @@ export default function FlashcardPage() {
 
       {/* Navigation */}
       <div className="flex items-center justify-center gap-4">
-        <Button
-          variant="outline"
-          onClick={goPrev}
-          disabled={index === 0}
-          className="gap-2"
-        >
+        <Button variant="outline" onClick={goPrev} disabled={index === 0} className="gap-2">
           <ArrowLeft className="h-4 w-4" />
           Trước
         </Button>
-        <Button
-          variant="outline"
-          onClick={goNext}
-          disabled={index === words.length - 1}
-          className="gap-2"
-        >
+        <Button variant="outline" onClick={goNext} disabled={index === words.length - 1} className="gap-2">
           Sau
           <ArrowRight className="h-4 w-4" />
         </Button>

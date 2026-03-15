@@ -7,6 +7,7 @@ export interface RoadmapTask {
   order: number;
   taskType: TaskType;
   status: TaskStatus;
+  testId: number | null;
   stimulusId: number | null;
   stimulusTitle: string | null;
   questionCount: number | null;

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { BookOpen, Check, Lock, FileText, ClipboardList } from 'lucide-react';
+import { BookOpen, Check, Lock, FileText, ClipboardList, RotateCcw } from 'lucide-react';
 import { getRoadmapGoals } from '@/lib/roadmap-api';
 import { SkeletonCard } from '@/components/ui/skeleton';
 import type { RoadmapGoal, RoadmapTask, RoadmapSkill } from '@/types/roadmap.types';
@@ -29,14 +29,15 @@ function TaskIcon({ task }: { task: RoadmapTask }) {
 
 function TaskCard({ task, skill }: { task: RoadmapTask; skill: RoadmapSkill }) {
   const router = useRouter();
+  const hasLink = task.testId != null;
 
   const handleClick = () => {
-    if (task.status !== 'TODO' || !task.stimulusId) return;
+    if (task.status === 'LOCKED' || !hasLink) return;
     const skillPath = skill.toLowerCase();
-    router.push(`/practice/${skillPath}/${task.stimulusId}`);
+    router.push(`/practice/${skillPath}/${task.testId}?roadmapTaskId=${task.id}`);
   };
 
-  const isClickable = task.status === 'TODO' && task.stimulusId;
+  const isClickable = task.status !== 'LOCKED' && hasLink;
 
   return (
     <button
@@ -44,7 +45,7 @@ function TaskCard({ task, skill }: { task: RoadmapTask; skill: RoadmapSkill }) {
       disabled={!isClickable}
       className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all ${
         task.status === 'DONE'
-          ? 'bg-green-50 border border-green-100'
+          ? 'bg-green-50 border border-green-100 hover:border-green-300 cursor-pointer'
           : task.status === 'LOCKED'
             ? 'bg-gray-50 border border-gray-100 opacity-60 cursor-not-allowed'
             : 'bg-white border border-gray-200 hover:border-blue-300 hover:shadow-sm cursor-pointer'
@@ -57,17 +58,23 @@ function TaskCard({ task, skill }: { task: RoadmapTask; skill: RoadmapSkill }) {
       </div>
       <div className="flex-1 min-w-0">
         <p className={`text-sm font-medium truncate ${
-          task.status === 'DONE' ? 'text-green-700 line-through' : task.status === 'LOCKED' ? 'text-gray-400' : 'text-gray-800'
+          task.status === 'DONE' ? 'text-green-700' : task.status === 'LOCKED' ? 'text-gray-400' : 'text-gray-800'
         }`}>
           {task.stimulusTitle || TASK_TYPE_LABEL[task.taskType] || task.taskType}
         </p>
         <p className="text-xs text-gray-400">
           {TASK_TYPE_LABEL[task.taskType]}
           {task.questionCount ? ` • ${task.questionCount} câu` : ''}
+          {task.status === 'DONE' && ' • Hoàn thành'}
         </p>
       </div>
       {task.status === 'TODO' && isClickable && (
         <span className="text-xs font-medium text-blue-500 flex-shrink-0">Làm →</span>
+      )}
+      {task.status === 'DONE' && isClickable && (
+        <span className="flex items-center gap-1 text-xs font-medium text-green-600 flex-shrink-0">
+          <RotateCcw className="h-3 w-3" /> Làm lại
+        </span>
       )}
     </button>
   );

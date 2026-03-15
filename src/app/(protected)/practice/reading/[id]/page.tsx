@@ -17,6 +17,7 @@ import { useTestDetail } from '@/hooks/use-test-detail';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { useElapsedTimer } from '@/hooks/use-elapsed-timer';
 import { submitAttempt } from '@/lib/practice-api';
+import { updateTaskStatus } from '@/lib/roadmap-api';
 
 const FALLBACK_PASSAGE = {
   title: 'Bài đọc',
@@ -31,6 +32,7 @@ export default function ReadingExercisePage({ params }: Props) {
   const { id } = use(params);
   const searchParams = useSearchParams();
   const modeParam = searchParams.get('mode');
+  const roadmapTaskId = searchParams.get('roadmapTaskId');
   const router = useRouter();
 
   const { testDetail, loading, error } = useTestDetail(id);
@@ -96,6 +98,11 @@ export default function ReadingExercisePage({ params }: Props) {
       sessionStorage.setItem(`practice-result-${id}`, JSON.stringify({
         testId: id, answers, textAnswers, elapsedSeconds: elapsed,
       }));
+    }
+
+    // Mark roadmap task as DONE if navigated from roadmap
+    if (roadmapTaskId) {
+      updateTaskStatus(Number(roadmapTaskId), 'DONE').catch(() => {});
     }
 
     router.push(`/practice/reading/${id}/result`);

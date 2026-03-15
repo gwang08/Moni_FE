@@ -1,7 +1,7 @@
 'use client';
 
 import { use, useEffect, useState, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { StickyNote } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -17,6 +17,7 @@ import { useTestDetail } from '@/hooks/use-test-detail';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { useElapsedTimer } from '@/hooks/use-elapsed-timer';
 import { submitAttempt } from '@/lib/practice-api';
+import { updateTaskStatus } from '@/lib/roadmap-api';
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -25,6 +26,8 @@ interface Props {
 export default function ListeningExercisePage({ params }: Props) {
   const { id } = use(params);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const roadmapTaskId = searchParams.get('roadmapTaskId');
 
   const { testDetail, loading, error } = useTestDetail(id);
   const markCompleted = usePracticeStore((state) => state.markCompleted);
@@ -87,6 +90,11 @@ export default function ListeningExercisePage({ params }: Props) {
     } else {
       sessionStorage.setItem(`practice-result-${id}`, JSON.stringify({ testId: id, answers, textAnswers, elapsedSeconds: elapsed }));
     }
+    // Mark roadmap task as DONE if navigated from roadmap
+    if (roadmapTaskId) {
+      updateTaskStatus(Number(roadmapTaskId), 'DONE').catch(() => {});
+    }
+
     router.push(`/practice/listening/${id}/result`);
   };
 

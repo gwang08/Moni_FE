@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useHydration } from '@/hooks/use-hydration';
 import { SkeletonCard } from '@/components/ui/skeleton';
 import { TargetScores } from '@/components/dashboard/target-scores';
@@ -37,9 +37,11 @@ export default function DashboardPage() {
   const setTargetScore = useUserStore((s) => s.setTargetScore);
   const setExamDate = useUserStore((s) => s.setExamDate);
   const [showPlacementDialog, setShowPlacementDialog] = useState(false);
+  const fetchedRef = useRef(false);
 
   useEffect(() => {
-    if (!hydrated) return;
+    if (!hydrated || fetchedRef.current) return;
+    fetchedRef.current = true;
 
     // Fetch placement result
     async function fetchPlacement() {

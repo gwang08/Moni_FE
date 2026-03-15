@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { BookOpen, Check, Lock, FileText, ClipboardList, RotateCcw } from 'lucide-react';
 import { getRoadmapGoals } from '@/lib/roadmap-api';
@@ -141,7 +141,12 @@ export function LearningRoadmap() {
     finally { setLoading(false); }
   };
 
-  useEffect(() => { fetchGoals(); }, []);
+  const fetchedRef = useRef(false);
+  useEffect(() => {
+    if (fetchedRef.current) return;
+    fetchedRef.current = true;
+    fetchGoals();
+  }, []);
 
   // Refresh when AI recommendation updates goals
   useEffect(() => {

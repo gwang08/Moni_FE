@@ -20,7 +20,7 @@ function seededShuffle<T>(arr: T[], seed: number): T[] {
   return result;
 }
 
-const NO_SHUFFLE_TYPES = ['TFNG', 'YNNG', 'GAP_FILLING', 'DIAGRAM_LABEL'];
+const SHUFFLE_TYPES = ['MATCHING_HEADINGS', 'MATCHING_INFORMATION', 'MATCHING_FEATURE'];
 const MATCHING_TYPES = ['MATCHING_HEADINGS', 'MATCHING_INFORMATION', 'MATCHING_FEATURE'];
 const GAP_TYPES = ['GAP_FILLING', 'DIAGRAM_LABEL'];
 
@@ -46,9 +46,9 @@ export function ReadingQuestionsPanel({ stimulus, submitted = false, answers, on
     for (const group of stimulus.questionGroups) {
       const typeCode = group.questionTypeCode || '';
       if (MATCHING_TYPES.includes(typeCode) || GAP_TYPES.includes(typeCode)) continue;
-      const skipShuffle = NO_SHUFFLE_TYPES.includes(typeCode);
+      const shouldShuffle = SHUFFLE_TYPES.includes(typeCode);
       for (const q of group.questions) {
-        map[q.id] = skipShuffle ? q.options : seededShuffle(q.options, q.id);
+        map[q.id] = shouldShuffle ? seededShuffle(q.options, q.id) : q.options;
       }
     }
     return map;

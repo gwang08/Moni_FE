@@ -2,7 +2,8 @@
 
 import { Button } from '@/components/ui/button';
 import { QuizQuestion } from '@/types/vocab.types';
-import { Trophy, RotateCcw, ArrowLeft, XCircle } from 'lucide-react';
+import { RotateCcw, ArrowLeft, XCircle } from 'lucide-react';
+import { ChibiMascot, ChibiAnimationStyles } from '@/components/ui/chibi-mascot';
 
 interface WrongAnswer {
   question: QuizQuestion;
@@ -17,6 +18,19 @@ interface QuizResultProps {
   onBack: () => void;
 }
 
+function getScoreMood(pct: number): 'excited' | 'happy' | 'sad' {
+  if (pct >= 80) return 'excited';
+  if (pct >= 50) return 'happy';
+  return 'sad';
+}
+
+function getScoreMessage(pct: number): string {
+  if (pct === 100) return 'Hoàn hảo! Bạn trả lời đúng tất cả!';
+  if (pct >= 80) return 'Xuất sắc! Bạn học rất tốt!';
+  if (pct >= 50) return 'Không tệ! Cố gắng thêm nhé!';
+  return 'Đừng nản lòng! Ôn luyện thêm nhé!';
+}
+
 export function QuizResult({ score, total, wrongAnswers, onRetry, onBack }: QuizResultProps) {
   const percentage = Math.round((score / total) * 100);
 
@@ -25,15 +39,14 @@ export function QuizResult({ score, total, wrongAnswers, onRetry, onBack }: Quiz
 
   return (
     <div className="space-y-6">
+      <ChibiAnimationStyles />
       {/* Score card */}
       <div className="text-center space-y-3 py-6">
-        <Trophy className={`h-14 w-14 mx-auto ${percentage >= 70 ? 'text-yellow-500' : 'text-gray-400'}`} />
+        <ChibiMascot mood={getScoreMood(percentage)} size={80} />
         <h2 className="text-2xl font-bold text-gray-900">Kết quả</h2>
         <p className={`text-5xl font-extrabold ${scoreColor}`}>{score}/{total}</p>
         <p className="text-gray-500">{percentage}% chính xác</p>
-        {percentage === 100 && (
-          <p className="text-green-600 font-medium">Hoàn hảo! Bạn trả lời đúng tất cả!</p>
-        )}
+        <p className={`font-medium ${scoreColor}`}>{getScoreMessage(percentage)}</p>
       </div>
 
       {/* Wrong answers */}

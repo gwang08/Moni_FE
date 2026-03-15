@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { BookOpen, ChevronLeft, Loader2, Volume2 } from 'lucide-react';
+import { ChibiMascot, ChibiAnimationStyles } from '@/components/ui/chibi-mascot';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { getBands, browseCurated } from '@/lib/vocab-api';
@@ -98,7 +99,11 @@ export function BandBrowseTab() {
             <Loader2 className="h-6 w-6 animate-spin text-blue-400" />
           </div>
         ) : words.length === 0 ? (
-          <p className="text-center text-gray-400 py-12">Không có từ vựng nào</p>
+          <div className="text-center py-12">
+            <ChibiAnimationStyles />
+            <ChibiMascot mood="thinking" size={64} />
+            <p className="text-gray-400 mt-2">Không có từ vựng nào</p>
+          </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {words.map((w) => <CuratedWordCard key={w.id} word={w} />)}

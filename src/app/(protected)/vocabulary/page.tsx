@@ -7,6 +7,7 @@ import { BandBrowseTab } from '@/components/vocabulary/band-browse-tab';
 import { TopicBrowseTab } from '@/components/vocabulary/topic-browse-tab';
 import { MyNotebookTab } from '@/components/vocabulary/my-notebook-tab';
 import { Zap, HelpCircle, Puzzle } from 'lucide-react';
+import { ChibiMascot, ChibiAnimationStyles } from '@/components/ui/chibi-mascot';
 
 const LEARNING_METHODS = [
   {
@@ -38,9 +39,13 @@ const LEARNING_METHODS = [
 export default function VocabularyPage() {
   return (
     <div className="max-w-5xl mx-auto px-4 py-8">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Từ Vựng</h1>
-        <p className="text-gray-500 mt-1">Tra từ điển, khám phá từ vựng theo band và chủ đề</p>
+      <ChibiAnimationStyles />
+      <div className="mb-6 flex items-center gap-4">
+        <ChibiMascot mood="thinking" size={60} />
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Từ Vựng</h1>
+          <p className="text-gray-500 mt-1">Tra từ điển, khám phá từ vựng theo band và chủ đề</p>
+        </div>
       </div>
 
       {/* Learning methods */}

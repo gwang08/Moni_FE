@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowLeft, ArrowRight, Shuffle, RotateCcw, Loader2, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Shuffle, RotateCcw, Loader2 } from 'lucide-react';
+import { ChibiMascot, ChibiAnimationStyles } from '@/components/ui/chibi-mascot';
 import { Button } from '@/components/ui/button';
 import { FlashcardViewer } from '@/components/vocabulary/flashcard-viewer';
 import { getMyWords, getDueReview, submitReview, getReviewStats } from '@/lib/vocab-api';
@@ -152,7 +153,8 @@ export default function FlashcardPage() {
   if (done) {
     return (
       <div className="max-w-2xl mx-auto px-4 py-16 text-center space-y-6">
-        <CheckCircle2 className="h-16 w-16 text-green-500 mx-auto" />
+        <ChibiAnimationStyles />
+        <ChibiMascot mood="excited" size={80} />
         <h2 className="text-2xl font-bold text-gray-900">Hoàn thành ôn tập!</h2>
         <p className="text-gray-600">Bạn đã ôn tập {reviewedCount} từ hôm nay.</p>
         {stats && (

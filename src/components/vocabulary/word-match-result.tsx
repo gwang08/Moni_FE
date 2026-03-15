@@ -1,7 +1,8 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { CheckCircle2, RotateCcw, Timer } from 'lucide-react';
+import { RotateCcw, Timer } from 'lucide-react';
+import { ChibiMascot, ChibiAnimationStyles } from '@/components/ui/chibi-mascot';
 
 interface WordMatchResultProps {
   elapsedSeconds: number;
@@ -16,7 +17,8 @@ export function WordMatchResult({ elapsedSeconds, moves, totalPairs, onRetry }: 
 
   return (
     <div className="text-center space-y-6 py-8">
-      <CheckCircle2 className="h-16 w-16 text-green-500 mx-auto" />
+      <ChibiAnimationStyles />
+      <ChibiMascot mood="excited" size={80} />
       <h2 className="text-2xl font-bold text-gray-900">Hoàn thành!</h2>
       <p className="text-gray-500">Bạn đã ghép đúng tất cả {totalPairs} cặp từ.</p>
 

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Search, Loader2, Volume2, BookmarkPlus } from 'lucide-react';
+import { ChibiMascot, ChibiAnimationStyles } from '@/components/ui/chibi-mascot';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -135,9 +136,10 @@ export function DictionarySearchTab() {
       )}
 
       {!result && !loading && !error && (
-        <div className="text-center py-16 text-gray-400">
-          <Search className="h-10 w-10 mx-auto mb-3 opacity-30" />
-          <p>Nhập từ tiếng Anh để tra từ điển</p>
+        <div className="text-center py-12">
+          <ChibiAnimationStyles />
+          <ChibiMascot mood="thinking" size={72} />
+          <p className="text-gray-500 mt-2">Hãy nhập từ bạn muốn tra nhé!</p>
         </div>
       )}
     </div>

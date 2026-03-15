@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Plus, Trash2, Loader2, BookOpen, FolderOpen } from 'lucide-react';
+import { Plus, Trash2, Loader2, BookOpen, ChevronLeft } from 'lucide-react';
+import { ChibiMascot, ChibiAnimationStyles } from '@/components/ui/chibi-mascot';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -90,8 +91,9 @@ export function MyNotebookTab() {
 
   if (!isLoggedIn) {
     return (
-      <div className="text-center py-16 space-y-4">
-        <FolderOpen className="h-12 w-12 mx-auto text-gray-300" />
+      <div className="text-center py-12 space-y-4">
+        <ChibiAnimationStyles />
+        <ChibiMascot mood="worried" size={72} />
         <div>
           <p className="text-gray-600 font-medium">Đăng nhập để xem sổ tay của bạn</p>
           <p className="text-sm text-gray-400 mt-1">Lưu từ vựng và tổ chức theo bộ sưu tập riêng</p>
@@ -107,12 +109,11 @@ export function MyNotebookTab() {
       <div className="space-y-4">
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="sm" onClick={() => setSelectedList(null)} className="gap-1">
-            <BookOpen className="h-4 w-4" />
+            <ChevronLeft className="h-4 w-4" />
             Danh sách
           </Button>
-          <span className="font-semibold text-gray-800">
-            {selectedList.icon} {selectedList.title}
-          </span>
+          <BookOpen className="h-4 w-4 text-blue-500" />
+          <span className="font-semibold text-gray-800">{selectedList.title}</span>
           {!loadingWords && (
             <Badge variant="secondary" className="ml-auto">{words.length} từ</Badge>
           )}
@@ -123,7 +124,10 @@ export function MyNotebookTab() {
             <Loader2 className="h-6 w-6 animate-spin text-blue-400" />
           </div>
         ) : words.length === 0 ? (
-          <p className="text-center text-gray-400 py-12">Chưa có từ nào. Tra từ và lưu vào đây!</p>
+          <div className="text-center py-12">
+            <ChibiMascot mood="thinking" size={64} />
+            <p className="text-gray-400 mt-2">Chưa có từ nào. Tra từ và lưu vào đây!</p>
+          </div>
         ) : (
           <div className="space-y-2">
             {words.map((w) => (
@@ -168,9 +172,9 @@ export function MyNotebookTab() {
           <Loader2 className="h-6 w-6 animate-spin text-blue-400" />
         </div>
       ) : collections.length === 0 ? (
-        <div className="text-center py-12 text-gray-400">
-          <BookOpen className="h-10 w-10 mx-auto mb-3 opacity-30" />
-          <p>Chưa có bộ sưu tập nào</p>
+        <div className="text-center py-12">
+          <ChibiMascot mood="thinking" size={64} />
+          <p className="text-gray-400 mt-2">Chưa có bộ sưu tập nào</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -181,7 +185,9 @@ export function MyNotebookTab() {
                 hover:border-blue-300 hover:shadow-md transition-all duration-200 group"
             >
               <div className="flex items-start gap-3">
-                <span className="text-3xl">{col.icon ?? '📁'}</span>
+                <span className="inline-flex items-center justify-center rounded-lg p-2 bg-blue-50">
+                  <BookOpen className="h-5 w-5 text-blue-500" />
+                </span>
                 <div className="flex-1 min-w-0">
                   <button onClick={() => handleSelectList(col)} className="text-left w-full">
                     <p className="font-semibold text-gray-900 hover:text-blue-600 transition-colors">

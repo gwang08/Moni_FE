@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Coins } from 'lucide-react';
 import { SkeletonTable } from '@/components/ui/skeleton';
 import { getCreditTransactions } from '@/lib/payment-api';
@@ -40,7 +40,10 @@ export default function TransactionsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const fetchedRef = useRef(false);
   useEffect(() => {
+    if (fetchedRef.current) return;
+    fetchedRef.current = true;
     getCreditTransactions()
       .then(setTransactions)
       .catch(() => setError('Không thể tải lịch sử giao dịch.'))

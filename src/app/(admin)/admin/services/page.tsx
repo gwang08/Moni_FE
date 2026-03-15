@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Loader2, Plus, Pencil, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -32,7 +32,12 @@ export default function AdminServicesPage() {
     }
   };
 
-  useEffect(() => { fetchServices(); }, []);
+  const fetchedRef = useRef(false);
+  useEffect(() => {
+    if (fetchedRef.current) return;
+    fetchedRef.current = true;
+    fetchServices();
+  }, []);
 
   const openCreate = () => { setEditingSvc(undefined); setDialogOpen(true); };
   const openEdit = (svc: ServicePricingResponse) => { setEditingSvc(svc); setDialogOpen(true); };

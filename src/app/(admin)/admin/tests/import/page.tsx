@@ -11,7 +11,9 @@ import { TestImportStep2Writing } from '@/components/admin/test-import-step2-wri
 import { TestImportStep2Speaking } from '@/components/admin/test-import-step2-speaking';
 import { TestImportStep3 } from '@/components/admin/test-import-step3-questions';
 import { TestImportStep4 } from '@/components/admin/test-import-step4-review';
-import { importTest } from '@/lib/admin-api';
+import { importTest, transcribeStimulus } from '@/lib/admin-api';
+import { getTestDetail } from '@/lib/tests-api';
+import { toast } from 'sonner';
 import type { StimulusRequest } from '@/types/admin.types';
 
 const STORAGE_KEY = 'test-import-draft';
@@ -84,7 +86,7 @@ export default function TestImportPage() {
     setSubmitting(true);
     setError('');
     try {
-      await importTest({
+      const testId = await importTest({
         title: basicInfo.title,
         description: basicInfo.description || undefined,
         skill: basicInfo.skill,
@@ -104,6 +106,25 @@ export default function TestImportPage() {
         })),
       });
       sessionStorage.removeItem(STORAGE_KEY);
+
+      // Auto-trigger transcript generation for LISTENING tests
+      if (skill === 'LISTENING') {
+        toast.success('Tạo bài thi thành công! Đang tạo transcript tự động...');
+        // Fire-and-forget: fetch test detail → transcribe each stimulus with audio
+        getTestDetail(String(testId)).then(detail => {
+          const audioStimuli = detail.stimuli.filter(s => s.mediaUrl);
+          audioStimuli.forEach(s => {
+            transcribeStimulus(s.id).then(() => {
+              toast.success(`Transcript đã tạo xong cho "${s.title || 'Section ' + s.section}"`);
+            }).catch(() => {
+              toast.error(`Tạo transcript thất bại cho "${s.title || 'Section ' + s.section}"`);
+            });
+          });
+        }).catch(() => {
+          toast.error('Không thể tải chi tiết bài thi để tạo transcript');
+        });
+      }
+
       router.push('/admin/tests');
     } catch {
       setError('Tạo bài thi thất bại. Vui lòng thử lại.');

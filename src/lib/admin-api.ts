@@ -46,8 +46,10 @@ export async function deleteTag(id: string): Promise<void> {
 }
 
 // Tests
-export async function importTest(data: TestImportRequest): Promise<void> {
-  await apiClient.post('/api/v1/admin/tests/import', data, true);
+export async function importTest(data: TestImportRequest): Promise<number> {
+  const response = await apiClient.post<ApiResponse<number>>('/api/v1/admin/tests/import', data, true);
+  if (!response.result) throw new Error('Failed to import test');
+  return response.result;
 }
 
 export async function updateTest(id: string, data: TestUpdateRequest): Promise<void> {

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { Check, Loader2 } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -9,10 +10,10 @@ import {
 import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
 
 const STEPS = [
-  { label: 'Đang chuẩn bị bài test...', duration: 800 },
-  { label: 'Chọn đề Reading cho bạn...', duration: 1000 },
-  { label: 'Chọn đề Listening cho bạn...', duration: 1000 },
-  { label: 'Sắp xong rồi!', duration: 600 },
+  { label: 'Đang chuẩn bị bài test...', duration: 800, check: 'Khởi tạo hệ thống' },
+  { label: 'Chọn đề Reading cho bạn...', duration: 1000, check: 'Chọn đề Reading từ ngân hàng đề' },
+  { label: 'Chọn đề Listening cho bạn...', duration: 1000, check: 'Chọn đề Listening từ ngân hàng đề' },
+  { label: 'Sắp xong rồi!', duration: 600, check: 'Hoàn tất chuẩn bị' },
 ];
 
 interface Props {
@@ -81,18 +82,41 @@ export function PlacementGenerateLoading({ open }: Props) {
         <div className="bg-gradient-to-b from-orange-100 via-orange-50 to-white pt-8 pb-6 px-6">
           <ChibiLoading />
 
-          <div className="text-center mb-5">
+          <div className="text-center mb-4">
             <p className="text-sm font-semibold text-gray-700">
               {STEPS[currentStep].label}
             </p>
+            <p className="text-xs text-orange-500 font-bold mt-1">{Math.round(progress)}%</p>
           </div>
 
           {/* Progress bar */}
-          <div className="w-full bg-orange-100 rounded-full h-2 overflow-hidden">
+          <div className="w-full bg-orange-100 rounded-full h-2 overflow-hidden mb-4">
             <div
               className="h-full bg-gradient-to-r from-orange-400 to-rose-400 rounded-full transition-all duration-500 ease-out"
               style={{ width: `${progress}%` }}
             />
+          </div>
+
+          {/* Checklist */}
+          <div className="space-y-2">
+            {STEPS.map((step, i) => {
+              const done = i < currentStep;
+              const active = i === currentStep;
+              return (
+                <div key={i} className={`flex items-center gap-2 text-xs transition-opacity duration-300 ${
+                  done ? 'text-green-600' : active ? 'text-gray-700' : 'text-gray-300'
+                }`}>
+                  {done ? (
+                    <Check className="h-3.5 w-3.5 text-green-500 shrink-0" />
+                  ) : active ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin text-orange-400 shrink-0" />
+                  ) : (
+                    <div className="h-3.5 w-3.5 rounded-full border border-gray-200 shrink-0" />
+                  )}
+                  <span className={done ? 'line-through' : active ? 'font-medium' : ''}>{step.check}</span>
+                </div>
+              );
+            })}
           </div>
         </div>
       </DialogContent>

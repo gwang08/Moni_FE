@@ -10,6 +10,13 @@ export async function getRoadmapGoals(): Promise<RoadmapGoal[]> {
   return res.result ?? [];
 }
 
+export async function updateGoal(
+  goalId: number,
+  data: { targetBand: number; deadline: string }
+): Promise<void> {
+  await apiClient.put(`/api/v1/learner/goals/${goalId}`, data, true);
+}
+
 export async function updateTaskStatus(
   taskId: number,
   status: 'TODO' | 'DONE'

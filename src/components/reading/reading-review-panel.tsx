@@ -128,11 +128,26 @@ export function ReadingReviewPanel({ stimulus, answers, textAnswers = {}, onLoca
                           <DialogTrigger asChild>
                             <Button variant="outline" size="sm">Xem giải thích</Button>
                           </DialogTrigger>
-                          <DialogContent>
+                          <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
                             <DialogHeader>
                               <DialogTitle>Giải thích câu {question.position}</DialogTitle>
                             </DialogHeader>
-                            <p className="text-sm leading-relaxed">{question.explanation.text}</p>
+                            <div className="text-sm leading-relaxed space-y-2">
+                              {question.explanation.text.split(/(?=Bước \d+:)/g).map((part, i) => {
+                                const trimmed = part.trim();
+                                if (!trimmed) return null;
+                                const stepMatch = trimmed.match(/^(Bước \d+:)\s*([\s\S]*)/);
+                                if (stepMatch) {
+                                  return (
+                                    <div key={i} className="bg-gray-50 rounded-lg p-3">
+                                      <p className="font-semibold text-blue-600 text-xs mb-1">{stepMatch[1]}</p>
+                                      <p className="text-gray-700 whitespace-pre-line">{stepMatch[2].replace(/\s*•\s*/g, '\n• ')}</p>
+                                    </div>
+                                  );
+                                }
+                                return <p key={i} className="text-gray-700 whitespace-pre-line">{trimmed}</p>;
+                              })}
+                            </div>
                             {question.explanation.evidence && (
                               <div className="space-y-2 mt-3">
                                 {question.explanation.evidence.split('\n---\n').filter((e: string) => e.trim()).map((chunk: string, i: number) => (

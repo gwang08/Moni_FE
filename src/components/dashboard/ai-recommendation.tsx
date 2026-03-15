@@ -5,6 +5,7 @@ import { useUserStore } from '@/store/user-store';
 import { calculateOverallScore } from '@/lib/calendar-utils';
 import { getAiRecommendation, type AiRecommendation } from '@/lib/placement-api';
 import { apiClient } from '@/lib/api-client';
+import { getRoadmapGoals, updateGoal } from '@/lib/roadmap-api';
 import type { ApiResponse } from '@/types/auth.types';
 import type { SkillKey } from '@/types';
 import {
@@ -66,7 +67,7 @@ export function AiRecommendationDialog({ open, onOpenChange }: Props) {
     }
   };
 
-  const handleApply = () => {
+  const handleApply = async () => {
     if (!recommendation) return;
     const map: Record<SkillKey, number> = {
       reading: recommendation.recommendedReading,
@@ -77,6 +78,7 @@ export function AiRecommendationDialog({ open, onOpenChange }: Props) {
     for (const [skill, val] of Object.entries(map)) {
       if (val > 0) setTargetScore(skill as SkillKey, val);
     }
+    // Update user profile targets
     apiClient.put<ApiResponse<unknown>>('/users/me', {
       targetReading: recommendation.recommendedReading,
       targetListening: recommendation.recommendedListening,
@@ -84,6 +86,24 @@ export function AiRecommendationDialog({ open, onOpenChange }: Props) {
       targetSpeaking: recommendation.recommendedSpeaking,
       targetBand: recommendation.recommendedOverall,
     }, true).catch(() => {});
+
+    // Update roadmap goals with new targetBand
+    const skillToRecommended: Record<string, number> = {
+      READING: recommendation.recommendedReading,
+      LISTENING: recommendation.recommendedListening,
+      WRITING: recommendation.recommendedWriting,
+      SPEAKING: recommendation.recommendedSpeaking,
+    };
+    getRoadmapGoals().then(goals => {
+      for (const goal of goals) {
+        const newTarget = skillToRecommended[goal.skill];
+        if (newTarget && newTarget > 0 && newTarget !== goal.targetBand) {
+          const deadline = goal.deadline || examDate || new Date(Date.now() + 180 * 86400000).toISOString().split('T')[0];
+          updateGoal(goal.goalId, { targetBand: newTarget, deadline }).catch(() => {});
+        }
+      }
+    }).catch(() => {});
+
     setApplied(true);
     toast.success('Đã áp dụng mục tiêu gợi ý!');
     onOpenChange(false);

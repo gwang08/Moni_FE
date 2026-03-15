@@ -13,11 +13,23 @@ export function detectParagraphs(html: string): string[] {
   if (!html) return [];
   const text = html.replace(/<[^>]+>/g, '\n');
   const labels = new Set<string>();
+  // 1. Try explicit "Paragraph A" labels
   for (const m of text.matchAll(/Paragraph\s+([A-Z])\b/gi)) labels.add(m[1].toUpperCase());
+  // 2. Try "A." pattern at line start
   if (labels.size === 0) {
     for (const m of text.matchAll(/(?:^|\n)\s*([A-Z])\.\s/g)) labels.add(m[1].toUpperCase());
   }
-  return [...labels].sort();
+  if (labels.size > 0) return [...labels].sort();
+
+  // 3. Fallback: auto-detect by <p> tags, skip short paragraphs (<50 chars)
+  const pParts = html.split(/<p[^>]*>/i).filter(p => {
+    const plain = p.replace(/<[^>]*>/g, '').trim();
+    return plain.length >= 50;
+  });
+  if (pParts.length > 1) {
+    return pParts.map((_, i) => String.fromCharCode(65 + i));
+  }
+  return [];
 }
 
 interface Props {

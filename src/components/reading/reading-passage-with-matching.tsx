@@ -10,22 +10,48 @@ interface PassageSegment {
 }
 
 function splitPassageByParagraphs(html: string): PassageSegment[] {
+  // 1. Try explicit "Paragraph A" labels
   let matches = [...html.matchAll(/Paragraph\s+([A-Z])\b/gi)];
+  // 2. Try "<p><strong>A.</strong>" pattern
   if (matches.length === 0) {
     matches = [...html.matchAll(/<p[^>]*>\s*(?:<(?:strong|b)>)?\s*([A-Z])\.\s*(?:<\/(?:strong|b)>)?/gi)];
   }
-  if (matches.length === 0) return [{ label: '', html }];
 
-  const segments: PassageSegment[] = [];
-  if (matches[0].index! > 0) {
-    segments.push({ label: '', html: html.slice(0, matches[0].index!) });
+  if (matches.length > 0) {
+    const segments: PassageSegment[] = [];
+    if (matches[0].index! > 0) {
+      segments.push({ label: '', html: html.slice(0, matches[0].index!) });
+    }
+    for (let i = 0; i < matches.length; i++) {
+      const start = matches[i].index!;
+      const end = i + 1 < matches.length ? matches[i + 1].index! : html.length;
+      segments.push({ label: matches[i][1].toUpperCase(), html: html.slice(start, end) });
+    }
+    return segments;
   }
-  for (let i = 0; i < matches.length; i++) {
-    const start = matches[i].index!;
-    const end = i + 1 < matches.length ? matches[i + 1].index! : html.length;
-    segments.push({ label: matches[i][1].toUpperCase(), html: html.slice(start, end) });
+
+  // 3. Fallback: auto-detect paragraphs by <p> tags, assign A, B, C...
+  const pMatches = [...html.matchAll(/<p[^>]*>/gi)];
+  if (pMatches.length > 1) {
+    const segments: PassageSegment[] = [];
+    let labelIdx = 0;
+    for (let i = 0; i < pMatches.length; i++) {
+      const start = pMatches[i].index!;
+      const end = i + 1 < pMatches.length ? pMatches[i + 1].index! : html.length;
+      const chunk = html.slice(start, end);
+      // Skip very short paragraphs (titles, empty tags)
+      const textOnly = chunk.replace(/<[^>]*>/g, '').trim();
+      if (textOnly.length < 50) {
+        segments.push({ label: '', html: chunk });
+      } else {
+        segments.push({ label: String.fromCharCode(65 + labelIdx), html: chunk });
+        labelIdx++;
+      }
+    }
+    return segments;
   }
-  return segments;
+
+  return [{ label: '', html }];
 }
 
 interface Props {

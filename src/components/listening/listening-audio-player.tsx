@@ -19,13 +19,23 @@ export function ListeningAudioPlayer({ audioUrl }: Props) {
   const audioRef = useRef<HTMLAudioElement>(null);
   const seekBarRef = useRef<HTMLDivElement>(null);
   const { currentTime, isPlaying, playbackRate, volume, duration,
-    setCurrentTime, setIsPlaying, setPlaybackRate, setVolume, setDuration } = useListeningStore();
+    setCurrentTime, setIsPlaying, setPlaybackRate, setVolume, setDuration, registerSeekCallback } = useListeningStore();
   const [error, setError] = useState(false);
   const [loading, setLoading] = useState(true);
   const [isDragging, setIsDragging] = useState(false);
 
   useEffect(() => { if (audioRef.current) audioRef.current.playbackRate = playbackRate; }, [playbackRate]);
   useEffect(() => { if (audioRef.current) audioRef.current.volume = volume; }, [volume]);
+
+  useEffect(() => {
+    const seekFn = (time: number) => {
+      if (audioRef.current) {
+        audioRef.current.currentTime = time;
+      }
+    };
+    registerSeekCallback(seekFn);
+    return () => registerSeekCallback(null);
+  }, [registerSeekCallback]);
 
   useEffect(() => {
     const audio = audioRef.current;

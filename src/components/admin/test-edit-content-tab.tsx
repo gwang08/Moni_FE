@@ -29,6 +29,7 @@ import { applyHighlights, type EvidenceEntry } from '@/components/admin/test-edi
 import { TestEditWritingContent } from '@/components/admin/test-edit-writing-content';
 import { TestEditSpeakingContent } from '@/components/admin/test-edit-speaking-content';
 import { MediaUploadZone } from '@/components/admin/media-upload-zone';
+import { TranscriptEditor } from '@/components/admin/transcript-editor';
 import { updateStimulus } from '@/lib/admin-api';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
@@ -336,6 +337,18 @@ export function TestEditContentTab({ test }: Props) {
                 <audio controls src={stimulus.mediaUrl} className="w-full h-8" />
               </div>
             ) : null
+          )}
+
+          {/* Transcript editor — only for LISTENING, outside passage edit mode */}
+          {test.skill === 'LISTENING' && !editingPassage && (
+            <div className="mt-3">
+              <TranscriptEditor
+                stimulusId={stimulus.id}
+                testId={testId}
+                mediaUrl={stimulus.mediaUrl}
+                initialTranscript={stimulus.transcript}
+              />
+            </div>
           )}
 
           {/* Passage content */}

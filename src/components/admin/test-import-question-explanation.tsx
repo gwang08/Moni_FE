@@ -3,6 +3,7 @@
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Highlighter } from 'lucide-react';
+import { EvidenceList } from '@/components/admin/evidence-list';
 import { useCallback, useRef } from 'react';
 
 interface Props {
@@ -61,22 +62,10 @@ export function QuestionExplanation({ explanation, stimulusContent, onChange }: 
       {/* Dẫn chứng đã chọn */}
       <div>
         <Label className="mb-1 block text-xs font-medium text-gray-600">Dẫn chứng</Label>
-        {explanation?.evidence ? (
-          <div className="relative">
-            <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900 whitespace-pre-wrap max-h-24 overflow-y-auto">
-              {explanation.evidence}
-            </div>
-            <button
-              type="button"
-              onClick={() => update('evidence', '')}
-              className="absolute top-1 right-1 text-amber-400 hover:text-amber-600 text-xs"
-            >
-              ✕
-            </button>
-          </div>
-        ) : (
-          <p className="text-xs text-gray-400 italic">Quét text trên bài đọc rồi bấm &quot;Lấy dẫn chứng&quot;</p>
-        )}
+        <EvidenceList
+          evidence={explanation?.evidence}
+          onChange={(evidence) => onChange({ ...explanation, evidence })}
+        />
       </div>
     </div>
   );

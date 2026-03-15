@@ -1,6 +1,6 @@
 'use client';
 
-import { use, useEffect, useState, useMemo } from 'react';
+import { use, useEffect, useRef, useState, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
@@ -17,14 +17,19 @@ interface ResultData {
   elapsedSeconds: number;
 }
 
-/** Injects <mark> highlight around evidence text in passage HTML */
+/** Injects <mark> highlights around all evidence chunks in passage HTML */
 function injectEvidence(html: string, evidence: string | null): string {
   if (!evidence) return html;
-  const escaped = evidence.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  return html.replace(
-    new RegExp(`(${escaped})`, 'i'),
-    `<mark class="bg-amber-200 rounded px-0.5">$1</mark>`
-  );
+  const chunks = evidence.split('\n---\n').filter(e => e.trim());
+  let result = html;
+  chunks.forEach((chunk) => {
+    const escaped = chunk.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    result = result.replace(
+      new RegExp(`(${escaped})`, 'gi'),
+      `<mark class="bg-amber-200 rounded px-0.5">$1</mark>`
+    );
+  });
+  return result;
 }
 
 interface Props {
@@ -37,8 +42,11 @@ export default function ReadingReviewPage({ params }: Props) {
   const { testDetail, loading, error } = useTestDetail(id);
   const [resultData, setResultData] = useState<ResultData | null>(null);
   const [activeEvidence, setActiveEvidence] = useState<string | null>(null);
+  const loadedRef = useRef(false);
 
   useEffect(() => {
+    if (loadedRef.current) return;
+    loadedRef.current = true;
     const raw = sessionStorage.getItem(`practice-result-${id}`);
     if (!raw) { router.replace(`/practice/reading/${id}`); return; }
     try { setResultData(JSON.parse(raw)); } catch { router.replace(`/practice/reading/${id}`); }

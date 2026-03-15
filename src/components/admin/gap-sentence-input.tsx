@@ -111,7 +111,8 @@ export function GapSentenceInput({ value, onChange, placeholder }: Props) {
       >
         <HighlightedPreview content={value} onClearGap={handleClearGap} />
       </div>
-      <p className="text-[10px] text-green-700">Đáp án: <strong>{answer}</strong>
+      <p className="text-[10px] text-green-700">Đáp án: <strong>{answer.split('|')[0]}</strong>
+        {answer.includes('|') && <span className="text-gray-400 ml-1">(+{answer.split('|').length - 1} đáp án khác)</span>}
         <span className="text-gray-400 ml-2">(click để sửa câu)</span>
       </p>
     </div>

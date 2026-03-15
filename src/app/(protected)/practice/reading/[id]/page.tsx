@@ -63,7 +63,6 @@ export default function ReadingExercisePage({ params }: Props) {
   };
 
   const handleComplete = async () => {
-    setSubmitted(true);
     setConfirmOpen(false);
     markCompleted(id);
 

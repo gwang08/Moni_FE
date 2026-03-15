@@ -31,6 +31,7 @@ export interface StimulusDetail {
   mediaUrl: string | null;
   section: number;
   questionGroups: QuestionGroupDetail[];
+  transcript?: { id: string; startTime: number; endTime: number; text: string; speaker?: string }[];
 }
 
 export interface TestDetailResponse {

@@ -3,11 +3,13 @@
 import { use, useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { StickyNote } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { SkeletonPractice } from '@/components/ui/skeleton';
 import { ListeningPracticeHeader } from '@/components/listening/listening-practice-header';
 import { ListeningAudioPlayer } from '@/components/listening/listening-audio-player';
 import { ListeningQuestionNav } from '@/components/listening/listening-question-nav';
+import { ListeningNotesSidebar } from '@/components/listening/listening-notes-sidebar';
 import { ReadingQuestionsPanel } from '@/components/reading/reading-questions-panel';
 import { useListeningStore } from '@/store/listening-store';
 import { usePracticeStore } from '@/store/practice-store';
@@ -31,6 +33,8 @@ export default function ListeningExercisePage({ params }: Props) {
   const [submitted, setSubmitted] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [exitOpen, setExitOpen] = useState(false);
+  const [notesOpen, setNotesOpen] = useState(false);
+  const notes = useListeningStore((s) => s.notes);
   const [answers, setAnswers] = useState<Record<number, number>>({});
   const [textAnswers, setTextAnswers] = useState<Record<number, string>>({});
   const { elapsed, formatted: elapsedTime } = useElapsedTimer(submitted);
@@ -64,7 +68,6 @@ export default function ListeningExercisePage({ params }: Props) {
   };
 
   const handleComplete = async () => {
-    setSubmitted(true);
     setConfirmOpen(false);
     markCompleted(id);
     if (stimuli) {
@@ -116,6 +119,19 @@ export default function ListeningExercisePage({ params }: Props) {
         onExit={() => setExitOpen(true)}
       />
 
+      {/* Notes toggle */}
+      <div className="flex justify-end px-4 py-1 border-b bg-gray-50/50">
+        <Button
+          variant="outline"
+          size="sm"
+          className="gap-1.5 text-xs"
+          onClick={() => setNotesOpen((v) => !v)}
+        >
+          <StickyNote className="h-3.5 w-3.5" />
+          Ghi chú ({notes.length})
+        </Button>
+      </div>
+
       {/* Main content: scrollable questions */}
       <div className="flex-1 overflow-y-auto">
         <div className="max-w-4xl mx-auto px-4 py-3">
@@ -147,6 +163,8 @@ export default function ListeningExercisePage({ params }: Props) {
         submitted={submitted}
         onSubmit={() => setConfirmOpen(true)}
       />
+
+      <ListeningNotesSidebar open={notesOpen} onOpenChange={setNotesOpen} />
 
       <ConfirmDialog
         open={confirmOpen}

@@ -13,8 +13,9 @@ interface Props {
   onTextAnswer: (questionId: number, text: string) => void;
 }
 
-function isAnswerCorrect(userAnswer: string, correctAnswer: string): boolean {
-  return userAnswer.trim().toLowerCase() === correctAnswer.trim().toLowerCase();
+function isAnswerCorrect(userAnswer: string, correctContent: string): boolean {
+  const acceptedAnswers = correctContent.split('|').map(a => a.trim().toLowerCase());
+  return acceptedAnswers.includes(userAnswer.trim().toLowerCase());
 }
 
 /** Parse question content with {{answer}} marker into parts */
@@ -84,9 +85,13 @@ function GapQuestion({ question, userAnswer, submitted, onTextAnswer }: {
           {correct ? (
             <><CheckCircle2 className="h-3.5 w-3.5 text-green-600" /><span className="text-green-600 font-medium">Đúng</span></>
           ) : wrong ? (
-            <><XCircle className="h-3.5 w-3.5 text-red-500" /><span className="text-red-600">Đáp án: <strong>{correctAnswer}</strong></span></>
+            <><XCircle className="h-3.5 w-3.5 text-red-500" /><span className="text-red-600">Đáp án: <strong>{correctAnswer.split('|')[0]}</strong>
+              {correctAnswer.includes('|') && <span className="text-gray-400 font-normal"> (hoặc: {correctAnswer.split('|').slice(1).join(', ')})</span>}
+            </span></>
           ) : (
-            <span className="text-gray-400 italic">Chưa trả lời — Đáp án: <strong className="text-green-700">{correctAnswer}</strong></span>
+            <span className="text-gray-400 italic">Chưa trả lời — Đáp án: <strong className="text-green-700">{correctAnswer.split('|')[0]}</strong>
+              {correctAnswer.includes('|') && <span className="text-gray-400 font-normal"> (hoặc: {correctAnswer.split('|').slice(1).join(', ')})</span>}
+            </span>
           )}
         </div>
       )}
@@ -95,9 +100,13 @@ function GapQuestion({ question, userAnswer, submitted, onTextAnswer }: {
         <div className="mt-2 ml-5 pt-2 border-t border-gray-100">
           <p className="text-xs text-gray-500"><strong>Giải thích:</strong> {question.explanation.text}</p>
           {question.explanation.evidence && (
-            <p className="text-xs text-amber-700 bg-amber-50 px-2 py-1 rounded mt-1">
-              Dẫn chứng: &ldquo;{question.explanation.evidence}&rdquo;
-            </p>
+            <div className="space-y-1 mt-1">
+              {question.explanation.evidence.split('\n---\n').filter((e: string) => e.trim()).map((chunk: string, i: number) => (
+                <p key={i} className="text-xs text-amber-700 bg-amber-50 px-2 py-1 rounded">
+                  Dẫn chứng: &ldquo;{chunk.trim()}&rdquo;
+                </p>
+              ))}
+            </div>
           )}
         </div>
       )}

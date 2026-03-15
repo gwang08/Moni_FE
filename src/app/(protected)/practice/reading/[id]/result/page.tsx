@@ -1,6 +1,6 @@
 'use client';
 
-import { use, useEffect, useState } from 'react';
+import { use, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Clock } from 'lucide-react';
@@ -43,7 +43,7 @@ function calcGroupStats(groups: QuestionGroupDetail[], answers: Record<number, n
         const userText = (textAnswers[q.id] ?? '').trim();
         if (!userText) { skipped++; continue; }
         const correctAnswer = (q.options.find(o => o.isCorrect)?.content ?? '').trim();
-        userText.toLowerCase() === correctAnswer.toLowerCase() ? correct++ : wrong++;
+        correctAnswer.split('|').map(a => a.trim().toLowerCase()).includes(userText.toLowerCase()) ? correct++ : wrong++;
       } else {
         const selectedId = answers[q.id];
         if (selectedId == null) { skipped++; continue; }
@@ -70,8 +70,11 @@ export default function ReadingResultPage({ params }: Props) {
   const router = useRouter();
   const { testDetail, loading, error } = useTestDetail(id);
   const [resultData, setResultData] = useState<ResultData | null>(null);
+  const loadedRef = useRef(false);
 
   useEffect(() => {
+    if (loadedRef.current) return;
+    loadedRef.current = true;
     const raw = sessionStorage.getItem(`practice-result-${id}`);
     if (!raw) { router.replace(`/practice/reading/${id}`); return; }
     try { setResultData(JSON.parse(raw)); } catch { router.replace(`/practice/reading/${id}`); }

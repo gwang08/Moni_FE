@@ -21,8 +21,8 @@ export function FillOptions({ options, onChange, variant }: Props) {
     onChange([{ label: '', content, isCorrect: true }]);
 
   const placeholder = variant === 'FILL_IN_THE_BLANK'
-    ? 'Nhập đáp án đúng cho chỗ trống...'
-    : 'Nhập câu trả lời ngắn...';
+    ? 'Nhập đáp án (dùng | để phân cách nhiều đáp án, vd: morning|in the morning)'
+    : 'Nhập câu trả lời (dùng | nếu có nhiều đáp án)';
 
   return (
     <div>

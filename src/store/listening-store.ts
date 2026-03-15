@@ -8,6 +8,7 @@ interface ListeningStore {
   playbackRate: number;
   volume: number;
   duration: number;
+  seekCallback: ((time: number) => void) | null;
 
   setCurrentTime: (time: number) => void;
   setIsPlaying: (playing: boolean) => void;
@@ -15,17 +16,21 @@ interface ListeningStore {
   setVolume: (volume: number) => void;
   setDuration: (duration: number) => void;
   addNote: (note: Omit<TimestampNote, 'id'>) => void;
+  addNoteAtCurrentTime: (text: string) => void;
   removeNote: (id: string) => void;
   resetPlayer: () => void;
+  registerSeekCallback: (cb: ((time: number) => void) | null) => void;
+  seekTo: (time: number) => void;
 }
 
-export const useListeningStore = create<ListeningStore>((set) => ({
+export const useListeningStore = create<ListeningStore>((set, get) => ({
   currentTime: 0,
   isPlaying: false,
   notes: [],
   playbackRate: 1,
   volume: 1,
   duration: 0,
+  seekCallback: null,
 
   setCurrentTime: (time) => set({ currentTime: time }),
   setIsPlaying: (playing) => set({ isPlaying: playing }),
@@ -36,6 +41,11 @@ export const useListeningStore = create<ListeningStore>((set) => ({
   addNote: (note) =>
     set((state) => ({
       notes: [...state.notes, { ...note, id: `note_${Date.now()}` }],
+    })),
+
+  addNoteAtCurrentTime: (text) =>
+    set((state) => ({
+      notes: [...state.notes, { id: `note_${Date.now()}`, timestamp: state.currentTime, note: text }],
     })),
 
   removeNote: (id) =>
@@ -50,5 +60,14 @@ export const useListeningStore = create<ListeningStore>((set) => ({
       playbackRate: 1,
       volume: 1,
       duration: 0,
+      notes: [],
     }),
+
+  registerSeekCallback: (cb) => set({ seekCallback: cb }),
+
+  seekTo: (time) => {
+    const { seekCallback } = get();
+    if (seekCallback) seekCallback(time);
+    set({ currentTime: time });
+  },
 }));

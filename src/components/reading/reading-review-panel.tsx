@@ -56,7 +56,7 @@ export function ReadingReviewPanel({ stimulus, answers, textAnswers = {}, onLoca
                 // Gap-type: use text answer
                 const userText = isGap ? (textAnswers[question.id] ?? '').trim() : null;
                 const isGapCorrect = isGap && userText
-                  ? userText.toLowerCase() === correctAnswer.trim().toLowerCase()
+                  ? correctAnswer.split('|').map(a => a.trim().toLowerCase()).includes(userText.toLowerCase())
                   : false;
                 const isGapSkipped = isGap && !userText;
 
@@ -106,7 +106,7 @@ export function ReadingReviewPanel({ stimulus, answers, textAnswers = {}, onLoca
                       <div className="text-sm flex gap-2 items-center">
                         <span className="text-gray-500">Đáp án:</span>
                         <span className="px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-700">
-                          {!isGap && correctOption.label && `${correctOption.label}. `}{correctOption.content}
+                          {!isGap && correctOption.label && `${correctOption.label}. `}{correctOption.content.split('|')[0]}
                         </span>
                       </div>
                     )}
@@ -134,9 +134,13 @@ export function ReadingReviewPanel({ stimulus, answers, textAnswers = {}, onLoca
                             </DialogHeader>
                             <p className="text-sm leading-relaxed">{question.explanation.text}</p>
                             {question.explanation.evidence && (
-                              <p className="bg-amber-50 p-3 rounded border-l-4 border-amber-400 mt-3 text-sm text-amber-800">
-                                Dẫn chứng: &ldquo;{question.explanation.evidence}&rdquo;
-                              </p>
+                              <div className="space-y-2 mt-3">
+                                {question.explanation.evidence.split('\n---\n').filter((e: string) => e.trim()).map((chunk: string, i: number) => (
+                                  <p key={i} className="bg-amber-50 p-3 rounded border-l-4 border-amber-400 text-sm text-amber-800">
+                                    Dẫn chứng {i + 1}: &ldquo;{chunk.trim()}&rdquo;
+                                  </p>
+                                ))}
+                              </div>
                             )}
                           </DialogContent>
                         </Dialog>
@@ -163,7 +167,7 @@ export function ReadingReviewPanel({ stimulus, answers, textAnswers = {}, onLoca
             const userText = (textAnswers[q.id] ?? '').trim();
             const correctAnswer = (q.options.find(o => o.isCorrect)?.content ?? '').trim();
             isSkipped = !userText;
-            isCorrect = !isSkipped && userText.toLowerCase() === correctAnswer.toLowerCase();
+            isCorrect = !isSkipped && correctAnswer.split('|').map(a => a.trim().toLowerCase()).includes(userText.toLowerCase());
           } else {
             const selectedId = answers[q.id];
             isSkipped = selectedId == null;

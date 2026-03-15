@@ -98,8 +98,27 @@ export async function getStimuli(params?: {
   return response.result;
 }
 
-export async function updateStimulus(id: number, data: { content?: string; mediaUrl?: string }): Promise<void> {
+export async function updateStimulus(id: number, data: { content?: string; mediaUrl?: string; transcript?: unknown }): Promise<void> {
   await apiClient.put(`/api/v1/admin/stimuli/${id}`, data, true);
+}
+
+export async function transcribeStimulus(stimulusId: number): Promise<{ id: string; startTime: number; endTime: number; text: string; speaker?: string }[]> {
+  const response = await apiClient.post<ApiResponse<{ id: string; startTime: number; endTime: number; text: string; speaker?: string }[]>>(
+    `/api/v1/admin/stimuli/${stimulusId}/transcribe`,
+    {},
+    true
+  );
+  if (!response.result) throw new Error('Failed to transcribe');
+  return response.result;
+}
+
+export async function getTranscript(stimulusId: number): Promise<{ id: string; startTime: number; endTime: number; text: string; speaker?: string }[]> {
+  const response = await apiClient.get<ApiResponse<{ id: string; startTime: number; endTime: number; text: string; speaker?: string }[]>>(
+    `/api/v1/admin/stimuli/${stimulusId}/transcript`,
+    true
+  );
+  if (!response.result) throw new Error('Failed to get transcript');
+  return response.result;
 }
 
 // Questions

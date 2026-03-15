@@ -1,6 +1,6 @@
 'use client';
 
-import { use, useEffect, useState } from 'react';
+import { use, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
@@ -25,8 +25,11 @@ export default function ListeningReviewPage({ params }: Props) {
   const router = useRouter();
   const { testDetail, loading, error } = useTestDetail(id);
   const [resultData, setResultData] = useState<ResultData | null>(null);
+  const loadedRef = useRef(false);
 
   useEffect(() => {
+    if (loadedRef.current) return;
+    loadedRef.current = true;
     const raw = sessionStorage.getItem(`practice-result-${id}`);
     if (!raw) { router.replace(`/practice/listening/${id}`); return; }
     try { setResultData(JSON.parse(raw)); } catch { router.replace(`/practice/listening/${id}`); }

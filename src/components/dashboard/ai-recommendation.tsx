@@ -95,18 +95,25 @@ export function AiRecommendationDialog({ open, onOpenChange }: Props) {
       SPEAKING: recommendation.recommendedSpeaking,
     };
     getRoadmapGoals().then(async (goals) => {
+      console.log('Roadmap goals to update:', goals);
       const updates = goals
         .filter(goal => {
           const newTarget = skillToRecommended[goal.skill];
+          console.log(`Goal ${goal.skill}: current target=${goal.targetBand}, new target=${newTarget}`);
           return newTarget && newTarget > 0 && newTarget !== goal.targetBand;
         })
         .map(goal => {
           const deadline = goal.deadline || examDate || new Date(Date.now() + 180 * 86400000).toISOString().split('T')[0];
+          console.log(`Updating goal ${goal.goalId} (${goal.skill}): targetBand=${skillToRecommended[goal.skill]}, deadline=${deadline}`);
           return updateGoal(goal.goalId, { targetBand: skillToRecommended[goal.skill], deadline });
         });
       await Promise.all(updates);
+      console.log('All goals updated, dispatching roadmap-updated event');
       window.dispatchEvent(new Event('roadmap-updated'));
-    }).catch(() => {});
+    }).catch((err) => {
+      console.error('Failed to update roadmap goals:', err);
+      toast.error('Không thể cập nhật lộ trình. Vui lòng tải lại trang.');
+    });
 
     setApplied(true);
     toast.success('Đã áp dụng mục tiêu gợi ý!');

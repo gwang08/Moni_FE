@@ -4,8 +4,10 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { BookOpen, Check, Lock, FileText, ClipboardList, RotateCcw } from 'lucide-react';
 import { getRoadmapGoals } from '@/lib/roadmap-api';
+import { useUserStore } from '@/store/user-store';
 import { SkeletonCard } from '@/components/ui/skeleton';
 import type { RoadmapGoal, RoadmapTask, RoadmapSkill } from '@/types/roadmap.types';
+import type { SkillKey } from '@/types';
 
 const SKILL_CONFIG: Record<RoadmapSkill, { label: string; color: string; activeColor: string }> = {
   READING: { label: 'Reading', color: 'text-blue-600', activeColor: 'bg-blue-50 border-blue-200 text-blue-700' },
@@ -80,7 +82,12 @@ function TaskCard({ task, skill }: { task: RoadmapTask; skill: RoadmapSkill }) {
   );
 }
 
-function SkillGoalView({ goal }: { goal: RoadmapGoal }) {
+const SKILL_TO_KEY: Record<string, SkillKey> = {
+  READING: 'reading', LISTENING: 'listening', WRITING: 'writing', SPEAKING: 'speaking',
+};
+
+function SkillGoalView({ goal, userTarget }: { goal: RoadmapGoal; userTarget: number }) {
+  const displayTarget = userTarget > 0 ? userTarget : goal.targetBand;
   const daysLeft = goal.deadline
     ? Math.max(0, Math.ceil((new Date(goal.deadline).getTime() - Date.now()) / 86400000))
     : null;
@@ -92,7 +99,7 @@ function SkillGoalView({ goal }: { goal: RoadmapGoal }) {
         <span className="text-gray-500">
           Band hiện tại: <span className="font-semibold text-gray-800">{goal.startingBand}</span>
           {' → '}
-          Mục tiêu: <span className="font-semibold text-gray-800">{goal.targetBand}</span>
+          Mục tiêu: <span className="font-semibold text-gray-800">{displayTarget}</span>
         </span>
         <span className="text-xs text-gray-400">
           {goal.roadmapVersion ? `v${goal.roadmapVersion}` : ''}
@@ -123,6 +130,7 @@ export function LearningRoadmap() {
   const [goals, setGoals] = useState<RoadmapGoal[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeSkill, setActiveSkill] = useState<RoadmapSkill | null>(null);
+  const targetScores = useUserStore((s) => s.targetScores);
 
   const fetchGoals = async () => {
     try {
@@ -186,7 +194,12 @@ export function LearningRoadmap() {
           </div>
 
           {/* Active goal content */}
-          {activeGoal && <SkillGoalView goal={activeGoal} />}
+          {activeGoal && (
+            <SkillGoalView
+              goal={activeGoal}
+              userTarget={targetScores[SKILL_TO_KEY[activeGoal.skill]] ?? 0}
+            />
+          )}
         </>
       )}
     </div>

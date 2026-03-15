@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
-import { getAttemptHistory } from '@/lib/practice-api';
+import { useMemo } from 'react';
 import type { AttemptHistory } from '@/lib/practice-api';
 import type { SkillKey } from '@/types';
+import { useAttemptHistory } from '@/hooks/use-attempt-history';
 
 const SKILLS: SkillKey[] = ['reading', 'listening', 'writing', 'speaking'];
 
@@ -74,19 +74,9 @@ function getTodayStr(): string {
 }
 
 export function WeeklyStats() {
-  const [attempts, setAttempts] = useState<AttemptHistory[]>([]);
+  const { attempts } = useAttemptHistory();
   const weekDates = useMemo(() => getWeekDates(), []);
   const todayStr = useMemo(() => getTodayStr(), []);
-
-  useEffect(() => {
-    async function fetch() {
-      try {
-        const data = await getAttemptHistory();
-        setAttempts(data);
-      } catch { /* ignore */ }
-    }
-    fetch();
-  }, []);
 
   const dayStats = useMemo(() => buildDayStats(attempts, weekDates), [attempts, weekDates]);
 

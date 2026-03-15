@@ -1,9 +1,8 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
-import { getAttemptHistory } from '@/lib/practice-api';
-import type { AttemptHistory } from '@/lib/practice-api';
+import { useState, useMemo } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { useAttemptHistory } from '@/hooks/use-attempt-history';
 
 const VI_WEEKDAYS = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
 
@@ -37,21 +36,11 @@ function toDateStr(year: number, month: number, day: number): string {
 }
 
 export function ActivityCalendar() {
-  const [attempts, setAttempts] = useState<AttemptHistory[]>([]);
+  const { attempts } = useAttemptHistory();
   const today = new Date();
   const [viewYear, setViewYear] = useState(today.getFullYear());
   const [viewMonth, setViewMonth] = useState(today.getMonth());
   const [selectedWeek, setSelectedWeek] = useState<number | null>(null);
-
-  useEffect(() => {
-    async function fetch() {
-      try {
-        const data = await getAttemptHistory();
-        setAttempts(data);
-      } catch { /* ignore */ }
-    }
-    fetch();
-  }, []);
 
   const activityDates = useMemo(() => {
     const dates = new Set<string>();

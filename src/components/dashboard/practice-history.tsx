@@ -1,12 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { BookOpen, Headphones, Pencil, Mic, Clock } from 'lucide-react';
 import Link from 'next/link';
-import { getAttemptHistory } from '@/lib/practice-api';
 import type { AttemptHistory } from '@/lib/practice-api';
 import type { SkillKey } from '@/types';
 import { SkeletonCard } from '@/components/ui/skeleton';
+import { useAttemptHistory } from '@/hooks/use-attempt-history';
 
 const TABS: { key: SkillKey; label: string; icon: React.ReactNode; skill: string }[] = [
   { key: 'reading', label: 'Reading', icon: <BookOpen className="h-3.5 w-3.5" />, skill: 'READING' },
@@ -86,19 +86,7 @@ function AttemptCard({ attempt }: { attempt: AttemptHistory }) {
 
 export function PracticeHistory() {
   const [activeTab, setActiveTab] = useState<SkillKey>('reading');
-  const [attempts, setAttempts] = useState<AttemptHistory[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    async function fetch() {
-      try {
-        const data = await getAttemptHistory();
-        setAttempts(data);
-      } catch { /* ignore */ }
-      finally { setLoading(false); }
-    }
-    fetch();
-  }, []);
+  const { attempts, loading } = useAttemptHistory();
 
   const activeSkill = TABS.find((t) => t.key === activeTab)?.skill ?? 'READING';
   const filtered = attempts.filter((a) => a.skill === activeSkill);

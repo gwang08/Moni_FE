@@ -27,6 +27,7 @@ import { TestEditGapFilling } from '@/components/admin/test-edit-gap-filling';
 import { TestEditAddQuestionGroupForm } from '@/components/admin/test-edit-add-question-group-form';
 import { TestEditAddQuestionForm } from '@/components/admin/test-edit-add-question-form';
 import { useTestEditMutations } from '@/components/admin/use-test-edit-mutations';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { applyHighlights, type EvidenceEntry } from '@/components/admin/test-edit-highlight-evidence';
 import { TestEditWritingContent } from '@/components/admin/test-edit-writing-content';
 import { TestEditSpeakingContent } from '@/components/admin/test-edit-speaking-content';
@@ -161,7 +162,7 @@ export function TestEditContentTab({ test }: Props) {
 
   // Reading & Listening: existing split-pane with questions + passage
   const testId = String(test.id);
-  const { handleDeleteGroup, handleDeleteQuestion } = useTestEditMutations(testId);
+  const { handleDeleteGroup, handleDeleteQuestion, pendingDelete, confirmDelete, cancelDelete } = useTestEditMutations(testId);
   const [activeStimulus, setActiveStimulus] = useState(0);
   const [pendingEvidence, setPendingEvidence] = useState<string | null>(null);
   const pendingOffsetRef = useRef(-1);
@@ -465,6 +466,16 @@ export function TestEditContentTab({ test }: Props) {
           )}
         </div>
       </div>
+
+      {/* Delete confirmation dialog */}
+      <ConfirmDialog
+        open={!!pendingDelete}
+        onOpenChange={open => { if (!open) cancelDelete(); }}
+        title={pendingDelete?.type === 'group' ? 'Xóa nhóm câu hỏi?' : 'Xóa câu hỏi?'}
+        description={pendingDelete?.type === 'group' ? 'Tất cả câu hỏi trong nhóm sẽ bị xóa.' : 'Câu hỏi này sẽ bị xóa vĩnh viễn.'}
+        variant="destructive"
+        onConfirm={confirmDelete}
+      />
     </div>
   );
 }

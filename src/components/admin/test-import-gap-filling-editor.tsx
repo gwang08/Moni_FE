@@ -18,114 +18,127 @@ interface Props {
   onChange: (questions: QuestionRequest[]) => void;
 }
 
-/** Parse groupContent to find gap markers like [1]___ and extract the number */
-function parseGapMarkers(text: string): number[] {
-  const matches = [...text.matchAll(/\[(\d+)\]_{2,}/g)];
-  return matches.map(m => parseInt(m[1], 10));
-}
-
 export function GapFillingEditor({
   questions, positionOffset, groupContent, pendingEvidence,
   onAssignEvidence, onGroupContentChange, onChange,
 }: Props) {
-  const [expanded, setExpanded] = useState<number | null>(null);
+  const [collapsed, setCollapsed] = useState<Set<number>>(new Set());
   const [mode, setMode] = useState<'sentence' | 'paragraph'>(groupContent ? 'paragraph' : 'sentence');
   const [gapMode, setGapMode] = useState(false);
   const passageRef = useRef<HTMLDivElement>(null);
 
-  // --- Sentence mode helpers (unchanged) ---
-  const addQuestion = () => {
+  // --- Helpers ---
+  const toggleCollapsed = (idx: number) => {
+    setCollapsed(prev => {
+      const next = new Set(prev);
+      next.has(idx) ? next.delete(idx) : next.add(idx);
+      return next;
+    });
+  };
+
+  // No filtering — all questions shown in both modes
+  // Mode only controls: paragraph editor visible + question input style
+
+  // --- Sentence mode helpers ---
+  const addSentenceQuestion = () => {
     onChange([...questions, { content: '', options: [{ label: '', content: '', isCorrect: true }] }]);
   };
-  const removeQuestion = (idx: number) => {
-    onChange(questions.filter((_, i) => i !== idx));
+
+  const removeQuestion = (realIdx: number) => {
+    onChange(questions.filter((_, i) => i !== realIdx));
   };
-  const updateContent = (idx: number, content: string) => {
+
+  const updateContent = (realIdx: number, content: string) => {
     const answer = extractAnswer(content);
-    onChange(questions.map((q, i) => (i === idx ? { ...q, content, options: [{ label: '', content: answer, isCorrect: true }] } : q)));
+    onChange(questions.map((q, i) => (i === realIdx ? { ...q, content, options: [{ label: '', content: answer, isCorrect: true }] } : q)));
   };
-  const updateExplanation = (idx: number, text: string) => {
+
+  const updateExplanation = (realIdx: number, text: string) => {
     onChange(questions.map((q, i) =>
-      i === idx ? { ...q, explanation: { ...q.explanation, text: text || undefined } } : q
-    ));
-  };
-  const handleEvidenceChange = (idx: number, ev: string | undefined) => {
-    onChange(questions.map((q, i) =>
-      i === idx ? { ...q, explanation: { ...q.explanation, evidence: ev } } : q
-    ));
-  };
-  const updateAnswer = (idx: number, answer: string) => {
-    onChange(questions.map((q, i) =>
-      i === idx ? { ...q, options: [{ label: '', content: answer, isCorrect: true }] } : q
+      i === realIdx ? { ...q, explanation: { ...q.explanation, text: text || undefined } } : q
     ));
   };
 
-  // --- Click-to-gap: select text in passage → create gap ---
+  const handleEvidenceChange = (realIdx: number, ev: string | undefined) => {
+    onChange(questions.map((q, i) =>
+      i === realIdx ? { ...q, explanation: { ...q.explanation, evidence: ev } } : q
+    ));
+  };
+
+  const updateAnswer = (realIdx: number, answer: string) => {
+    onChange(questions.map((q, i) =>
+      i === realIdx ? { ...q, options: [{ label: '', content: answer, isCorrect: true }] } : q
+    ));
+  };
+
+  // --- Click-to-gap ---
   const handleCreateGap = useCallback(() => {
     const sel = window.getSelection();
     if (!sel || sel.isCollapsed || !passageRef.current) return;
-    const text = sel.toString().trim();
-    if (!text) return;
-
-    // Check selection is inside our passage div
+    const selectedText = sel.toString().trim();
+    if (!selectedText) return;
     if (!passageRef.current.contains(sel.anchorNode!)) return;
 
     const currentText = groupContent ?? '';
-    const selText = sel.toString();
 
-    // Find the position of selection in the text content
+    // Get selection position relative to text content of the div
     const range = sel.getRangeAt(0);
     const preRange = document.createRange();
     preRange.selectNodeContents(passageRef.current);
     preRange.setEnd(range.startContainer, range.startOffset);
     const startOffset = preRange.toString().length;
 
-    // Calculate next gap number
-    const existingGaps = parseGapMarkers(currentText);
+    // Next gap number = positionOffset + total questions + 1
     const nextNum = positionOffset + questions.length + 1;
 
-    // Replace selected text with gap marker in the raw text
-    // We need to work with the raw groupContent string
-    // Find the selected text at approximately the right position
-    const idx = currentText.indexOf(selText, Math.max(0, startOffset - 5));
-    if (idx === -1) return;
+    // Find the selected text in the raw groupContent near the offset
+    // We need to search in the text WITHOUT gap markers to find the right position
+    const plainText = currentText.replace(/\[(\d+)\]_{2,}/g, (match, num) => {
+      // Replace marker with placeholder of same length to keep offsets aligned
+      return '_'.repeat(match.length);
+    });
 
-    const before = currentText.slice(0, idx);
-    const after = currentText.slice(idx + selText.length);
+    let idx = plainText.indexOf(selectedText, Math.max(0, startOffset - 10));
+    if (idx === -1) idx = currentText.indexOf(selectedText);
+    if (idx === -1) { sel.removeAllRanges(); return; }
+
+    // But we need to work on the actual currentText, adjusting for any length differences
+    // Simpler: just find it directly in currentText
+    const directIdx = currentText.indexOf(selectedText, Math.max(0, idx - 20));
+    const finalIdx = directIdx !== -1 ? directIdx : idx;
+
+    const before = currentText.slice(0, finalIdx);
+    const after = currentText.slice(finalIdx + selectedText.length);
     const newContent = `${before}[${nextNum}]___${after}`;
 
-    // Update groupContent
     onGroupContentChange?.(newContent);
-
-    // Add new question with extracted answer
     onChange([...questions, {
       content: '',
-      options: [{ label: '', content: text, isCorrect: true }],
+      options: [{ label: '', content: selectedText, isCorrect: true }],
     }]);
 
     sel.removeAllRanges();
   }, [groupContent, questions, positionOffset, onGroupContentChange, onChange]);
 
-  // --- Undo last gap ---
+  // --- Undo last paragraph gap ---
   const handleUndoLastGap = useCallback(() => {
     if (questions.length === 0 || !groupContent) return;
     const lastNum = positionOffset + questions.length;
     const marker = `[${lastNum}]___`;
     const lastAnswer = questions[questions.length - 1]?.options.find(o => o.isCorrect)?.content ?? '';
 
-    // Replace marker with original text
     const newContent = groupContent.replace(marker, lastAnswer);
     onGroupContentChange?.(newContent);
     onChange(questions.slice(0, -1));
   }, [groupContent, questions, positionOffset, onGroupContentChange, onChange]);
 
-  // --- Render passage with highlighted gaps ---
+  // --- Render passage with gap markers ---
   const renderPassageHtml = useCallback((text: string) => {
-    // Replace [N]___ with styled gap markers
     return text.replace(/\[(\d+)\]_{2,}/g, (_, num) => {
-      const qIdx = parseInt(num, 10) - positionOffset - 1;
-      const answer = questions[qIdx]?.options.find(o => o.isCorrect)?.content ?? '';
-      return `<span class="inline-flex items-baseline gap-0.5 mx-0.5"><strong style="color:#2563eb">${num}</strong><span style="display:inline-block;min-width:80px;border-bottom:2px solid #9ca3af;text-align:center;color:#9ca3af;font-size:12px;padding:0 4px">${answer || '___'}</span></span>`;
+      const gapNum = parseInt(num, 10);
+      const realIdx = gapNum - positionOffset - 1;
+      const answer = questions[realIdx]?.options.find(o => o.isCorrect)?.content ?? '';
+      return `<span style="display:inline-flex;align-items:baseline;gap:2px;margin:0 2px"><strong style="color:#2563eb;font-size:13px">${num}</strong><span style="display:inline-block;min-width:80px;border-bottom:2px solid #9ca3af;text-align:center;color:#16a34a;font-size:12px;padding:0 4px;font-weight:600">${answer || '___'}</span></span>`;
     });
   }, [questions, positionOffset]);
 
@@ -143,42 +156,36 @@ export function GapFillingEditor({
         </button>
       </div>
 
-      {/* Paragraph mode: click-to-gap */}
+      {/* === PARAGRAPH MODE === */}
       {mode === 'paragraph' && (
         <div className="space-y-2">
-          {/* Toolbar */}
           <div className="flex items-center gap-2 flex-wrap">
             <Button type="button" size="sm" variant={gapMode ? 'default' : 'outline'}
               className={`text-xs h-7 gap-1 ${gapMode ? 'bg-violet-600 hover:bg-violet-700' : ''}`}
               onClick={() => setGapMode(!gapMode)}>
               <MousePointerClick className="h-3 w-3" />
-              {gapMode ? 'Đang đánh dấu gap...' : 'Đánh dấu gap'}
+              {gapMode ? 'Đang đánh dấu...' : 'Đánh dấu gap'}
             </Button>
             {gapMode && (
-              <p className="text-[10px] text-violet-600 font-medium">
-                Quét chọn từ/cụm từ trong đoạn văn bên dưới → bấm &quot;Tạo gap&quot;
-              </p>
+              <p className="text-[10px] text-violet-600 font-medium">Quét chọn từ → bấm &quot;Tạo gap&quot;</p>
             )}
             {questions.length > 0 && (
               <Button type="button" size="sm" variant="ghost" className="text-xs h-7 gap-1 text-gray-400 ml-auto" onClick={handleUndoLastGap}>
-                <Undo2 className="h-3 w-3" /> Hoàn tác gap cuối
+                <Undo2 className="h-3 w-3" /> Hoàn tác
               </Button>
             )}
           </div>
 
-          {/* Passage display */}
+          {/* Passage display or textarea */}
           {(groupContent ?? '').trim() ? (
             <div className="relative">
               <div
                 ref={passageRef}
                 className={`rounded-lg border px-4 py-3 text-sm leading-7 select-text ${
-                  gapMode
-                    ? 'border-violet-300 bg-violet-50/30 cursor-text'
-                    : 'border-gray-200 bg-gray-50'
+                  gapMode ? 'border-violet-300 bg-violet-50/30 cursor-text' : 'border-gray-200 bg-gray-50'
                 }`}
                 dangerouslySetInnerHTML={{ __html: renderPassageHtml(groupContent ?? '') }}
               />
-              {/* Floating "Tạo gap" button when text is selected in gap mode */}
               {gapMode && (
                 <div className="absolute -bottom-1 right-2">
                   <Button type="button" size="sm" className="h-7 text-xs gap-1 bg-violet-600 hover:bg-violet-700 shadow-lg"
@@ -190,7 +197,7 @@ export function GapFillingEditor({
             </div>
           ) : (
             <textarea
-              value={groupContent ?? ''}
+              value=""
               onChange={e => onGroupContentChange?.(e.target.value)}
               placeholder="Dán đoạn văn gốc đầy đủ vào đây. Sau đó bật 'Đánh dấu gap' và quét chọn từ muốn tạo chỗ trống."
               rows={5}
@@ -198,7 +205,7 @@ export function GapFillingEditor({
             />
           )}
 
-          {/* Edit raw text toggle */}
+          {/* Raw text toggle */}
           {(groupContent ?? '').trim() && (
             <details className="text-[10px]">
               <summary className="text-gray-400 cursor-pointer hover:text-gray-600">Sửa text thô</summary>
@@ -213,33 +220,33 @@ export function GapFillingEditor({
         </div>
       )}
 
-      {/* Questions / Answers list */}
-      {(questions.length > 0 || mode === 'sentence') && (
+      {/* === QUESTIONS LIST (filtered by mode) === */}
+      {questions.length > 0 && (
         <div className="rounded-lg border border-gray-200 overflow-hidden divide-y divide-gray-100">
-          {mode === 'paragraph' && questions.length > 0 && (
+          {mode === 'paragraph' && (
             <div className="bg-gray-50 px-3 py-1.5 text-[10px] font-medium text-gray-500 uppercase tracking-wide">
               Đáp án ({questions.length} gap)
             </div>
           )}
           {questions.map((q, idx) => {
-            const isOpen = expanded === idx;
+            const realIdx = idx;
+            const isCollapsed = collapsed.has(realIdx);
             const expl = q.explanation;
-            const hasDetail = !!(expl?.text || expl?.evidence);
             const answer = q.options.find(o => o.isCorrect)?.content ?? '';
 
             return (
-              <div key={idx} className="bg-white">
+              <div key={realIdx} className="bg-white">
                 <div className="px-3 py-2 space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-semibold text-gray-700">Câu {positionOffset + idx + 1}</span>
+                    <span className="text-xs font-semibold text-gray-700">Câu {positionOffset + realIdx + 1}</span>
                     <div className="flex items-center gap-1">
-                      <button type="button" onClick={() => setExpanded(isOpen ? null : idx)}
-                        className={`flex items-center justify-center h-7 w-7 rounded hover:bg-gray-100 ${hasDetail ? 'text-amber-500' : 'text-gray-300'}`}
-                        title="Giải thích & dẫn chứng">
-                        {isOpen ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                      <button type="button" onClick={() => toggleCollapsed(realIdx)}
+                        className="flex items-center justify-center h-7 w-7 rounded hover:bg-gray-100 text-gray-400"
+                        title={isCollapsed ? 'Hiện giải thích' : 'Ẩn giải thích'}>
+                        {isCollapsed ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronUp className="h-3.5 w-3.5" />}
                       </button>
-                      {questions.length > 1 && mode === 'sentence' && (
-                        <button type="button" onClick={() => removeQuestion(idx)} className="text-gray-300 hover:text-red-500 h-7 w-7 flex items-center justify-center">
+                      {mode === 'sentence' && (
+                        <button type="button" onClick={() => removeQuestion(realIdx)} className="text-gray-300 hover:text-red-500 h-7 w-7 flex items-center justify-center">
                           <Trash2 className="h-3.5 w-3.5" />
                         </button>
                       )}
@@ -249,14 +256,14 @@ export function GapFillingEditor({
                   {mode === 'sentence' ? (
                     <GapSentenceInput
                       value={q.content}
-                      onChange={val => updateContent(idx, val)}
+                      onChange={val => updateContent(realIdx, val)}
                       placeholder="VD: The tomato is thought to have first grown in the Americas."
                     />
                   ) : (
                     <div className="space-y-1.5">
                       <Input
                         value={answer}
-                        onChange={e => updateAnswer(idx, e.target.value)}
+                        onChange={e => updateAnswer(realIdx, e.target.value)}
                         placeholder="Đáp án (nhiều đáp án cách bằng |)"
                         className="text-sm h-8"
                       />
@@ -270,12 +277,13 @@ export function GapFillingEditor({
                   )}
                 </div>
 
-                {isOpen && (
+                {/* Explanation + Evidence — default open */}
+                {!isCollapsed && (
                   <div className="px-3 pb-3 grid grid-cols-2 gap-2 border-t border-dashed border-gray-100">
                     <div className="pt-2">
                       <span className="text-[10px] font-medium text-gray-400 uppercase tracking-wide">Giải thích</span>
                       <textarea
-                        value={expl?.text ?? ''} onChange={e => updateExplanation(idx, e.target.value)}
+                        value={expl?.text ?? ''} onChange={e => updateExplanation(realIdx, e.target.value)}
                         placeholder="Tại sao đáp án này đúng?" rows={2}
                         className="mt-1 w-full rounded-md border border-input bg-background px-2 py-1.5 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-none"
                       />
@@ -284,8 +292,8 @@ export function GapFillingEditor({
                       <EvidenceList
                         evidence={expl?.evidence}
                         pendingEvidence={pendingEvidence}
-                        onAssign={() => onAssignEvidence(idx)}
-                        onChange={ev => handleEvidenceChange(idx, ev)}
+                        onAssign={() => onAssignEvidence(realIdx)}
+                        onChange={ev => handleEvidenceChange(realIdx, ev)}
                       />
                     </div>
                   </div>
@@ -297,7 +305,7 @@ export function GapFillingEditor({
       )}
 
       {mode === 'sentence' && (
-        <Button type="button" size="sm" variant="outline" className="text-xs h-7 gap-1" onClick={addQuestion}>
+        <Button type="button" size="sm" variant="outline" className="text-xs h-7 gap-1" onClick={addSentenceQuestion}>
           <Plus className="h-3 w-3" /> Thêm câu
         </Button>
       )}

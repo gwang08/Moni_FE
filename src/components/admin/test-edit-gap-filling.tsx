@@ -26,7 +26,7 @@ export function TestEditGapFilling({
   pendingEvidence, onAssignEvidence, onEvidenceChange,
 }: Props) {
   const queryClient = useQueryClient();
-  const [expanded, setExpanded] = useState<number | null>(null);
+  const [collapsed, setCollapsed] = useState<Set<number>>(new Set());
   const [saving, setSaving] = useState(false);
   const mode = initialGroupContent ? 'paragraph' : 'sentence';
 
@@ -108,19 +108,22 @@ export function TestEditGapFilling({
       {/* Questions */}
       <div className="rounded-lg border border-gray-200 overflow-hidden divide-y divide-gray-100">
         {items.map((item, i) => {
-          const isOpen = expanded === i;
+          const isCollapsed = collapsed.has(i);
           const expl = explanations[i];
-          const hasDetail = !!(expl?.text || expl?.evidence);
 
           return (
             <div key={item.id} className="bg-white">
               <div className="px-3 py-2 space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-semibold text-blue-600">Câu {item.position}</span>
-                  <button type="button" onClick={() => setExpanded(isOpen ? null : i)}
-                    className={`flex items-center justify-center h-7 w-7 rounded hover:bg-gray-100 ${hasDetail ? 'text-amber-500' : 'text-gray-300'}`}
-                    title="Giải thích & dẫn chứng">
-                    {isOpen ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                  <button type="button" onClick={() => setCollapsed(prev => {
+                    const next = new Set(prev);
+                    isCollapsed ? next.delete(i) : next.add(i);
+                    return next;
+                  })}
+                    className="flex items-center justify-center h-7 w-7 rounded hover:bg-gray-100 text-gray-400"
+                    title={isCollapsed ? 'Hiện giải thích' : 'Ẩn giải thích'}>
+                    {isCollapsed ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronUp className="h-3.5 w-3.5" />}
                   </button>
                 </div>
 
@@ -150,7 +153,7 @@ export function TestEditGapFilling({
                 )}
               </div>
 
-              {isOpen && (
+              {!isCollapsed && (
                 <div className="px-3 pb-3 grid grid-cols-2 gap-2 border-t border-dashed border-gray-100">
                   <div className="pt-2">
                     <span className="text-[10px] font-medium text-gray-400 uppercase tracking-wide">Giải thích</span>

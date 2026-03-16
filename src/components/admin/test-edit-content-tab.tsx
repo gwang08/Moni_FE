@@ -17,7 +17,8 @@ import TableCell from '@tiptap/extension-table-cell';
 import TableHeader from '@tiptap/extension-table-header';
 import { RichTextToolbar } from '@/components/admin/rich-text-toolbar';
 import { Button } from '@/components/ui/button';
-import { Highlighter, Loader2, Pencil, Plus, Save, Trash2 } from 'lucide-react';
+import { Eye, EyeOff, Highlighter, Loader2, Pencil, Plus, Save, Trash2 } from 'lucide-react';
+import { ReadingQuestionsPanel } from '@/components/reading/reading-questions-panel';
 import { TestEditQuestionCard } from '@/components/admin/test-edit-question-card';
 import { TestEditMatchingHeadings } from '@/components/admin/test-edit-matching-headings';
 import { TestEditMatchingInformation } from '@/components/admin/test-edit-matching-information';
@@ -175,6 +176,9 @@ export function TestEditContentTab({ test }: Props) {
   const passageRef = useRef<HTMLDivElement>(null);
   const stimulus = test.stimuli[activeStimulus];
 
+  // Preview mode toggle
+  const [previewMode, setPreviewMode] = useState(false);
+
   // CRUD toggle state
   const [addingGroup, setAddingGroup] = useState(false);
   const [addingQuestionForGroup, setAddingQuestionForGroup] = useState<number | null>(null);
@@ -285,12 +289,26 @@ export function TestEditContentTab({ test }: Props) {
 
       <div className="flex gap-0 h-[calc(100vh-220px)]">
         <div className="w-1/2 overflow-y-auto border-r border-gray-200 pr-4 pb-4 space-y-3">
-          <div className="sticky top-0 bg-gray-50 py-2 z-10">
+          <div className="sticky top-0 bg-gray-50 py-2 z-10 flex items-center justify-between">
             <h4 className="text-sm font-semibold text-gray-700">
               Câu hỏi <span className="text-xs font-normal text-gray-500">({totalQuestions} câu)</span>
             </h4>
+            <Button type="button" size="sm" variant={previewMode ? 'default' : 'outline'}
+              className="h-7 text-xs gap-1" onClick={() => setPreviewMode(p => !p)}>
+              {previewMode ? <><EyeOff className="h-3 w-3" /> Soạn câu hỏi</> : <><Eye className="h-3 w-3" /> Xem trước</>}
+            </Button>
           </div>
-          {stimulus.questionGroups.map((group, gi) => {
+
+          {previewMode ? (
+            <ReadingQuestionsPanel
+              stimulus={stimulus}
+              submitted={false}
+              answers={{}}
+              onAnswer={() => {}}
+              textAnswers={{}}
+              onTextAnswer={() => {}}
+            />
+          ) : (<>{stimulus.questionGroups.map((group, gi) => {
             const typeCode = (group.questionTypeCode as QuestionTypeCode) || inferQuestionType(group);
             const isMatchingHeadings = typeCode === 'MATCHING_HEADINGS';
             return (
@@ -364,6 +382,7 @@ export function TestEditContentTab({ test }: Props) {
               <Plus className="h-3.5 w-3.5" /> Thêm nhóm câu hỏi
             </Button>
           )}
+          </>)}
         </div>
 
         <div className="w-1/2 flex flex-col pl-4">

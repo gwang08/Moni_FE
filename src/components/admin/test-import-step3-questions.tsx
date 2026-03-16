@@ -1,10 +1,12 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { Plus, Highlighter } from 'lucide-react';
+import { Plus, Highlighter, Eye, PencilLine } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { QuestionGroupEditor } from '@/components/admin/test-import-question-group-editor';
 import { applyHighlights, type EvidenceEntry } from '@/components/admin/test-edit-highlight-evidence';
+import { ReadingQuestionsPanel } from '@/components/reading/reading-questions-panel';
+import { mapStimulusRequestToDetail } from '@/components/admin/test-import-preview-mapper';
 import type { StimulusRequest, QuestionGroupRequest } from '@/types/admin.types';
 
 interface Props {
@@ -22,6 +24,7 @@ const emptyGroup = (): QuestionGroupRequest => ({
 
 export function TestImportStep3({ stimuli, onChange, onNext, onBack }: Props) {
   const [activeStimulus, setActiveStimulus] = useState(0);
+  const [isPreview, setIsPreview] = useState(false);
   const [pendingEvidence, setPendingEvidence] = useState<string | null>(null);
   const passageRef = useRef<HTMLDivElement>(null);
   const pendingOffsetRef = useRef(-1);
@@ -99,8 +102,6 @@ export function TestImportStep3({ stimuli, onChange, onNext, onBack }: Props) {
     applyHighlights(el, allEvidences);
   }, [passageContent, allEvidences]);
 
-  const totalQuestions = stimulus?.questionGroups.reduce((sum, g) => sum + g.questions.length, 0) ?? 0;
-
   if (!stimulus) return null;
 
   return (
@@ -123,35 +124,76 @@ export function TestImportStep3({ stimuli, onChange, onNext, onBack }: Props) {
 
       {/* Full-width split: Questions LEFT | Passage RIGHT */}
       <div className="flex gap-0 h-[calc(100vh-180px)]">
-        {/* LEFT: Questions */}
+        {/* LEFT: Questions (editor or preview) */}
         <div className="w-1/2 overflow-y-auto border-r border-gray-200 px-4 pb-4 space-y-3">
           <div className="flex items-center justify-between sticky top-0 bg-gray-50 py-2 z-10">
-            <h4 className="text-sm font-semibold text-gray-700">
-              Câu hỏi {totalQuestions > 0 && <span className="text-xs font-normal text-gray-500 ml-1">({totalQuestions} câu)</span>}
-            </h4>
-            <Button size="sm" variant="outline" onClick={addGroup}>
-              <Plus className="h-4 w-4" /> Thêm nhóm
-            </Button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setIsPreview(false)}
+                className={`flex items-center gap-1 px-3 py-1.5 text-xs rounded-md font-medium transition-colors ${
+                  !isPreview ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                <PencilLine className="h-3 w-3" /> Soạn câu hỏi
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsPreview(true)}
+                className={`flex items-center gap-1 px-3 py-1.5 text-xs rounded-md font-medium transition-colors ${
+                  isPreview ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                <Eye className="h-3 w-3" /> Xem trước
+              </button>
+            </div>
+            {!isPreview && (
+              <Button size="sm" variant="outline" onClick={addGroup}>
+                <Plus className="h-4 w-4" /> Thêm nhóm
+              </Button>
+            )}
+            {isPreview && (
+              <span className="text-xs text-gray-400 italic">Chế độ xem trước (chỉ đọc)</span>
+            )}
           </div>
 
-          {stimulus.questionGroups.map((group, gi) => (
-            <QuestionGroupEditor
-              key={gi}
-              group={group}
-              groupIndex={gi}
-              positionOffset={getPositionOffset(gi)}
-              stimulusContent={stimulus.content}
-              pendingEvidence={pendingEvidence}
-              onAssignEvidence={(qi) => assignEvidence(gi, qi)}
-              onChange={updated => updateGroup(gi, updated)}
-              onRemove={() => removeGroup(gi)}
-            />
-          ))}
+          {isPreview ? (
+            stimulus.questionGroups.length === 0 ? (
+              <div className="border-2 border-dashed border-gray-200 rounded-lg p-8 text-center text-gray-400 text-sm">
+                Chưa có câu hỏi nào để xem trước.
+              </div>
+            ) : (
+              <ReadingQuestionsPanel
+                stimulus={mapStimulusRequestToDetail(stimulus, activeStimulus)}
+                submitted={true}
+                answers={{}}
+                onAnswer={() => {}}
+                textAnswers={{}}
+                onTextAnswer={() => {}}
+              />
+            )
+          ) : (
+            <>
+              {stimulus.questionGroups.map((group, gi) => (
+                <QuestionGroupEditor
+                  key={gi}
+                  group={group}
+                  groupIndex={gi}
+                  positionOffset={getPositionOffset(gi)}
+                  stimulusContent={stimulus.content}
+                  pendingEvidence={pendingEvidence}
+                  onAssignEvidence={(qi) => assignEvidence(gi, qi)}
+                  onChange={updated => updateGroup(gi, updated)}
+                  onRemove={() => removeGroup(gi)}
+                />
+              ))}
 
-          {stimulus.questionGroups.length === 0 && (
-            <div className="border-2 border-dashed border-gray-200 rounded-lg p-8 text-center text-gray-400 text-sm">
-              Nhấn &quot;Thêm nhóm&quot; để bắt đầu tạo câu hỏi.
-            </div>
+              {stimulus.questionGroups.length === 0 && (
+                <div className="border-2 border-dashed border-gray-200 rounded-lg p-8 text-center text-gray-400 text-sm">
+                  Nhấn &quot;Thêm nhóm&quot; để bắt đầu tạo câu hỏi.
+                </div>
+              )}
+            </>
           )}
         </div>
 

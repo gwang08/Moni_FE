@@ -11,6 +11,7 @@ import { ReadingToolbar } from '@/components/reading/reading-toolbar';
 import { ReadingPassage } from '@/components/reading/reading-passage';
 import { ReadingPassageWithMatching } from '@/components/reading/reading-passage-with-matching';
 import { ReadingQuestionsPanel } from '@/components/reading/reading-questions-panel';
+import { ReadingQuestionNav } from '@/components/reading/reading-question-nav';
 import { usePracticeStore } from '@/store/practice-store';
 import { useReadingStore } from '@/store/reading-store';
 import { useTestDetail } from '@/hooks/use-test-detail';
@@ -127,6 +128,15 @@ export default function ReadingExercisePage({ params }: Props) {
     : FALLBACK_PASSAGE;
   const questionCount = stimuli?.questionGroups?.reduce((sum, g) => sum + g.questions.length, 0) ?? 0;
 
+  const answeredCount = Object.keys(answers).length + Object.values(textAnswers).filter(t => t.trim() !== '').length;
+  const unansweredCount = questionCount - answeredCount;
+
+  // Build set of answered question IDs for the nav bar
+  const answeredQuestionIds = new Set<number>([
+    ...Object.keys(answers).map(Number),
+    ...Object.entries(textAnswers).filter(([, t]) => t.trim() !== '').map(([k]) => Number(k)),
+  ]);
+
   return (
     <div className="h-[calc(100vh-56px)] flex flex-col">
       {/* Header */}
@@ -205,11 +215,26 @@ export default function ReadingExercisePage({ params }: Props) {
         </div>
       </div>
 
+      {/* Bottom question navigator */}
+      {stimuli && stimuli.questionGroups.length > 0 && (
+        <ReadingQuestionNav
+          questionGroups={stimuli.questionGroups}
+          answeredQuestions={answeredQuestionIds}
+          submitted={submitted}
+          onSubmit={() => setConfirmOpen(true)}
+        />
+      )}
+
       <ConfirmDialog
         open={confirmOpen}
         onOpenChange={setConfirmOpen}
         title="Hoàn thành bài tập?"
-        description="Sau khi hoàn thành, bạn sẽ xem được đáp án đúng và giải thích cho từng câu hỏi."
+        description={
+          unansweredCount > 0
+            ? `Bạn còn ${unansweredCount} câu chưa trả lời. Bạn có chắc muốn nộp bài?`
+            : 'Sau khi hoàn thành, bạn sẽ xem được đáp án đúng và giải thích cho từng câu hỏi.'
+        }
+        variant={unansweredCount > 0 ? 'destructive' : 'default'}
         confirmText="Hoàn thành"
         onConfirm={handleComplete}
       />

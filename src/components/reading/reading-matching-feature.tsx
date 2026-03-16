@@ -63,7 +63,7 @@ export function ReadingMatchingFeature({ questions, answers, submitted, onAnswer
               const isCorrect = selectedOpt?.isCorrect;
 
               return (
-                <tr key={q.id} className="border-b border-gray-100 hover:bg-gray-50/50">
+                <tr key={q.id} id={`question-${q.id}`} className="border-b border-gray-100 hover:bg-gray-50/50">
                   <td className="py-3 px-2">
                     <span className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-green-50 text-green-700 text-xs font-bold">
                       {q.position}
@@ -140,7 +140,7 @@ export function ReadingMatchingFeature({ questions, answers, submitted, onAnswer
           const isCorrect = selectedOpt?.isCorrect;
 
           return (
-            <div key={q.id} className="border border-gray-200 rounded-lg p-3 space-y-2">
+            <div key={q.id} id={`question-${q.id}-mobile`} className="border border-gray-200 rounded-lg p-3 space-y-2">
               <div className="flex items-start gap-2">
                 <span className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-green-50 text-green-700 text-xs font-bold shrink-0">
                   {q.position}

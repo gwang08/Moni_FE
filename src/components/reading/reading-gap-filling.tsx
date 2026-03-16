@@ -60,7 +60,7 @@ function GapQuestion({ question, userAnswer, submitted, onTextAnswer }: {
   const wrong = submitted && userAnswer.trim() !== '' && !correct;
 
   return (
-    <div className="border border-gray-200 rounded-lg p-4">
+    <div id={`question-${question.id}`} className="border border-gray-200 rounded-lg p-4">
       <div className="text-sm text-gray-800 leading-8">
         <span className="text-blue-600 font-bold mr-1">{question.position}.</span>
         {parsed ? (

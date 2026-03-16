@@ -3,6 +3,7 @@
 import { useReadingStore } from '@/store/reading-store';
 import { useRef, useMemo, useState, useCallback } from 'react';
 import { VocabPopup } from '@/components/reading/vocab-popup';
+import { SentenceTranslationPopup } from '@/components/reading/sentence-translation-popup';
 import { NoteInlineEditor } from '@/components/reading/note-inline-editor';
 import { HighlightContextMenu } from '@/components/reading/highlight-context-menu';
 import type { Highlight } from '@/types/reading.types';
@@ -75,6 +76,9 @@ export function ReadingPassage({ content }: Props) {
   const [vocabPopup, setVocabPopup] = useState<{ word: string; sentence: string; x: number; y: number } | null>(null);
   const [notePopup, setNotePopup] = useState<{ id: string; note: string; x: number; y: number } | null>(null);
   const [contextMenu, setContextMenu] = useState<{ type: 'highlight' | 'note'; hlId: string; x: number; y: number } | null>(null);
+  // Sentence translation: button anchor + popup state
+  const [translateButton, setTranslateButton] = useState<{ text: string; x: number; y: number } | null>(null);
+  const [translatePopup, setTranslatePopup] = useState<{ text: string; x: number; y: number } | null>(null);
   const hoveredWordRef = useRef<{ el: HTMLElement | null }>({ el: null });
 
   const getSentenceAroundWord = useCallback((node: Node, word: string): string => {
@@ -90,16 +94,30 @@ export function ReadingPassage({ content }: Props) {
     return text.slice(start, end).trim();
   }, []);
 
-  const handleMouseUp = () => {
+  const handleMouseUp = (e: React.MouseEvent) => {
     if (activeTool === 'vocab') return; // vocab uses click, not drag
     const selected = window.getSelection();
-    if (!selected || selected.toString().trim() === '') return;
-    if (!activeTool) return;
+    if (!selected || selected.toString().trim() === '') {
+      // If clicking without selection and no active tool, dismiss translate button
+      if (!activeTool) setTranslateButton(null);
+      return;
+    }
 
     const text = selected.toString().trim();
     const range = selected.getRangeAt(0);
 
     if (!passageRef.current || !passageRef.current.contains(range.commonAncestorContainer)) {
+      return;
+    }
+
+    // When no tool active and multiple words selected → show "Dịch câu" button
+    if (!activeTool) {
+      const wordCount = text.split(/\s+/).filter(Boolean).length;
+      if (wordCount >= 2) {
+        const rect = range.getBoundingClientRect();
+        setTranslateButton({ text, x: rect.left + rect.width / 2, y: rect.top });
+        setTranslatePopup(null);
+      }
       return;
     }
 
@@ -177,6 +195,15 @@ export function ReadingPassage({ content }: Props) {
   };
 
   const handleClick = (e: React.MouseEvent) => {
+    // Dismiss sentence translation state on any click (unless it's the translate button itself)
+    if (!activeTool) {
+      const sel = window.getSelection();
+      if (!sel || sel.toString().trim().length === 0) {
+        setTranslateButton(null);
+        setTranslatePopup(null);
+      }
+    }
+
     // Vocab mode: single-word click lookup
     if (activeTool === 'vocab') {
       // Clean up underline span first
@@ -231,7 +258,7 @@ export function ReadingPassage({ content }: Props) {
     <>
       <div
         ref={passageRef}
-        onMouseUp={handleMouseUp}
+        onMouseUp={(e) => handleMouseUp(e)}
         onClick={handleClick}
         onMouseOver={handleMouseOver}
         onMouseOut={handleMouseOut}
@@ -250,6 +277,42 @@ export function ReadingPassage({ content }: Props) {
           sentence={vocabPopup.sentence}
           position={{ x: vocabPopup.x, y: vocabPopup.y }}
           onClose={() => setVocabPopup(null)}
+        />
+      )}
+
+      {/* Floating "Dịch câu" button after text selection (no tool active) */}
+      {translateButton && !translatePopup && (
+        <div
+          style={{
+            position: 'fixed',
+            left: translateButton.x,
+            top: translateButton.y - 36,
+            transform: 'translateX(-50%)',
+            zIndex: 50,
+          }}
+        >
+          <button
+            onMouseDown={(e) => {
+              // Use mouseDown to fire before selection is cleared by click
+              e.preventDefault();
+              e.stopPropagation();
+              setTranslatePopup({ text: translateButton.text, x: translateButton.x, y: translateButton.y });
+              setTranslateButton(null);
+              window.getSelection()?.removeAllRanges();
+            }}
+            className="px-3 py-1 bg-violet-600 hover:bg-violet-700 text-white text-xs font-medium rounded-full shadow-lg transition-colors whitespace-nowrap"
+          >
+            Dịch câu
+          </button>
+        </div>
+      )}
+
+      {/* Sentence translation popup */}
+      {translatePopup && (
+        <SentenceTranslationPopup
+          text={translatePopup.text}
+          position={{ x: translatePopup.x - 200, y: translatePopup.y }}
+          onClose={() => setTranslatePopup(null)}
         />
       )}
 

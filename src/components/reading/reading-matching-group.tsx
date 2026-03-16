@@ -96,7 +96,7 @@ export function ReadingMatchingGroup({ questions, answers, submitted, onAnswer }
           const isCorrect = assignedOpt?.isCorrect;
 
           return (
-            <div key={question.id} className="border border-gray-200 rounded-lg p-3">
+            <div key={question.id} id={`question-${question.id}`} className="border border-gray-200 rounded-lg p-3">
               <div className="flex items-center gap-3">
                 <span className="text-blue-600 font-bold text-sm shrink-0">{question.position}.</span>
                 <span className="text-sm font-medium text-gray-800 flex-1">{question.content}</span>

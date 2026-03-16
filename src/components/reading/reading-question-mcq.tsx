@@ -19,7 +19,7 @@ export function ReadingQuestionMcq({ questionId, position, content, options, sel
   const showResult = submitted && selectedId != null;
 
   return (
-    <div className="border border-gray-200 rounded-lg p-4">
+    <div id={`question-${questionId}`} className="border border-gray-200 rounded-lg p-4">
       <p className="text-sm font-medium text-gray-800 mb-3">
         <span className="text-blue-600 font-bold mr-1">{position}.</span>
         {content}

@@ -197,6 +197,26 @@ export function TestEditContentTab({ test }: Props) {
       toast.success('Đã lưu nội dung đề');
       queryClient.invalidateQueries({ queryKey: ['admin', 'test', testId] });
       setEditingPassage(false);
+
+      // Check if any question's evidence chunks are no longer found in the new content
+      const plainText = passageEdit.replace(/<[^>]*>/g, '');
+      const affectedPositions: number[] = [];
+      let questionIndex = 0;
+      for (const group of stimulus.questionGroups) {
+        for (const question of group.questions) {
+          questionIndex++;
+          const evidence = question.explanation?.evidence;
+          if (!evidence) continue;
+          const chunks = evidence.split('\n---\n');
+          const hasInvalidChunk = chunks.some(chunk => chunk.trim() && !plainText.includes(chunk.trim()));
+          if (hasInvalidChunk) affectedPositions.push(questionIndex);
+        }
+      }
+      if (affectedPositions.length > 0) {
+        toast.warning(
+          `Cảnh báo: ${affectedPositions.length} câu có dẫn chứng không còn khớp với nội dung mới (câu ${affectedPositions.join(', ')})`
+        );
+      }
     } catch {
       toast.error('Lưu nội dung thất bại');
     } finally {

@@ -104,6 +104,16 @@ export async function updateStimulus(id: number, data: { content?: string; media
   await apiClient.put(`/api/v1/admin/stimuli/${id}`, data, true);
 }
 
+export async function transcribeByUrl(audioUrl: string): Promise<{ id: string; startTime: number; endTime: number; text: string; speaker?: string }[]> {
+  const response = await apiClient.post<ApiResponse<{ id: string; startTime: number; endTime: number; text: string; speaker?: string }[]>>(
+    '/api/v1/admin/stimuli/transcribe-url',
+    { audioUrl },
+    true
+  );
+  if (!response.result) throw new Error('Failed to transcribe');
+  return response.result;
+}
+
 export async function transcribeStimulus(stimulusId: number): Promise<{ id: string; startTime: number; endTime: number; text: string; speaker?: string }[]> {
   const response = await apiClient.post<ApiResponse<{ id: string; startTime: number; endTime: number; text: string; speaker?: string }[]>>(
     `/api/v1/admin/stimuli/${stimulusId}/transcribe`,

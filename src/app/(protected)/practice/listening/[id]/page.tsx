@@ -58,6 +58,9 @@ export default function ListeningExercisePage({ params }: Props) {
     return s;
   }, [answers]);
 
+  const totalAnsweredCount = answeredSet.size + Object.values(textAnswers).filter(t => t.trim() !== '').length;
+  const unansweredCount = questionCount - totalAnsweredCount;
+
   const handleAnswer = (questionId: number, optionId: number) => {
     if (optionId === 0) {
       setAnswers((prev) => { const next = { ...prev }; delete next[questionId]; return next; });
@@ -178,7 +181,12 @@ export default function ListeningExercisePage({ params }: Props) {
         open={confirmOpen}
         onOpenChange={setConfirmOpen}
         title="Hoàn thành bài tập?"
-        description="Sau khi hoàn thành, bạn sẽ xem được đáp án đúng và giải thích cho từng câu hỏi."
+        description={
+          unansweredCount > 0
+            ? `Bạn còn ${unansweredCount} câu chưa trả lời. Bạn có chắc muốn nộp bài?`
+            : 'Sau khi hoàn thành, bạn sẽ xem được đáp án đúng và giải thích cho từng câu hỏi.'
+        }
+        variant={unansweredCount > 0 ? 'destructive' : 'default'}
         confirmText="Hoàn thành"
         onConfirm={handleComplete}
       />

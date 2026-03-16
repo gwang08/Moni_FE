@@ -20,8 +20,9 @@ interface Props {
   onBatchUpdate?: (groupContent: string, questions: QuestionRequest[]) => void;
 }
 
-/** Check if a question was created via sentence mode (has {{answer}} in content) */
-const isSentenceQ = (q: QuestionRequest) => q.content.includes('{{');
+/** Paragraph questions are tagged with metadata.gapMode = 'paragraph' */
+const isParagraphQ = (q: QuestionRequest) => q.metadata?.gapMode === 'paragraph';
+const isSentenceQ = (q: QuestionRequest) => !isParagraphQ(q);
 
 export function GapFillingEditor({
   questions, positionOffset, groupContent, pendingEvidence,
@@ -97,7 +98,7 @@ export function GapFillingEditor({
     if (idx === -1) { sel.removeAllRanges(); return; }
 
     const newContent = currentText.slice(0, idx) + `[${nextNum}]___` + currentText.slice(idx + selectedText.length);
-    const newQ: QuestionRequest = { content: '', options: [{ label: '', content: selectedText, isCorrect: true }] };
+    const newQ: QuestionRequest = { content: '', options: [{ label: '', content: selectedText, isCorrect: true }], metadata: { gapMode: 'paragraph' } };
 
     // CRITICAL: update BOTH groupContent + questions atomically
     if (onBatchUpdate) {

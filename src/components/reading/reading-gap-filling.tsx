@@ -211,9 +211,9 @@ function ParagraphGapFilling({ groupContent, questions, submitted, textAnswers, 
 }
 
 export function ReadingGapFilling({ questions, groupContent, imageUrl, submitted, textAnswers, onTextAnswer }: Props) {
-  // Sentence questions: have content with {{answer}} or non-empty content
+  // Sentence questions: have content (with {{answer}} or text)
+  // Paragraph questions: empty content OR tagged with gapMode='paragraph'
   const sentenceQs = questions.filter(q => q.content.trim());
-  // Paragraph questions: empty content (answer only in options, rendered via groupContent)
   const paragraphQs = questions.filter(q => !q.content.trim());
 
   return (

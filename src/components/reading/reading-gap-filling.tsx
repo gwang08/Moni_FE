@@ -211,6 +211,11 @@ function ParagraphGapFilling({ groupContent, questions, submitted, textAnswers, 
 }
 
 export function ReadingGapFilling({ questions, groupContent, imageUrl, submitted, textAnswers, onTextAnswer }: Props) {
+  // Sentence questions: have content with {{answer}} or non-empty content
+  const sentenceQs = questions.filter(q => q.content.trim());
+  // Paragraph questions: empty content (answer only in options, rendered via groupContent)
+  const paragraphQs = questions.filter(q => !q.content.trim());
+
   return (
     <div className="space-y-3">
       {imageUrl && (
@@ -220,24 +225,26 @@ export function ReadingGapFilling({ questions, groupContent, imageUrl, submitted
         </div>
       )}
 
-      {groupContent ? (
+      {/* Sentence questions */}
+      {sentenceQs.map(question => (
+        <GapQuestion
+          key={question.id}
+          question={question}
+          userAnswer={textAnswers[question.id] ?? ''}
+          submitted={submitted}
+          onTextAnswer={onTextAnswer}
+        />
+      ))}
+
+      {/* Paragraph with inline gaps */}
+      {groupContent && paragraphQs.length > 0 && (
         <ParagraphGapFilling
           groupContent={groupContent}
-          questions={questions}
+          questions={paragraphQs}
           submitted={submitted}
           textAnswers={textAnswers}
           onTextAnswer={onTextAnswer}
         />
-      ) : (
-        questions.map(question => (
-          <GapQuestion
-            key={question.id}
-            question={question}
-            userAnswer={textAnswers[question.id] ?? ''}
-            submitted={submitted}
-            onTextAnswer={onTextAnswer}
-          />
-        ))
       )}
     </div>
   );

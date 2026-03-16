@@ -155,6 +155,7 @@ export function QuestionGroupEditor({ group, groupIndex, positionOffset, stimulu
           onAssignEvidence={onAssignEvidence}
           onGroupContentChange={gc => onChange({ ...group, groupContent: gc })}
           onChange={qs => onChange({ ...group, questions: qs })}
+          onBatchUpdate={(gc, qs) => onChange({ ...group, groupContent: gc, questions: qs })}
         />
       ) : group.questionTypeCode === 'MATCHING_HEADINGS' ? (
         <MatchingHeadingsEditor

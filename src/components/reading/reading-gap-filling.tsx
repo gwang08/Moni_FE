@@ -60,7 +60,7 @@ function GapQuestion({ question, userAnswer, submitted, onTextAnswer }: {
   const wrong = submitted && userAnswer.trim() !== '' && !correct;
 
   return (
-    <div className="border border-gray-200 rounded-lg p-4">
+    <div id={`question-${question.id}`} className="border border-gray-200 rounded-lg p-4">
       <div className="text-sm text-gray-800 leading-8">
         <span className="text-blue-600 font-bold mr-1">{question.position}.</span>
         {parsed ? (
@@ -125,14 +125,14 @@ function ParagraphGapFilling({ groupContent, questions, submitted, textAnswers, 
   // Build a map: position → question
   const posMap = new Map(questions.map(q => [q.position, q]));
 
-  // Find all "number + dots/underscores/ellipsis" patterns
-  // e.g. "1...", "10 ……….", "2…", "11 __"
-  const pattern = /(\d+)\s*(?:\.{2,}|…+|_{2,})/g;
+  // Find all gap patterns:
+  // "[1]___" (new click-to-gap format), "1...", "10 ……….", "2…", "11 __"
+  const pattern = /\[(\d+)\]_{2,}|(\d+)\s*(?:\.{2,}|…+|_{2,})/g;
   const rendered: React.ReactNode[] = [];
   let lastIndex = 0;
 
   for (const match of groupContent.matchAll(pattern)) {
-    const num = parseInt(match[1], 10);
+    const num = parseInt(match[1] ?? match[2], 10);
     const question = posMap.get(num);
 
     // Only replace if this number maps to a question position
@@ -211,6 +211,11 @@ function ParagraphGapFilling({ groupContent, questions, submitted, textAnswers, 
 }
 
 export function ReadingGapFilling({ questions, groupContent, imageUrl, submitted, textAnswers, onTextAnswer }: Props) {
+  // Sentence questions: have content (with {{answer}} or text)
+  // Paragraph questions: empty content OR tagged with gapMode='paragraph'
+  const sentenceQs = questions.filter(q => q.content.trim());
+  const paragraphQs = questions.filter(q => !q.content.trim());
+
   return (
     <div className="space-y-3">
       {imageUrl && (
@@ -220,24 +225,26 @@ export function ReadingGapFilling({ questions, groupContent, imageUrl, submitted
         </div>
       )}
 
-      {groupContent ? (
+      {/* Sentence questions */}
+      {sentenceQs.map(question => (
+        <GapQuestion
+          key={question.id}
+          question={question}
+          userAnswer={textAnswers[question.id] ?? ''}
+          submitted={submitted}
+          onTextAnswer={onTextAnswer}
+        />
+      ))}
+
+      {/* Paragraph with inline gaps */}
+      {groupContent && paragraphQs.length > 0 && (
         <ParagraphGapFilling
           groupContent={groupContent}
-          questions={questions}
+          questions={paragraphQs}
           submitted={submitted}
           textAnswers={textAnswers}
           onTextAnswer={onTextAnswer}
         />
-      ) : (
-        questions.map(question => (
-          <GapQuestion
-            key={question.id}
-            question={question}
-            userAnswer={textAnswers[question.id] ?? ''}
-            submitted={submitted}
-            onTextAnswer={onTextAnswer}
-          />
-        ))
       )}
     </div>
   );

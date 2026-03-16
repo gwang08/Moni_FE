@@ -5,10 +5,12 @@ import type { TestResponse, TestDetailResponse, PagedResponse } from '@/types/te
 export async function getTests(
   page = 1,
   size = 20,
-  skill?: string
+  skill?: string,
+  keyword?: string
 ): Promise<PagedResponse<TestResponse>> {
   let endpoint = `/api/v1/admin/tests?page=${page - 1}&size=${size}`;
   if (skill) endpoint += `&skill=${skill.toUpperCase()}`;
+  if (keyword) endpoint += `&keyword=${encodeURIComponent(keyword)}`;
 
   const response = await apiClient.get<ApiResponse<PagedResponse<TestResponse>>>(
     endpoint,

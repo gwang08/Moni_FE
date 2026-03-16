@@ -1,6 +1,6 @@
 'use client';
 
-import { CheckCircle2 } from 'lucide-react';
+import { CheckCircle2, Square, CheckSquare } from 'lucide-react';
 import type { OptionDetail } from '@/types/test.types';
 
 interface Props {
@@ -9,17 +9,21 @@ interface Props {
   content: string;
   options: OptionDetail[];
   selectedId: number | undefined;
+  selectedIds?: number[];
+  multiple?: boolean;
   submitted: boolean;
   explanation?: { text?: string; evidence?: string };
   onAnswer: (questionId: number, optionId: number) => void;
 }
 
-/** Button-style renderer for MCQ, TFNG, YNNG, and other option-based types */
-export function ReadingQuestionMcq({ questionId, position, content, options, selectedId, submitted, explanation, onAnswer }: Props) {
-  const showResult = submitted && selectedId != null;
+/** Button-style renderer for MCQ, MCQ_MULTIPLE, TFNG, YNNG */
+export function ReadingQuestionMcq({ questionId, position, content, options, selectedId, selectedIds, multiple, submitted, explanation, onAnswer }: Props) {
+  const selected = multiple ? (selectedIds ?? []) : (selectedId != null ? [selectedId] : []);
+  const hasAnswer = selected.length > 0;
+  const showResult = submitted && hasAnswer;
 
   return (
-    <div className="border border-gray-200 rounded-lg p-4">
+    <div id={`question-${questionId}`} className="border border-gray-200 rounded-lg p-4">
       <p className="text-sm font-medium text-gray-800 mb-3">
         <span className="text-blue-600 font-bold mr-1">{position}.</span>
         {content}
@@ -27,7 +31,7 @@ export function ReadingQuestionMcq({ questionId, position, content, options, sel
 
       <div className="space-y-2">
         {options.map((option) => {
-          const isSelected = selectedId === option.id;
+          const isSelected = selected.includes(option.id);
           const isCorrect = option.isCorrect;
 
           let className = 'w-full flex items-center gap-2 text-sm px-3 py-2 rounded-lg border transition-colors text-left ';
@@ -51,6 +55,10 @@ export function ReadingQuestionMcq({ questionId, position, content, options, sel
             >
               {showResult && isCorrect ? (
                 <CheckCircle2 className="h-4 w-4 shrink-0" />
+              ) : multiple ? (
+                isSelected
+                  ? <CheckSquare className="h-4 w-4 shrink-0 text-blue-500" />
+                  : <Square className="h-4 w-4 shrink-0 text-gray-300" />
               ) : (
                 <span className={`h-4 w-4 rounded-full border-2 shrink-0 flex items-center justify-center ${
                   isSelected ? 'border-blue-500' : 'border-gray-300'
@@ -73,14 +81,18 @@ export function ReadingQuestionMcq({ questionId, position, content, options, sel
             <strong>Giải thích:</strong> {explanation.text}
           </p>
           {explanation.evidence && (
-            <p className="text-xs text-amber-700 bg-amber-50 px-2 py-1 rounded mt-1">
-              Dẫn chứng: &ldquo;{explanation.evidence}&rdquo;
-            </p>
+            <div className="space-y-1 mt-1">
+              {explanation.evidence.split('\n---\n').filter((e: string) => e.trim()).map((chunk: string, i: number) => (
+                <p key={i} className="text-xs text-amber-700 bg-amber-50 px-2 py-1 rounded">
+                  Dẫn chứng: &ldquo;{chunk.trim()}&rdquo;
+                </p>
+              ))}
+            </div>
           )}
         </div>
       )}
 
-      {submitted && selectedId == null && (
+      {submitted && !hasAnswer && (
         <p className="mt-2 text-xs text-gray-400 italic">Chưa trả lời</p>
       )}
     </div>

@@ -13,6 +13,12 @@ import type {
   Page,
 } from '@/types/vocab.types';
 
+export interface SentenceTranslateResult {
+  translation: string;
+  explanation: string;
+  keyPoints: string;
+}
+
 export interface VocabLookupResult {
   word: string;
   phonetic: string;
@@ -53,6 +59,16 @@ export async function lookupVocab(word: string, sentence?: string, signal?: Abor
   });
 
   return inflightPromise;
+}
+
+export async function translateSentence(text: string): Promise<SentenceTranslateResult> {
+  const res = await apiClient.post<ApiResponse<SentenceTranslateResult>>(
+    '/api/v1/vocab/translate-sentence',
+    { text },
+    false
+  );
+  if (!res.result) throw new Error('Không thể dịch câu');
+  return res.result;
 }
 
 // --- Personal words ---

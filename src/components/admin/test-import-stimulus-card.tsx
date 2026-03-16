@@ -55,6 +55,16 @@ export function StimulusCard({ stimulus, index, onChange }: Props) {
     },
   });
 
+  // Sync external content changes (e.g., auto-filled from transcript)
+  useEffect(() => {
+    if (!editor) return;
+    const currentHtml = editor.getHTML();
+    if (stimulus.content && stimulus.content !== currentHtml) {
+      editor.commands.setContent(stimulus.content, { emitUpdate: false });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stimulus.content]);
+
   useEffect(() => {
     return () => { editor?.destroy(); };
   }, [editor]);

@@ -155,6 +155,7 @@ export function QuestionGroupEditor({ group, groupIndex, positionOffset, stimulu
           onAssignEvidence={onAssignEvidence}
           onGroupContentChange={gc => onChange({ ...group, groupContent: gc })}
           onChange={qs => onChange({ ...group, questions: qs })}
+          onBatchUpdate={(gc, qs) => onChange({ ...group, groupContent: gc, questions: qs })}
         />
       ) : group.questionTypeCode === 'MATCHING_HEADINGS' ? (
         <MatchingHeadingsEditor
@@ -179,6 +180,14 @@ export function QuestionGroupEditor({ group, groupIndex, positionOffset, stimulu
             options={group.sharedOptions || []}
             onChange={opts => onChange({ ...group, sharedOptions: opts })}
             labelPrefix="alpha"
+            usageCounts={(() => {
+              const counts: Record<string, number> = {};
+              for (const q of group.questions) {
+                const correct = q.options.find(o => o.isCorrect);
+                if (correct?.label) counts[correct.label] = (counts[correct.label] || 0) + 1;
+              }
+              return counts;
+            })()}
           />
           <MatchingTableEditor
             questions={group.questions}

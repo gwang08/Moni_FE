@@ -1,12 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Plus, Eye, Pencil, Trash2 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
 import { AdminHeader } from '@/components/admin/admin-header';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { getTests } from '@/lib/tests-api';
@@ -37,12 +38,23 @@ export default function AdminTestsPage() {
   const [skillFilter, setSkillFilter] = useState<string>('ALL');
   const [confirmId, setConfirmId] = useState<number | null>(null);
   const [pendingStatus, setPendingStatus] = useState<{ id: number; status: string } | null>(null);
+  const [keywordInput, setKeywordInput] = useState('');
+  const [keyword, setKeyword] = useState('');
+
+  // Debounce keyword 300ms
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setKeyword(keywordInput);
+      setPage(1);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [keywordInput]);
 
   const activeSkill = skillFilter === 'ALL' ? undefined : skillFilter;
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ['admin', 'tests', page, skillFilter],
-    queryFn: () => getTests(page, 20, activeSkill),
+    queryKey: ['admin', 'tests', page, skillFilter, keyword],
+    queryFn: () => getTests(page, 20, activeSkill, keyword || undefined),
     staleTime: 30_000,
   });
 
@@ -90,20 +102,28 @@ export default function AdminTestsPage() {
           </Button>
         </div>
 
-        <div className="flex gap-2 mb-4">
-          {SKILLS.map(skill => (
-            <button
-              key={skill}
-              onClick={() => { setSkillFilter(skill); setPage(1); }}
-              className={`px-3 py-1.5 text-xs font-medium rounded-full border transition-colors ${
-                skillFilter === skill
-                  ? 'bg-blue-600 text-white border-blue-600'
-                  : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
-              }`}
-            >
-              {SKILL_LABELS[skill]}
-            </button>
-          ))}
+        <div className="flex flex-col gap-3 mb-4">
+          <Input
+            value={keywordInput}
+            onChange={e => setKeywordInput(e.target.value)}
+            placeholder="Tìm kiếm bài thi..."
+            className="max-w-sm"
+          />
+          <div className="flex gap-2">
+            {SKILLS.map(skill => (
+              <button
+                key={skill}
+                onClick={() => { setSkillFilter(skill); setPage(1); }}
+                className={`px-3 py-1.5 text-xs font-medium rounded-full border transition-colors ${
+                  skillFilter === skill
+                    ? 'bg-blue-600 text-white border-blue-600'
+                    : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
+                }`}
+              >
+                {SKILL_LABELS[skill]}
+              </button>
+            ))}
+          </div>
         </div>
 
         {error && <p className="text-red-500 mb-4 text-sm">Không thể tải danh sách bài thi</p>}

@@ -27,7 +27,7 @@ interface Props {
 
 export function TestEditQuestionCard({ question, questionTypeCode, testId, pendingEvidence, onAssignEvidence, onEvidenceChange }: Props) {
   const queryClient = useQueryClient();
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(true);
   const [saving, setSaving] = useState(false);
   const [content, setContent] = useState(question.content);
   const [options, setOptions] = useState<OptionRequest[]>(

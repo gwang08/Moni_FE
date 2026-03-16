@@ -132,6 +132,7 @@ export function ReadingQuestionsPanel({ stimulus, submitted = false, answers, on
                       content={question.content}
                       options={displayOptions}
                       selectedId={answers[question.id]}
+                      multiple={group.questionTypeCode === 'MCQ_MULTIPLE'}
                       submitted={submitted}
                       explanation={question.explanation}
                       onAnswer={selectAnswer}

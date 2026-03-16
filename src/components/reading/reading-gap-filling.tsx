@@ -125,14 +125,14 @@ function ParagraphGapFilling({ groupContent, questions, submitted, textAnswers, 
   // Build a map: position → question
   const posMap = new Map(questions.map(q => [q.position, q]));
 
-  // Find all "number + dots/underscores/ellipsis" patterns
-  // e.g. "1...", "10 ……….", "2…", "11 __"
-  const pattern = /(\d+)\s*(?:\.{2,}|…+|_{2,})/g;
+  // Find all gap patterns:
+  // "[1]___" (new click-to-gap format), "1...", "10 ……….", "2…", "11 __"
+  const pattern = /\[(\d+)\]_{2,}|(\d+)\s*(?:\.{2,}|…+|_{2,})/g;
   const rendered: React.ReactNode[] = [];
   let lastIndex = 0;
 
   for (const match of groupContent.matchAll(pattern)) {
-    const num = parseInt(match[1], 10);
+    const num = parseInt(match[1] ?? match[2], 10);
     const question = posMap.get(num);
 
     // Only replace if this number maps to a question position

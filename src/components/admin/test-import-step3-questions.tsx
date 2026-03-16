@@ -165,7 +165,7 @@ export function TestImportStep3({ stimuli, onChange, onNext, onBack }: Props) {
             ) : (
               <ReadingQuestionsPanel
                 stimulus={mapStimulusRequestToDetail(stimulus, activeStimulus)}
-                submitted={true}
+                submitted={false}
                 answers={{}}
                 onAnswer={() => {}}
                 textAnswers={{}}

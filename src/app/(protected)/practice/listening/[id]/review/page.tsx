@@ -13,6 +13,7 @@ interface ResultData {
   attemptId?: number;
   testId: string;
   answers: Record<number, number>;
+  textAnswers?: Record<number, string>;
   elapsedSeconds: number;
 }
 
@@ -26,6 +27,7 @@ export default function ListeningReviewPage({ params }: Props) {
   const { testDetail, loading, error } = useTestDetail(id);
   const [resultData, setResultData] = useState<ResultData | null>(null);
   const loadedRef = useRef(false);
+  const audioRef = useRef<HTMLAudioElement>(null);
 
   useEffect(() => {
     if (loadedRef.current) return;
@@ -71,22 +73,54 @@ export default function ListeningReviewPage({ params }: Props) {
         </div>
       </div>
 
-      {/* Audio player + Review panel */}
+      {/* Audio player + Transcript + Review panel */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Audio player if available */}
+        {/* Audio player */}
         {stimulus.mediaUrl && (
           <div className="px-6 py-3 bg-violet-50 border-b">
-            <audio controls src={stimulus.mediaUrl} className="w-full h-10" />
+            <audio ref={audioRef} controls src={stimulus.mediaUrl} className="w-full h-10" />
           </div>
         )}
 
-        {/* Review panel (reuse Reading's) */}
-        <div className="flex-1 overflow-hidden">
-          <ReadingReviewPanel
-            stimulus={stimulus}
-            answers={resultData.answers}
-            onLocateEvidence={() => {}}
-          />
+        <div className="flex-1 flex overflow-hidden">
+          {/* Review panel */}
+          <div className={`overflow-hidden ${stimulus.transcript?.length ? 'w-1/2 border-r' : 'w-full'}`}>
+            <ReadingReviewPanel
+              stimulus={stimulus}
+              answers={resultData.answers}
+              textAnswers={resultData.textAnswers}
+              onLocateEvidence={() => {}}
+            />
+          </div>
+
+          {/* Transcript panel */}
+          {stimulus.transcript && stimulus.transcript.length > 0 && (
+            <div className="w-1/2 overflow-y-auto p-4 space-y-1">
+              <h4 className="text-sm font-semibold text-gray-700 mb-3 sticky top-0 bg-white py-1">Transcript</h4>
+              {stimulus.transcript.map((seg, i) => {
+                const mins = Math.floor(seg.startTime / 60);
+                const secs = Math.floor(seg.startTime % 60);
+                const ts = `${mins}:${secs.toString().padStart(2, '0')}`;
+                return (
+                  <button
+                    key={seg.id || i}
+                    type="button"
+                    onClick={() => {
+                      if (audioRef.current) {
+                        audioRef.current.currentTime = seg.startTime;
+                        audioRef.current.play();
+                      }
+                    }}
+                    className="w-full text-left px-3 py-2 rounded-lg hover:bg-violet-50 transition-colors group text-sm"
+                  >
+                    <span className="text-[10px] text-violet-500 font-mono group-hover:text-violet-700 mr-2">{ts}</span>
+                    {seg.speaker && <span className="text-xs font-semibold text-gray-500 mr-1">{seg.speaker}:</span>}
+                    <span className="text-gray-700">{seg.text}</span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
     </div>

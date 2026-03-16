@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Loader2, Sparkles, Save, Trash2, Plus } from 'lucide-react';
+import { Loader2, Sparkles, Save, Trash2, Plus, Clock, Type } from 'lucide-react';
 import { transcribeStimulus, updateStimulus } from '@/lib/admin-api';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
@@ -35,6 +35,7 @@ export function TranscriptEditor({ stimulusId, testId, mediaUrl, initialTranscri
   const [generating, setGenerating] = useState(false);
   const [saving, setSaving] = useState(false);
   const [editingIdx, setEditingIdx] = useState<number | null>(null);
+  const [viewMode, setViewMode] = useState<'transcript' | 'subtitle'>('transcript');
 
   const handleGenerate = async () => {
     if (!mediaUrl) {
@@ -88,17 +89,38 @@ export function TranscriptEditor({ stimulusId, testId, mediaUrl, initialTranscri
     setEditingIdx(transcript.length);
   };
 
+  // Full transcript text for easy evidence selection
+  const fullTranscriptText = transcript
+    .map(seg => {
+      const speaker = seg.speaker ? `${seg.speaker}: ` : '';
+      return `${speaker}${seg.text}`;
+    })
+    .join('\n\n');
+
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <h4 className="text-sm font-semibold text-gray-700">Transcript</h4>
         <div className="flex gap-2">
           {transcript.length > 0 && (
-            <Button type="button" size="sm" variant="outline" className="h-7 text-xs gap-1"
-              disabled={saving} onClick={handleSave}>
-              {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />}
-              Lưu transcript
-            </Button>
+            <>
+              {/* View mode toggle */}
+              <div className="flex gap-0.5 p-0.5 bg-gray-100 rounded-md">
+                <button type="button" onClick={() => setViewMode('transcript')}
+                  className={`px-2 py-0.5 text-[10px] rounded transition-colors flex items-center gap-1 ${viewMode === 'transcript' ? 'bg-white shadow-sm font-medium text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}>
+                  <Type className="h-3 w-3" /> Transcript
+                </button>
+                <button type="button" onClick={() => setViewMode('subtitle')}
+                  className={`px-2 py-0.5 text-[10px] rounded transition-colors flex items-center gap-1 ${viewMode === 'subtitle' ? 'bg-white shadow-sm font-medium text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}>
+                  <Clock className="h-3 w-3" /> Subtitle
+                </button>
+              </div>
+              <Button type="button" size="sm" variant="outline" className="h-7 text-xs gap-1"
+                disabled={saving} onClick={handleSave}>
+                {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />}
+                Lưu
+              </Button>
+            </>
           )}
           <Button type="button" size="sm" className="h-7 text-xs gap-1"
             disabled={generating || !mediaUrl} onClick={handleGenerate}>
@@ -125,7 +147,20 @@ export function TranscriptEditor({ stimulusId, testId, mediaUrl, initialTranscri
         </div>
       )}
 
-      {!generating && transcript.length > 0 && (
+      {/* Transcript view: plain text for easy evidence scanning */}
+      {!generating && transcript.length > 0 && viewMode === 'transcript' && (
+        <div className="border rounded-lg bg-white max-h-[400px] overflow-y-auto">
+          <div className="px-4 py-3 text-sm leading-relaxed text-gray-800 whitespace-pre-line select-text cursor-text">
+            {fullTranscriptText}
+          </div>
+          <div className="border-t px-3 py-1.5 bg-gray-50">
+            <p className="text-[10px] text-gray-400">Quét chọn text để lấy dẫn chứng. Chuyển sang &quot;Subtitle&quot; để sửa timestamp.</p>
+          </div>
+        </div>
+      )}
+
+      {/* Subtitle view: with timestamps and editing */}
+      {!generating && transcript.length > 0 && viewMode === 'subtitle' && (
         <div className="space-y-1.5 max-h-[400px] overflow-y-auto border rounded-lg p-2">
           {transcript.map((seg, idx) => (
             <div key={seg.id} className="flex gap-2 items-start p-2 rounded-md hover:bg-gray-50 group text-sm">

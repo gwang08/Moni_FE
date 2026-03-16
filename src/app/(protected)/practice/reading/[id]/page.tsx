@@ -17,6 +17,7 @@ import { useReadingStore } from '@/store/reading-store';
 import { useTestDetail } from '@/hooks/use-test-detail';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { useElapsedTimer } from '@/hooks/use-elapsed-timer';
+import { useCountdownTimer } from '@/hooks/use-countdown-timer';
 import { submitAttempt } from '@/lib/practice-api';
 import { updateTaskStatus } from '@/lib/roadmap-api';
 
@@ -45,7 +46,19 @@ export default function ReadingExercisePage({ params }: Props) {
   const [answers, setAnswers] = useState<Record<number, number>>({});
   const [textAnswers, setTextAnswers] = useState<Record<number, string>>({});
   const [selectedPillId, setSelectedPillId] = useState<number | null>(null);
-  const { elapsed, formatted: elapsedTime } = useElapsedTimer(submitted);
+  const isExamMode = modeParam === 'exam';
+  const testDuration = testDetail?.duration ?? 0;
+
+  const elapsedTimer = useElapsedTimer(submitted || isExamMode);
+  const countdownTimer = useCountdownTimer(
+    testDuration > 0 ? testDuration : 60,
+    submitted || !isExamMode,
+    () => { if (!submitted) setConfirmOpen(true); },
+  );
+
+  const elapsed = isExamMode ? countdownTimer.elapsed : elapsedTimer.elapsed;
+  const displayTime = isExamMode ? countdownTimer.formatted : elapsedTimer.formatted;
+  const isCountingDown = isExamMode && testDuration > 0;
 
   useEffect(() => {
     if (modeParam === 'exam' || modeParam === 'practice') setMode(modeParam);
@@ -158,9 +171,10 @@ export default function ReadingExercisePage({ params }: Props) {
             </div>
             <div className="flex items-center gap-3 text-sm text-muted-foreground">
               {questionCount > 0 && <span>{questionCount} câu hỏi</span>}
-              <span className={`flex items-center gap-1 font-mono tabular-nums ${submitted ? 'text-green-600' : ''}`}>
+              <span className={`flex items-center gap-1 font-mono tabular-nums ${submitted ? 'text-green-600' : isCountingDown && countdownTimer.remaining < 60 ? 'text-red-600 animate-pulse' : isCountingDown ? 'text-orange-600' : ''}`}>
                 <Clock className="h-3.5 w-3.5" />
-                {elapsedTime}
+                {displayTime}
+                {isCountingDown && !submitted && <span className="text-[10px] font-normal ml-1">⏱</span>}
               </span>
             </div>
           </div>

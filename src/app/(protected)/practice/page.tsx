@@ -100,6 +100,11 @@ function PracticePage() {
 
   const handleStartExercise = (exercise: Exercise) => {
     requireAuth(() => {
+      // Speaking/Writing: skip mode modal, go straight to practice
+      if (exercise.skill === 'speaking' || exercise.skill === 'writing') {
+        router.push(`/practice/${exercise.skill}/${exercise.id}`);
+        return;
+      }
       setSelectedExercise(exercise);
       setModalOpen(true);
     });

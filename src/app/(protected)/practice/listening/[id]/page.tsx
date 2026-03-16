@@ -16,6 +16,7 @@ import { usePracticeStore } from '@/store/practice-store';
 import { useTestDetail } from '@/hooks/use-test-detail';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { useElapsedTimer } from '@/hooks/use-elapsed-timer';
+import { useCountdownTimer } from '@/hooks/use-countdown-timer';
 import { submitAttempt } from '@/lib/practice-api';
 import { updateTaskStatus } from '@/lib/roadmap-api';
 
@@ -40,7 +41,19 @@ export default function ListeningExercisePage({ params }: Props) {
   const notes = useListeningStore((s) => s.notes);
   const [answers, setAnswers] = useState<Record<number, number>>({});
   const [textAnswers, setTextAnswers] = useState<Record<number, string>>({});
-  const { elapsed, formatted: elapsedTime } = useElapsedTimer(submitted);
+  const modeParam = searchParams.get('mode');
+  const isExamMode = modeParam === 'exam';
+  const testDuration = testDetail?.duration ?? 0;
+
+  const elapsedTimer = useElapsedTimer(submitted || isExamMode);
+  const countdownTimer = useCountdownTimer(
+    testDuration > 0 ? testDuration : 60,
+    submitted || !isExamMode,
+    () => { if (!submitted) setConfirmOpen(true); },
+  );
+
+  const elapsed = isExamMode ? countdownTimer.elapsed : elapsedTimer.elapsed;
+  const elapsedTime = isExamMode ? countdownTimer.formatted : elapsedTimer.formatted;
 
   useEffect(() => { resetPlayer(); }, [resetPlayer]);
 
@@ -126,6 +139,8 @@ export default function ListeningExercisePage({ params }: Props) {
         submitted={submitted}
         answeredCount={answeredSet.size}
         totalQuestions={questionCount}
+        isCountingDown={isExamMode && testDuration > 0}
+        remainingSeconds={countdownTimer.remaining}
         onSubmit={() => setConfirmOpen(true)}
         onExit={() => setExitOpen(true)}
       />

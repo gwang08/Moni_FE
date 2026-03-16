@@ -10,6 +10,8 @@ interface Props {
   submitted: boolean;
   answeredCount: number;
   totalQuestions: number;
+  isCountingDown?: boolean;
+  remainingSeconds?: number;
   onSubmit: () => void;
   onExit: () => void;
 }
@@ -18,8 +20,11 @@ export function ListeningPracticeHeader({
   title,
   elapsedTime,
   submitted,
+  isCountingDown,
+  remainingSeconds,
   onExit,
 }: Props) {
+  const isUrgent = isCountingDown && (remainingSeconds ?? 999) < 60;
   return (
     <div className="shrink-0 flex items-center justify-between px-5 py-2 bg-white/60 backdrop-blur-sm border-b border-gray-100">
       {/* Left: close */}
@@ -46,9 +51,10 @@ export function ListeningPracticeHeader({
             Đã hoàn thành
           </span>
         )}
-        <div className="flex items-center gap-1.5 bg-emerald-500 text-white px-4 py-1.5 rounded-full shadow-sm">
+        <div className={`flex items-center gap-1.5 text-white px-4 py-1.5 rounded-full shadow-sm ${isUrgent ? 'bg-red-500 animate-pulse' : isCountingDown ? 'bg-orange-500' : 'bg-emerald-500'}`}>
           <Clock className="h-3.5 w-3.5" />
           <span className="text-sm font-bold font-mono tabular-nums">{elapsedTime}</span>
+          {isCountingDown && !submitted && <span className="text-[10px]">⏱</span>}
         </div>
       </div>
 

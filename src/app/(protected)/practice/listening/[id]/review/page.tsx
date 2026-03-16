@@ -83,8 +83,8 @@ export default function ListeningReviewPage({ params }: Props) {
         )}
 
         <div className="flex-1 flex overflow-hidden">
-          {/* Review panel */}
-          <div className={`overflow-hidden ${stimulus.transcript?.length ? 'w-1/2 border-r' : 'w-full'}`}>
+          {/* Review panel (answers) */}
+          <div className="w-1/2 border-r overflow-hidden">
             <ReadingReviewPanel
               stimulus={stimulus}
               answers={resultData.answers}
@@ -93,11 +93,11 @@ export default function ListeningReviewPage({ params }: Props) {
             />
           </div>
 
-          {/* Transcript panel */}
-          {stimulus.transcript && stimulus.transcript.length > 0 && (
-            <div className="w-1/2 overflow-y-auto p-4 space-y-1">
-              <h4 className="text-sm font-semibold text-gray-700 mb-3 sticky top-0 bg-white py-1">Transcript</h4>
-              {stimulus.transcript.map((seg, i) => {
+          {/* Transcript panel - always visible for listening */}
+          <div className="w-1/2 overflow-y-auto p-4 space-y-1">
+            <h4 className="text-sm font-semibold text-gray-700 mb-3 sticky top-0 bg-white py-1 z-10">Transcript</h4>
+            {stimulus.transcript && stimulus.transcript.length > 0 ? (
+              stimulus.transcript.map((seg, i) => {
                 const mins = Math.floor(seg.startTime / 60);
                 const secs = Math.floor(seg.startTime % 60);
                 const ts = `${mins}:${secs.toString().padStart(2, '0')}`;
@@ -118,9 +118,11 @@ export default function ListeningReviewPage({ params }: Props) {
                     <span className="text-gray-700">{seg.text}</span>
                   </button>
                 );
-              })}
-            </div>
-          )}
+              })
+            ) : (
+              <p className="text-sm text-gray-400 text-center py-8">Chưa có transcript cho bài nghe này.</p>
+            )}
+          </div>
         </div>
       </div>
     </div>

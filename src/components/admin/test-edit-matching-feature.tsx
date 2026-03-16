@@ -121,8 +121,8 @@ export function TestEditMatchingFeature({ questions, testId, pendingEvidence, on
 
       {/* Statements table */}
       <div className="rounded-lg border border-gray-200 overflow-hidden divide-y divide-gray-100">
-        <div className="grid grid-cols-[32px_1fr_60px_28px] bg-gray-50 px-3 py-2 text-xs font-medium text-gray-500">
-          <span>#</span><span>Statement</span><span>Ans</span><span />
+        <div className="grid grid-cols-[32px_1fr_minmax(100px,180px)_28px] bg-gray-50 px-3 py-2 text-xs font-medium text-gray-500">
+          <span>#</span><span>Statement</span><span>Đáp án</span><span />
         </div>
         {statements.map((stmt, i) => {
           const isOpen = expanded === i;
@@ -130,20 +130,25 @@ export function TestEditMatchingFeature({ questions, testId, pendingEvidence, on
           const hasDetail = !!(expl?.text || expl?.evidence);
           return (
             <div key={i} className="bg-white">
-              <div className="grid grid-cols-[32px_1fr_60px_28px] items-center px-3 py-2 gap-1">
+              <div className="grid grid-cols-[32px_1fr_minmax(100px,180px)_28px] items-center px-3 py-2 gap-1">
                 <span className="text-xs font-bold text-blue-600">{i + 1}</span>
                 <Input
                   value={stmt.content}
                   onChange={e => setStatements(s => s.map((st, j) => j === i ? { ...st, content: e.target.value } : st))}
-                  placeholder="Statement content..."
+                  placeholder="Nhập nội dung câu hỏi..."
                   className="text-sm h-8"
                 />
                 <select
                   value={stmt.correctLabel}
                   onChange={e => setStatements(s => s.map((st, j) => j === i ? { ...st, correctLabel: e.target.value } : st))}
                   className="rounded-md border border-input bg-background px-1.5 py-1 text-sm h-8 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  title={categories.find(c => c.label === stmt.correctLabel)?.content}
                 >
-                  {categories.map(c => <option key={c.label} value={c.label}>{c.label}</option>)}
+                  {categories.map(c => (
+                    <option key={c.label} value={c.label}>
+                      {c.label}. {c.content ? (c.content.length > 25 ? c.content.slice(0, 25) + '…' : c.content) : '(chưa nhập)'}
+                    </option>
+                  ))}
                 </select>
                 <button
                   type="button"

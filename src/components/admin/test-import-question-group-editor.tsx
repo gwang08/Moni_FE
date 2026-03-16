@@ -179,6 +179,14 @@ export function QuestionGroupEditor({ group, groupIndex, positionOffset, stimulu
             options={group.sharedOptions || []}
             onChange={opts => onChange({ ...group, sharedOptions: opts })}
             labelPrefix="alpha"
+            usageCounts={(() => {
+              const counts: Record<string, number> = {};
+              for (const q of group.questions) {
+                const correct = q.options.find(o => o.isCorrect);
+                if (correct?.label) counts[correct.label] = (counts[correct.label] || 0) + 1;
+              }
+              return counts;
+            })()}
           />
           <MatchingTableEditor
             questions={group.questions}

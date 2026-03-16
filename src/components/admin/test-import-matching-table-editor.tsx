@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Plus, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
+import { EvidenceList } from '@/components/admin/evidence-list';
 import type { QuestionRequest } from '@/types/admin.types';
 
 interface SharedOption {
@@ -71,7 +72,7 @@ export function MatchingTableEditor({ questions, sharedOptions, positionOffset, 
     <div className="space-y-2">
       <div className="rounded-lg border border-gray-200 overflow-hidden divide-y divide-gray-100">
         {/* Header */}
-        <div className="grid grid-cols-[40px_1fr_80px_28px_32px] bg-gray-50 px-2 py-1.5 text-xs font-medium text-gray-500">
+        <div className="grid grid-cols-[40px_1fr_minmax(120px,200px)_28px_32px] bg-gray-50 px-2 py-1.5 text-xs font-medium text-gray-500">
           <span>#</span>
           <span>Nội dung câu hỏi</span>
           <span>Đáp án</span>
@@ -85,7 +86,7 @@ export function MatchingTableEditor({ questions, sharedOptions, positionOffset, 
           const hasDetail = !!(q.explanation?.text || q.explanation?.evidence);
           return (
             <div key={idx} className="bg-white">
-              <div className="grid grid-cols-[40px_1fr_80px_28px_32px] items-center px-2 py-1.5 gap-1">
+              <div className="grid grid-cols-[40px_1fr_minmax(120px,200px)_28px_32px] items-center px-2 py-1.5 gap-1">
                 <span className="text-xs font-semibold text-gray-400">{positionOffset + idx + 1}</span>
                 <Input
                   value={q.content}
@@ -96,11 +97,14 @@ export function MatchingTableEditor({ questions, sharedOptions, positionOffset, 
                 <select
                   value={q.options.find(o => o.isCorrect)?.label || ''}
                   onChange={e => updateAnswer(idx, e.target.value)}
-                  className="h-8 rounded-md border border-input bg-background px-1.5 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  className="h-8 rounded-md border border-input bg-background px-1.5 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring min-w-[120px]"
+                  title={sharedOptions.find(o => o.label === (q.options.find(op => op.isCorrect)?.label))?.content}
                 >
                   <option value="">--</option>
                   {sharedOptions.map(opt => (
-                    <option key={opt.label} value={opt.label}>{opt.label}</option>
+                    <option key={opt.label} value={opt.label}>
+                      {opt.label}. {opt.content ? (opt.content.length > 30 ? opt.content.slice(0, 30) + '…' : opt.content) : '(chưa nhập)'}
+                    </option>
                   ))}
                 </select>
                 <button
@@ -127,24 +131,12 @@ export function MatchingTableEditor({ questions, sharedOptions, positionOffset, 
                       className="mt-1 w-full rounded-md border border-input bg-background px-2 py-1.5 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-none"
                     />
                   </div>
-                  <div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-medium text-gray-400 uppercase tracking-wide">Dẫn chứng</span>
-                      {pendingEvidence && (
-                        <button type="button" onClick={() => assignEvidence(idx)}
-                          className="text-[10px] text-green-600 hover:text-green-800 font-medium">
-                          + Gán dẫn chứng đã quét
-                        </button>
-                      )}
-                    </div>
-                    <textarea
-                      value={q.explanation?.evidence ?? ''}
-                      onChange={e => updateExplanationEvidence(idx, e.target.value)}
-                      placeholder="Trích dẫn đoạn văn liên quan..."
-                      rows={2}
-                      className="mt-1 w-full rounded-md border border-amber-200 bg-amber-50 px-2 py-1.5 text-xs text-amber-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 resize-none"
-                    />
-                  </div>
+                  <EvidenceList
+                    evidence={q.explanation?.evidence}
+                    pendingEvidence={pendingEvidence}
+                    onAssign={() => assignEvidence(idx)}
+                    onChange={ev => updateExplanationEvidence(idx, ev ?? '')}
+                  />
                 </div>
               )}
             </div>

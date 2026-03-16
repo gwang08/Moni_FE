@@ -42,20 +42,22 @@ export function McqOptions({ options, onChange, multiple = false }: Props) {
   return (
     <div className="space-y-2">
       {options.map((option, idx) => (
-        <div key={idx} className="flex items-center gap-2">
+        <div key={idx} className={`flex items-center gap-2 rounded-lg px-2 py-1.5 transition-colors ${
+          option.isCorrect ? 'bg-green-50 ring-1 ring-green-200' : ''
+        }`}>
           <input
             type={multiple ? 'checkbox' : 'radio'}
             name={multiple ? undefined : `mcq-${options.map(o => o.label).join('-')}`}
             checked={option.isCorrect}
             onChange={() => multiple ? toggleCorrect(idx) : setCorrectRadio(idx)}
-            className="mt-0.5"
+            className="mt-0.5 accent-green-600"
           />
-          <span className="text-xs font-semibold text-gray-500 w-5">{option.label}</span>
+          <span className={`text-xs font-semibold w-5 ${option.isCorrect ? 'text-green-700' : 'text-gray-500'}`}>{option.label}</span>
           <Input
             value={option.content}
             onChange={e => setContent(idx, e.target.value)}
             placeholder={`Đáp án ${option.label}`}
-            className="text-sm"
+            className={`text-sm ${option.isCorrect ? 'border-green-300 focus-visible:ring-green-400' : ''}`}
           />
           {options.length > 2 && (
             <button type="button" onClick={() => removeOption(idx)} className="text-gray-400 hover:text-red-500">

@@ -14,7 +14,7 @@ import { toast } from 'sonner';
 
 const GOOGLE_OAUTH_URL =
   'https://accounts.google.com/o/oauth2/v2/auth' +
-  '?client_id=716523925477-f1rl5dum4r8pq48t56oqvfntqg8q4ino.apps.googleusercontent.com' +
+  '?client_id=1010429030946-7rpjhtpauni9gim1ihfrbjeh79d21ddc.apps.googleusercontent.com' +
   '&redirect_uri=http://localhost:3000/oauth/callback' +
   '&response_type=code' +
   '&scope=openid email profile';

@@ -98,6 +98,17 @@ export default function CheckoutPage() {
     const init = async () => {
       try {
         const payment = await initPayment(selectedPackage.id, selectedPackage.price);
+        // Fix backend QR URL where acc/bank params are swapped
+        if (payment.qrCodeUrl) {
+          const url = new URL(payment.qrCodeUrl);
+          const acc = url.searchParams.get('acc');
+          const bank = url.searchParams.get('bank');
+          if (acc && bank && isNaN(Number(acc))) {
+            url.searchParams.set('acc', bank);
+            url.searchParams.set('bank', acc);
+            payment.qrCodeUrl = url.toString();
+          }
+        }
         setPendingPayment(payment);
       } catch {
         setError('Không thể khởi tạo thanh toán. Vui lòng thử lại.');

@@ -39,8 +39,21 @@ export default function ListeningExercisePage({ params }: Props) {
   const [exitOpen, setExitOpen] = useState(false);
   const [notesOpen, setNotesOpen] = useState(false);
   const notes = useListeningStore((s) => s.notes);
-  const [answers, setAnswers] = useState<Record<number, number>>({});
-  const [textAnswers, setTextAnswers] = useState<Record<number, string>>({});
+  const progressKey = `practice-progress-${id}`;
+  const [answers, setAnswers] = useState<Record<number, number>>(() => {
+    if (typeof window === 'undefined') return {};
+    try {
+      const saved = sessionStorage.getItem(progressKey);
+      return saved ? JSON.parse(saved).answers ?? {} : {};
+    } catch { return {}; }
+  });
+  const [textAnswers, setTextAnswers] = useState<Record<number, string>>(() => {
+    if (typeof window === 'undefined') return {};
+    try {
+      const saved = sessionStorage.getItem(progressKey);
+      return saved ? JSON.parse(saved).textAnswers ?? {} : {};
+    } catch { return {}; }
+  });
   const modeParam = searchParams.get('mode');
   const isExamMode = modeParam === 'exam';
   const testDuration = testDetail?.duration ?? 0;
@@ -74,6 +87,12 @@ export default function ListeningExercisePage({ params }: Props) {
   const totalAnsweredCount = answeredSet.size + Object.values(textAnswers).filter(t => t.trim() !== '').length;
   const unansweredCount = questionCount - totalAnsweredCount;
 
+  // Auto-save progress to sessionStorage
+  useEffect(() => {
+    if (submitted) return;
+    sessionStorage.setItem(progressKey, JSON.stringify({ answers, textAnswers }));
+  }, [answers, textAnswers, submitted, progressKey]);
+
   const handleAnswer = (questionId: number, optionId: number) => {
     if (optionId === 0) {
       setAnswers((prev) => { const next = { ...prev }; delete next[questionId]; return next; });
@@ -89,6 +108,7 @@ export default function ListeningExercisePage({ params }: Props) {
   const handleComplete = async () => {
     setConfirmOpen(false);
     markCompleted(id);
+    sessionStorage.removeItem(progressKey);
     if (stimuli) {
       const optionAnswers = Object.entries(answers).map(([qId, optId]) => ({
         questionId: Number(qId), selectedOptionId: optId,

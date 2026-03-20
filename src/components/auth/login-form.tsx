@@ -23,6 +23,7 @@ export function LoginForm() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(true);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -43,6 +44,11 @@ export function LoginForm() {
 
       const { token, expiryTime } = response.result;
       await setAuth(token, expiryTime);
+      if (!rememberMe) {
+        sessionStorage.setItem('auth-session-only', '1');
+      } else {
+        localStorage.removeItem('auth-session-only');
+      }
       toast.success('Đăng nhập thành công!');
       router.push(getRoleFromToken(token) === 'ADMIN' ? '/admin' : '/dashboard');
     } catch (err) {
@@ -87,6 +93,16 @@ export function LoginForm() {
           {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
         </button>
       </div>
+
+      <label className="flex items-center gap-2 cursor-pointer select-none">
+        <input
+          type="checkbox"
+          checked={rememberMe}
+          onChange={(e) => setRememberMe(e.target.checked)}
+          className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer"
+        />
+        <span className="text-sm text-muted-foreground">Ghi nhớ đăng nhập</span>
+      </label>
 
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg">

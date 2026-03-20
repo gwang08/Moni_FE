@@ -116,7 +116,7 @@ export default function PaymentPage() {
                         {pkg.creditAmount.toLocaleString('vi-VN')}
                       </span>
                       <Image
-                        src="/currency"
+                        src="/currency.webp"
                         alt="credit"
                         width={28}
                         height={28}
@@ -174,7 +174,7 @@ export default function PaymentPage() {
                 <span className="text-primary font-bold text-sm whitespace-nowrap flex items-center gap-1 bg-primary/5 px-2.5 py-1 rounded-full">
                   {svc.creditCost}
                   <Image
-                    src="/currency"
+                    src="/currency.webp"
                     alt="credit"
                     width={16}
                     height={16}

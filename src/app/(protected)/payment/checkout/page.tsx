@@ -21,14 +21,14 @@ import { Button } from '@/components/ui/button';
 const formatVND = (price: number) =>
   new Intl.NumberFormat('vi-VN').format(price) + ' đ';
 
-/** Parse LocalDateTime string from backend as local timezone (not UTC) */
+/** Parse LocalDateTime string from backend as UTC (server runs in UTC) */
 function parseLocalDateTime(dt: string): number {
   if (!dt.includes('Z') && !dt.includes('+')) {
     const [datePart, timePart] = dt.split('T');
     const [y, m, d] = datePart.split('-').map(Number);
     const [hh, mm, ssRaw] = (timePart || '').split(':');
     const ss = Math.floor(parseFloat(ssRaw || '0'));
-    return new Date(y, m - 1, d, Number(hh), Number(mm), ss).getTime();
+    return Date.UTC(y, m - 1, d, Number(hh), Number(mm), ss);
   }
   return new Date(dt).getTime();
 }
@@ -220,7 +220,7 @@ export default function CheckoutPage() {
           <div className="rounded-2xl bg-gradient-to-br from-primary/5 to-primary/10 border border-primary/20 p-4 flex items-center gap-4">
             <div className="p-2.5 rounded-xl bg-white shadow-sm">
               <Image
-                src="/currency"
+                src="/currency.webp"
                 alt="credit"
                 width={32}
                 height={32}

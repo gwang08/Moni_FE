@@ -1,6 +1,9 @@
 'use client';
 
-import { Volume2 } from 'lucide-react';
+import { useState } from 'react';
+import { Volume2, BookmarkPlus, Check, Loader2 } from 'lucide-react';
+import { saveWord } from '@/lib/vocab-api';
+import { toast } from 'sonner';
 import type { CuratedWord } from '@/types/vocab.types';
 
 const POS_BADGE: Record<string, string> = {
@@ -13,8 +16,26 @@ const POS_BADGE: Record<string, string> = {
 };
 
 export function CuratedWordCard({ word }: { word: CuratedWord }) {
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+
   const playAudio = () => {
     if (word.audioUrl) new Audio(word.audioUrl).play().catch(() => {});
+  };
+
+  const handleSave = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (saving || saved) return;
+    setSaving(true);
+    try {
+      await saveWord(word.word);
+      setSaved(true);
+      toast.success(`Đã lưu từ "${word.word}"`);
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Không thể lưu từ');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const posColor = word.pos
@@ -40,6 +61,18 @@ export function CuratedWordCard({ word }: { word: CuratedWord }) {
               <Volume2 className="h-4 w-4" />
             </button>
           )}
+          <button
+            onClick={handleSave}
+            disabled={saving || saved}
+            className={`p-2 rounded-xl transition-colors shrink-0 ${
+              saved
+                ? 'bg-emerald-50 text-emerald-500'
+                : 'bg-gray-50 text-gray-400 hover:bg-emerald-50 hover:text-emerald-500'
+            } disabled:opacity-60`}
+            title={saved ? 'Đã lưu' : 'Lưu từ vựng'}
+          >
+            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : saved ? <Check className="h-4 w-4" /> : <BookmarkPlus className="h-4 w-4" />}
+          </button>
         </div>
         {word.pos && (
           <span className={`shrink-0 px-2.5 py-1 rounded-lg text-[10px] font-bold

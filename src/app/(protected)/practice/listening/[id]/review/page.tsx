@@ -2,12 +2,13 @@
 
 import { use, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
 import { SkeletonPractice } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { ReadingReviewPanel } from '@/components/reading/reading-review-panel';
 import { useTestDetail } from '@/hooks/use-test-detail';
+import { getAttemptResult } from '@/lib/practice-api';
 
 interface ResultData {
   attemptId?: number;
@@ -24,6 +25,8 @@ interface Props {
 export default function ListeningReviewPage({ params }: Props) {
   const { id } = use(params);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const attemptIdParam = searchParams.get('attemptId');
   const { testDetail, loading, error } = useTestDetail(id);
   const [resultData, setResultData] = useState<ResultData | null>(null);
   const loadedRef = useRef(false);
@@ -32,10 +35,29 @@ export default function ListeningReviewPage({ params }: Props) {
   useEffect(() => {
     if (loadedRef.current) return;
     loadedRef.current = true;
+
     const raw = sessionStorage.getItem(`practice-result-${id}`);
-    if (!raw) { router.replace(`/practice/listening/${id}`); return; }
-    try { setResultData(JSON.parse(raw)); } catch { router.replace(`/practice/listening/${id}`); }
-  }, [id, router]);
+    if (raw) {
+      try { setResultData(JSON.parse(raw)); return; } catch { /* fall through */ }
+    }
+
+    if (attemptIdParam) {
+      getAttemptResult(Number(attemptIdParam)).then((res) => {
+        const answers: Record<number, number> = {};
+        const textAnswers: Record<number, string> = {};
+        for (const r of res.results) {
+          if (r.selectedOptionId) answers[r.questionId] = r.selectedOptionId;
+          if (r.answerText) textAnswers[r.questionId] = r.answerText;
+        }
+        setResultData({ attemptId: res.attemptId, testId: id, answers, textAnswers, elapsedSeconds: res.elapsedSeconds });
+      }).catch(() => {
+        router.replace(`/practice/listening/${id}`);
+      });
+      return;
+    }
+
+    router.replace(`/practice/listening/${id}`);
+  }, [id, router, attemptIdParam]);
 
   if (loading || !resultData) {
     return <SkeletonPractice />;

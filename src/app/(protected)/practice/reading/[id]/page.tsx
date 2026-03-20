@@ -43,8 +43,21 @@ export default function ReadingExercisePage({ params }: Props) {
   const [submitted, setSubmitted] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [exitOpen, setExitOpen] = useState(false);
-  const [answers, setAnswers] = useState<Record<number, number>>({});
-  const [textAnswers, setTextAnswers] = useState<Record<number, string>>({});
+  const progressKey = `practice-progress-${id}`;
+  const [answers, setAnswers] = useState<Record<number, number>>(() => {
+    if (typeof window === 'undefined') return {};
+    try {
+      const saved = sessionStorage.getItem(progressKey);
+      return saved ? JSON.parse(saved).answers ?? {} : {};
+    } catch { return {}; }
+  });
+  const [textAnswers, setTextAnswers] = useState<Record<number, string>>(() => {
+    if (typeof window === 'undefined') return {};
+    try {
+      const saved = sessionStorage.getItem(progressKey);
+      return saved ? JSON.parse(saved).textAnswers ?? {} : {};
+    } catch { return {}; }
+  });
   const [selectedPillId, setSelectedPillId] = useState<number | null>(null);
   const isExamMode = modeParam === 'exam';
   const testDuration = testDetail?.duration ?? 0;
@@ -65,6 +78,12 @@ export default function ReadingExercisePage({ params }: Props) {
     clearAll();
   }, [modeParam, setMode, clearAll]);
 
+  // Auto-save progress to sessionStorage
+  useEffect(() => {
+    if (submitted) return;
+    sessionStorage.setItem(progressKey, JSON.stringify({ answers, textAnswers }));
+  }, [answers, textAnswers, submitted, progressKey]);
+
   const handleAnswer = (questionId: number, optionId: number) => {
     if (optionId === 0) {
       // Clear answer (matching group X button)
@@ -81,6 +100,7 @@ export default function ReadingExercisePage({ params }: Props) {
   const handleComplete = async () => {
     setConfirmOpen(false);
     markCompleted(id);
+    sessionStorage.removeItem(progressKey);
 
     // Submit to backend, save attemptId for result page
     if (stimuli) {

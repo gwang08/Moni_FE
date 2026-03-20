@@ -54,7 +54,7 @@ function AttemptCard({ attempt }: { attempt: AttemptHistory }) {
     : 0;
   const skillPath = attempt.skill?.toLowerCase() ?? 'reading';
   const reviewUrl = attempt.stimulusId
-    ? `/practice/${skillPath}/${attempt.stimulusId}`
+    ? `/practice/${skillPath}/${attempt.stimulusId}/review?attemptId=${attempt.attemptId}`
     : '#';
 
   return (

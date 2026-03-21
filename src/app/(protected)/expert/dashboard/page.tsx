@@ -1,70 +1,89 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useAuthStore } from '@/store/auth-store';
-import { Star, Users, ToggleLeft } from 'lucide-react';
+import { Star, Users, Loader2, LogOut } from 'lucide-react';
 import { toast } from 'sonner';
 import { apiClient } from '@/lib/api-client';
 import type { ApiResponse } from '@/types/auth.types';
-
-interface QueuedSession {
-  id: number;
-  studentName: string;
-  skill: string;
-  createdAt: string;
-}
-
-// Mock stats – replace with API call when backend ready
-const mockStats = { totalSessions: 42, rating: 4.7 };
+import type { ExpertProfile, ScoringSession } from '@/types/expert.types';
 
 export default function ExpertDashboardPage() {
   const router = useRouter();
-  const { user } = useAuthStore();
-  const [isOnline, setIsOnline] = useState(false);
-  const [sessions, setSessions] = useState<QueuedSession[]>([]);
-  const [loadingSessions, setLoadingSessions] = useState(false);
+  const { user, logout } = useAuthStore();
+  const [profile, setProfile] = useState<ExpertProfile | null>(null);
+  const [sessions, setSessions] = useState<ScoringSession[]>([]);
+  const [loading, setLoading] = useState(true);
+  const initRef = useRef(false);
 
-  const toggleStatus = async (online: boolean) => {
-    try {
-      await apiClient.patch<ApiResponse<unknown>>(
-        '/api/v1/experts/me/status',
-        { status: online ? 'AVAILABLE' : 'OFFLINE' },
-        true
-      );
-      setIsOnline(online);
-      if (online) {
-        fetchQueuedSessions();
+  // Auto-set online + fetch profile on mount
+  useEffect(() => {
+    if (initRef.current) return;
+    initRef.current = true;
+
+    const init = async () => {
+      try {
+        // Set online
+        await apiClient.patch('/api/v1/experts/me/status', { status: 'AVAILABLE' }, true);
+        // Fetch profile
+        const res = await apiClient.get<ApiResponse<ExpertProfile>>('/api/v1/experts/me', true);
+        setProfile(res.result ?? null);
+        // Fetch queued sessions
+        const sessRes = await apiClient.get<ApiResponse<ScoringSession[]>>(
+          '/api/v1/expert/sessions', true,
+        );
+        setSessions(sessRes.result ?? []);
+      } catch {
+        toast.error('Không thể tải thông tin');
+      } finally {
+        setLoading(false);
       }
-      toast.success(online ? 'Bạn đang online' : 'Bạn đã offline');
+    };
+    init();
+  }, []);
+
+  const handleLogout = () => {
+    // Set offline before logout
+    apiClient.patch('/api/v1/experts/me/status', { status: 'OFFLINE' }, true).catch(() => {});
+    toast.success('Đã đăng xuất');
+    logout();
+    router.push('/login');
+  };
+
+  const handleStartSession = async (id: number) => {
+    try {
+      await apiClient.patch<ApiResponse<ScoringSession>>(
+        `/api/v1/expert/sessions/${id}/start`, {}, true,
+      );
+      router.push(`/expert/session/${id}`);
     } catch {
-      toast.error('Không thể cập nhật trạng thái');
+      toast.error('Không thể bắt đầu phiên');
     }
   };
 
-  const fetchQueuedSessions = async () => {
-    setLoadingSessions(true);
-    try {
-      const response = await apiClient.get<ApiResponse<QueuedSession[]>>(
-        '/api/v1/experts/me/queued-sessions',
-        true
-      );
-      setSessions(response.result ?? []);
-    } catch {
-      toast.error('Không thể tải danh sách phiên');
-    } finally {
-      setLoadingSessions(false);
-    }
-  };
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 max-w-4xl mx-auto space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Xin chào, {user?.fullName ?? 'Expert'}</h1>
-        <p className="text-muted-foreground text-sm mt-1">Bảng điều khiển giảng viên</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">Xin chào, {user?.fullName ?? 'Expert'}</h1>
+          <p className="text-muted-foreground text-sm mt-1">Bảng điều khiển giảng viên</p>
+        </div>
+        <Button variant="outline" size="sm" className="gap-2 text-red-500" onClick={handleLogout}>
+          <LogOut className="h-4 w-4" />
+          Đăng xuất
+        </Button>
       </div>
 
       {/* Stats */}
@@ -72,82 +91,42 @@ export default function ExpertDashboardPage() {
         <Card className="p-4 flex items-center gap-3">
           <Users className="h-8 w-8 text-primary" />
           <div>
-            <p className="text-2xl font-bold">{mockStats.totalSessions}</p>
+            <p className="text-2xl font-bold">{profile?.totalSessions ?? 0}</p>
             <p className="text-xs text-muted-foreground">Tổng phiên chấm</p>
           </div>
         </Card>
-
         <Card className="p-4 flex items-center gap-3">
           <Star className="h-8 w-8 text-amber-500 fill-amber-500" />
           <div>
-            <p className="text-2xl font-bold">{mockStats.rating}</p>
+            <p className="text-2xl font-bold">{profile?.rating?.toFixed(1) ?? '0.0'}</p>
             <p className="text-xs text-muted-foreground">Đánh giá trung bình</p>
           </div>
         </Card>
-
         <Card className="p-4 flex items-center gap-3">
-          <ToggleLeft className="h-8 w-8 text-green-500" />
+          <div className="h-3 w-3 rounded-full bg-green-500 animate-pulse" />
           <div>
-            <p className="text-sm font-semibold">{isOnline ? 'Đang online' : 'Offline'}</p>
-            <p className="text-xs text-muted-foreground">Trạng thái hiện tại</p>
+            <p className="text-sm font-semibold text-green-600">Đang online</p>
+            <p className="text-xs text-muted-foreground">Sẵn sàng nhận phiên</p>
           </div>
         </Card>
       </div>
 
-      {/* Online toggle */}
-      <Card className="p-4 flex items-center justify-between">
-        <div>
-          <p className="font-medium text-sm">Nhận phiên chấm</p>
-          <p className="text-xs text-muted-foreground">
-            Bật để học viên có thể đặt lịch với bạn
-          </p>
-        </div>
-        <Button
-          size="sm"
-          variant={isOnline ? 'destructive' : 'default'}
-          onClick={() => toggleStatus(!isOnline)}
-        >
-          {isOnline ? 'Chuyển Offline' : 'Bật Online'}
-        </Button>
-      </Card>
-
       {/* Queued sessions */}
       <div>
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="font-semibold">Phiên đang chờ</h2>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={fetchQueuedSessions}
-            disabled={loadingSessions}
-          >
-            Làm mới
-          </Button>
-        </div>
-
-        {sessions.length === 0 ? (
+        <h2 className="font-semibold mb-3">Phiên đang chờ</h2>
+        {sessions.filter(s => s.status === 'QUEUED').length === 0 ? (
           <Card className="p-8 text-center text-muted-foreground text-sm">
-            {isOnline ? 'Chưa có phiên nào đang chờ' : 'Bật online để nhận phiên mới'}
+            Chưa có phiên nào đang chờ
           </Card>
         ) : (
           <div className="space-y-3">
-            {sessions.map((session) => (
-              <Card key={session.id} className="p-4 flex items-center justify-between">
+            {sessions.filter(s => s.status === 'QUEUED').map((s) => (
+              <Card key={s.id} className="p-4 flex items-center justify-between">
                 <div className="space-y-1">
-                  <p className="font-medium text-sm">{session.studentName}</p>
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline" className="text-xs">{session.skill}</Badge>
-                    <span className="text-xs text-muted-foreground">
-                      {new Date(session.createdAt).toLocaleString('vi-VN')}
-                    </span>
-                  </div>
+                  <p className="font-medium text-sm">Phiên #{s.id}</p>
+                  <Badge variant="outline" className="text-xs">{s.skill}</Badge>
                 </div>
-                <Button
-                  size="sm"
-                  onClick={() => router.push(`/expert/session/${session.id}`)}
-                >
-                  Nhận phiên
-                </Button>
+                <Button size="sm" onClick={() => handleStartSession(s.id)}>Nhận phiên</Button>
               </Card>
             ))}
           </div>

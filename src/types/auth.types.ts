@@ -30,6 +30,8 @@ export interface UserProfileResponse {
   phoneNumber: string | null;
   dateOfBirth: string;
   targetBand: number | null;
+  credit: number | null;
+  role: string | null;
 }
 
 export interface ApiResponse<T> {

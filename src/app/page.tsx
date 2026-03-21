@@ -16,6 +16,7 @@ import {
 export default function Home() {
   const router = useRouter();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const user = useAuthStore((s) => s.user);
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
@@ -24,7 +25,9 @@ export default function Home() {
 
   useEffect(() => {
     if (hydrated && isAuthenticated) {
-      router.replace('/dashboard');
+      const role = user?.role;
+      const dest = role === 'ADMIN' ? '/admin' : role === 'EXPERT' ? '/expert/dashboard' : '/dashboard';
+      router.replace(dest);
     }
   }, [hydrated, isAuthenticated, router]);
 

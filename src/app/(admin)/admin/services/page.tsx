@@ -75,7 +75,6 @@ export default function AdminServicesPage() {
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
                   <th className="px-4 py-3 text-left font-medium text-gray-600">Tên dịch vụ</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-600">Mã dịch vụ</th>
                   <th className="px-4 py-3 text-left font-medium text-gray-600">Chi phí (credits)</th>
                   <th className="px-4 py-3 text-left font-medium text-gray-600">Mô tả</th>
                   <th className="px-4 py-3 text-right font-medium text-gray-600">Thao tác</th>
@@ -83,11 +82,10 @@ export default function AdminServicesPage() {
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {services.length === 0 ? (
-                  <tr><td colSpan={5} className="text-center py-8 text-gray-400">Chưa có dịch vụ nào</td></tr>
+                  <tr><td colSpan={4} className="text-center py-8 text-gray-400">Chưa có dịch vụ nào</td></tr>
                 ) : services.map(svc => (
                   <tr key={svc.id} className="hover:bg-gray-50">
                     <td className="px-4 py-3 font-medium text-gray-800">{svc.name}</td>
-                    <td className="px-4 py-3"><Badge variant="outline">{svc.serviceCode}</Badge></td>
                     <td className="px-4 py-3 text-gray-700">{svc.creditCost.toLocaleString('vi-VN')}</td>
                     <td className="px-4 py-3 text-gray-500 max-w-xs truncate">{svc.description || '—'}</td>
                     <td className="px-4 py-3">

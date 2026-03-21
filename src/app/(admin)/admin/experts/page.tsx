@@ -7,7 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ExpertFormDialog } from '@/components/admin/expert-form-dialog';
 import { getAdminExperts, updateExpertStatus, deleteExpert } from '@/lib/admin-expert-api';
 import { toast } from 'sonner';
-import { Plus, Trash2, ToggleLeft, ToggleRight, Loader2 } from 'lucide-react';
+import { Plus, Trash2, Ban, CheckCircle, Loader2 } from 'lucide-react';
 import type { ExpertProfile } from '@/types/expert.types';
 
 const STATUS_LABELS: Record<string, string> = {
@@ -45,16 +45,18 @@ export default function AdminExpertsPage() {
 
   useEffect(() => { fetchExperts(); }, []);
 
-  const handleToggleStatus = async (expert: ExpertProfile) => {
-    const newStatus = expert.status === 'AVAILABLE' ? 'OFFLINE' : 'AVAILABLE';
+  // Ban = force OFFLINE, Unban = set AVAILABLE
+  const handleToggleBan = async (expert: ExpertProfile) => {
+    const isBanning = expert.status !== 'OFFLINE';
+    const newStatus = isBanning ? 'OFFLINE' : 'AVAILABLE';
     try {
       await updateExpertStatus(expert.id, newStatus);
       setExperts((prev) =>
         prev.map((e) => (e.id === expert.id ? { ...e, status: newStatus as ExpertProfile['status'] } : e))
       );
-      toast.success(`Đã cập nhật trạng thái: ${STATUS_LABELS[newStatus]}`);
+      toast.success(isBanning ? 'Đã vô hiệu hoá giảng viên' : 'Đã kích hoạt giảng viên');
     } catch {
-      toast.error('Không thể cập nhật trạng thái');
+      toast.error('Không thể cập nhật');
     }
   };
 
@@ -143,12 +145,12 @@ export default function AdminExpertsPage() {
                           variant="ghost"
                           size="sm"
                           className="h-8 w-8 p-0"
-                          title="Toggle status"
-                          onClick={() => handleToggleStatus(expert)}
+                          title={expert.status === 'OFFLINE' ? 'Kích hoạt' : 'Vô hiệu hoá'}
+                          onClick={() => handleToggleBan(expert)}
                         >
-                          {expert.status === 'AVAILABLE'
-                            ? <ToggleRight className="h-4 w-4 text-green-600" />
-                            : <ToggleLeft className="h-4 w-4 text-gray-400" />
+                          {expert.status === 'OFFLINE'
+                            ? <CheckCircle className="h-4 w-4 text-green-600" />
+                            : <Ban className="h-4 w-4 text-orange-500" />
                           }
                         </Button>
                         <Button

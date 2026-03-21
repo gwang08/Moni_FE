@@ -3,6 +3,10 @@ export interface ExpertProfile {
   displayName: string;
   avatarUrl: string;
   bandScore: number;
+  bandReading: number;
+  bandListening: number;
+  bandWriting: number;
+  bandSpeaking: number;
   yearsExperience: number;
   specialization: 'WRITING' | 'SPEAKING' | 'BOTH';
   bio: string;
@@ -41,10 +45,13 @@ export interface ExpertEvaluation {
 
 export interface CreateExpertRequest {
   email: string;
-  password: string;
   displayName: string;
   avatarUrl?: string;
   bandScore: number;
+  bandReading?: number;
+  bandListening?: number;
+  bandWriting?: number;
+  bandSpeaking?: number;
   yearsExperience: number;
   specialization: 'WRITING' | 'SPEAKING' | 'BOTH';
   bio: string;

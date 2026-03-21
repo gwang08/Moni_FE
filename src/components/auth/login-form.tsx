@@ -50,7 +50,9 @@ export function LoginForm() {
         localStorage.removeItem('auth-session-only');
       }
       toast.success('Đăng nhập thành công!');
-      router.push(getRoleFromToken(token) === 'ADMIN' ? '/admin' : '/dashboard');
+      const role = getRoleFromToken(token);
+      const dest = role === 'ADMIN' ? '/admin' : role === 'EXPERT' ? '/expert/dashboard' : '/dashboard';
+      router.push(dest);
     } catch (err) {
       toast.error(formatApiError(err));
       setError(formatApiError(err));

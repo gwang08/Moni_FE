@@ -48,6 +48,11 @@ export default function ProtectedLayout({
           router.push('/admin');
           return;
         }
+        // Expert truy cập trang learner → redirect về expert dashboard
+        if (state?.user?.role === 'EXPERT' && !pathname.startsWith('/expert')) {
+          router.push('/expert/dashboard');
+          return;
+        }
       } catch { /* ignore */ }
     }
 
@@ -63,9 +68,11 @@ export default function ProtectedLayout({
     );
   }
 
+  const isExpertRoute = pathname.startsWith('/expert');
+
   return (
     <div className="min-h-screen bg-gray-50">
-      <InnerNavbar />
+      {!isExpertRoute && <InnerNavbar />}
       <main>{children}</main>
       {isAuthenticated && <SessionExpiredDialog />}
     </div>

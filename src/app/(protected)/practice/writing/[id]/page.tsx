@@ -10,6 +10,7 @@ import { WritingPromptPanel } from '@/components/writing/writing-prompt-panel';
 import { WritingEditor } from '@/components/writing/writing-editor';
 import { WritingToolbarPanel } from '@/components/writing/writing-toolbar-panel';
 import { GradingModal } from '@/components/writing/grading-modal';
+import { ScoringDialog } from '@/components/scoring/scoring-dialog';
 import { useWritingStore } from '@/store/writing-store';
 import { usePracticeStore } from '@/store/practice-store';
 import { useTestDetail } from '@/hooks/use-test-detail';
@@ -46,6 +47,7 @@ export default function WritingExercisePage({ params }: Props) {
   const [showGrading, setShowGrading] = useState(false);
   const [exitOpen, setExitOpen] = useState(false);
   const [showSample, setShowSample] = useState(false);
+  const [showScoringDialog, setShowScoringDialog] = useState(false);
 
   const { elapsed, formatted: elapsedTime } = useElapsedTimer(isGrading);
 
@@ -114,7 +116,7 @@ export default function WritingExercisePage({ params }: Props) {
         elapsedTime={elapsedTime}
         isGrading={isGrading}
         canGrade={canGrade}
-        onGrade={handleGrade}
+        onGrade={() => setShowScoringDialog(true)}
         onExit={() => setExitOpen(true)}
       />
 
@@ -146,6 +148,13 @@ export default function WritingExercisePage({ params }: Props) {
           />
         </div>
       </div>
+
+      <ScoringDialog
+        open={showScoringDialog}
+        onClose={() => setShowScoringDialog(false)}
+        onAIScore={handleGrade}
+        skill="writing"
+      />
 
       <GradingModal
         isOpen={showGrading}

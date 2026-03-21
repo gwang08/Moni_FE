@@ -1,0 +1,69 @@
+// ── Exam State Machine ──────────────────────────────────────
+export type ExamState =
+  | 'IDLE'
+  | 'CONNECTING'
+  | 'PART1_QUESTIONING'
+  | 'TRANSITIONING_TO_PART2'
+  | 'PART2_PREPARATION'
+  | 'PART2_SPEAKING'
+  | 'TRANSITIONING_TO_PART3'
+  | 'PART3_QUESTIONING'
+  | 'EVALUATING'
+  | 'COMPLETED'
+  | 'ERROR';
+
+// ── Server → Client Messages ───────────────────────────────
+export interface QuestionEvent {
+  type: 'question';
+  partNumber: number;
+  questionId: number;
+  text: string;
+  isFollowUp: boolean;
+}
+
+export interface CueCardEvent {
+  type: 'show_cue_card';
+  duration: number;
+  questionId: number;
+  topic: string;
+}
+
+export interface AudioChunkEvent {
+  type: 'audio_chunk';
+  data: string; // base64 MP3
+}
+
+export interface EvaluationFeedback {
+  summary: string;
+  strengths: string[];
+  areas_for_improvement: string[];
+  next_steps: string[];
+}
+
+export interface EvaluationEvent {
+  type: 'evaluation';
+  final_band: number;
+  fluency: number;
+  vocabulary: number;
+  grammar: number;
+  pronunciation: number;
+  feedback: EvaluationFeedback;
+  transcript: string;
+}
+
+export type ServerMessage =
+  | QuestionEvent
+  | CueCardEvent
+  | AudioChunkEvent
+  | { type: 'audio_end' }
+  | { type: 'evaluating' }
+  | EvaluationEvent
+  | { type: 'error'; message: string };
+
+// ── Client → Server Messages ───────────────────────────────
+export type ClientMessage =
+  | { type: 'start_exam'; testId: number }
+  | { type: 'transcript'; partNumber: number; questionId: number; text: string }
+  | { type: 'start_speaking_part2' }
+  | { type: 'stop_speaking_part2'; text: string }
+  | { type: 'end_exam' };

@@ -15,10 +15,13 @@ export default function AdminUsersPage() {
   const queryClient = useQueryClient();
   const [banTarget, setBanTarget] = useState<UserResponse | null>(null);
 
-  const { data: users = [], isLoading, error } = useQuery({
+  const { data: allUsers = [], isLoading, error } = useQuery({
     queryKey: ['admin', 'users'],
     queryFn: getUsers,
   });
+
+  // Chỉ hiện learner — admin và expert có tab riêng
+  const users = allUsers.filter(u => !u.role || u.role === 'LEARNER');
 
   const banMutation = useMutation({
     mutationFn: (userId: string) => banUser(userId),

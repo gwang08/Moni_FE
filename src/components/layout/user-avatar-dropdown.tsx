@@ -55,8 +55,7 @@ export function UserAvatarDropdown({ variant = 'light' }: UserAvatarDropdownProp
     );
   }
 
-  // TODO: Replace with real credit balance from backend when available
-  const creditBalance = 0;
+  const creditBalance = user.credit ?? 0;
 
   return (
     <div className="flex items-center gap-2">

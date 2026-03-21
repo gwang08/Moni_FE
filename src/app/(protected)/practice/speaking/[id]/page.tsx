@@ -11,6 +11,7 @@ import { SpeakingQuestionCenter } from '@/components/speaking/speaking-question-
 import { SpeakingRecorder } from '@/components/speaking/speaking-recorder';
 import { SpeakingFeedbackPanel } from '@/components/speaking/speaking-feedback-panel';
 import { SpeakingNotesPanel } from '@/components/speaking/speaking-notes-panel';
+import { ScoringDialog } from '@/components/scoring/scoring-dialog';
 import { useTestDetail } from '@/hooks/use-test-detail';
 import { useSpeakingStore } from '@/store/speaking-store';
 import { usePracticeStore } from '@/store/practice-store';
@@ -44,6 +45,7 @@ export default function SpeakingPracticePage({ params }: Props) {
 
   const [showSample, setShowSample] = useState(false);
   const [showExitDialog, setShowExitDialog] = useState(false);
+  const [showScoringDialog, setShowScoringDialog] = useState(false);
   const [recordedBlobs, setRecordedBlobs] = useState<Record<string, Blob>>({});
 
   useEffect(() => {
@@ -203,10 +205,10 @@ export default function SpeakingPracticePage({ params }: Props) {
               {lastRecordedBlob && !isScoring && !scoringError && !questionRecording?.feedback && (
                 <div className="mt-4">
                   <button
-                    onClick={handleSubmitForScoring}
+                    onClick={() => setShowScoringDialog(true)}
                     className="w-full py-3 rounded-2xl bg-gradient-to-r from-orange-400 to-amber-400 hover:from-orange-500 hover:to-amber-500 text-white font-semibold text-sm shadow-lg shadow-orange-300/30 transition-all duration-200 hover:scale-[1.01] hover:shadow-xl hover:shadow-orange-300/40 border border-orange-300/20"
                   >
-                    Nhận đánh giá
+                    Chấm điểm
                   </button>
                 </div>
               )}
@@ -236,6 +238,13 @@ export default function SpeakingPracticePage({ params }: Props) {
           <SpeakingNotesPanel notes={notes} onNotesChange={setNotes} />
         </div>
       </div>
+
+      <ScoringDialog
+        open={showScoringDialog}
+        onClose={() => setShowScoringDialog(false)}
+        onAIScore={handleSubmitForScoring}
+        skill="speaking"
+      />
 
       <ConfirmDialog
         open={showExitDialog}

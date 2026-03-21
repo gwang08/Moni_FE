@@ -101,6 +101,8 @@ export interface UserResponse {
   phoneNumber: string | null;
   dateOfBirth: string | null;
   targetBand: number | null;
+  credit: number | null;
+  role: string | null;
 }
 
 export interface StimulusCreateRequest {

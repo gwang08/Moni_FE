@@ -58,7 +58,8 @@ export interface User {
   avatarUrl: string | null;
   phoneNumber: string | null;
   dateOfBirth: string | null;
-  role: string;
+  role: string; // 'LEARNER' | 'EXPERT' | 'ADMIN'
+  credit: number;
 }
 
 export interface AuthState {

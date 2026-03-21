@@ -1,0 +1,183 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { ExpertFormDialog } from '@/components/admin/expert-form-dialog';
+import { getAdminExperts, updateExpertStatus, deleteExpert } from '@/lib/admin-expert-api';
+import { toast } from 'sonner';
+import { Plus, Trash2, ToggleLeft, ToggleRight, Loader2 } from 'lucide-react';
+import type { ExpertProfile } from '@/types/expert.types';
+
+const STATUS_LABELS: Record<string, string> = {
+  AVAILABLE: 'Sẵn sàng',
+  BUSY: 'Đang bận',
+  OFFLINE: 'Ngoại tuyến',
+};
+
+const STATUS_COLORS: Record<string, string> = {
+  AVAILABLE: 'bg-green-100 text-green-700',
+  BUSY: 'bg-yellow-100 text-yellow-700',
+  OFFLINE: 'bg-gray-100 text-gray-600',
+};
+
+function getInitials(name: string) {
+  return name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2);
+}
+
+export default function AdminExpertsPage() {
+  const [experts, setExperts] = useState<ExpertProfile[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
+
+  const fetchExperts = async () => {
+    setLoading(true);
+    try {
+      setExperts(await getAdminExperts());
+    } catch {
+      toast.error('Không thể tải danh sách expert');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { fetchExperts(); }, []);
+
+  const handleToggleStatus = async (expert: ExpertProfile) => {
+    const newStatus = expert.status === 'AVAILABLE' ? 'OFFLINE' : 'AVAILABLE';
+    try {
+      await updateExpertStatus(expert.id, newStatus);
+      setExperts((prev) =>
+        prev.map((e) => (e.id === expert.id ? { ...e, status: newStatus as ExpertProfile['status'] } : e))
+      );
+      toast.success(`Đã cập nhật trạng thái: ${STATUS_LABELS[newStatus]}`);
+    } catch {
+      toast.error('Không thể cập nhật trạng thái');
+    }
+  };
+
+  const handleDelete = async (id: number) => {
+    if (!confirm('Bạn có chắc chắn muốn xoá Expert này?')) return;
+    setDeletingId(id);
+    try {
+      await deleteExpert(id);
+      setExperts((prev) => prev.filter((e) => e.id !== id));
+      toast.success('Đã xoá Expert');
+    } catch {
+      toast.error('Không thể xoá Expert');
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  return (
+    <div className="p-6 max-w-6xl mx-auto">
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-2xl font-bold">Quản lý Expert</h1>
+          <p className="text-muted-foreground text-sm mt-0.5">
+            Tổng: {experts.length} giảng viên
+          </p>
+        </div>
+        <Button onClick={() => setShowForm(true)}>
+          <Plus className="h-4 w-4 mr-2" />
+          Tạo Expert mới
+        </Button>
+      </div>
+
+      {loading ? (
+        <div className="flex items-center justify-center py-16">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      ) : (
+        <div className="rounded-lg border bg-white overflow-hidden">
+          <table className="w-full text-sm">
+            <thead className="bg-gray-50 border-b">
+              <tr>
+                {['Giảng viên', 'Band Score', 'Chuyên môn', 'Trạng thái', 'Phiên', 'Đánh giá', 'Hành động'].map((h) => (
+                  <th key={h} className="px-4 py-3 text-left font-medium text-gray-600 text-xs uppercase tracking-wide">
+                    {h}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {experts.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="text-center py-12 text-muted-foreground">
+                    Chưa có Expert nào
+                  </td>
+                </tr>
+              ) : (
+                experts.map((expert) => (
+                  <tr key={expert.id} className="border-b hover:bg-gray-50/50 transition-colors">
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-3">
+                        <Avatar className="h-8 w-8">
+                          <AvatarImage src={expert.avatarUrl} />
+                          <AvatarFallback className="text-xs bg-primary/10 text-primary">
+                            {getInitials(expert.displayName)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <span className="font-medium">{expert.displayName}</span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <Badge variant="outline">{expert.bandScore}</Badge>
+                    </td>
+                    <td className="px-4 py-3">
+                      <Badge variant="secondary" className="text-xs">{expert.specialization}</Badge>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_COLORS[expert.status]}`}>
+                        {STATUS_LABELS[expert.status]}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 tabular-nums">{expert.totalSessions}</td>
+                    <td className="px-4 py-3 tabular-nums">{expert.rating.toFixed(1)}</td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0"
+                          title="Toggle status"
+                          onClick={() => handleToggleStatus(expert)}
+                        >
+                          {expert.status === 'AVAILABLE'
+                            ? <ToggleRight className="h-4 w-4 text-green-600" />
+                            : <ToggleLeft className="h-4 w-4 text-gray-400" />
+                          }
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                          onClick={() => handleDelete(expert.id)}
+                          disabled={deletingId === expert.id}
+                        >
+                          {deletingId === expert.id
+                            ? <Loader2 className="h-4 w-4 animate-spin" />
+                            : <Trash2 className="h-4 w-4" />
+                          }
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      <ExpertFormDialog
+        open={showForm}
+        onClose={() => setShowForm(false)}
+        onCreated={(expert) => setExperts((prev) => [expert, ...prev])}
+      />
+    </div>
+  );
+}

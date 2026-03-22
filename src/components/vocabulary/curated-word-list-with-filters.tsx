@@ -83,7 +83,7 @@ export function CuratedWordListWithFilters({ band, topic, onPosChange, initialPo
   return (
     <div className="space-y-5">
       {/* Filter bar */}
-      <div className="rounded-2xl border border-gray-100 bg-warm-white p-4 sm:p-5 shadow-sm space-y-4">
+      <div className="rounded-2xl border border-gray-100 bg-white p-4 sm:p-5 shadow-sm space-y-4">
         {/* Search */}
         <div className="relative">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />

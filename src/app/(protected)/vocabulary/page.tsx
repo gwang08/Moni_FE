@@ -118,7 +118,7 @@ function VocabularyContent() {
   };
 
   return (
-    <div className="min-h-screen bg-warm-white">
+    <div className="min-h-screen bg-white">
       {/* Hero Section - like Parroto */}
       <div className="border-b border-gray-100">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
@@ -165,7 +165,7 @@ function VocabularyContent() {
 
             {showSuggestions && suggestions.length > 0 && (
               <div ref={suggestionsRef}
-                className="absolute z-50 top-full left-0 right-0 mt-1 bg-warm-white border border-gray-200
+                className="absolute z-50 top-full left-0 right-0 mt-1 bg-white border border-gray-200
                   rounded-lg shadow-lg overflow-hidden max-h-72 overflow-y-auto">
                 {loadingSuggestions && (
                   <div className="flex items-center gap-2 px-4 py-2 text-sm text-gray-400">
@@ -215,7 +215,7 @@ function VocabularyContent() {
                 img: '/vocab/method-match.jpg' },
             ].map(m => (
               <Link key={m.href} href={m.href}
-                className="group block rounded-lg border border-gray-200 bg-warm-white
+                className="group block rounded-lg border border-gray-200 bg-white
                   hover:shadow-lg transition-all duration-300">
                 <div className="p-4">
                   <div className="w-full h-44 mb-3 rounded-lg overflow-hidden bg-gray-100 relative">

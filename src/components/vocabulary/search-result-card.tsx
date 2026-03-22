@@ -36,7 +36,7 @@ export function SearchResultCard({ result, saving, onSave, onClose }: Props) {
     : '';
 
   return (
-    <div className="max-w-2xl rounded-xl bg-warm-white shadow-sm border border-gray-100 overflow-hidden">
+    <div className="max-w-2xl rounded-xl bg-white shadow-sm border border-gray-100 overflow-hidden">
       <div className="p-5 sm:p-6 pb-4">
         <div className="flex items-start justify-between gap-3">
           <div className="space-y-1.5">

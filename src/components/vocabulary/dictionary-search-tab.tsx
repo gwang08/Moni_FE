@@ -45,7 +45,7 @@ function FeaturedWordCard({ word, onSearch }: { word: CuratedWord; onSearch: (w:
   return (
     <button
       onClick={() => onSearch(word.word)}
-      className="text-left w-full rounded-xl border border-gray-100 bg-warm-white p-4 sm:p-5
+      className="text-left w-full rounded-xl border border-gray-100 bg-white p-4 sm:p-5
         hover:border-indigo-200 hover:shadow-md transition-all duration-200 group"
     >
       <div className="flex items-center gap-2 mb-1.5">
@@ -218,7 +218,7 @@ export function DictionarySearchTab() {
                 ref={inputRef}
                 placeholder={T.search_placeholder}
                 className="pl-12 h-12 text-base rounded-xl border-gray-200 shadow-sm
-                  focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400 bg-warm-white"
+                  focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400 bg-white"
                 value={query}
                 onChange={(e) => handleInputChange(e.target.value)}
                 onKeyDown={handleKeyDown}
@@ -239,7 +239,7 @@ export function DictionarySearchTab() {
           {showSuggestions && suggestions.length > 0 && (
             <div
               ref={suggestionsRef}
-              className="absolute z-50 top-full left-0 right-0 mt-1 bg-warm-white border border-gray-100
+              className="absolute z-50 top-full left-0 right-0 mt-1 bg-white border border-gray-100
                 rounded-xl shadow-lg overflow-hidden max-h-80 overflow-y-auto"
             >
               {loadingSuggestions && (
@@ -296,7 +296,7 @@ export function DictionarySearchTab() {
       {/* Result card */}
       {result && (
         <div className="max-w-2xl mx-auto">
-          <div className="rounded-xl bg-warm-white shadow-sm border border-gray-100 overflow-hidden">
+          <div className="rounded-xl bg-white shadow-sm border border-gray-100 overflow-hidden">
             <div className="p-5 sm:p-6 pb-4">
               <div className="flex items-start justify-between gap-3">
                 <div className="space-y-1.5">

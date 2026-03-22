@@ -67,7 +67,7 @@ export function ActivityCalendar() {
   };
 
   return (
-    <div className="bg-warm-white rounded-2xl shadow-sm border border-gray-100 p-6">
+    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
       {/* Header */}
       <div className="flex items-center justify-between mb-1">
         <h3 className="text-base font-semibold text-gray-800">

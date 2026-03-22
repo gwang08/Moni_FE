@@ -62,7 +62,7 @@ export default function TransactionsPage() {
       {error && <p className="text-center text-red-500 py-8">{error}</p>}
 
       {!loading && !error && (
-        <div className="border rounded-xl overflow-hidden bg-warm-white">
+        <div className="border rounded-xl overflow-hidden bg-white">
           <table className="w-full text-sm">
             <thead className="bg-gray-50 border-b">
               <tr>

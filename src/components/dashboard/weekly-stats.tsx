@@ -91,7 +91,7 @@ export function WeeklyStats() {
   }, [dayStats]);
 
   return (
-    <div className="bg-warm-white rounded-2xl shadow-sm border border-gray-100 p-6">
+    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
       <div className="mb-4">
         <h3 className="text-base font-semibold text-gray-800">Thống kê số bài đã làm trong tuần</h3>
         <p className="text-xs text-gray-400 mt-0.5">Tuần hiện tại (Thứ 2 – Chủ nhật)</p>

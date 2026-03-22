@@ -1,9 +1,11 @@
 'use client';
 
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Loader2, CheckCircle2, FileText, MessageSquare } from 'lucide-react';
+import { Loader2, CheckCircle2, FileText, MessageSquare, Eye, ListChecks } from 'lucide-react';
 import type { StimulusRequest } from '@/types/admin.types';
 import { type BasicInfo, SKILL_SECTIONS } from '@/components/admin/test-import-step1-basic-info';
+import { SpeakingExamPreview } from '@/components/admin/speaking-exam-preview';
 
 const TYPE_LABELS: Record<string, string> = {
   MCQ: 'Trắc nghiệm (MCQ)',
@@ -64,24 +66,68 @@ function WritingReview({ stimuli }: { stimuli: StimulusRequest[] }) {
 }
 
 function SpeakingReview({ stimuli }: { stimuli: StimulusRequest[] }) {
-  const s = stimuli[0];
-  if (!s) return null;
-  const questions = s.questionGroups[0]?.questions || [];
+  if (stimuli.length === 0) return null;
+
+  const partColors = [
+    { border: 'border-blue-200', bg: 'bg-blue-50', text: 'text-blue-700' },
+    { border: 'border-amber-200', bg: 'bg-amber-50', text: 'text-amber-700' },
+    { border: 'border-emerald-200', bg: 'bg-emerald-50', text: 'text-emerald-700' },
+  ];
+
   return (
-    <div className="border border-gray-200 rounded-lg overflow-hidden">
-      <div className="bg-gray-50 px-4 py-2.5 border-b border-gray-200 flex items-center justify-between">
-        <span className="text-sm font-semibold text-gray-700">Câu hỏi Speaking</span>
-        <span className="text-xs text-gray-400">{questions.length} câu</span>
-      </div>
-      <div className="p-4 space-y-3">
-        {s.content && <p className="text-sm text-gray-700 italic mb-2">Chủ đề: {s.content}</p>}
-        {questions.map((q, i) => (
-          <div key={i} className="border-l-2 border-orange-300 pl-3 py-1">
-            <p className="text-sm"><span className="font-medium text-gray-700">Câu {i + 1}.</span> {q.content}</p>
-            {q.explanation?.text && <p className="text-xs text-gray-500 mt-0.5">Gợi ý: {q.explanation.text}</p>}
+    <div className="space-y-4">
+      {stimuli.map((s, si) => {
+        const questions = s.questionGroups[0]?.questions || [];
+        const transition = questions.find(q => q.position === 0);
+        const mainQuestions = questions.filter(q => (q.position ?? 0) > 0);
+        const color = partColors[si] || partColors[0];
+
+        return (
+          <div key={si} className={`border ${color.border} rounded-lg overflow-hidden`}>
+            <div className={`${color.bg} px-4 py-2.5 border-b ${color.border} flex items-center justify-between`}>
+              <span className={`text-sm font-semibold ${color.text}`}>{s.title || `Part ${si + 1}`}</span>
+              <span className="text-xs text-gray-400">{mainQuestions.length} câu</span>
+            </div>
+            <div className="p-4 space-y-3">
+              {/* Transition script */}
+              {transition && (
+                <div className="bg-gray-50 rounded-lg p-3 border border-dashed border-gray-300">
+                  <p className="text-[11px] font-semibold text-gray-500 uppercase mb-1">Câu dẫn chuyển</p>
+                  <p className="text-sm text-gray-600 italic">{transition.content}</p>
+                </div>
+              )}
+
+              {/* Part 2: Cue Card */}
+              {si === 1 && mainQuestions.length > 0 && (
+                <div className="bg-amber-50 rounded-lg p-3 border border-amber-200">
+                  <p className="text-[11px] font-semibold text-amber-600 uppercase mb-1">Cue Card</p>
+                  <p className="text-sm text-gray-700 whitespace-pre-wrap">{mainQuestions[0].content}</p>
+                </div>
+              )}
+
+              {/* Part 1 & 3: MAIN + FOLLOW_UP questions */}
+              {si !== 1 && mainQuestions.map((q, qi) => {
+                const isFollowUp = q.questionCategory === 'FOLLOW_UP';
+                return (
+                  <div
+                    key={qi}
+                    className={`border-l-2 pl-3 py-1 ${isFollowUp ? 'border-purple-300 ml-6' : 'border-orange-300'}`}
+                  >
+                    <p className="text-sm">
+                      <span className={`text-xs font-semibold px-1.5 py-0.5 rounded mr-1.5 ${
+                        isFollowUp ? 'text-purple-600 bg-purple-50' : 'text-orange-600 bg-orange-50'
+                      }`}>
+                        {isFollowUp ? 'Follow-up' : `Q${q.position}`}
+                      </span>
+                      {q.content}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
           </div>
-        ))}
-      </div>
+        );
+      })}
     </div>
   );
 }
@@ -102,6 +148,9 @@ function ListeningReview({ stimuli }: { stimuli: StimulusRequest[] }) {
 }
 
 export function TestImportStep4({ basicInfo, stimuli, submitting, error, onSubmit, onBack }: Props) {
+  const [speakingTab, setSpeakingTab] = useState<'summary' | 'preview'>('summary');
+  const isSpeaking = basicInfo.skill === 'SPEAKING';
+
   const totalQuestions = stimuli.reduce(
     (sum, s) => sum + s.questionGroups.reduce((gs, g) => gs + g.questions.length, 0), 0
   );
@@ -127,15 +176,40 @@ export function TestImportStep4({ basicInfo, stimuli, submitting, error, onSubmi
           {basicInfo.description && (
             <p className="col-span-2"><span className="text-gray-500">Mô tả:</span> {basicInfo.description}</p>
           )}
-          <p><span className="text-gray-500">Số passage:</span> {stimuli.length}</p>
+          <p><span className="text-gray-500">{isSpeaking ? 'Số Part:' : 'Số passage:'}</span> {stimuli.length}</p>
           <p><span className="text-gray-500">Tổng nhóm:</span> {totalGroups}</p>
           <p><span className="text-gray-500">Tổng câu hỏi:</span> <span className="font-semibold text-blue-700">{totalQuestions}</span></p>
         </div>
       </div>
 
+      {/* Speaking tabs: Summary / Preview */}
+      {isSpeaking && (
+        <div className="flex gap-1 bg-gray-100 rounded-lg p-1">
+          <button
+            type="button"
+            onClick={() => setSpeakingTab('summary')}
+            className={`flex-1 flex items-center justify-center gap-1.5 py-2 text-sm font-medium rounded-md transition-colors cursor-pointer ${
+              speakingTab === 'summary' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            <ListChecks className="h-4 w-4" /> Tóm tắt nội dung
+          </button>
+          <button
+            type="button"
+            onClick={() => setSpeakingTab('preview')}
+            className={`flex-1 flex items-center justify-center gap-1.5 py-2 text-sm font-medium rounded-md transition-colors cursor-pointer ${
+              speakingTab === 'preview' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            <Eye className="h-4 w-4" /> Xem trước phòng thi
+          </button>
+        </div>
+      )}
+
       {/* Skill-specific review */}
       {basicInfo.skill === 'WRITING' && <WritingReview stimuli={stimuli} />}
-      {basicInfo.skill === 'SPEAKING' && <SpeakingReview stimuli={stimuli} />}
+      {isSpeaking && speakingTab === 'summary' && <SpeakingReview stimuli={stimuli} />}
+      {isSpeaking && speakingTab === 'preview' && <SpeakingExamPreview stimuli={stimuli} />}
       {basicInfo.skill === 'LISTENING' && <ListeningReview stimuli={stimuli} />}
 
       {/* Per stimulus detail (Reading/Listening question groups) */}

@@ -19,7 +19,7 @@ export function InnerNavbar() {
   const pathname = usePathname();
 
   return (
-    <nav className="sticky top-0 z-50 bg-white border-b shadow-sm">
+    <nav className="sticky top-0 z-50 bg-warm-white border-b shadow-sm">
       <div className="container mx-auto px-4 h-14 flex items-center justify-between">
         {/* Logo */}
         <Link href="/">
@@ -65,7 +65,7 @@ export function InnerNavbar() {
 
       {/* Mobile dropdown */}
       {mobileOpen && (
-        <div className="md:hidden border-t bg-white pb-3">
+        <div className="md:hidden border-t bg-warm-white pb-3">
           {navLinks.map((link) => {
             const isActive = pathname === link.href || (link.href !== '/' && pathname.startsWith(link.href));
             return (

@@ -43,7 +43,7 @@ export function CuratedWordCard({ word }: { word: CuratedWord }) {
     : '';
 
   return (
-    <div className="group rounded-2xl border border-gray-100 bg-white p-5 sm:p-6
+    <div className="group rounded-2xl border border-gray-100 bg-warm-white p-5 sm:p-6
       shadow-sm hover:shadow-md hover:border-gray-200 transition-all duration-200">
       {/* Row 1: Word + phonetic + audio */}
       <div className="flex items-start justify-between gap-3">

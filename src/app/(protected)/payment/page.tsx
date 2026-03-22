@@ -142,7 +142,7 @@ export default function PaymentPage() {
       </section>
 
       {/* Services section */}
-      <section className="bg-white/60 rounded-2xl p-6 border">
+      <section className="bg-warm-white/60 rounded-2xl p-6 border">
         <div className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-2">
             <div className="p-2 rounded-lg bg-primary/10">
@@ -155,7 +155,7 @@ export default function PaymentPage() {
         {loading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="h-16 bg-white rounded-xl animate-pulse" />
+              <div key={i} className="h-16 bg-warm-white rounded-xl animate-pulse" />
             ))}
           </div>
         ) : (
@@ -163,7 +163,7 @@ export default function PaymentPage() {
             {services.map((svc) => (
               <div
                 key={svc.id}
-                className="bg-white rounded-xl p-4 flex justify-between items-center gap-3 border hover:border-primary/30 transition-colors"
+                className="bg-warm-white rounded-xl p-4 flex justify-between items-center gap-3 border hover:border-primary/30 transition-colors"
               >
                 <div>
                   <p className="font-medium text-sm">{svc.name}</p>

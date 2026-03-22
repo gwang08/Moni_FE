@@ -151,7 +151,7 @@ export function TargetScores() {
   };
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 h-full">
+    <div className="bg-warm-white rounded-2xl shadow-sm border border-gray-100 p-6 h-full">
       {/* Header */}
       <div className="flex items-center justify-between mb-5">
         <h3 className="text-base font-semibold text-gray-800">Mục tiêu của bạn</h3>

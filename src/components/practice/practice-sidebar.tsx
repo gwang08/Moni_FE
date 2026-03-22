@@ -66,7 +66,7 @@ export function PracticeSidebar({ activeSkill, activeMode, activePassage, onSkil
   };
 
   return (
-    <aside className="w-64 bg-white/60 border-r p-4 hidden lg:block overflow-y-auto">
+    <aside className="w-64 bg-warm-white/60 border-r p-4 hidden lg:block overflow-y-auto">
       <h2 className="text-lg font-bold text-gray-800 mb-4">Luyện tập</h2>
       <div className="space-y-3">
         {SKILLS.map((skill) => {
@@ -77,7 +77,7 @@ export function PracticeSidebar({ activeSkill, activeMode, activePassage, onSkil
             <div
               key={skill.key}
               className={`rounded-xl border-2 transition-all ${
-                isActive ? 'bg-green-50 border-green-400' : 'bg-white border-gray-200'
+                isActive ? 'bg-green-50 border-green-400' : 'bg-warm-white border-gray-200'
               }`}
             >
               {/* Skill header */}

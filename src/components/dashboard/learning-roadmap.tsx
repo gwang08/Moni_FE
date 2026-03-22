@@ -50,7 +50,7 @@ function TaskCard({ task, skill }: { task: RoadmapTask; skill: RoadmapSkill }) {
           ? 'bg-green-50 border border-green-100 hover:border-green-300 cursor-pointer'
           : task.status === 'LOCKED'
             ? 'bg-gray-50 border border-gray-100 opacity-60 cursor-not-allowed'
-            : 'bg-white border border-gray-200 hover:border-blue-300 hover:shadow-sm cursor-pointer'
+            : 'bg-warm-white border border-gray-200 hover:border-blue-300 hover:shadow-sm cursor-pointer'
       }`}
     >
       <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
@@ -161,7 +161,7 @@ export function LearningRoadmap() {
   const availableSkills = goals.map((g) => g.skill);
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+    <div className="bg-warm-white rounded-2xl border border-gray-100 shadow-sm p-6">
       {/* Header */}
       <div className="flex items-center gap-2 mb-4">
         <BookOpen className="h-5 w-5 text-orange-500" />
@@ -189,7 +189,7 @@ export function LearningRoadmap() {
                   key={skill}
                   onClick={() => setActiveSkill(skill)}
                   className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
-                    isActive ? config.activeColor : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-50'
+                    isActive ? config.activeColor : 'bg-warm-white border-gray-200 text-gray-500 hover:bg-gray-50'
                   }`}
                 >
                   {config.label}

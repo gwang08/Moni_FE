@@ -231,7 +231,7 @@ export function MyNotebookTab() {
           {collections.map((col) => (
             <div
               key={col.id}
-              className="group rounded-2xl border border-gray-100 bg-white p-5 sm:p-6
+              className="group rounded-2xl border border-gray-100 bg-warm-white p-5 sm:p-6
                 shadow-sm hover:shadow-md hover:border-indigo-200 transition-all duration-200"
             >
               <div className="flex items-start gap-4">

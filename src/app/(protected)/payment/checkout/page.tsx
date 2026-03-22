@@ -229,7 +229,7 @@ export default function CheckoutPage() {
         <div className="space-y-5">
           {/* Package card */}
           <div className="rounded-2xl bg-gradient-to-br from-primary/5 to-primary/10 border border-primary/20 p-4 flex items-center gap-4">
-            <div className="p-2.5 rounded-xl bg-white shadow-sm">
+            <div className="p-2.5 rounded-xl bg-warm-white shadow-sm">
               <Image
                 src="/currency.webp"
                 alt="credit"
@@ -250,7 +250,7 @@ export default function CheckoutPage() {
           </div>
 
           {/* QR code card */}
-          <div className="rounded-2xl bg-white border-2 border-gray-100 p-5 space-y-4">
+          <div className="rounded-2xl bg-warm-white border-2 border-gray-100 p-5 space-y-4">
             <div className="text-center">
               <p className="text-xs text-muted-foreground mb-1">
                 Quét mã QR để thanh toán
@@ -258,7 +258,7 @@ export default function CheckoutPage() {
             </div>
 
             <div className="flex justify-center">
-              <div className="p-3 bg-white rounded-2xl shadow-md border">
+              <div className="p-3 bg-warm-white rounded-2xl shadow-md border">
                 <img
                   src={pendingPayment.qrCodeUrl}
                   alt="QR thanh toán"

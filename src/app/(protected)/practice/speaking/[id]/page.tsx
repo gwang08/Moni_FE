@@ -93,8 +93,8 @@ export default function SpeakingPracticePage({ params }: Props) {
     }];
   }, [testDetail]);
 
-  const currentPart = currentQuestion?.partNumber ?? testDetail?.section ?? 1;
   const currentQuestion = questions[currentQuestionIndex];
+  const currentPart = currentQuestion?.partNumber ?? testDetail?.section ?? 1;
 
   const completedIds = useMemo(() => {
     const ids = new Set<number>();

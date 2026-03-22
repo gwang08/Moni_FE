@@ -9,6 +9,8 @@ export interface QuestionDetail {
   id: number;
   content: string;
   position: number;
+  questionCategory?: string;
+  parentQuestionId?: number;
   explanation?: { text?: string; evidence?: string };
   tagIds: number[];
   options: OptionDetail[];

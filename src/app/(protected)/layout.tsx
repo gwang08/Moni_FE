@@ -71,7 +71,7 @@ export default function ProtectedLayout({
   const isExpertRoute = pathname.startsWith('/expert');
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className={`min-h-screen ${isExpertRoute ? 'bg-gray-50' : 'bg-[#FFF8E7]'}`}>
       {!isExpertRoute && <InnerNavbar />}
       <main>{children}</main>
       {isAuthenticated && <SessionExpiredDialog />}

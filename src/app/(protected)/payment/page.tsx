@@ -142,7 +142,7 @@ export default function PaymentPage() {
       </section>
 
       {/* Services section */}
-      <section className="bg-gray-50/80 rounded-2xl p-6 border">
+      <section className="bg-white/60 rounded-2xl p-6 border">
         <div className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-2">
             <div className="p-2 rounded-lg bg-primary/10">

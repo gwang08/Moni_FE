@@ -7,7 +7,7 @@ import { MyNotebookTab } from '@/components/vocabulary/my-notebook-tab';
 
 export default function NotebookPage() {
   return (
-    <div className="min-h-screen bg-gray-50/50">
+    <div className="min-h-screen">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-5">
         <div className="flex items-center gap-3 mb-5">
           <Link href="/vocabulary">

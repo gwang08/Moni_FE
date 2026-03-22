@@ -20,7 +20,7 @@ export default function BandDetailPage({ params }: { params: Promise<{ band: str
   const theme = BAND_THEME[decoded] ?? { badge: 'bg-gray-500' };
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-gray-50/50">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-5">
         <div className="flex items-center gap-3 mb-5">
           <Link href="/vocabulary">

@@ -189,7 +189,7 @@ export default function SpeakingExamPage({ params }: Props) {
 
 function PageShell({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen bg-[#FFF8E7] p-4 md:p-8">
+    <div className="min-h-screen bg-gray-50 p-4 md:p-8">
       <div className="mx-auto max-w-2xl">
         <h1 className="mb-6 text-2xl font-bold text-gray-900">IELTS Speaking Exam</h1>
         {children}

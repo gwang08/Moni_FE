@@ -21,7 +21,7 @@ export function DashboardPreview() {
   const hydrated = useHydration();
 
   return (
-    <section className="relative bg-[#FFF3E0]/40 pt-24 pb-16">
+    <section className="relative bg-gray-50 pt-24 pb-16">
       <div className="container mx-auto px-4">
         <h2 className="text-3xl font-bold text-center mb-4">
           Theo dõi hành trình của bạn

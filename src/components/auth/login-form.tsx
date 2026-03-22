@@ -45,7 +45,7 @@ export function LoginForm() {
       const { token, expiryTime } = response.result;
       await setAuth(token, expiryTime);
       if (!rememberMe) {
-        sessionStorage.setItem('auth-session-only', '1');
+        localStorage.setItem('auth-session-only', '1');
       } else {
         localStorage.removeItem('auth-session-only');
       }

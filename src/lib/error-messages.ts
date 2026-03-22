@@ -96,7 +96,10 @@ export const formatApiError = (error: unknown): string => {
     if ('code' in error && typeof (error as Record<string, unknown>).code !== 'undefined') {
       return getErrorMessage((error as Record<string, unknown>).code as number, error.message);
     }
-    // Don't return raw English backend messages — use default Vietnamese
+    // If error message contains Vietnamese characters, use it directly
+    if (error.message && /[\u00C0-\u1EF9]/.test(error.message)) {
+      return error.message;
+    }
     return ERROR_MESSAGES.DEFAULT;
   }
 

@@ -127,6 +127,37 @@
   }
 }
 
+/* ── Warm theme for learner pages ── */
+.warm-theme {
+  --border: oklch(0.92 0.01 80);
+}
+
+.warm-theme .bg-white {
+  background-color: #FFFDF8 !important;
+}
+
+.warm-theme .bg-white\/80 {
+  background-color: rgb(255 253 248 / 0.8) !important;
+}
+
+.warm-theme .bg-white\/60 {
+  background-color: rgb(255 253 248 / 0.6) !important;
+}
+
+.warm-theme .border-b {
+  border-color: rgb(245 230 210 / 0.5);
+}
+
+.warm-theme nav.sticky {
+  background-color: rgb(255 253 248 / 0.95) !important;
+  backdrop-filter: blur(12px);
+  border-color: rgb(245 230 210 / 0.5);
+}
+
+.warm-theme .bg-gray-100 {
+  background-color: rgb(255 248 231 / 0.6) !important;
+}
+
 /* Custom animation for audio player pulse */
 @keyframes pulse-slow {
   0%, 100% { opacity: 1; }

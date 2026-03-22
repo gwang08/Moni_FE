@@ -101,7 +101,10 @@ export default function TestImportPage() {
           section: s.section ?? i + 1,
           questionGroups: s.questionGroups.map(g => ({
             ...g,
-            questions: g.questions.map((q, qi) => ({ ...q, position: qi + 1 })),
+            // Speaking already has position/questionCategory set by step2 — don't override
+            questions: skill === 'SPEAKING'
+              ? g.questions
+              : g.questions.map((q, qi) => ({ ...q, position: qi + 1 })),
           })),
         })),
       });

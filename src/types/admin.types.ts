@@ -30,7 +30,12 @@ export type QuestionTypeCode =
   | 'MATCHING_FEATURE'
   | 'DIAGRAM_LABEL'
   | 'GAP_FILLING'
-  | 'SHORT_ANSWER';
+  | 'SHORT_ANSWER'
+  | 'SPEAKING_PART_1'
+  | 'SPEAKING_PART_2'
+  | 'SPEAKING_PART_3'
+  | 'WRITING_TASK_1'
+  | 'WRITING_TASK_2';
 
 
 // --- Test Import Request (matches backend TestImportRequest DTO) ---
@@ -41,9 +46,13 @@ export interface OptionRequest {
   isCorrect: boolean;
 }
 
+export type QuestionCategory = 'MAIN' | 'FOLLOW_UP';
+
 export interface QuestionRequest {
   content: string;
   position?: number;
+  questionCategory?: QuestionCategory;
+  parentQuestionPosition?: number;
   metadata?: Record<string, unknown>;
   explanation?: { text?: string; evidence?: string };
   tagIds?: number[];

@@ -54,24 +54,46 @@ export default function SpeakingPracticePage({ params }: Props) {
 
   const questions = useMemo(() => {
     if (!testDetail) return [];
-    const qs = testDetail.stimuli[0]?.questionGroups?.[0]?.questions ?? [];
-    if (qs.length > 0) {
-      return qs.map((q) => ({
-        id: q.id,
-        content: q.content || FALLBACK_CONTENT,
-        position: q.position,
-        sampleAnswer: q.explanation?.text,
-      }));
+
+    // Aggregate questions from all stimuli (all Parts)
+    const allQuestions: { id: number; content: string; position: number; sampleAnswer?: string; partNumber: number; questionCategory?: string }[] = [];
+
+    for (const stimulus of testDetail.stimuli) {
+      const section = stimulus.section ?? 1;
+      for (const group of stimulus.questionGroups ?? []) {
+        for (const q of group.questions ?? []) {
+          // Skip transition scripts (position 0)
+          if (q.position === 0) continue;
+          // Skip Part 2 cue card in practice mode (it's shown differently in exam)
+          // But keep it for Part 2 as it IS the question
+          allQuestions.push({
+            id: q.id,
+            content: q.content || FALLBACK_CONTENT,
+            position: q.position,
+            sampleAnswer: q.explanation?.text,
+            partNumber: section,
+            questionCategory: q.questionCategory,
+          });
+        }
+      }
     }
+
+    // Sort by part number, then position
+    allQuestions.sort((a, b) => a.partNumber - b.partNumber || a.position - b.position);
+
+    if (allQuestions.length > 0) return allQuestions;
+
+    // Fallback for old-format tests
     return [{
       id: 0,
       content: testDetail.stimuli[0]?.content || testDetail.description || FALLBACK_CONTENT,
       position: 1,
       sampleAnswer: undefined,
+      partNumber: 1,
     }];
   }, [testDetail]);
 
-  const currentPart = testDetail?.section ?? 1;
+  const currentPart = currentQuestion?.partNumber ?? testDetail?.section ?? 1;
   const currentQuestion = questions[currentQuestionIndex];
 
   const completedIds = useMemo(() => {

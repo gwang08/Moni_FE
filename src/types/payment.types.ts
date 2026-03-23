@@ -24,12 +24,16 @@ export interface PaymentResponse {
 }
 
 export interface CreditTransactionResponse {
-  id: string;
-  amount: number;
-  type: string;
-  description: string;
+  id: number;
+  delta: number;
+  balanceBefore: number;
   balanceAfter: number;
+  paymentType: string;
+  serviceName: string | null;
   createdAt: string;
+  userId: string;
+  serviceId: number | null;
+  paymentId: number | null;
 }
 
 export interface ServicePricingResponse {

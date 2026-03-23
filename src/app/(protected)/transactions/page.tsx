@@ -10,30 +10,11 @@ import type { CreditTransactionResponse } from '@/types/payment.types';
 const formatDate = (dateStr: string) =>
   new Date(dateStr).toLocaleString('vi-VN');
 
-// Color class map for known transaction types
-const TYPE_COLORS: Record<string, string> = {
-  PURCHASE:    'bg-blue-100 text-blue-700 border-blue-200',
-  USAGE:       'bg-orange-100 text-orange-700 border-orange-200',
-  REFUND:      'bg-green-100 text-green-700 border-green-200',
-  BONUS:       'bg-purple-100 text-purple-700 border-purple-200',
-  ADJUSTMENT:  'bg-gray-100 text-gray-600 border-gray-200',
+const TYPE_CONFIG: Record<string, { label: string; color: string }> = {
+  TOPUP: { label: 'Nạp tiền', color: 'bg-green-100 text-green-700' },
+  CONSUME: { label: 'Sử dụng', color: 'bg-orange-100 text-orange-700' },
+  REFUND: { label: 'Hoàn tiền', color: 'bg-blue-100 text-blue-700' },
 };
-
-const TYPE_LABELS: Record<string, string> = {
-  PURCHASE:   'Mua',
-  USAGE:      'Sử dụng',
-  REFUND:     'Hoàn tiền',
-  BONUS:      'Thưởng',
-  ADJUSTMENT: 'Điều chỉnh',
-};
-
-function TypeBadge({ type }: { type: string }) {
-  return (
-    <Badge className={TYPE_COLORS[type] ?? 'bg-gray-100 text-gray-600 border-gray-200'}>
-      {TYPE_LABELS[type] ?? type}
-    </Badge>
-  );
-}
 
 export default function TransactionsPage() {
   const [transactions, setTransactions] = useState<CreditTransactionResponse[]>([]);
@@ -57,7 +38,7 @@ export default function TransactionsPage() {
         <h1 className="text-2xl font-bold">Lịch sử tín dụng</h1>
       </div>
 
-      {loading && <SkeletonTable rows={5} cols={4} />}
+      {loading && <SkeletonTable rows={5} cols={5} />}
 
       {error && <p className="text-center text-red-500 py-8">{error}</p>}
 
@@ -66,8 +47,8 @@ export default function TransactionsPage() {
           <table className="w-full text-sm">
             <thead className="bg-gray-50 border-b">
               <tr>
-                {['Mô tả', 'Số lượng', 'Loại', 'Số dư sau', 'Ngày'].map((h) => (
-                  <th key={h} className="text-left px-4 py-3 font-medium text-gray-600">{h}</th>
+                {['Dịch vụ', 'Số credit', 'Loại', 'Số dư sau', 'Thời gian'].map((h) => (
+                  <th key={h} className="text-left px-4 py-3 font-medium text-gray-600 text-xs uppercase tracking-wide">{h}</th>
                 ))}
               </tr>
             </thead>
@@ -79,17 +60,24 @@ export default function TransactionsPage() {
                   </td>
                 </tr>
               ) : (
-                transactions.map((tx) => (
-                  <tr key={tx.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-4 py-3 text-gray-700">{tx.description}</td>
-                    <td className={`px-4 py-3 font-semibold ${tx.amount >= 0 ? 'text-green-600' : 'text-red-500'}`}>
-                      {tx.amount >= 0 ? '+' : ''}{tx.amount.toLocaleString('vi-VN')}
-                    </td>
-                    <td className="px-4 py-3"><TypeBadge type={tx.type} /></td>
-                    <td className="px-4 py-3 text-gray-600">{tx.balanceAfter.toLocaleString('vi-VN')}</td>
-                    <td className="px-4 py-3 text-gray-500">{formatDate(tx.createdAt)}</td>
-                  </tr>
-                ))
+                transactions.map((tx) => {
+                  const cfg = TYPE_CONFIG[tx.paymentType] ?? { label: tx.paymentType, color: 'bg-gray-100 text-gray-600' };
+                  return (
+                    <tr key={tx.id} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-4 py-3 text-gray-700">
+                        {tx.serviceName || (tx.paymentType === 'TOPUP' ? 'Nạp credit' : '—')}
+                      </td>
+                      <td className={`px-4 py-3 font-semibold tabular-nums ${tx.delta >= 0 ? 'text-green-600' : 'text-red-500'}`}>
+                        {tx.delta >= 0 ? '+' : ''}{tx.delta}
+                      </td>
+                      <td className="px-4 py-3">
+                        <Badge className={cfg.color}>{cfg.label}</Badge>
+                      </td>
+                      <td className="px-4 py-3 text-gray-600 tabular-nums">{tx.balanceAfter}</td>
+                      <td className="px-4 py-3 text-gray-500 text-xs">{formatDate(tx.createdAt)}</td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>

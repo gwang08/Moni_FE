@@ -55,7 +55,7 @@ export default function ExpertScoringPage() {
         skill: 'SPEAKING',
         content: '',
       });
-      refreshProfile(); // Update credit in header after deduction
+      await refreshProfile(); // Update credit in header after deduction
       router.push(`/expert-scoring/queue/${session.id}`);
     } catch {
       toast.error('Không thể tạo phiên chấm, vui lòng thử lại');

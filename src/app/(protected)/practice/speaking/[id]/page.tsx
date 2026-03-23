@@ -11,7 +11,6 @@ import { SpeakingQuestionCenter } from '@/components/speaking/speaking-question-
 import { SpeakingRecorder } from '@/components/speaking/speaking-recorder';
 import { SpeakingFeedbackPanel } from '@/components/speaking/speaking-feedback-panel';
 import { SpeakingNotesPanel } from '@/components/speaking/speaking-notes-panel';
-import { ScoringDialog } from '@/components/scoring/scoring-dialog';
 import { useTestDetail } from '@/hooks/use-test-detail';
 import { useSpeakingStore } from '@/store/speaking-store';
 import { usePracticeStore } from '@/store/practice-store';
@@ -45,7 +44,6 @@ export default function SpeakingPracticePage({ params }: Props) {
 
   const [showSample, setShowSample] = useState(false);
   const [showExitDialog, setShowExitDialog] = useState(false);
-  const [showScoringDialog, setShowScoringDialog] = useState(false);
   const [recordedBlobs, setRecordedBlobs] = useState<Record<string, Blob>>({});
 
   useEffect(() => {
@@ -224,17 +222,6 @@ export default function SpeakingPracticePage({ params }: Props) {
                 onRecordingComplete={handleRecordingComplete}
               />
 
-              {lastRecordedBlob && !isScoring && !scoringError && !questionRecording?.feedback && (
-                <div className="mt-4">
-                  <button
-                    onClick={() => setShowScoringDialog(true)}
-                    className="w-full py-3 rounded-2xl bg-gradient-to-r from-orange-400 to-amber-400 hover:from-orange-500 hover:to-amber-500 text-white font-semibold text-sm shadow-lg shadow-orange-300/30 transition-all duration-200 hover:scale-[1.01] hover:shadow-xl hover:shadow-orange-300/40 border border-orange-300/20"
-                  >
-                    Chấm điểm
-                  </button>
-                </div>
-              )}
-
               <SpeakingFeedbackPanel
                 feedback={questionRecording?.feedback ?? currentRecording?.feedback ?? null}
                 isScoring={isScoring}
@@ -244,13 +231,28 @@ export default function SpeakingPracticePage({ params }: Props) {
           )}
 
           {allRecorded && (
-            <div className="mt-6">
-              <button
-                onClick={handleSubmitAll}
-                className="w-full py-3 rounded-2xl bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white font-semibold text-sm shadow-lg shadow-green-300/30 transition-all duration-200 hover:scale-[1.01] hover:shadow-xl hover:shadow-green-300/40 border border-green-400/20"
-              >
-                Nộp bài ({Object.keys(recordedBlobs).length}/{questions.length} câu đã ghi âm)
-              </button>
+            <div className="mt-6 space-y-3">
+              <p className="text-center text-sm text-muted-foreground font-medium">
+                Đã ghi âm {Object.keys(recordedBlobs).length}/{questions.length} câu — Chọn cách chấm điểm
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  onClick={handleSubmitForScoring}
+                  disabled={isScoring}
+                  className="py-3 rounded-2xl bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white font-semibold text-sm shadow-lg shadow-blue-300/30 transition-all duration-200 hover:scale-[1.01] hover:shadow-xl hover:shadow-blue-300/40 border border-blue-400/20 disabled:opacity-50"
+                >
+                  🤖 Chấm bằng AI
+                </button>
+                <button
+                  onClick={() => {
+                    handleSubmitAll();
+                    router.push('/expert-scoring?skill=SPEAKING');
+                  }}
+                  className="py-3 rounded-2xl bg-gradient-to-r from-orange-400 to-amber-400 hover:from-orange-500 hover:to-amber-500 text-white font-semibold text-sm shadow-lg shadow-orange-300/30 transition-all duration-200 hover:scale-[1.01] hover:shadow-xl hover:shadow-orange-300/40 border border-orange-300/20"
+                >
+                  👨‍🏫 Chấm với Giảng viên
+                </button>
+              </div>
             </div>
           )}
         </div>
@@ -260,13 +262,6 @@ export default function SpeakingPracticePage({ params }: Props) {
           <SpeakingNotesPanel notes={notes} onNotesChange={setNotes} />
         </div>
       </div>
-
-      <ScoringDialog
-        open={showScoringDialog}
-        onClose={() => setShowScoringDialog(false)}
-        onAIScore={handleSubmitForScoring}
-        skill="speaking"
-      />
 
       <ConfirmDialog
         open={showExitDialog}

@@ -1,18 +1,12 @@
 'use client';
 
-// TODO: Replace video placeholder with Daily.co embed when ready.
-// Integration steps:
-//   1. Install @daily-co/daily-js: `npm install @daily-co/daily-js`
-//   2. Fetch roomUrl from ScoringSession data
-//   3. Call DailyIframe.createFrame() with the roomUrl
-//   4. Mount the iframe in the #daily-container div
-
-import { use } from 'react';
+import { use, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Video, ArrowLeft } from 'lucide-react';
+import { DailyVideoCall } from '@/components/video/daily-video-call';
+import { getQueuePosition } from '@/lib/expert-api';
+import { ArrowLeft, Loader2 } from 'lucide-react';
 
 interface Props {
   params: Promise<{ sessionId: string }>;
@@ -21,11 +15,40 @@ interface Props {
 export default function ExpertCallPage({ params }: Props) {
   const { sessionId } = use(params);
   const router = useRouter();
+  const [roomUrl, setRoomUrl] = useState('');
+  const [loading, setLoading] = useState(true);
+
+  // Fetch session to get roomUrl
+  useEffect(() => {
+    const fetchRoom = async () => {
+      try {
+        const data = await getQueuePosition(Number(sessionId));
+        if (data.roomUrl) setRoomUrl(data.roomUrl);
+      } catch { /* ignore */ }
+      setLoading(false);
+    };
+    fetchRoom();
+    // Poll for roomUrl if not available yet
+    const id = setInterval(async () => {
+      try {
+        const data = await getQueuePosition(Number(sessionId));
+        if (data.roomUrl) {
+          setRoomUrl(data.roomUrl);
+          clearInterval(id);
+        }
+        if (data.status === 'COMPLETED' || data.status === 'CANCELLED') {
+          clearInterval(id);
+          router.push('/expert-scoring');
+        }
+      } catch { /* ignore */ }
+    }, 3000);
+    return () => clearInterval(id);
+  }, [sessionId, router]);
 
   return (
-    <div className="min-h-[calc(100vh-56px)] bg-gray-900 text-white flex flex-col">
+    <div className="h-[calc(100vh-56px)] bg-gray-900 text-white flex flex-col">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-700">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-700 shrink-0">
         <Button
           variant="ghost"
           size="sm"
@@ -44,32 +67,18 @@ export default function ExpertCallPage({ params }: Props) {
       </div>
 
       {/* Video area */}
-      <div className="flex-1 flex items-center justify-center p-6">
-        <Card className="bg-gray-800 border-gray-600 p-10 text-center max-w-lg w-full space-y-4">
-          <div className="flex items-center justify-center">
-            <div className="p-5 rounded-full bg-gray-700">
-              <Video className="h-10 w-10 text-gray-400" />
-            </div>
+      <div className="flex-1 p-4">
+        {loading ? (
+          <div className="h-full flex items-center justify-center">
+            <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
           </div>
-
-          <div>
-            <p className="text-lg font-semibold text-white">
-              Video call đang được kết nối...
-            </p>
-            <p className="text-sm text-gray-400 mt-2">
-              Tích hợp Daily.co sẽ được thêm vào sớm
-            </p>
-          </div>
-
-          {/* Placeholder for Daily.co iframe */}
-          <div id="daily-container" className="w-full h-48 rounded-lg bg-gray-700 flex items-center justify-center">
-            <p className="text-xs text-gray-500">Daily.co iframe placeholder</p>
-          </div>
-
-          <p className="text-xs text-gray-500">
-            Khi giảng viên tham gia, video call sẽ bắt đầu tự động
-          </p>
-        </Card>
+        ) : (
+          <DailyVideoCall
+            roomUrl={roomUrl}
+            onLeave={() => router.push('/expert-scoring')}
+            className="h-full"
+          />
+        )}
       </div>
     </div>
   );

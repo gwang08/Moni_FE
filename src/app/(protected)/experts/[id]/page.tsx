@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { use, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -44,7 +44,8 @@ function Stars({ rating, size = 'md' }: { rating: number; size?: 'sm' | 'md' }) 
 const STATUS_LABEL: Record<string, string> = { AVAILABLE: 'Sẵn sàng', BUSY: 'Đang bận', OFFLINE: 'Ngoại tuyến' };
 const STATUS_COLOR: Record<string, string> = { AVAILABLE: 'bg-green-500', BUSY: 'bg-yellow-500', OFFLINE: 'bg-gray-400' };
 
-export default function ExpertProfilePage({ params }: { params: { id: string } }) {
+export default function ExpertProfilePage({ params }: { params: Promise<{ id: string }> }) {
+  const { id: expertId } = use(params);
   const router = useRouter();
   const searchParams = useSearchParams();
   const testId = searchParams.get('testId');
@@ -59,7 +60,7 @@ export default function ExpertProfilePage({ params }: { params: { id: string } }
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    const id = Number(params.id);
+    const id = Number(expertId);
     Promise.all([
       getExpertDetail(id),
       apiClient.get<ApiResponse<Review[]>>(`/api/v1/experts/${id}/reviews`, true).catch(() => ({ result: [] as Review[] })),
@@ -71,7 +72,7 @@ export default function ExpertProfilePage({ params }: { params: { id: string } }
       if (svc) setExpertCost(svc.creditCost);
     }).catch(() => toast.error('Không thể tải thông tin giảng viên'))
       .finally(() => setLoading(false));
-  }, [params.id]);
+  }, [expertId]);
 
   const handleBook = async () => {
     if (!expert || !testId) return;

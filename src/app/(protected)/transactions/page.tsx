@@ -7,8 +7,7 @@ import { getCreditTransactions } from '@/lib/payment-api';
 import { Badge } from '@/components/ui/badge';
 import type { CreditTransactionResponse } from '@/types/payment.types';
 
-const formatDate = (dateStr: string) =>
-  new Date(dateStr).toLocaleString('vi-VN');
+import { formatDate } from '@/lib/format-date';
 
 const TYPE_CONFIG: Record<string, { label: string; color: string }> = {
   TOPUP: { label: 'Nạp tiền', color: 'bg-green-100 text-green-700' },

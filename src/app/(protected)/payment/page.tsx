@@ -190,7 +190,7 @@ export default function PaymentPage() {
       {/* History link */}
       <div className="text-center">
         <Button variant="ghost" size="sm" asChild className="text-muted-foreground">
-          <Link href="/payment/history">
+          <Link href="/transactions">
             <Receipt className="h-4 w-4 mr-1.5" />
             Xem lịch sử thanh toán
           </Link>

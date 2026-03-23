@@ -134,7 +134,7 @@ export default function CheckoutPage() {
       }
       setTimeout(() => {
         clear();
-        router.push('/payment/history');
+        router.push('/transactions');
       }, 2500);
     },
     [clear, router, refreshProfile, updateUser]

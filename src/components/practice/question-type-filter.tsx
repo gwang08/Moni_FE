@@ -2,7 +2,7 @@
 
 import { Filter } from 'lucide-react';
 
-const QUESTION_TYPE_LABELS: Record<string, string> = {
+export const QUESTION_TYPE_LABELS: Record<string, string> = {
   MCQ: 'Multiple Choice',
   MCQ_MULTIPLE: 'Multiple Choice',
   TFNG: 'True / False / Not Given',

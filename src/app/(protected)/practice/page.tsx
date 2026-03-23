@@ -13,7 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { BookOpen, Pencil, Headphones, Mic, Search, CheckCircle, Users } from 'lucide-react';
 import { SkeletonCard } from '@/components/ui/skeleton';
-import { QuestionTypeFilter } from '@/components/practice/question-type-filter';
+import { QuestionTypeFilter, QUESTION_TYPE_LABELS } from '@/components/practice/question-type-filter';
 import type { Exercise, Skill, TestMode, TestType } from '@/types/practice.types';
 import { useLoginPrompt } from '@/hooks/use-login-prompt';
 import { LoginPromptDialog } from '@/components/auth/login-prompt-dialog';
@@ -271,7 +271,7 @@ function PracticePage() {
                         <ul className="text-sm text-gray-600 space-y-1 flex-1">
                           {exercise.questionTypes.map((qt) => (
                             <li key={qt} className="flex items-center gap-1">
-                              <span className="text-gray-400">·</span> {qt}
+                              <span className="text-gray-400">·</span> {QUESTION_TYPE_LABELS[qt] || qt.replace(/_/g, ' ')}
                             </li>
                           ))}
                         </ul>

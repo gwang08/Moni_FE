@@ -73,6 +73,11 @@ export function ReadingQuestionsPanel({ stimulus, submitted = false, answers, on
         const questionOffset = stimulus.questionGroups
           .slice(0, gi)
           .reduce((sum, g) => sum + g.questions.length, 0);
+        // Remap questions with global position so all child components show correct numbers
+        const globalQuestions = group.questions.map(q => ({
+          ...q,
+          position: questionOffset + q.position,
+        }));
         return (
           <div key={group.id}>
             <div className="flex items-center gap-2 mb-3">
@@ -88,7 +93,7 @@ export function ReadingQuestionsPanel({ stimulus, submitted = false, answers, on
 
             {group.questionTypeCode === 'MATCHING_HEADINGS' ? (
               <ReadingMatchingPills
-                questions={group.questions}
+                questions={globalQuestions}
                 answers={answers}
                 submitted={submitted}
                 selectedPillId={selectedPillId}
@@ -96,28 +101,28 @@ export function ReadingQuestionsPanel({ stimulus, submitted = false, answers, on
               />
             ) : group.questionTypeCode === 'MATCHING_INFORMATION' ? (
               <ReadingMatchingInformation
-                questions={group.questions}
+                questions={globalQuestions}
                 answers={answers}
                 submitted={submitted}
                 onAnswer={selectAnswer}
               />
             ) : group.questionTypeCode === 'MATCHING_FEATURE' ? (
               <ReadingMatchingFeature
-                questions={group.questions}
+                questions={globalQuestions}
                 answers={answers}
                 submitted={submitted}
                 onAnswer={selectAnswer}
               />
             ) : isMatching ? (
               <ReadingMatchingGroup
-                questions={group.questions}
+                questions={globalQuestions}
                 answers={answers}
                 submitted={submitted}
                 onAnswer={selectAnswer}
               />
             ) : GAP_TYPES.includes(group.questionTypeCode || '') ? (
               <ReadingGapFilling
-                questions={group.questions}
+                questions={globalQuestions}
                 groupContent={group.groupContent}
                 imageUrl={group.imageUrl}
                 submitted={submitted}
@@ -127,13 +132,13 @@ export function ReadingQuestionsPanel({ stimulus, submitted = false, answers, on
               />
             ) : (
               <div className="space-y-4">
-                {group.questions.map((question) => {
+                {globalQuestions.map((question) => {
                   const displayOptions = shuffledOptionsMap[question.id] || question.options;
                   return (
                     <ReadingQuestionMcq
                       key={question.id}
                       questionId={question.id}
-                      position={questionOffset + question.position}
+                      position={question.position}
                       content={question.content}
                       options={displayOptions}
                       selectedId={answers[question.id]}

@@ -15,6 +15,7 @@ import { useTestDetail } from '@/hooks/use-test-detail';
 import { useSpeakingStore } from '@/store/speaking-store';
 import { usePracticeStore } from '@/store/practice-store';
 import { submitAttempt } from '@/lib/practice-api';
+import { getServices } from '@/lib/payment-api';
 
 const FALLBACK_CONTENT = 'Hãy trả lời câu hỏi theo chủ đề được giao. Sử dụng ngôn ngữ tự nhiên và rõ ràng.';
 
@@ -45,9 +46,19 @@ export default function SpeakingPracticePage({ params }: Props) {
   const [showSample, setShowSample] = useState(false);
   const [showExitDialog, setShowExitDialog] = useState(false);
   const [recordedBlobs, setRecordedBlobs] = useState<Record<string, Blob>>({});
+  const [aiCost, setAiCost] = useState<number | null>(null);
+  const [expertCost, setExpertCost] = useState<number | null>(null);
 
   useEffect(() => {
     reset();
+    getServices()
+      .then((services) => {
+        const ai = services.find((s) => s.serviceCode === 'AI_SPEAKING_SCORE');
+        const expert = services.find((s) => s.serviceCode === 'EXPERT_SPEAKING_SCORE');
+        if (ai) setAiCost(ai.creditCost);
+        if (expert) setExpertCost(expert.creditCost);
+      })
+      .catch(() => {});
   }, [reset]);
 
   const questions = useMemo(() => {
@@ -246,9 +257,11 @@ export default function SpeakingPracticePage({ params }: Props) {
                   className="py-3 px-4 rounded-2xl bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white font-semibold text-sm shadow-lg shadow-blue-300/30 transition-all duration-200 hover:scale-[1.01] hover:shadow-xl hover:shadow-blue-300/40 border border-blue-400/20 disabled:opacity-50 flex flex-col items-center gap-1"
                 >
                   <span>🤖 Chấm bằng AI</span>
-                  <span className="flex items-center gap-1 text-xs font-normal opacity-90">
-                    - 30 <img src="/currency.webp" alt="credit" className="h-3.5 w-3.5 inline" />
-                  </span>
+                  {aiCost != null && (
+                    <span className="flex items-center gap-1 text-xs font-normal opacity-90">
+                      - {aiCost} <img src="/currency.webp" alt="credit" className="h-3.5 w-3.5 inline" />
+                    </span>
+                  )}
                 </button>
                 <button
                   onClick={async () => {
@@ -258,9 +271,11 @@ export default function SpeakingPracticePage({ params }: Props) {
                   className="py-3 px-4 rounded-2xl bg-gradient-to-r from-orange-400 to-amber-400 hover:from-orange-500 hover:to-amber-500 text-white font-semibold text-sm shadow-lg shadow-orange-300/30 transition-all duration-200 hover:scale-[1.01] hover:shadow-xl hover:shadow-orange-300/40 border border-orange-300/20 flex flex-col items-center gap-1"
                 >
                   <span>👨‍🏫 Chấm với Giảng viên</span>
-                  <span className="flex items-center gap-1 text-xs font-normal opacity-90">
-                    - 50 <img src="/currency.webp" alt="credit" className="h-3.5 w-3.5 inline" />
-                  </span>
+                  {expertCost != null && (
+                    <span className="flex items-center gap-1 text-xs font-normal opacity-90">
+                      - {expertCost} <img src="/currency.webp" alt="credit" className="h-3.5 w-3.5 inline" />
+                    </span>
+                  )}
                 </button>
               </div>
             </div>

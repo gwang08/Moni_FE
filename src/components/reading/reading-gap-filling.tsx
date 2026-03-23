@@ -148,7 +148,7 @@ function ParagraphGapFilling({ groupContent, questions, submitted, textAnswers, 
     const correctAnswer = question.options.find(o => o.isCorrect)?.content ?? '';
     const userAnswer = textAnswers[question.id] ?? '';
     rendered.push(
-      <span key={`q-${num}`} className="inline-flex items-baseline gap-0.5 mx-0.5">
+      <span key={`q-${num}`} id={`question-${question.id}`} className="inline-flex items-baseline gap-0.5 mx-0.5">
         <strong className="text-blue-600">{num}</strong>
         <GapInput questionId={question.id} userAnswer={userAnswer} submitted={submitted}
           correctAnswer={correctAnswer} onTextAnswer={onTextAnswer} />

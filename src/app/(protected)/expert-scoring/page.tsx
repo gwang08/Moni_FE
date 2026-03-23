@@ -7,12 +7,11 @@ import { Input } from '@/components/ui/input';
 import { ExpertCard } from '@/components/expert/expert-card';
 import { CreditConfirmDialog } from '@/components/scoring/credit-confirm-dialog';
 import { getExperts, createScoringSession } from '@/lib/expert-api';
+import { getServices } from '@/lib/payment-api';
 import { useAuthStore } from '@/store/auth-store';
 import { toast } from 'sonner';
 import { Search } from 'lucide-react';
 import type { ExpertProfile } from '@/types/expert.types';
-
-const EXPERT_CREDIT_COST = 50;
 
 export default function ExpertScoringPage() {
   const router = useRouter();
@@ -22,12 +21,19 @@ export default function ExpertScoringPage() {
   const [selected, setSelected] = useState<ExpertProfile | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [search, setSearch] = useState('');
+  const [expertCost, setExpertCost] = useState(0);
 
   useEffect(() => {
     getExperts()
       .then(setExperts)
       .catch(() => toast.error('Không thể tải danh sách giảng viên'))
       .finally(() => setLoading(false));
+    getServices()
+      .then((services) => {
+        const s = services.find((sv) => sv.serviceCode === 'EXPERT_SPEAKING_SCORE');
+        if (s) setExpertCost(s.creditCost);
+      })
+      .catch(() => {});
   }, []);
 
   const filtered = experts.filter((e) => {
@@ -99,7 +105,7 @@ export default function ExpertScoringPage() {
         onClose={() => setSelected(null)}
         onConfirm={handleConfirm}
         serviceName={`Chấm điểm với ${selected?.displayName ?? ''}`}
-        creditCost={EXPERT_CREDIT_COST}
+        creditCost={expertCost}
         currentBalance={user?.credit ?? 0}
       />
 

@@ -12,6 +12,9 @@ const QUESTION_TYPE_LABELS: Record<string, string> = {
   MATCHING_FEATURE: 'Matching Features',
   DIAGRAM_LABEL: 'Map, Diagram Label',
   GAP_FILLING: 'Gap Filling',
+  SPEAKING_PART_1: 'Part 1',
+  SPEAKING_PART_2: 'Part 2',
+  SPEAKING_PART_3: 'Part 3',
 };
 
 interface Props {

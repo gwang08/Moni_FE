@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { initPayment, getPayments } from '@/lib/payment-api';
 import { usePaymentStore } from '@/store/payment-store';
+import { useAuthStore } from '@/store/auth-store';
 import { Button } from '@/components/ui/button';
 
 const formatVND = (price: number) =>
@@ -120,34 +121,73 @@ export default function CheckoutPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const pollStatus = useCallback(async () => {
-    if (!pendingPayment) return;
-    try {
-      const payments = await getPayments();
-      const match = payments.find(
-        (p) => p.id === pendingPayment.id || p.txnCode === pendingPayment.txnCode
-      );
-      if (match?.status === 'SUCCESS') {
-        setStatus('completed');
-        setTimeout(() => {
-          clear();
-          router.push('/payment/history');
-        }, 2500);
-      }
-    } catch {
-      /* ignore polling errors */
-    }
-  }, [pendingPayment, clear, router]);
+  const { refreshProfile, updateUser } = useAuthStore();
 
+  const handlePaymentSuccess = useCallback(
+    (credit?: number) => {
+      setStatus('completed');
+      // Update credit in store instantly if provided by SSE
+      if (credit != null) {
+        updateUser({ credit });
+      } else {
+        refreshProfile();
+      }
+      setTimeout(() => {
+        clear();
+        router.push('/payment/history');
+      }, 2500);
+    },
+    [clear, router, refreshProfile, updateUser]
+  );
+
+  // SSE realtime listener + polling fallback
   useEffect(() => {
     if (!pendingPayment || status !== 'pending') return;
     if (expired) {
       setStatus('expired');
       return;
     }
-    const id = setInterval(pollStatus, 5000);
-    return () => clearInterval(id);
-  }, [pendingPayment, pollStatus, status, expired]);
+
+    let sseConnected = false;
+
+    // 1. Try SSE for instant notification
+    const token = useAuthStore.getState().token;
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+    const eventSource = new EventSource(
+      `${apiUrl}/payments/subscribe?token=${encodeURIComponent(token || '')}`
+    );
+
+    eventSource.addEventListener('payment_success', (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data.paymentId === pendingPayment.id) {
+          handlePaymentSuccess(data.credit);
+        }
+      } catch { /* ignore parse errors */ }
+    });
+
+    eventSource.onopen = () => { sseConnected = true; };
+    eventSource.onerror = () => { sseConnected = false; };
+
+    // 2. Fallback polling every 5s (in case SSE fails or server doesn't support it)
+    const pollId = setInterval(async () => {
+      if (sseConnected) return; // Skip poll if SSE is active
+      try {
+        const payments = await getPayments();
+        const match = payments.find(
+          (p) => p.id === pendingPayment.id || p.txnCode === pendingPayment.txnCode
+        );
+        if (match?.status === 'SUCCESS') {
+          handlePaymentSuccess();
+        }
+      } catch { /* ignore */ }
+    }, 5000);
+
+    return () => {
+      eventSource.close();
+      clearInterval(pollId);
+    };
+  }, [pendingPayment, status, expired, handlePaymentSuccess]);
 
   if (!selectedPackage) return null;
 

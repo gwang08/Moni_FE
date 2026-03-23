@@ -11,7 +11,6 @@ import { SpeakingQuestionCenter } from '@/components/speaking/speaking-question-
 import { SpeakingRecorder } from '@/components/speaking/speaking-recorder';
 import { SpeakingFeedbackPanel } from '@/components/speaking/speaking-feedback-panel';
 import { SpeakingNotesPanel } from '@/components/speaking/speaking-notes-panel';
-import { SpeakingModeDialog } from '@/components/speaking/speaking-mode-dialog';
 import { useTestDetail } from '@/hooks/use-test-detail';
 import { useSpeakingStore } from '@/store/speaking-store';
 import { usePracticeStore } from '@/store/practice-store';
@@ -44,7 +43,6 @@ export default function SpeakingPracticePage({ params }: Props) {
 
   const markCompleted = usePracticeStore((state) => state.markCompleted);
 
-  const [showModeDialog, setShowModeDialog] = useState(true);
   const [showSample, setShowSample] = useState(false);
   const [showExitDialog, setShowExitDialog] = useState(false);
   const [recordedBlobs, setRecordedBlobs] = useState<Record<string, Blob>>({});
@@ -172,12 +170,6 @@ export default function SpeakingPracticePage({ params }: Props) {
 
   return (
     <div className="h-[calc(100vh-56px)] flex flex-col relative overflow-hidden">
-      <SpeakingModeDialog
-        open={showModeDialog}
-        testId={id}
-        onSelectAI={() => setShowModeDialog(false)}
-        onClose={() => setShowModeDialog(false)}
-      />
       {/* Decorative background blobs */}
       <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
         <div className="absolute -top-32 -left-32 w-96 h-96 rounded-full bg-orange-200/20 blur-3xl" />

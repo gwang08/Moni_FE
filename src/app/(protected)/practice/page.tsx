@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { usePracticeStore } from '@/store/practice-store';
 import { usePracticeExercises } from '@/hooks/use-practice-exercises';
 import { ModeSelectionModal } from '@/components/practice/mode-selection-modal';
+import { SpeakingModeDialog } from '@/components/speaking/speaking-mode-dialog';
 import { PracticeSidebar } from '@/components/practice/practice-sidebar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -60,6 +61,8 @@ function PracticePage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [speakingModeOpen, setSpeakingModeOpen] = useState(false);
+  const [speakingTestId, setSpeakingTestId] = useState<string>('');
   const { showPrompt, setShowPrompt, requireAuth } = useLoginPrompt();
 
   const completedExercises = usePracticeStore((state) => state.completedExercises);
@@ -100,8 +103,14 @@ function PracticePage() {
 
   const handleStartExercise = (exercise: Exercise) => {
     requireAuth(() => {
-      // Speaking/Writing: skip mode modal, go straight to practice
-      if (exercise.skill === 'speaking' || exercise.skill === 'writing') {
+      // Speaking: show mode dialog (AI / Expert)
+      if (exercise.skill === 'speaking') {
+        setSpeakingTestId(String(exercise.id));
+        setSpeakingModeOpen(true);
+        return;
+      }
+      // Writing: go straight to practice
+      if (exercise.skill === 'writing') {
         router.push(`/practice/${exercise.skill}/${exercise.id}`);
         return;
       }
@@ -272,6 +281,16 @@ function PracticePage() {
       </main>
 
       <ModeSelectionModal exercise={selectedExercise} open={modalOpen} onOpenChange={setModalOpen} />
+
+      <SpeakingModeDialog
+        open={speakingModeOpen}
+        testId={speakingTestId}
+        onSelectAI={() => {
+          setSpeakingModeOpen(false);
+          router.push(`/practice/speaking/${speakingTestId}`);
+        }}
+        onClose={() => setSpeakingModeOpen(false)}
+      />
       <LoginPromptDialog open={showPrompt} onOpenChange={setShowPrompt} />
     </div>
   );

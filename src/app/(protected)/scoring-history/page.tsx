@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { GraduationCap, Loader2, Eye } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { GraduationCap, Loader2, Eye, Video, XCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -10,7 +11,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { getMySessions, getSessionEvaluation } from '@/lib/expert-api';
+import { getMySessions, getSessionEvaluation, cancelScoringSession } from '@/lib/expert-api';
 import type { ScoringSession, ExpertEvaluation } from '@/types/expert.types';
 import { toast } from 'sonner';
 
@@ -121,7 +122,17 @@ function EvaluationDialog({
   );
 }
 
+/** Check if session room is expired (created > 30 min ago and still IN_PROGRESS) */
+function isSessionExpired(session: ScoringSession): boolean {
+  if (session.status !== 'IN_PROGRESS') return false;
+  if (!session.createdAt) return false;
+  const created = new Date(session.createdAt.includes('Z') ? session.createdAt : session.createdAt + 'Z');
+  const minutesAgo = (Date.now() - created.getTime()) / 60000;
+  return minutesAgo > 35; // 30 min room + 5 min buffer
+}
+
 export default function ScoringHistoryPage() {
+  const router = useRouter();
   const [sessions, setSessions] = useState<ScoringSession[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -202,19 +213,38 @@ export default function ScoringHistoryPage() {
                       : '—'}
                   </td>
                   <td className="px-4 py-3">
-                    {session.status === 'COMPLETED' ? (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="h-7 text-xs gap-1"
-                        onClick={() => handleViewEvaluation(session.id)}
-                      >
-                        <Eye className="h-3.5 w-3.5" />
-                        Xem đánh giá
-                      </Button>
-                    ) : (
-                      <span className="text-muted-foreground text-xs">—</span>
-                    )}
+                    <div className="flex items-center gap-1.5">
+                      {session.status === 'COMPLETED' && (
+                        <Button size="sm" variant="outline" className="h-7 text-xs gap-1"
+                          onClick={() => handleViewEvaluation(session.id)}>
+                          <Eye className="h-3.5 w-3.5" /> Xem đánh giá
+                        </Button>
+                      )}
+                      {session.status === 'IN_PROGRESS' && !isSessionExpired(session) && (
+                        <Button size="sm" className="h-7 text-xs gap-1"
+                          onClick={() => router.push(`/expert-scoring/call/${session.id}`)}>
+                          <Video className="h-3.5 w-3.5" /> Tham gia lại
+                        </Button>
+                      )}
+                      {session.status === 'IN_PROGRESS' && isSessionExpired(session) && (
+                        <Badge className="bg-red-100 text-red-700 border-0 text-xs">Đã hết hạn</Badge>
+                      )}
+                      {session.status === 'QUEUED' && (
+                        <Button size="sm" variant="outline" className="h-7 text-xs gap-1 text-red-500 hover:text-red-600"
+                          onClick={async () => {
+                            try {
+                              await cancelScoringSession(session.id);
+                              setSessions((prev) => prev.map((s) => s.id === session.id ? { ...s, status: 'CANCELLED' } : s));
+                              toast.success('Đã huỷ phiên');
+                            } catch { toast.error('Không thể huỷ phiên'); }
+                          }}>
+                          <XCircle className="h-3.5 w-3.5" /> Huỷ
+                        </Button>
+                      )}
+                      {session.status === 'CANCELLED' && (
+                        <span className="text-muted-foreground text-xs">—</span>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}

@@ -38,10 +38,10 @@ export async function cancelScoringSession(id: number): Promise<void> {
   await apiClient.patch(`/api/v1/scoring-sessions/${id}/cancel`, undefined, true);
 }
 
-export async function getQueuePosition(id: number): Promise<{ position: number; status: string }> {
-  const response = await apiClient.get<ApiResponse<{ position: number; status: string }>>(
+export async function getQueuePosition(id: number): Promise<{ position: number; status: string; roomUrl: string }> {
+  const response = await apiClient.get<ApiResponse<{ position: number; status: string; roomUrl: string }>>(
     `/api/v1/scoring-sessions/${id}/queue-position`,
     true
   );
-  return response.result ?? { position: 0, status: 'QUEUED' };
+  return response.result ?? { position: 0, status: 'QUEUED', roomUrl: '' };
 }

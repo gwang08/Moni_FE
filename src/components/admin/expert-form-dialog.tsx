@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from '@/components/ui/dialog';
@@ -8,9 +8,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { createExpert } from '@/lib/admin-expert-api';
-import { apiClient } from '@/lib/api-client';
+import { uploadMedia } from '@/lib/admin-api';
 import { toast } from 'sonner';
-import { Loader2, Upload } from 'lucide-react';
+import { Loader2, Plus, Camera } from 'lucide-react';
 import type { ExpertProfile, CreateExpertRequest } from '@/types/expert.types';
 
 interface Props {
@@ -34,27 +34,21 @@ const DEFAULT: CreateExpertRequest = {
 export function ExpertFormDialog({ open, onClose, onCreated }: Props) {
   const [form, setForm] = useState<CreateExpertRequest>(DEFAULT);
   const [loading, setLoading] = useState(false);
-  const [uploading, setUploading] = useState(false);
   const [avatarPreview, setAvatarPreview] = useState('');
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const set = (key: keyof CreateExpertRequest, value: string | number) =>
     setForm((prev) => ({ ...prev, [key]: value }));
 
-  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAvatarSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    setUploading(true);
-    try {
-      const res = await apiClient.upload<{ result: string }>('/api/v1/admin/media/upload', file);
-      const url = res.result;
-      setForm((p) => ({ ...p, avatarUrl: url }));
-      setAvatarPreview(URL.createObjectURL(file));
-      toast.success('Upload ảnh thành công');
-    } catch {
-      toast.error('Upload ảnh thất bại');
-    } finally {
-      setUploading(false);
-    }
+    // Revoke old preview URL
+    if (avatarPreview) URL.revokeObjectURL(avatarPreview);
+    setAvatarFile(file);
+    setAvatarPreview(URL.createObjectURL(file));
+    e.target.value = '';
   };
 
   const handleSubmit = async () => {
@@ -64,10 +58,14 @@ export function ExpertFormDialog({ open, onClose, onCreated }: Props) {
     }
     setLoading(true);
     try {
-      const expert = await createExpert(form);
+      let avatarUrl = form.avatarUrl;
+      // Upload avatar to Cloudinary on submit
+      if (avatarFile) {
+        avatarUrl = await uploadMedia(avatarFile);
+      }
+      const expert = await createExpert({ ...form, avatarUrl });
       onCreated(expert);
-      setForm(DEFAULT);
-      setAvatarPreview('');
+      handleReset();
       onClose();
       toast.success('Tạo giảng viên thành công!');
     } catch {
@@ -77,42 +75,65 @@ export function ExpertFormDialog({ open, onClose, onCreated }: Props) {
     }
   };
 
+  const handleReset = () => {
+    if (avatarPreview) URL.revokeObjectURL(avatarPreview);
+    setForm(DEFAULT);
+    setAvatarPreview('');
+    setAvatarFile(null);
+  };
+
   return (
-    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
+    <Dialog open={open} onOpenChange={(v) => { if (!v) { handleReset(); onClose(); } }}>
       <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Tạo giảng viên mới</DialogTitle>
         </DialogHeader>
 
         <div className="grid grid-cols-2 gap-3 py-2">
-          {/* Avatar upload */}
-          <div className="col-span-2 flex items-center gap-4">
-            <div className="h-16 w-16 rounded-full bg-gray-100 border overflow-hidden flex items-center justify-center shrink-0">
-              {avatarPreview || form.avatarUrl ? (
-                <img src={avatarPreview || form.avatarUrl} alt="" className="h-full w-full object-cover" />
+          {/* Avatar upload - click on circle */}
+          <div className="col-span-2 flex flex-col items-center gap-2">
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={loading}
+              className="group relative h-20 w-20 rounded-full bg-gray-100 border-2 border-dashed border-gray-300 overflow-hidden flex items-center justify-center shrink-0 hover:border-primary hover:bg-gray-50 transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+            >
+              {avatarPreview ? (
+                <>
+                  <img src={avatarPreview} alt="" className="h-full w-full object-cover" />
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                    <Camera className="h-5 w-5 text-white" />
+                  </div>
+                </>
               ) : (
-                <Upload className="h-5 w-5 text-gray-400" />
+                <div className="flex flex-col items-center gap-0.5 text-gray-400 group-hover:text-primary transition-colors">
+                  <Plus className="h-6 w-6" />
+                  <span className="text-[9px] font-medium">Tải ảnh</span>
+                </div>
               )}
-            </div>
-            <div className="flex-1">
-              <Label className="text-xs">Ảnh đại diện</Label>
-              <Input type="file" accept="image/*" onChange={handleAvatarUpload} disabled={uploading} className="mt-1" />
-              {uploading && <p className="text-xs text-blue-500 mt-1">Đang upload...</p>}
-            </div>
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleAvatarSelect}
+              className="hidden"
+            />
+            <span className="text-[10px] text-gray-400">Ảnh đại diện</span>
           </div>
 
           <div className="space-y-1">
-            <Label className="text-xs">Email *</Label>
+            <Label className="text-xs">Email <span className="text-red-500">*</span></Label>
             <Input value={form.email} onChange={(e) => set('email', e.target.value)} placeholder="expert@example.com" />
           </div>
           <div className="space-y-1">
-            <Label className="text-xs">Tên hiển thị *</Label>
+            <Label className="text-xs">Tên hiển thị <span className="text-red-500">*</span></Label>
             <Input value={form.displayName} onChange={(e) => set('displayName', e.target.value)} placeholder="Nguyễn Văn A" />
           </div>
 
           {/* Band scores */}
           <div className="col-span-2">
-            <Label className="text-xs font-medium mb-2 block">Điểm IELTS</Label>
+            <Label className="text-xs font-medium mb-2 block">Điểm IELTS <span className="text-red-500">*</span></Label>
             <div className="grid grid-cols-5 gap-2">
               {[
                 { key: 'bandReading', label: 'Reading' },
@@ -135,11 +156,11 @@ export function ExpertFormDialog({ open, onClose, onCreated }: Props) {
           </div>
 
           <div className="space-y-1">
-            <Label className="text-xs">Số năm kinh nghiệm</Label>
+            <Label className="text-xs">Số năm kinh nghiệm <span className="text-red-500">*</span></Label>
             <Input type="number" min={0} value={form.yearsExperience} onChange={(e) => set('yearsExperience', parseInt(e.target.value))} />
           </div>
           <div className="space-y-1">
-            <Label className="text-xs">Chuyên môn</Label>
+            <Label className="text-xs">Chuyên môn <span className="text-red-500">*</span></Label>
             <select
               className="w-full rounded-md border bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
               value={form.specialization}
@@ -161,8 +182,8 @@ export function ExpertFormDialog({ open, onClose, onCreated }: Props) {
         </div>
 
         <DialogFooter className="gap-2">
-          <Button variant="outline" onClick={onClose} disabled={loading}>Huỷ</Button>
-          <Button onClick={handleSubmit} disabled={loading || uploading}>
+          <Button variant="outline" onClick={() => { handleReset(); onClose(); }} disabled={loading}>Huỷ</Button>
+          <Button onClick={handleSubmit} disabled={loading}>
             {loading ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Đang tạo...</> : 'Tạo giảng viên'}
           </Button>
         </DialogFooter>

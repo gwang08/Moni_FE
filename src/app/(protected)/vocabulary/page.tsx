@@ -2,46 +2,27 @@
 
 import { useState, useEffect, useRef, useCallback, Suspense } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
-import {
-  Search, Loader2, Bookmark,
-} from 'lucide-react';
+import { Search, Loader2, Bookmark, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { searchWord, saveWord, browseCurated, getBands, getTopics } from '@/lib/vocab-api';
-import type { VocabSearchResult, CuratedWord, BandSummary, TopicSummary } from '@/types/vocab.types';
+import { lookupVocab, saveWord, browseCurated, getBands, getTopics, type VocabLookupResult } from '@/lib/vocab-api';
+import type { CuratedWord, BandSummary, TopicSummary } from '@/types/vocab.types';
 import { toast } from 'sonner';
-import { SearchResultCard } from '@/components/vocabulary/search-result-card';
+import { WordResultCard } from '@/components/vocabulary/word-result-card';
+import { VocabSearchAutocomplete } from '@/components/vocabulary/vocab-search-autocomplete';
+import { VocabLearningMethods } from '@/components/vocabulary/vocab-learning-methods';
 import { BandDeckCards } from '@/components/vocabulary/band-deck-cards';
 import { TopicDeckCards } from '@/components/vocabulary/topic-deck-cards';
 import { ChibiMascot } from '@/components/ui/chibi-mascot';
 
-const T = {
-  title: 'H\u1ecdc T\u1eeb V\u1ef1ng IELTS',
-  subtitle: 'Th\u00e0nh th\u1ea1o t\u1eeb v\u1ef1ng IELTS v\u1edbi h\u1ec7 th\u1ed1ng l\u1eb7p l\u1ea1i ng\u1eaft qu\u00e3ng c\u1ee7a Moni',
-  saved_btn: 'T\u1eeb v\u1ef1ng \u0111\u00e3 l\u01b0u',
-  search_placeholder: 'T\u00ecm ki\u1ebfm t\u1eeb v\u1ef1ng...',
-  search_btn: 'Tra t\u1eeb',
-  searching: '\u0110ang t\u00ecm...',
-  search_error: 'Kh\u00f4ng th\u1ec3 t\u00ecm t\u1eeb.',
-  by_band: 'T\u1eeb V\u1ef1ng Theo Band IELTS',
-  by_topic: 'T\u1eeb V\u1ef1ng Theo Ch\u1ee7 \u0110\u1ec1',
-  learning: 'Ph\u01b0\u01a1ng Ph\u00e1p H\u1ecdc',
-  deck_unit: 'b\u1ed9 th\u1ebb',
-};
-
-const POS_BADGE: Record<string, string> = {
-  noun: 'bg-blue-100 text-blue-700', verb: 'bg-emerald-100 text-emerald-700',
-  adjective: 'bg-amber-100 text-amber-700', adverb: 'bg-purple-100 text-purple-700',
-  adj: 'bg-amber-100 text-amber-700', adv: 'bg-purple-100 text-purple-700',
-};
-
 function VocabularyContent() {
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<VocabSearchResult | null>(null);
-  const [error, setError] = useState('');
+  const [result, setResult] = useState<VocabLookupResult | null>(null);
+  const [isSaved, setIsSaved] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
   const [suggestions, setSuggestions] = useState<CuratedWord[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
@@ -92,9 +73,10 @@ function VocabularyContent() {
   const handleSearch = async (word?: string) => {
     const q = (word ?? query).trim();
     if (!q) return;
-    setQuery(q); setShowSuggestions(false); setLoading(true); setError(''); setResult(null);
-    try { setResult(await searchWord(q)); }
-    catch (err: unknown) { setError(err instanceof Error ? err.message : T.search_error); }
+    setQuery(q); setShowSuggestions(false); setLoading(true);
+    setError(''); setResult(null); setIsSaved(false);
+    try { setResult(await lookupVocab(q)); }
+    catch (err: unknown) { setError(err instanceof Error ? err.message : 'Không thể tìm từ.'); }
     finally { setLoading(false); }
   };
 
@@ -111,181 +93,134 @@ function VocabularyContent() {
     setSaving(true);
     try {
       await saveWord(result.word);
-      toast.success(`\u0110\u00e3 l\u01b0u t\u1eeb "${result.word}"`);
-      setResult(prev => prev ? { ...prev, isSaved: true } : prev);
-    } catch (err: unknown) { toast.error(err instanceof Error ? err.message : 'Error'); }
-    finally { setSaving(false); }
+      setIsSaved(true);
+      toast.success(`Đã lưu từ "${result.word}"`);
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Không thể lưu từ');
+    } finally { setSaving(false); }
   };
+
+  const handleClose = () => { setResult(null); setError(''); setQuery(''); setIsSaved(false); };
 
   return (
     <div className="min-h-screen bg-white">
-      {/* Hero Section - like Parroto */}
+      {/* Hero */}
       <div className="border-b border-gray-100">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
           <div className="flex items-center justify-between flex-wrap gap-4">
             <div className="flex items-center gap-4">
               <ChibiMascot mood="happy" size={56} />
               <div>
-                <h1 className="text-xl sm:text-2xl font-bold text-gray-900">{T.title}</h1>
-                <p className="text-sm text-gray-500 mt-0.5">{T.subtitle}</p>
+                <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Học Từ Vựng IELTS</h1>
+                <p className="text-sm text-gray-500 mt-0.5">
+                  Thành thạo từ vựng IELTS với hệ thống lặp lại ngắt quãng của Moni
+                </p>
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              <Link href="/vocabulary/notebook"
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg
-                  bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700 transition-colors">
-                <Bookmark className="h-4 w-4" />
-                {T.saved_btn}
-              </Link>
-            </div>
+            <Link href="/vocabulary/notebook"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg
+                bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700 transition-colors">
+              <Bookmark className="h-4 w-4" />
+              Từ vựng đã lưu
+            </Link>
           </div>
         </div>
       </div>
 
       {/* Search bar */}
-      <div className="border-b border-gray-100">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-4">
-          <div className="max-w-xl relative">
+      <div className="border-b border-gray-100 bg-gradient-to-b from-indigo-50/40 to-white">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-5">
+          <div className="max-w-2xl mx-auto relative">
             <div className="flex gap-2">
               <div className="relative flex-1">
-                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 z-10" />
-                <Input ref={inputRef} placeholder={T.search_placeholder}
-                  className="pl-10 h-10 text-sm rounded-lg border-gray-200 bg-gray-50
-                    focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400 focus:bg-white"
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 z-10" />
+                <Input ref={inputRef} placeholder="Nhập từ tiếng Anh cần tra..."
+                  className="pl-12 h-12 text-base rounded-xl border-gray-200 bg-white shadow-sm
+                    focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400"
                   value={query} onChange={e => handleInputChange(e.target.value)}
                   onKeyDown={handleKeyDown}
                   onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
                   autoComplete="off" />
               </div>
               <Button onClick={() => handleSearch()} disabled={loading || !query.trim()}
-                className="h-10 px-5 rounded-lg text-sm bg-indigo-600 hover:bg-indigo-700">
-                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : T.search_btn}
+                className="h-12 px-6 rounded-xl text-sm bg-indigo-600 hover:bg-indigo-700 shadow-sm">
+                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Tra từ'}
               </Button>
             </div>
 
-            {showSuggestions && suggestions.length > 0 && (
-              <div ref={suggestionsRef}
-                className="absolute z-50 top-full left-0 right-0 mt-1 bg-white border border-gray-200
-                  rounded-lg shadow-lg overflow-hidden max-h-72 overflow-y-auto">
-                {loadingSuggestions && (
-                  <div className="flex items-center gap-2 px-4 py-2 text-sm text-gray-400">
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" /> {T.searching}
-                  </div>
-                )}
-                {suggestions.map((s, i) => (
-                  <button key={s.id}
-                    className={`w-full text-left px-4 py-2.5 flex items-center gap-3 transition-colors
-                      ${i === activeIndex ? 'bg-indigo-50' : 'hover:bg-gray-50'}
-                      ${i > 0 ? 'border-t border-gray-50' : ''}`}
-                    onClick={() => handleSearch(s.word)} onMouseEnter={() => setActiveIndex(i)}>
-                    <Search className="h-3.5 w-3.5 text-gray-300 shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-semibold text-gray-900">{s.word}</span>
-                        {s.pos && <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase
-                          ${POS_BADGE[s.pos.toLowerCase()] ?? 'bg-gray-100 text-gray-600'}`}>{s.pos}</span>}
-                      </div>
-                      {s.meaning && <p className="text-xs text-gray-500 truncate mt-0.5">{s.meaning}</p>}
-                    </div>
-                  </button>
-                ))}
-              </div>
+            {showSuggestions && (
+              <VocabSearchAutocomplete
+                suggestions={suggestions}
+                activeIndex={activeIndex}
+                loading={loadingSuggestions}
+                onSelect={handleSearch}
+                onHover={setActiveIndex}
+                containerRef={suggestionsRef}
+              />
             )}
           </div>
         </div>
       </div>
 
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-10">
-        {/* Learning Methods - right below hero */}
-        <section>
-          <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-1">
-            {T.learning}
-          </h2>
-          <div className="h-px bg-gray-100 mb-5" />
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-            {[
-              { href: '/vocabulary/flashcard', label: 'Flashcard',
-                desc: '\u00d4n t\u1eadp v\u1edbi th\u1ebb l\u1eadt v\u00e0 Spaced Repetition',
-                img: '/vocab/method-flashcard.jpg' },
-              { href: '/vocabulary/quiz', label: 'Tr\u1eafc Nghi\u1ec7m',
-                desc: 'Ki\u1ec3m tra ki\u1ebfn th\u1ee9c v\u1edbi c\u00e2u h\u1ecfi tr\u1eafc nghi\u1ec7m',
-                img: '/vocab/method-quiz.jpg' },
-              { href: '/vocabulary/word-match', label: 'N\u1ed1i T\u1eeb',
-                desc: 'Gh\u00e9p t\u1eeb v\u1edbi ngh\u0129a t\u01b0\u01a1ng \u1ee9ng',
-                img: '/vocab/method-match.jpg' },
-            ].map(m => (
-              <Link key={m.href} href={m.href}
-                className="group block rounded-lg border border-gray-200 bg-white
-                  hover:shadow-lg transition-all duration-300">
-                <div className="p-4">
-                  <div className="w-full h-44 mb-3 rounded-lg overflow-hidden bg-gray-100 relative">
-                    <Image src={m.img} alt={m.label} fill
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
-                  </div>
-                  <div className="mb-3">
-                    <p className="font-semibold text-[16px] leading-[20px] line-clamp-2">{m.label}</p>
-                  </div>
-                  <div className="text-sm text-muted-foreground mb-3">
-                    <p>{m.desc}</p>
-                  </div>
-                  <div className="flex gap-2">
-                    <span className="inline-flex items-center justify-center whitespace-nowrap
-                      text-sm font-medium bg-primary text-primary-foreground shadow-xs
-                      hover:bg-primary/80 transition-all rounded-md flex-1 h-10">
-                      {`B\u1eaft \u0111\u1ea7u H\u1ecdc`}
-                    </span>
-                  </div>
-                </div>
-              </Link>
-            ))}
-          </div>
-        </section>
-
-        {/* Search result overlay */}
-        {(loading || error || result) && (
-          <div>
-            {loading && <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-indigo-400" /></div>}
-            {error && <div className="max-w-2xl rounded-lg bg-red-50 border border-red-200 p-4 text-center"><p className="text-red-600 text-sm">{error}</p></div>}
-            {result && <SearchResultCard result={result} saving={saving} onSave={handleSave} onClose={() => { setResult(null); setError(''); setQuery(''); }} />}
+        {/* Loading */}
+        {loading && (
+          <div className="flex flex-col items-center justify-center py-16 gap-3">
+            <Loader2 className="h-8 w-8 animate-spin text-indigo-400" />
+            <p className="text-sm text-gray-400">Đang tra từ điển...</p>
           </div>
         )}
 
-        {!result && (
+        {/* Error */}
+        {!loading && error && (
+          <div className="max-w-2xl mx-auto rounded-xl bg-red-50 border border-red-100 p-5
+            flex items-center justify-between">
+            <p className="text-red-600 text-sm font-medium">{error}</p>
+            <button onClick={handleClose} className="text-red-400 hover:text-red-600 transition-colors">
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        )}
+
+        {/* Rich result card */}
+        {!loading && result && (
+          <div className="space-y-3">
+            <div className="flex justify-end max-w-2xl mx-auto">
+              <button onClick={handleClose}
+                className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-gray-600
+                  transition-colors px-2 py-1 rounded-lg hover:bg-gray-100">
+                <X className="h-3.5 w-3.5" /> Đóng kết quả
+              </button>
+            </div>
+            <WordResultCard result={result} saving={saving} isSaved={isSaved} onSave={handleSave} />
+          </div>
+        )}
+
+        {/* Browse sections — hidden while showing result */}
+        {!result && !loading && (
           <>
-            {/* Band IELTS Section */}
+            <VocabLearningMethods />
+
             <section>
               <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-1">
-                {T.by_band}
-                {bands.length > 0 && (
-                  <span className="text-sm font-normal text-gray-400 ml-2">
-                    ({bands.length} {T.deck_unit})
-                  </span>
-                )}
+                Từ Vựng Theo Band IELTS
+                {bands.length > 0 && <span className="text-sm font-normal text-gray-400 ml-2">({bands.length} bộ thẻ)</span>}
               </h2>
               <div className="h-px bg-gray-100 mb-5" />
-              {loadingData ? (
-                <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-gray-300" /></div>
-              ) : (
-                <BandDeckCards bands={bands} />
-              )}
+              {loadingData
+                ? <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-gray-300" /></div>
+                : <BandDeckCards bands={bands} />}
             </section>
 
-            {/* Topic Section */}
             <section>
               <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-1">
-                {T.by_topic}
-                {topics.length > 0 && (
-                  <span className="text-sm font-normal text-gray-400 ml-2">
-                    ({topics.length} {T.deck_unit})
-                  </span>
-                )}
+                Từ Vựng Theo Chủ Đề
+                {topics.length > 0 && <span className="text-sm font-normal text-gray-400 ml-2">({topics.length} bộ thẻ)</span>}
               </h2>
               <div className="h-px bg-gray-100 mb-5" />
-              {loadingData ? (
-                <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-gray-300" /></div>
-              ) : (
-                <TopicDeckCards topics={topics} />
-              )}
+              {loadingData
+                ? <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-gray-300" /></div>
+                : <TopicDeckCards topics={topics} />}
             </section>
           </>
         )}

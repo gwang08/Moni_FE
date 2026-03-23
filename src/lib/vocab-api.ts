@@ -27,6 +27,7 @@ export interface VocabLookupResult {
   explanation: string;
   collocation: string;
   examples: string[];
+  audioUrl?: string;
 }
 
 // Deduplicate in-flight requests (prevents React strict mode double-fire)

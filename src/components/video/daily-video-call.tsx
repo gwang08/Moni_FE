@@ -20,7 +20,6 @@ export function DailyVideoCall({ roomUrl, userName, onJoined, onLeave, className
   useEffect(() => {
     if (!roomUrl || !containerRef.current) return;
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const frame = DailyIframe.createFrame(containerRef.current, {
       iframeStyle: {
         width: '100%',
@@ -31,8 +30,7 @@ export function DailyVideoCall({ roomUrl, userName, onJoined, onLeave, className
       showLeaveButton: true,
       showFullscreenButton: true,
       showParticipantsBar: false,
-      layout: 'grid',
-    } as any);
+    });
 
     callRef.current = frame;
 

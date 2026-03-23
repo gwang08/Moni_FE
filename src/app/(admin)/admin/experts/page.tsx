@@ -8,7 +8,8 @@ import { ExpertFormDialog } from '@/components/admin/expert-form-dialog';
 import { ExpertDetailDialog } from '@/components/admin/expert-detail-dialog';
 import { getAdminExperts, updateExpertStatus, deleteExpert } from '@/lib/admin-expert-api';
 import { toast } from 'sonner';
-import { Plus, Trash2, Ban, CheckCircle, Loader2 } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Plus, Trash2, Ban, CheckCircle, Loader2, Search } from 'lucide-react';
 import type { ExpertProfile } from '@/types/expert.types';
 
 const STATUS_LABELS: Record<string, string> = {
@@ -33,6 +34,7 @@ export default function AdminExpertsPage() {
   const [showForm, setShowForm] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [selectedExpert, setSelectedExpert] = useState<ExpertProfile | null>(null);
+  const [search, setSearch] = useState('');
 
   const fetchExperts = async () => {
     setLoading(true);
@@ -95,6 +97,17 @@ export default function AdminExpertsPage() {
         </Button>
       </div>
 
+      {/* Search */}
+      <div className="relative mb-4">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+        <Input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Tìm giảng viên theo tên hoặc email..."
+          className="pl-9"
+        />
+      </div>
+
       {loading ? (
         <div className="flex items-center justify-center py-16">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -112,14 +125,19 @@ export default function AdminExpertsPage() {
               </tr>
             </thead>
             <tbody>
-              {experts.length === 0 ? (
+              {(() => {
+                const q = search.toLowerCase().trim();
+                const filtered = q
+                  ? experts.filter((e) => e.displayName.toLowerCase().includes(q))
+                  : experts;
+                return filtered.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="text-center py-12 text-muted-foreground">
-                    Chưa có Expert nào
+                    {q ? 'Không tìm thấy giảng viên' : 'Chưa có Expert nào'}
                   </td>
                 </tr>
               ) : (
-                experts.map((expert) => (
+                filtered.map((expert) => (
                   <tr key={expert.id} className="border-b hover:bg-gray-50/50 transition-colors">
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
@@ -179,7 +197,8 @@ export default function AdminExpertsPage() {
                     </td>
                   </tr>
                 ))
-              )}
+              );
+              })()}
             </tbody>
           </table>
         </div>

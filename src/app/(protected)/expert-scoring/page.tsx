@@ -3,12 +3,13 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { ExpertCard } from '@/components/expert/expert-card';
 import { CreditConfirmDialog } from '@/components/scoring/credit-confirm-dialog';
 import { getExperts, createScoringSession } from '@/lib/expert-api';
 import { useAuthStore } from '@/store/auth-store';
 import { toast } from 'sonner';
+import { Search } from 'lucide-react';
 import type { ExpertProfile } from '@/types/expert.types';
 
 const EXPERT_CREDIT_COST = 50;
@@ -20,6 +21,7 @@ export default function ExpertScoringPage() {
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<ExpertProfile | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [search, setSearch] = useState('');
 
   useEffect(() => {
     getExperts()
@@ -28,7 +30,13 @@ export default function ExpertScoringPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  const filtered = experts.filter((e) => e.status !== 'OFFLINE');
+  const filtered = experts.filter((e) => {
+    if (e.status === 'OFFLINE') return false;
+    if (search.trim()) {
+      return e.displayName.toLowerCase().includes(search.toLowerCase().trim());
+    }
+    return true;
+  });
 
   const handleConfirm = async () => {
     if (!selected) return;
@@ -55,6 +63,17 @@ export default function ExpertScoringPage() {
         <p className="text-muted-foreground text-sm mt-1">
           Chọn giảng viên phù hợp để được chấm điểm qua video call
         </p>
+      </div>
+
+      {/* Search */}
+      <div className="relative mb-6">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+        <Input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Tìm giảng viên theo tên..."
+          className="pl-9"
+        />
       </div>
 
       {loading ? (

@@ -29,7 +29,9 @@ export function DailyVideoCall({ roomUrl, userName, onJoined, onLeave, className
       },
       showLeaveButton: true,
       showFullscreenButton: true,
-      showParticipantsBar: true,
+      showParticipantsBar: false,
+      showLayoutHighlightOnHover: false,
+      layout: 'grid',
     });
 
     callRef.current = frame;

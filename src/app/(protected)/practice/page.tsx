@@ -196,12 +196,14 @@ function PracticePage() {
           </div>
         )}
 
-        {/* Question Type Filter */}
-        <QuestionTypeFilter
-          availableTypes={availableQuestionTypes}
-          activeType={activeQuestionType}
-          onTypeChange={setActiveQuestionType}
-        />
+        {/* Question Type Filter — only for reading/listening */}
+        {(activeSkill === 'reading' || activeSkill === 'listening') && (
+          <QuestionTypeFilter
+            availableTypes={availableQuestionTypes}
+            activeType={activeQuestionType}
+            onTypeChange={setActiveQuestionType}
+          />
+        )}
 
         {/* Content Area */}
         {loading ? (

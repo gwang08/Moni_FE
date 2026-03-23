@@ -63,14 +63,20 @@ export default function ExpertDashboardPage() {
     router.push('/login');
   };
 
+  const [startingId, setStartingId] = useState<number | null>(null);
+
   const handleStartSession = async (id: number) => {
+    if (startingId) return; // prevent double-click
+    setStartingId(id);
     try {
       await apiClient.patch<ApiResponse<ScoringSession>>(
         `/api/v1/expert/sessions/${id}/start`, {}, true,
       );
+      toast.success('Đã nhận phiên thành công! Đang vào phòng...');
       router.push(`/expert/session/${id}`);
     } catch {
       toast.error('Không thể bắt đầu phiên');
+      setStartingId(null);
     }
   };
 
@@ -162,8 +168,8 @@ export default function ExpertDashboardPage() {
                       </span>
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <Button size="sm" onClick={() => handleStartSession(s.id)}>
-                        Nhận phiên
+                      <Button size="sm" onClick={() => handleStartSession(s.id)} disabled={startingId === s.id}>
+                        {startingId === s.id ? <><Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />Đang nhận...</> : 'Nhận phiên'}
                       </Button>
                     </td>
                   </tr>

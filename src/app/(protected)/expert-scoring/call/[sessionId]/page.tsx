@@ -1,6 +1,6 @@
 'use client';
 
-import { use, useEffect, useState } from 'react';
+import { use, useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -17,33 +17,42 @@ export default function ExpertCallPage({ params }: Props) {
   const router = useRouter();
   const [roomUrl, setRoomUrl] = useState('');
   const [loading, setLoading] = useState(true);
+  const [inCall, setInCall] = useState(false);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Fetch session to get roomUrl
+  // Fetch roomUrl once, then poll only until we get it
   useEffect(() => {
     const fetchRoom = async () => {
       try {
         const data = await getQueuePosition(Number(sessionId));
-        if (data.roomUrl) setRoomUrl(data.roomUrl);
+        if (data.roomUrl) {
+          setRoomUrl(data.roomUrl);
+          setLoading(false);
+          // Stop polling once we have roomUrl
+          if (pollRef.current) clearInterval(pollRef.current);
+          return;
+        }
+        // If cancelled/completed before we even joined
+        if (data.status === 'CANCELLED' || data.status === 'COMPLETED') {
+          if (pollRef.current) clearInterval(pollRef.current);
+          router.push('/expert-scoring');
+          return;
+        }
       } catch { /* ignore */ }
       setLoading(false);
     };
+
     fetchRoom();
-    // Poll for roomUrl if not available yet
-    const id = setInterval(async () => {
-      try {
-        const data = await getQueuePosition(Number(sessionId));
-        if (data.roomUrl) {
-          setRoomUrl(data.roomUrl);
-          clearInterval(id);
-        }
-        if (data.status === 'COMPLETED' || data.status === 'CANCELLED') {
-          clearInterval(id);
-          router.push('/expert-scoring');
-        }
-      } catch { /* ignore */ }
-    }, 3000);
-    return () => clearInterval(id);
+    pollRef.current = setInterval(fetchRoom, 3000);
+    return () => {
+      if (pollRef.current) clearInterval(pollRef.current);
+    };
   }, [sessionId, router]);
+
+  const handleLeave = () => {
+    if (!inCall) return; // Ignore premature leave events
+    router.push('/expert-scoring');
+  };
 
   return (
     <div className="h-[calc(100vh-56px)] bg-gray-900 text-white flex flex-col">
@@ -75,7 +84,8 @@ export default function ExpertCallPage({ params }: Props) {
         ) : (
           <DailyVideoCall
             roomUrl={roomUrl}
-            onLeave={() => router.push('/expert-scoring')}
+            onJoined={() => setInCall(true)}
+            onLeave={handleLeave}
             className="h-full"
           />
         )}

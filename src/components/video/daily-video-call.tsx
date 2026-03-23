@@ -6,11 +6,12 @@ import { Loader2, VideoOff } from 'lucide-react';
 
 interface DailyVideoCallProps {
   roomUrl: string;
+  onJoined?: () => void;
   onLeave?: () => void;
   className?: string;
 }
 
-export function DailyVideoCall({ roomUrl, onLeave, className = '' }: DailyVideoCallProps) {
+export function DailyVideoCall({ roomUrl, onJoined, onLeave, className = '' }: DailyVideoCallProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const callRef = useRef<DailyCall | null>(null);
   const [state, setState] = useState<'loading' | 'joined' | 'error' | 'left'>('loading');
@@ -31,12 +32,18 @@ export function DailyVideoCall({ roomUrl, onLeave, className = '' }: DailyVideoC
 
     callRef.current = frame;
 
-    frame.on('joined-meeting', () => setState('joined'));
+    frame.on('joined-meeting', () => {
+      setState('joined');
+      onJoined?.();
+    });
     frame.on('left-meeting', () => {
       setState('left');
       onLeave?.();
     });
-    frame.on('error', () => setState('error'));
+    frame.on('error', (e) => {
+      console.error('Daily.co error:', e);
+      setState('error');
+    });
 
     frame.join({ url: roomUrl }).catch(() => setState('error'));
 

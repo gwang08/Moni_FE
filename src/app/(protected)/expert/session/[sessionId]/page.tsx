@@ -47,6 +47,7 @@ export default function ExpertSessionPage({ params }: Props) {
   const [strengths, setStrengths] = useState('');
   const [areasForImprovement, setAreasForImprovement] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [inCall, setInCall] = useState(false);
 
   // Fetch session details
   useEffect(() => {
@@ -110,7 +111,8 @@ export default function ExpertSessionPage({ params }: Props) {
       <div className="w-1/2 bg-gray-900 p-4">
         <DailyVideoCall
           roomUrl={session?.roomUrl || ''}
-          onLeave={() => router.push('/expert/dashboard')}
+          onJoined={() => setInCall(true)}
+          onLeave={() => { if (inCall) router.push('/expert/dashboard'); }}
           className="h-full"
         />
       </div>

@@ -20,6 +20,15 @@ export default function ExpertDashboardPage() {
   const [loading, setLoading] = useState(true);
   const initRef = useRef(false);
 
+  const fetchSessions = async () => {
+    try {
+      const sessRes = await apiClient.get<ApiResponse<ScoringSession[]>>(
+        '/api/v1/expert/sessions', true,
+      );
+      setSessions(sessRes.result ?? []);
+    } catch { /* ignore polling errors */ }
+  };
+
   // Auto-set online + fetch profile on mount
   useEffect(() => {
     if (initRef.current) return;
@@ -27,16 +36,10 @@ export default function ExpertDashboardPage() {
 
     const init = async () => {
       try {
-        // Set online
         await apiClient.patch('/api/v1/experts/me/status', { status: 'AVAILABLE' }, true);
-        // Fetch profile
         const res = await apiClient.get<ApiResponse<ExpertProfile>>('/api/v1/experts/me', true);
         setProfile(res.result ?? null);
-        // Fetch queued sessions
-        const sessRes = await apiClient.get<ApiResponse<ScoringSession[]>>(
-          '/api/v1/expert/sessions', true,
-        );
-        setSessions(sessRes.result ?? []);
+        await fetchSessions();
       } catch {
         toast.error('Không thể tải thông tin');
       } finally {
@@ -44,6 +47,12 @@ export default function ExpertDashboardPage() {
       }
     };
     init();
+  }, []);
+
+  // Poll for new sessions every 5s
+  useEffect(() => {
+    const id = setInterval(fetchSessions, 5000);
+    return () => clearInterval(id);
   }, []);
 
   const handleLogout = () => {

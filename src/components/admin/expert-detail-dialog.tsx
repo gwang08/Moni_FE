@@ -129,6 +129,7 @@ export function ExpertDetailDialog({ expert, open, onClose, onUpdated }: Props) 
       const updated = await updateExpert(expert.id, { ...form, avatarUrl, certificates });
       onUpdated(updated);
       toast.success('Cập nhật thành công!');
+      onClose();
     } catch {
       toast.error('Cập nhật thất bại');
     } finally {

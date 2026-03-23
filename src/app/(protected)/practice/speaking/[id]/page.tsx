@@ -123,7 +123,7 @@ export default function SpeakingPracticePage({ params }: Props) {
     await submitForScoring(file, currentQuestion.content);
   };
 
-  const handleSubmitAll = async () => {
+  const saveProgress = async () => {
     if (!testDetail || questions.length === 0) return;
     markCompleted(id);
     const stimulus = testDetail.stimuli[0];
@@ -142,6 +142,10 @@ export default function SpeakingPracticePage({ params }: Props) {
         }
       } catch { /* ignore */ }
     }
+  };
+
+  const handleSubmitAll = async () => {
+    await saveProgress();
     router.push('/practice?skill=speaking');
   };
 
@@ -239,18 +243,24 @@ export default function SpeakingPracticePage({ params }: Props) {
                 <button
                   onClick={handleSubmitForScoring}
                   disabled={isScoring}
-                  className="py-3 rounded-2xl bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white font-semibold text-sm shadow-lg shadow-blue-300/30 transition-all duration-200 hover:scale-[1.01] hover:shadow-xl hover:shadow-blue-300/40 border border-blue-400/20 disabled:opacity-50"
+                  className="py-3 px-4 rounded-2xl bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white font-semibold text-sm shadow-lg shadow-blue-300/30 transition-all duration-200 hover:scale-[1.01] hover:shadow-xl hover:shadow-blue-300/40 border border-blue-400/20 disabled:opacity-50 flex flex-col items-center gap-1"
                 >
-                  🤖 Chấm bằng AI
+                  <span>🤖 Chấm bằng AI</span>
+                  <span className="flex items-center gap-1 text-xs font-normal opacity-90">
+                    - 30 <img src="/currency.webp" alt="credit" className="h-3.5 w-3.5 inline" />
+                  </span>
                 </button>
                 <button
-                  onClick={() => {
-                    handleSubmitAll();
+                  onClick={async () => {
+                    await saveProgress();
                     router.push('/expert-scoring?skill=SPEAKING');
                   }}
-                  className="py-3 rounded-2xl bg-gradient-to-r from-orange-400 to-amber-400 hover:from-orange-500 hover:to-amber-500 text-white font-semibold text-sm shadow-lg shadow-orange-300/30 transition-all duration-200 hover:scale-[1.01] hover:shadow-xl hover:shadow-orange-300/40 border border-orange-300/20"
+                  className="py-3 px-4 rounded-2xl bg-gradient-to-r from-orange-400 to-amber-400 hover:from-orange-500 hover:to-amber-500 text-white font-semibold text-sm shadow-lg shadow-orange-300/30 transition-all duration-200 hover:scale-[1.01] hover:shadow-xl hover:shadow-orange-300/40 border border-orange-300/20 flex flex-col items-center gap-1"
                 >
-                  👨‍🏫 Chấm với Giảng viên
+                  <span>👨‍🏫 Chấm với Giảng viên</span>
+                  <span className="flex items-center gap-1 text-xs font-normal opacity-90">
+                    - 50 <img src="/currency.webp" alt="credit" className="h-3.5 w-3.5 inline" />
+                  </span>
                 </button>
               </div>
             </div>

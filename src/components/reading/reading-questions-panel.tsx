@@ -69,6 +69,10 @@ export function ReadingQuestionsPanel({ stimulus, submitted = false, answers, on
 
       {stimulus.questionGroups.map((group, gi) => {
         const isMatching = MATCHING_TYPES.includes(group.questionTypeCode || '');
+        // Calculate global question offset (sum of all previous groups' question counts)
+        const questionOffset = stimulus.questionGroups
+          .slice(0, gi)
+          .reduce((sum, g) => sum + g.questions.length, 0);
         return (
           <div key={group.id}>
             <div className="flex items-center gap-2 mb-3">
@@ -119,6 +123,7 @@ export function ReadingQuestionsPanel({ stimulus, submitted = false, answers, on
                 submitted={submitted}
                 textAnswers={textAnswers}
                 onTextAnswer={onTextAnswer || (() => {})}
+                questionOffset={questionOffset}
               />
             ) : (
               <div className="space-y-4">
@@ -128,7 +133,7 @@ export function ReadingQuestionsPanel({ stimulus, submitted = false, answers, on
                     <ReadingQuestionMcq
                       key={question.id}
                       questionId={question.id}
-                      position={question.position}
+                      position={questionOffset + question.position}
                       content={question.content}
                       options={displayOptions}
                       selectedId={answers[question.id]}

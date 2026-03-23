@@ -11,6 +11,7 @@ interface Props {
   submitted: boolean;
   textAnswers: Record<number, string>;
   onTextAnswer: (questionId: number, text: string) => void;
+  questionOffset?: number;
 }
 
 function isAnswerCorrect(userAnswer: string, correctContent: string): boolean {
@@ -115,15 +116,16 @@ function GapQuestion({ question, userAnswer, submitted, onTextAnswer }: {
 }
 
 /** Render groupContent paragraph with inline blanks replacing number patterns */
-function ParagraphGapFilling({ groupContent, questions, submitted, textAnswers, onTextAnswer }: {
+function ParagraphGapFilling({ groupContent, questions, submitted, textAnswers, onTextAnswer, questionOffset = 0 }: {
   groupContent: string;
   questions: QuestionDetail[];
   submitted: boolean;
   textAnswers: Record<number, string>;
   onTextAnswer: (questionId: number, text: string) => void;
+  questionOffset?: number;
 }) {
-  // Build a map: position → question
-  const posMap = new Map(questions.map(q => [q.position, q]));
+  // Build a map: globalPosition → question (offset + local position)
+  const posMap = new Map(questions.map(q => [questionOffset + q.position, q]));
 
   // Find all gap patterns:
   // "[1]___" (new click-to-gap format), "1...", "10 ……….", "2…", "11 __"
@@ -210,7 +212,7 @@ function ParagraphGapFilling({ groupContent, questions, submitted, textAnswers, 
   );
 }
 
-export function ReadingGapFilling({ questions, groupContent, imageUrl, submitted, textAnswers, onTextAnswer }: Props) {
+export function ReadingGapFilling({ questions, groupContent, imageUrl, submitted, textAnswers, onTextAnswer, questionOffset = 0 }: Props) {
   // Sentence questions: have content (with {{answer}} or text)
   // Paragraph questions: empty content OR tagged with gapMode='paragraph'
   const sentenceQs = questions.filter(q => q.content.trim());
@@ -244,6 +246,7 @@ export function ReadingGapFilling({ questions, groupContent, imageUrl, submitted
           submitted={submitted}
           textAnswers={textAnswers}
           onTextAnswer={onTextAnswer}
+          questionOffset={questionOffset}
         />
       )}
     </div>

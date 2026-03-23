@@ -3,37 +3,26 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
-import { getRoleFromToken } from '@/lib/jwt-utils';
+import { useAuthStore } from '@/store/auth-store';
 import { AdminSidebar } from '@/components/admin/admin-sidebar';
 import { SessionExpiredDialog } from '@/components/auth/session-expired-dialog';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
+  const { isAuthenticated, user } = useAuthStore();
   const [isChecking, setIsChecking] = useState(true);
 
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem('auth-storage');
-      if (!stored) {
-        router.push('/');
-        return;
-      }
-      const { state } = JSON.parse(stored);
-      const token = state?.token;
-      if (!token) {
-        router.push('/');
-        return;
-      }
-      const role = getRoleFromToken(token);
-      if (role !== 'ADMIN') {
-        router.push('/');
-        return;
-      }
-      setIsChecking(false);
-    } catch {
-      router.push('/');
+    if (!isAuthenticated || !user) {
+      router.push('/login');
+      return;
     }
-  }, [router]);
+    if (user.role !== 'ADMIN') {
+      router.push('/');
+      return;
+    }
+    setIsChecking(false);
+  }, [isAuthenticated, user, router]);
 
   if (isChecking) {
     return (

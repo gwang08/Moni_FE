@@ -1,6 +1,7 @@
 export interface ExpertProfile {
   id: number;
   displayName: string;
+  email?: string;
   avatarUrl: string;
   bandScore: number;
   bandReading: number;

@@ -188,7 +188,7 @@ export function ExpertDetailDialog({ expert, open, onClose, onUpdated }: Props) 
 
                 <div className="space-y-1 col-span-2">
                   <Label className="text-xs text-gray-500">Email</Label>
-                  <Input value={expert.bio ? '' : ''} placeholder="(không có thông tin)" disabled className="bg-gray-50" />
+                  <Input value={expert.email ?? ''} placeholder="(không có thông tin)" disabled className="bg-gray-50" />
                 </div>
 
                 {/* Band scores */}

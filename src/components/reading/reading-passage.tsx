@@ -7,6 +7,7 @@ import { SentenceTranslationPopup } from '@/components/reading/sentence-translat
 import { NoteInlineEditor } from '@/components/reading/note-inline-editor';
 import { HighlightContextMenu } from '@/components/reading/highlight-context-menu';
 import type { Highlight } from '@/types/reading.types';
+import { formatReadingPassage } from '@/lib/format-reading-passage';
 
 /** Get the word at a given (x, y) screen position using caretRangeFromPoint */
 function getWordAtPoint(x: number, y: number): { word: string; node: Node; range: Range } | null {
@@ -247,9 +248,10 @@ export function ReadingPassage({ content }: Props) {
     }
   };
 
+  const formattedContent = useMemo(() => formatReadingPassage(content), [content]);
   const renderedHtml = useMemo(() =>
-    injectHighlights(content, highlights),
-  [content, highlights]);
+    injectHighlights(formattedContent, highlights),
+  [formattedContent, highlights]);
 
   // Find the editing highlight for inline editor position
   const editingHighlight = editingHighlightId ? highlights.find(h => h.id === editingHighlightId) : null;

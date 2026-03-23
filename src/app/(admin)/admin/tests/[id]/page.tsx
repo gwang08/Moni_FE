@@ -8,6 +8,7 @@ import { AdminHeader } from '@/components/admin/admin-header';
 import { TestDetailWritingView } from '@/components/admin/test-detail-writing-view';
 import { TestDetailSpeakingView } from '@/components/admin/test-detail-speaking-view';
 import { getTestDetail } from '@/lib/tests-api';
+import { formatReadingPassage } from '@/lib/format-reading-passage';
 import { useQuery } from '@tanstack/react-query';
 import { SkeletonPage } from '@/components/ui/skeleton';
 
@@ -71,7 +72,7 @@ export default function TestDetailPage() {
                 )}
                 <div
                   className="text-sm text-gray-700 bg-gray-50 rounded-lg p-4 mb-4 prose prose-sm max-w-none"
-                  dangerouslySetInnerHTML={{ __html: stimulus.content }}
+                  dangerouslySetInnerHTML={{ __html: formatReadingPassage(stimulus.content) }}
                 />
                 {stimulus.mediaUrl && test.skill !== 'LISTENING' && (
                   <p className="text-xs text-blue-500 mb-4">

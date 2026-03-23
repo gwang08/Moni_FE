@@ -15,6 +15,21 @@ const QUESTION_TYPE_LABELS: Record<string, string> = {
   SPEAKING_PART_1: 'Part 1',
   SPEAKING_PART_2: 'Part 2',
   SPEAKING_PART_3: 'Part 3',
+  // Writing Task 1 types
+  LINE_GRAPH: 'Line Graph',
+  BAR_CHART: 'Bar Chart',
+  PIE_CHART: 'Pie Chart',
+  TABLE: 'Table',
+  MIXED_GRAPH: 'Mixed Graph',
+  MAP: 'Map',
+  PROCESS: 'Process',
+  // Writing Task 2 types
+  AGREE_DISAGREE: 'Agree or Disagree',
+  DISCUSSION: 'Discussion',
+  ADVANTAGES_DISADVANTAGES: 'Advantages & Disadvantages',
+  CAUSES_PROBLEMS_SOLUTIONS: 'Causes, Problems & Solutions',
+  TWO_PART_QUESTION: 'Two-Part Question',
+  POSITIVE_NEGATIVE: 'Positive or Negative Development',
 };
 
 interface Props {

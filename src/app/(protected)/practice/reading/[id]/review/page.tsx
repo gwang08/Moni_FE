@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { ReadingReviewPanel } from '@/components/reading/reading-review-panel';
 import { useTestDetail } from '@/hooks/use-test-detail';
 import { getAttemptResult } from '@/lib/practice-api';
+import { formatReadingPassage } from '@/lib/format-reading-passage';
 
 interface ResultData {
   attemptId?: number;
@@ -93,10 +94,10 @@ export default function ReadingReviewPage({ params }: Props) {
   }, [activeEvidence]);
 
   const stimuli = testDetail?.stimuli[0];
-  const passageHtml = useMemo(
-    () => injectEvidence(stimuli?.content ?? '', activeEvidence),
-    [stimuli?.content, activeEvidence]
-  );
+  const passageHtml = useMemo(() => {
+    const formatted = formatReadingPassage(stimuli?.content ?? '');
+    return injectEvidence(formatted, activeEvidence);
+  }, [stimuli?.content, activeEvidence]);
 
   if (loading || !resultData) {
     return <SkeletonPractice />;

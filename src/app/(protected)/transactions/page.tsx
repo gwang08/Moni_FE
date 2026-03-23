@@ -65,7 +65,7 @@ export default function TransactionsPage() {
                   return (
                     <tr key={tx.id} className="hover:bg-gray-50 transition-colors">
                       <td className="px-4 py-3 text-gray-700">
-                        {tx.serviceName || (tx.paymentType === 'TOPUP' ? 'Nạp credit' : '—')}
+                        {tx.serviceName || tx.packageName || (tx.paymentType === 'TOPUP' ? 'Nạp credit' : '—')}
                       </td>
                       <td className={`px-4 py-3 font-semibold tabular-nums ${tx.delta >= 0 ? 'text-green-600' : 'text-red-500'}`}>
                         {tx.delta >= 0 ? '+' : ''}{tx.delta}

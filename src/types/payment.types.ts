@@ -30,6 +30,7 @@ export interface CreditTransactionResponse {
   balanceAfter: number;
   paymentType: string;
   serviceName: string | null;
+  packageName: string | null;
   createdAt: string;
   userId: string;
   serviceId: number | null;

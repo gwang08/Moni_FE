@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { LayoutDashboard, FileText, Tag, Users, GraduationCap, LogOut, Package, Cog } from 'lucide-react';
+import { LayoutDashboard, FileText, Tag, Users, GraduationCap, LogOut, Package, Cog, ClipboardList } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/store/auth-store';
 import { toast } from 'sonner';
@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 const navItems = [
   { href: '/admin', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/admin/tests', label: 'Bài thi', icon: FileText },
+  { href: '/admin/full-tests', label: 'Full Test', icon: ClipboardList },
   { href: '/admin/tags', label: 'Tags', icon: Tag },
   { href: '/admin/users', label: 'Người dùng', icon: Users },
   { href: '/admin/experts', label: 'Giảng viên', icon: GraduationCap },

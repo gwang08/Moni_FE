@@ -27,6 +27,7 @@ export interface ScoringSession {
   queuePosition: number;
   content?: string;
   createdAt?: string;
+  testId?: number;
 }
 
 export interface ExpertEvaluation {

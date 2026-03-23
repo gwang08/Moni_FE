@@ -14,6 +14,13 @@ import { useAuthStore } from '@/store/auth-store';
 import type { ApiResponse } from '@/types/auth.types';
 import type { ScoringSession } from '@/types/expert.types';
 import { toast } from 'sonner';
+import { ChevronDown, ChevronUp } from 'lucide-react';
+
+interface TestQuestion {
+  id: number;
+  content: string;
+  position: number;
+}
 
 interface Props {
   params: Promise<{ sessionId: string }>;
@@ -50,13 +57,38 @@ export default function ExpertSessionPage({ params }: Props) {
   const [areasForImprovement, setAreasForImprovement] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [inCall, setInCall] = useState(false);
+  const [questions, setQuestions] = useState<TestQuestion[]>([]);
+  const [showQuestions, setShowQuestions] = useState(false);
 
   // Fetch session details
   useEffect(() => {
     apiClient
       .get<ApiResponse<ScoringSession>>(`/api/v1/expert/sessions/${sessionId}`, true)
       .then((res) => {
-        if (res.result) setSession(res.result);
+        if (res.result) {
+          setSession(res.result);
+          // Fetch test questions if testId is present
+          if (res.result.testId) {
+            apiClient
+              .get<ApiResponse<{ stimuli: { questionGroups: { questions: TestQuestion[] }[] }[] }>>(
+                `/tests/${res.result.testId}`,
+                true,
+              )
+              .then((testRes) => {
+                const qs: TestQuestion[] = [];
+                for (const s of testRes.result?.stimuli ?? []) {
+                  for (const g of s.questionGroups ?? []) {
+                    for (const q of g.questions ?? []) {
+                      if (q.position !== 0) qs.push(q);
+                    }
+                  }
+                }
+                qs.sort((a, b) => a.position - b.position);
+                setQuestions(qs);
+              })
+              .catch(() => {});
+          }
+        }
       })
       .catch(() => toast.error('Không thể tải thông tin phiên'))
       .finally(() => setLoading(false));
@@ -128,6 +160,30 @@ export default function ExpertSessionPage({ params }: Props) {
         </div>
 
         <Badge className="text-xs">{skill}</Badge>
+
+        {/* Test questions (collapsible) */}
+        {questions.length > 0 && (
+          <Card className="p-3">
+            <button
+              type="button"
+              onClick={() => setShowQuestions((v) => !v)}
+              className="flex items-center justify-between w-full text-sm font-semibold"
+            >
+              <span>Câu hỏi đề thi ({questions.length})</span>
+              {showQuestions ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+            </button>
+            {showQuestions && (
+              <ol className="mt-3 space-y-2 list-decimal list-inside">
+                {questions.map((q, i) => (
+                  <li key={q.id} className="text-xs text-muted-foreground">
+                    <span className="font-medium text-foreground">{i + 1}. </span>
+                    {q.content}
+                  </li>
+                ))}
+              </ol>
+            )}
+          </Card>
+        )}
 
         {/* Score inputs */}
         <Card className="p-4 space-y-3">

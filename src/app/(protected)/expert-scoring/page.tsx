@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
 import { ExpertCard } from '@/components/expert/expert-card';
@@ -15,6 +15,8 @@ import type { ExpertProfile } from '@/types/expert.types';
 
 export default function ExpertScoringPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const testId = searchParams.get('testId');
   const { user } = useAuthStore();
   const [experts, setExperts] = useState<ExpertProfile[]>([]);
   const [loading, setLoading] = useState(true);
@@ -54,6 +56,7 @@ export default function ExpertScoringPage() {
         expertId: selected.id,
         skill: 'SPEAKING',
         content: '',
+        testId: testId ? Number(testId) : undefined,
       });
       await refreshProfile(); // Update credit in header after deduction
       router.push(`/expert-scoring/queue/${session.id}`);

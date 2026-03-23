@@ -6,8 +6,17 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
-import { Star, Award, X } from 'lucide-react';
+import { Star, Award, X, ChevronDown, ChevronUp } from 'lucide-react';
+import { apiClient } from '@/lib/api-client';
 import type { ExpertProfile } from '@/types/expert.types';
+import type { ApiResponse } from '@/types/auth.types';
+
+interface ExpertReview {
+  id: number;
+  userName: string;
+  rating: number;
+  comment: string;
+}
 
 interface ExpertCardProps {
   expert: ExpertProfile;
@@ -44,7 +53,27 @@ export function ExpertCard({ expert, onSelect }: ExpertCardProps) {
   const status = STATUS_CONFIG[expert.status];
   const isOffline = expert.status === 'OFFLINE';
   const [previewImg, setPreviewImg] = useState<string | null>(null);
+  const [showReviews, setShowReviews] = useState(false);
+  const [reviews, setReviews] = useState<ExpertReview[]>([]);
+  const [reviewsLoaded, setReviewsLoaded] = useState(false);
   const certs = expert.certificates ?? [];
+
+  const handleToggleReviews = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!showReviews && !reviewsLoaded) {
+      try {
+        const res = await apiClient.get<ApiResponse<ExpertReview[]>>(
+          `/api/v1/experts/${expert.id}/reviews`,
+          true,
+        );
+        setReviews(res.result ?? []);
+      } catch {
+        setReviews([]);
+      }
+      setReviewsLoaded(true);
+    }
+    setShowReviews((v) => !v);
+  };
 
   return (
     <>
@@ -112,6 +141,40 @@ export function ExpertCard({ expert, onSelect }: ExpertCardProps) {
             </div>
           </div>
         )}
+
+        {/* Reviews */}
+        <div>
+          <button
+            type="button"
+            onClick={handleToggleReviews}
+            className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+          >
+            {showReviews ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+            Xem đánh giá ({expert.totalSessions})
+          </button>
+          {showReviews && (
+            <div className="mt-2 space-y-2 max-h-40 overflow-y-auto">
+              {reviews.length === 0 ? (
+                <p className="text-xs text-muted-foreground">Chưa có đánh giá nào.</p>
+              ) : (
+                reviews.slice(0, 3).map((r) => (
+                  <div key={r.id} className="text-xs border rounded-lg p-2 space-y-1 bg-gray-50">
+                    <div className="flex items-center gap-1">
+                      {[1, 2, 3, 4, 5].map((s) => (
+                        <Star
+                          key={s}
+                          className={`h-2.5 w-2.5 ${s <= r.rating ? 'fill-amber-400 text-amber-400' : 'text-gray-300'}`}
+                        />
+                      ))}
+                    </div>
+                    {r.comment && <p className="text-muted-foreground line-clamp-2">{r.comment}</p>}
+                    <p className="text-xs font-medium">— {r.userName}</p>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+        </div>
 
         {/* Action */}
         <Button

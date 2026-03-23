@@ -11,13 +11,14 @@ import { SpeakingQuestionCenter } from '@/components/speaking/speaking-question-
 import { SpeakingRecorder } from '@/components/speaking/speaking-recorder';
 import { SpeakingFeedbackPanel } from '@/components/speaking/speaking-feedback-panel';
 import { SpeakingNotesPanel } from '@/components/speaking/speaking-notes-panel';
+import { SpeakingModeDialog } from '@/components/speaking/speaking-mode-dialog';
 import { useTestDetail } from '@/hooks/use-test-detail';
 import { useSpeakingStore } from '@/store/speaking-store';
 import { usePracticeStore } from '@/store/practice-store';
 import { submitAttempt } from '@/lib/practice-api';
-import { getServices } from '@/lib/payment-api';
 
 const FALLBACK_CONTENT = 'Hãy trả lời câu hỏi theo chủ đề được giao. Sử dụng ngôn ngữ tự nhiên và rõ ràng.';
+
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -43,22 +44,13 @@ export default function SpeakingPracticePage({ params }: Props) {
 
   const markCompleted = usePracticeStore((state) => state.markCompleted);
 
+  const [showModeDialog, setShowModeDialog] = useState(true);
   const [showSample, setShowSample] = useState(false);
   const [showExitDialog, setShowExitDialog] = useState(false);
   const [recordedBlobs, setRecordedBlobs] = useState<Record<string, Blob>>({});
-  const [aiCost, setAiCost] = useState<number | null>(null);
-  const [expertCost, setExpertCost] = useState<number | null>(null);
 
   useEffect(() => {
     reset();
-    getServices()
-      .then((services) => {
-        const ai = services.find((s) => s.serviceCode === 'AI_SPEAKING_SCORE');
-        const expert = services.find((s) => s.serviceCode === 'EXPERT_SPEAKING_SCORE');
-        if (ai) setAiCost(ai.creditCost);
-        if (expert) setExpertCost(expert.creditCost);
-      })
-      .catch(() => {});
   }, [reset]);
 
   const questions = useMemo(() => {
@@ -180,6 +172,12 @@ export default function SpeakingPracticePage({ params }: Props) {
 
   return (
     <div className="h-[calc(100vh-56px)] flex flex-col relative overflow-hidden">
+      <SpeakingModeDialog
+        open={showModeDialog}
+        testId={id}
+        onSelectAI={() => setShowModeDialog(false)}
+        onClose={() => setShowModeDialog(false)}
+      />
       {/* Decorative background blobs */}
       <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
         <div className="absolute -top-32 -left-32 w-96 h-96 rounded-full bg-orange-200/20 blur-3xl" />
@@ -248,36 +246,15 @@ export default function SpeakingPracticePage({ params }: Props) {
           {allRecorded && (
             <div className="mt-6 space-y-3">
               <p className="text-center text-sm text-muted-foreground font-medium">
-                Đã ghi âm {Object.keys(recordedBlobs).length}/{questions.length} câu — Chọn cách chấm điểm
+                Đã ghi âm {Object.keys(recordedBlobs).length}/{questions.length} câu
               </p>
-              <div className="grid grid-cols-2 gap-3">
-                <button
-                  onClick={handleSubmitForScoring}
-                  disabled={isScoring}
-                  className="py-3 px-4 rounded-2xl bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white font-semibold text-sm shadow-lg shadow-blue-300/30 transition-all duration-200 hover:scale-[1.01] hover:shadow-xl hover:shadow-blue-300/40 border border-blue-400/20 disabled:opacity-50 flex flex-col items-center gap-1"
-                >
-                  <span>🤖 Chấm bằng AI</span>
-                  {aiCost != null && (
-                    <span className="flex items-center gap-1 text-xs font-normal opacity-90">
-                      - {aiCost} <img src="/currency.webp" alt="credit" className="h-3.5 w-3.5 inline" />
-                    </span>
-                  )}
-                </button>
-                <button
-                  onClick={async () => {
-                    await saveProgress();
-                    router.push('/expert-scoring?skill=SPEAKING');
-                  }}
-                  className="py-3 px-4 rounded-2xl bg-gradient-to-r from-orange-400 to-amber-400 hover:from-orange-500 hover:to-amber-500 text-white font-semibold text-sm shadow-lg shadow-orange-300/30 transition-all duration-200 hover:scale-[1.01] hover:shadow-xl hover:shadow-orange-300/40 border border-orange-300/20 flex flex-col items-center gap-1"
-                >
-                  <span>👨‍🏫 Chấm với Giảng viên</span>
-                  {expertCost != null && (
-                    <span className="flex items-center gap-1 text-xs font-normal opacity-90">
-                      - {expertCost} <img src="/currency.webp" alt="credit" className="h-3.5 w-3.5 inline" />
-                    </span>
-                  )}
-                </button>
-              </div>
+              <button
+                onClick={handleSubmitForScoring}
+                disabled={isScoring}
+                className="w-full py-3 px-4 rounded-2xl bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white font-semibold text-sm shadow-lg shadow-blue-300/30 transition-all duration-200 hover:scale-[1.01] hover:shadow-xl hover:shadow-blue-300/40 border border-blue-400/20 disabled:opacity-50"
+              >
+                🤖 Nộp bài
+              </button>
             </div>
           )}
         </div>

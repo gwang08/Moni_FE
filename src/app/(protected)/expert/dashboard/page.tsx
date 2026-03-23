@@ -122,22 +122,54 @@ export default function ExpertDashboardPage() {
 
       {/* Queued sessions */}
       <div>
-        <h2 className="font-semibold mb-3">Phiên đang chờ</h2>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="font-semibold">Phiên đang chờ</h2>
+          <Badge variant="secondary" className="text-xs">
+            {sessions.filter(s => s.status === 'QUEUED').length} phiên
+          </Badge>
+        </div>
         {sessions.filter(s => s.status === 'QUEUED').length === 0 ? (
           <Card className="p-8 text-center text-muted-foreground text-sm">
             Chưa có phiên nào đang chờ
           </Card>
         ) : (
-          <div className="space-y-3">
-            {sessions.filter(s => s.status === 'QUEUED').map((s) => (
-              <Card key={s.id} className="p-4 flex items-center justify-between">
-                <div className="space-y-1">
-                  <p className="font-medium text-sm">Phiên #{s.id}</p>
-                  <Badge variant="outline" className="text-xs">{s.skill}</Badge>
-                </div>
-                <Button size="sm" onClick={() => handleStartSession(s.id)}>Nhận phiên</Button>
-              </Card>
-            ))}
+          <div className="rounded-lg border bg-white overflow-hidden">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50 border-b">
+                <tr>
+                  <th className="px-4 py-3 text-left font-medium text-gray-600 text-xs uppercase tracking-wide">Phiên</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-600 text-xs uppercase tracking-wide">Kỹ năng</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-600 text-xs uppercase tracking-wide">Thời gian tạo</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-600 text-xs uppercase tracking-wide">Vị trí</th>
+                  <th className="px-4 py-3 text-right font-medium text-gray-600 text-xs uppercase tracking-wide">Hành động</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y">
+                {sessions.filter(s => s.status === 'QUEUED').map((s) => (
+                  <tr key={s.id} className="hover:bg-gray-50/50 transition-colors">
+                    <td className="px-4 py-3 font-medium">#{s.id}</td>
+                    <td className="px-4 py-3">
+                      <Badge variant={s.skill === 'SPEAKING' ? 'default' : 'secondary'} className="text-xs">
+                        {s.skill}
+                      </Badge>
+                    </td>
+                    <td className="px-4 py-3 text-muted-foreground text-xs">
+                      {s.createdAt ? new Date(s.createdAt).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' }) : '—'}
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-amber-100 text-amber-700 text-xs font-bold">
+                        {s.queuePosition}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <Button size="sm" onClick={() => handleStartSession(s.id)}>
+                        Nhận phiên
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
       </div>

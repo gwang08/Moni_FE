@@ -19,12 +19,14 @@ export interface ExpertProfile {
 export interface ScoringSession {
   id: number;
   expertId: number;
-  expertName: string;
+  expertDisplayName: string;
   skill: string;
   status: 'QUEUED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
   roomUrl: string;
+  roomName?: string;
   queuePosition: number;
-  content: string;
+  content?: string;
+  createdAt?: string;
 }
 
 export interface ExpertEvaluation {

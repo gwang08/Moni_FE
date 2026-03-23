@@ -3,9 +3,11 @@
 import { useReadingStore } from '@/store/reading-store';
 import { useRef, useMemo, useState, useCallback } from 'react';
 import { VocabPopup } from '@/components/reading/vocab-popup';
+import { ReadingWordLookupPopup } from '@/components/reading/reading-word-lookup-popup';
 import { SentenceTranslationPopup } from '@/components/reading/sentence-translation-popup';
 import { NoteInlineEditor } from '@/components/reading/note-inline-editor';
 import { HighlightContextMenu } from '@/components/reading/highlight-context-menu';
+import { useWordSelection } from '@/hooks/use-word-selection';
 import type { Highlight } from '@/types/reading.types';
 import { formatReadingPassage } from '@/lib/format-reading-passage';
 
@@ -76,6 +78,7 @@ export function ReadingPassage({ content }: Props) {
   const passageRef = useRef<HTMLDivElement>(null);
   const [vocabPopup, setVocabPopup] = useState<{ word: string; sentence: string; x: number; y: number } | null>(null);
   const [notePopup, setNotePopup] = useState<{ id: string; note: string; x: number; y: number } | null>(null);
+  const { selectedWord, position: wordSelPos, handleMouseUp: handleWordSelection, close: closeWordLookup } = useWordSelection();
   const [contextMenu, setContextMenu] = useState<{ type: 'highlight' | 'note'; hlId: string; x: number; y: number } | null>(null);
   // Sentence translation: button anchor + popup state
   const [translateButton, setTranslateButton] = useState<{ text: string; x: number; y: number } | null>(null);
@@ -111,10 +114,15 @@ export function ReadingPassage({ content }: Props) {
       return;
     }
 
-    // When no tool active and multiple words selected → show "Dịch câu" button
+    // When no tool active: single word → lookup popup; multiple words → "Dịch câu" button
     if (!activeTool) {
       const wordCount = text.split(/\s+/).filter(Boolean).length;
-      if (wordCount >= 2) {
+      if (wordCount === 1 && text.length >= 2) {
+        // Single word selected — show inline lookup popup
+        handleWordSelection(e);
+        setTranslateButton(null);
+      } else if (wordCount >= 2) {
+        closeWordLookup();
         const rect = range.getBoundingClientRect();
         setTranslateButton({ text, x: rect.left + rect.width / 2, y: rect.top });
         setTranslatePopup(null);
@@ -202,6 +210,7 @@ export function ReadingPassage({ content }: Props) {
       if (!sel || sel.toString().trim().length === 0) {
         setTranslateButton(null);
         setTranslatePopup(null);
+        closeWordLookup();
       }
     }
 
@@ -272,13 +281,22 @@ export function ReadingPassage({ content }: Props) {
         dangerouslySetInnerHTML={{ __html: renderedHtml }}
       />
 
-      {/* Vocab popup */}
+      {/* Vocab popup (toolbar vocab mode) */}
       {vocabPopup && (
         <VocabPopup
           word={vocabPopup.word}
           sentence={vocabPopup.sentence}
           position={{ x: vocabPopup.x, y: vocabPopup.y }}
           onClose={() => setVocabPopup(null)}
+        />
+      )}
+
+      {/* Inline word lookup popup (no-tool, single-word selection) */}
+      {selectedWord && wordSelPos && !activeTool && (
+        <ReadingWordLookupPopup
+          word={selectedWord}
+          position={wordSelPos}
+          onClose={closeWordLookup}
         />
       )}
 

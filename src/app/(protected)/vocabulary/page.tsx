@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Search, Loader2, Bookmark, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
@@ -13,9 +14,11 @@ import { VocabSearchAutocomplete } from '@/components/vocabulary/vocab-search-au
 import { VocabLearningMethods } from '@/components/vocabulary/vocab-learning-methods';
 import { BandDeckCards } from '@/components/vocabulary/band-deck-cards';
 import { TopicDeckCards } from '@/components/vocabulary/topic-deck-cards';
+import { VocabWordGrid } from '@/components/vocabulary/vocab-word-grid';
 import { ChibiMascot } from '@/components/ui/chibi-mascot';
 
 function VocabularyContent() {
+  const searchParams = useSearchParams();
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<VocabLookupResult | null>(null);
@@ -40,6 +43,13 @@ function VocabularyContent() {
       .then(([b, t]) => { setBands(b); setTopics(t); })
       .catch(() => {})
       .finally(() => setLoadingData(false));
+  }, []);
+
+  // Auto-search if ?q= param is present (e.g. from reading word lookup)
+  useEffect(() => {
+    const q = searchParams.get('q');
+    if (q) handleSearch(q);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchSuggestions = useCallback(async (q: string) => {
@@ -200,6 +210,8 @@ function VocabularyContent() {
         {!result && !loading && (
           <>
             <VocabLearningMethods />
+
+            <VocabWordGrid onWordClick={handleSearch} />
 
             <section>
               <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-1">

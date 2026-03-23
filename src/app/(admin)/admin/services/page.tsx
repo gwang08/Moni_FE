@@ -62,7 +62,9 @@ export default function AdminServicesPage() {
       <div className="p-6">
         <div className="flex justify-between items-center mb-6">
           <p className="text-sm text-gray-500">Quản lý các dịch vụ và chi phí credits tương ứng</p>
-          <Button onClick={openCreate}><Plus className="h-4 w-4 mr-1" /> Tạo dịch vụ</Button>
+          {services.length < 4 && (
+            <Button onClick={openCreate}><Plus className="h-4 w-4 mr-1" /> Tạo dịch vụ</Button>
+          )}
         </div>
 
         {error && <p className="text-red-500 mb-4 text-sm">{error}</p>}
@@ -106,7 +108,7 @@ export default function AdminServicesPage() {
           </div>
         )}
 
-        <ServiceFormDialog open={dialogOpen} onOpenChange={setDialogOpen} service={editingSvc} onSuccess={fetchServices} />
+        <ServiceFormDialog open={dialogOpen} onOpenChange={setDialogOpen} service={editingSvc} onSuccess={fetchServices} existingCodes={services.map(s => s.serviceCode)} />
 
         {confirmId && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">

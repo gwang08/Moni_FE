@@ -24,6 +24,7 @@ interface Props {
   onOpenChange: (open: boolean) => void;
   service?: ServicePricingResponse;
   onSuccess: () => void;
+  existingCodes?: string[];
 }
 
 interface FormState {
@@ -34,7 +35,7 @@ interface FormState {
 
 const defaultForm: FormState = { serviceCode: '', creditCost: 0, description: '' };
 
-export function ServiceFormDialog({ open, onOpenChange, service, onSuccess }: Props) {
+export function ServiceFormDialog({ open, onOpenChange, service, onSuccess, existingCodes = [] }: Props) {
   const [form, setForm] = useState<FormState>(defaultForm);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
@@ -106,7 +107,9 @@ export function ServiceFormDialog({ open, onOpenChange, service, onSuccess }: Pr
               className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
             >
               <option value="">-- Chọn dịch vụ --</option>
-              {SERVICE_OPTIONS.map(opt => (
+              {SERVICE_OPTIONS
+                .filter(opt => isEditing || !existingCodes.includes(opt.code))
+                .map(opt => (
                 <option key={opt.code} value={opt.code}>{opt.name}</option>
               ))}
             </select>

@@ -1,6 +1,6 @@
 import { apiClient } from '@/lib/api-client';
 import type { ApiResponse } from '@/types/auth.types';
-import type { ExpertProfile, ScoringSession } from '@/types/expert.types';
+import type { ExpertProfile, ScoringSession, ExpertEvaluation } from '@/types/expert.types';
 
 export async function getExperts(specialization?: string): Promise<ExpertProfile[]> {
   const query = specialization ? `?specialization=${specialization}` : '';
@@ -45,4 +45,21 @@ export async function getQueuePosition(id: number): Promise<{ position: number; 
     true
   );
   return response.result ?? { position: 0, status: 'QUEUED', roomUrl: '' };
+}
+
+export async function getMySessions(): Promise<ScoringSession[]> {
+  const response = await apiClient.get<ApiResponse<ScoringSession[]>>(
+    '/api/v1/scoring-sessions/my',
+    true
+  );
+  return response.result ?? [];
+}
+
+export async function getSessionEvaluation(sessionId: number): Promise<ExpertEvaluation> {
+  const response = await apiClient.get<ApiResponse<ExpertEvaluation>>(
+    `/api/v1/scoring-sessions/${sessionId}/evaluation`,
+    true
+  );
+  if (!response.result) throw new Error('Evaluation not found');
+  return response.result;
 }

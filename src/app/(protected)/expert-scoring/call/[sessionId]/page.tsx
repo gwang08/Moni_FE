@@ -86,11 +86,11 @@ export default function ExpertCallPage({ params }: Props) {
         true,
       );
       toast.success('Cảm ơn bạn đã đánh giá!');
-      router.push('/practice');
+      router.push('/scoring-history');
     } catch {
       // If endpoint not implemented yet, just navigate away
       toast.success('Cảm ơn bạn đã đánh giá!');
-      router.push('/practice');
+      router.push('/scoring-history');
     } finally {
       setSubmittingRating(false);
     }
@@ -145,7 +145,7 @@ export default function ExpertCallPage({ params }: Props) {
             <Button
               variant="outline"
               className="flex-1"
-              onClick={() => router.push('/practice')}
+              onClick={() => router.push('/scoring-history')}
             >
               Bỏ qua
             </Button>

@@ -31,6 +31,8 @@ export interface ScoringSession {
 }
 
 export interface ExpertEvaluation {
+  id: number;
+  skill: string;
   overallScore: number;
   // Speaking criteria
   fluency?: number;
@@ -43,8 +45,10 @@ export interface ExpertEvaluation {
   lexicalResource?: number;
   grammaticalRange?: number;
   feedback: string;
-  strengths: string;
-  areasForImprovement: string;
+  strengths?: string;
+  areasForImprovement?: string;
+  expertName?: string;
+  createdAt: string;
 }
 
 export interface CreateExpertRequest {

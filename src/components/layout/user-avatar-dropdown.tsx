@@ -9,7 +9,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useAuthStore } from '@/store/auth-store';
-import { User, LogOut, Shield, CreditCard, Plus, LogIn } from 'lucide-react';
+import { User, LogOut, Shield, CreditCard, Plus, LogIn, GraduationCap } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -130,6 +130,11 @@ export function UserAvatarDropdown({ variant = 'light' }: UserAvatarDropdownProp
           <DropdownMenuItem onClick={() => router.push('/transactions')} className="cursor-pointer">
             <CreditCard className="mr-2 h-4 w-4" />
             <span>Lịch sử giao dịch</span>
+          </DropdownMenuItem>
+
+          <DropdownMenuItem onClick={() => router.push('/scoring-history')} className="cursor-pointer">
+            <GraduationCap className="mr-2 h-4 w-4" />
+            <span>Lịch sử chấm điểm</span>
           </DropdownMenuItem>
 
           {user.role === 'ADMIN' && (

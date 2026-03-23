@@ -12,12 +12,20 @@ import type { ApiResponse, AuthenticationResponse } from '@/types/auth.types';
 import { Loader2, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
 
-const GOOGLE_OAUTH_URL =
-  'https://accounts.google.com/o/oauth2/v2/auth' +
-  '?client_id=1010429030946-7rpjhtpauni9gim1ihfrbjeh79d21ddc.apps.googleusercontent.com' +
-  '&redirect_uri=http://localhost:3000/oauth/callback' +
-  '&response_type=code' +
-  '&scope=openid email profile';
+const GOOGLE_CLIENT_ID = '1010429030946-7rpjhtpauni9gim1ihfrbjeh79d21ddc.apps.googleusercontent.com';
+
+function getGoogleOAuthUrl() {
+  const redirectUri = typeof window !== 'undefined'
+    ? `${window.location.origin}/oauth/callback`
+    : 'http://localhost:3000/oauth/callback';
+  return (
+    'https://accounts.google.com/o/oauth2/v2/auth' +
+    `?client_id=${GOOGLE_CLIENT_ID}` +
+    `&redirect_uri=${encodeURIComponent(redirectUri)}` +
+    '&response_type=code' +
+    '&scope=openid email profile'
+  );
+}
 
 export function LoginForm() {
   const [email, setEmail] = useState('');
@@ -135,7 +143,7 @@ export function LoginForm() {
         type="button"
         variant="outline"
         className="w-full h-11 rounded-lg"
-        onClick={() => (window.location.href = GOOGLE_OAUTH_URL)}
+        onClick={() => (window.location.href = getGoogleOAuthUrl())}
       >
         <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24" aria-hidden="true">
           <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />

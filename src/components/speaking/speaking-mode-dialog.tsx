@@ -40,7 +40,7 @@ export function SpeakingModeDialog({ open, testId, aiCost = null, expertCost = n
     if (experts.length === 0) {
       setLoadingExperts(true);
       getExperts()
-        .then((list) => setExperts(list.filter((e) => e.status !== 'OFFLINE')))
+        .then((list) => setExperts(list))
         .catch(() => toast.error('Không thể tải danh sách giảng viên'))
         .finally(() => setLoadingExperts(false));
     }

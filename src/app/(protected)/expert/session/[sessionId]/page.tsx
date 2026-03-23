@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { DailyVideoCall } from '@/components/video/daily-video-call';
 import { Send, Loader2 } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
+import { useAuthStore } from '@/store/auth-store';
 import type { ApiResponse } from '@/types/auth.types';
 import type { ScoringSession } from '@/types/expert.types';
 import { toast } from 'sonner';
@@ -36,6 +37,7 @@ export default function ExpertSessionPage({ params }: Props) {
   const { sessionId } = use(params);
   const router = useRouter();
 
+  const { user } = useAuthStore();
   const [session, setSession] = useState<ScoringSession | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -111,6 +113,7 @@ export default function ExpertSessionPage({ params }: Props) {
       <div className="w-1/2 bg-gray-900 p-4">
         <DailyVideoCall
           roomUrl={session?.roomUrl || ''}
+          userName={user?.fullName || 'Giảng viên'}
           onJoined={() => setInCall(true)}
           onLeave={() => { if (inCall) router.push('/expert/dashboard'); }}
           className="h-full"

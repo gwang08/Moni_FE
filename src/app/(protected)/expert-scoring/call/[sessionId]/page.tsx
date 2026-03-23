@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { DailyVideoCall } from '@/components/video/daily-video-call';
 import { getQueuePosition } from '@/lib/expert-api';
+import { useAuthStore } from '@/store/auth-store';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 
 interface Props {
@@ -15,6 +16,7 @@ interface Props {
 export default function ExpertCallPage({ params }: Props) {
   const { sessionId } = use(params);
   const router = useRouter();
+  const { user } = useAuthStore();
   const [roomUrl, setRoomUrl] = useState('');
   const [loading, setLoading] = useState(true);
   const [inCall, setInCall] = useState(false);
@@ -84,6 +86,7 @@ export default function ExpertCallPage({ params }: Props) {
         ) : (
           <DailyVideoCall
             roomUrl={roomUrl}
+            userName={user?.fullName || 'Học viên'}
             onJoined={() => setInCall(true)}
             onLeave={handleLeave}
             className="h-full"

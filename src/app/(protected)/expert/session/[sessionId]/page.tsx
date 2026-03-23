@@ -71,7 +71,7 @@ export default function ExpertSessionPage({ params }: Props) {
           if (res.result.testId) {
             apiClient
               .get<ApiResponse<{ stimuli: { questionGroups: { questions: TestQuestion[] }[] }[] }>>(
-                `/tests/${res.result.testId}`,
+                `/api/v1/tests/${res.result.testId}`,
                 true,
               )
               .then((testRes) => {

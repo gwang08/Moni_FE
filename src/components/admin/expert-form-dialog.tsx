@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { createExpert } from '@/lib/admin-expert-api';
 import { uploadMedia } from '@/lib/admin-api';
 import { toast } from 'sonner';
-import { Loader2, Plus, Camera } from 'lucide-react';
+import { Loader2, Plus, Camera, X, ImagePlus } from 'lucide-react';
 import type { ExpertProfile, CreateExpertRequest } from '@/types/expert.types';
 
 interface Props {
@@ -19,36 +19,67 @@ interface Props {
   onCreated: (expert: ExpertProfile) => void;
 }
 
-const SPECS = [
-  { value: 'WRITING', label: 'Writing' },
-  { value: 'SPEAKING', label: 'Speaking' },
-  { value: 'BOTH', label: 'Cả hai' },
+const BAND_FIELDS = [
+  { key: 'bandReading', label: 'Reading' },
+  { key: 'bandListening', label: 'Listening' },
+  { key: 'bandWriting', label: 'Writing' },
+  { key: 'bandSpeaking', label: 'Speaking' },
 ] as const;
 
 const DEFAULT: CreateExpertRequest = {
   email: '', displayName: '', avatarUrl: '',
-  bandScore: 7, bandReading: 6, bandListening: 6, bandWriting: 7, bandSpeaking: 7,
-  yearsExperience: 1, specialization: 'BOTH', bio: '',
+  bandReading: 6, bandListening: 6, bandWriting: 7, bandSpeaking: 7,
+  yearsExperience: 1, bio: '',
 };
+
+// Round average to nearest 0.5
+function calcOverall(r: number, l: number, w: number, s: number): number {
+  const avg = (r + l + w + s) / 4;
+  return Math.round(avg * 2) / 2;
+}
 
 export function ExpertFormDialog({ open, onClose, onCreated }: Props) {
   const [form, setForm] = useState<CreateExpertRequest>(DEFAULT);
   const [loading, setLoading] = useState(false);
   const [avatarPreview, setAvatarPreview] = useState('');
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [certFiles, setCertFiles] = useState<File[]>([]);
+  const [certPreviews, setCertPreviews] = useState<string[]>([]);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+  const certInputRef = useRef<HTMLInputElement>(null);
 
   const set = (key: keyof CreateExpertRequest, value: string | number) =>
     setForm((prev) => ({ ...prev, [key]: value }));
 
+  const overall = calcOverall(
+    form.bandReading ?? 0,
+    form.bandListening ?? 0,
+    form.bandWriting ?? 0,
+    form.bandSpeaking ?? 0,
+  );
+
   const handleAvatarSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    // Revoke old preview URL
     if (avatarPreview) URL.revokeObjectURL(avatarPreview);
     setAvatarFile(file);
     setAvatarPreview(URL.createObjectURL(file));
     e.target.value = '';
+  };
+
+  const handleCertSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? []);
+    if (!files.length) return;
+    const newPreviews = files.map((f) => URL.createObjectURL(f));
+    setCertFiles((prev) => [...prev, ...files]);
+    setCertPreviews((prev) => [...prev, ...newPreviews]);
+    e.target.value = '';
+  };
+
+  const removeCert = (idx: number) => {
+    URL.revokeObjectURL(certPreviews[idx]);
+    setCertFiles((prev) => prev.filter((_, i) => i !== idx));
+    setCertPreviews((prev) => prev.filter((_, i) => i !== idx));
   };
 
   const handleSubmit = async () => {
@@ -58,12 +89,14 @@ export function ExpertFormDialog({ open, onClose, onCreated }: Props) {
     }
     setLoading(true);
     try {
+      // Upload avatar
       let avatarUrl = form.avatarUrl;
-      // Upload avatar to Cloudinary on submit
-      if (avatarFile) {
-        avatarUrl = await uploadMedia(avatarFile);
-      }
-      const expert = await createExpert({ ...form, avatarUrl });
+      if (avatarFile) avatarUrl = await uploadMedia(avatarFile);
+
+      // Upload all certificates
+      const certificates: string[] = await Promise.all(certFiles.map((f) => uploadMedia(f)));
+
+      const expert = await createExpert({ ...form, avatarUrl, certificates });
       onCreated(expert);
       handleReset();
       onClose();
@@ -77,9 +110,12 @@ export function ExpertFormDialog({ open, onClose, onCreated }: Props) {
 
   const handleReset = () => {
     if (avatarPreview) URL.revokeObjectURL(avatarPreview);
+    certPreviews.forEach((p) => URL.revokeObjectURL(p));
     setForm(DEFAULT);
     setAvatarPreview('');
     setAvatarFile(null);
+    setCertFiles([]);
+    setCertPreviews([]);
   };
 
   return (
@@ -90,11 +126,11 @@ export function ExpertFormDialog({ open, onClose, onCreated }: Props) {
         </DialogHeader>
 
         <div className="grid grid-cols-2 gap-3 py-2">
-          {/* Avatar upload - click on circle */}
+          {/* Avatar upload */}
           <div className="col-span-2 flex flex-col items-center gap-2">
             <button
               type="button"
-              onClick={() => fileInputRef.current?.click()}
+              onClick={() => avatarInputRef.current?.click()}
               disabled={loading}
               className="group relative h-20 w-20 rounded-full bg-gray-100 border-2 border-dashed border-gray-300 overflow-hidden flex items-center justify-center shrink-0 hover:border-primary hover:bg-gray-50 transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
             >
@@ -112,13 +148,7 @@ export function ExpertFormDialog({ open, onClose, onCreated }: Props) {
                 </div>
               )}
             </button>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              onChange={handleAvatarSelect}
-              className="hidden"
-            />
+            <input ref={avatarInputRef} type="file" accept="image/*" onChange={handleAvatarSelect} className="hidden" />
             <span className="text-[10px] text-gray-400">Ảnh đại diện</span>
           </div>
 
@@ -135,42 +165,37 @@ export function ExpertFormDialog({ open, onClose, onCreated }: Props) {
           <div className="col-span-2">
             <Label className="text-xs font-medium mb-2 block">Điểm IELTS <span className="text-red-500">*</span></Label>
             <div className="grid grid-cols-5 gap-2">
-              {[
-                { key: 'bandReading', label: 'Reading' },
-                { key: 'bandListening', label: 'Listening' },
-                { key: 'bandWriting', label: 'Writing' },
-                { key: 'bandSpeaking', label: 'Speaking' },
-                { key: 'bandScore', label: 'Overall' },
-              ].map(({ key, label }) => (
+              {BAND_FIELDS.map(({ key, label }) => (
                 <div key={key} className="space-y-1">
                   <Label className="text-[10px] text-gray-500">{label}</Label>
                   <Input
                     type="number" min={4} max={9} step={0.5}
-                    value={form[key as keyof CreateExpertRequest] as number ?? ''}
-                    onChange={(e) => set(key as keyof CreateExpertRequest, parseFloat(e.target.value))}
+                    value={form[key] ?? ''}
+                    onChange={(e) => set(key, parseFloat(e.target.value))}
                     className="text-center"
                   />
                 </div>
               ))}
+              {/* Auto-calculated Overall */}
+              <div className="space-y-1">
+                <Label className="text-[10px] text-gray-500">Overall</Label>
+                <div className="h-10 flex items-center justify-center rounded-md border bg-gray-50 text-sm font-semibold text-primary">
+                  {overall.toFixed(1)}
+                </div>
+              </div>
             </div>
           </div>
 
-          <div className="space-y-1">
+          <div className="space-y-1 col-span-2">
             <Label className="text-xs">Số năm kinh nghiệm <span className="text-red-500">*</span></Label>
-            <Input type="number" min={0} value={form.yearsExperience} onChange={(e) => set('yearsExperience', parseInt(e.target.value))} />
+            <Input
+              type="number" min={0}
+              value={form.yearsExperience}
+              onChange={(e) => set('yearsExperience', parseInt(e.target.value))}
+              className="w-1/2"
+            />
           </div>
-          <div className="space-y-1">
-            <Label className="text-xs">Chuyên môn <span className="text-red-500">*</span></Label>
-            <select
-              className="w-full rounded-md border bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-              value={form.specialization}
-              onChange={(e) => set('specialization', e.target.value)}
-            >
-              {SPECS.map((s) => (
-                <option key={s.value} value={s.value}>{s.label}</option>
-              ))}
-            </select>
-          </div>
+
           <div className="space-y-1 col-span-2">
             <Label className="text-xs">Giới thiệu</Label>
             <textarea
@@ -178,6 +203,49 @@ export function ExpertFormDialog({ open, onClose, onCreated }: Props) {
               value={form.bio} onChange={(e) => set('bio', e.target.value)}
               placeholder="Giới thiệu ngắn về giảng viên..."
             />
+          </div>
+
+          {/* Certificates multi-upload */}
+          <div className="col-span-2 space-y-2">
+            <div className="flex items-center justify-between">
+              <Label className="text-xs">Bằng cấp / Chứng chỉ</Label>
+              <button
+                type="button"
+                onClick={() => certInputRef.current?.click()}
+                disabled={loading}
+                className="flex items-center gap-1 text-xs text-primary hover:underline disabled:opacity-50"
+              >
+                <ImagePlus className="h-3.5 w-3.5" />
+                Thêm ảnh
+              </button>
+            </div>
+            <input ref={certInputRef} type="file" accept="image/*" multiple onChange={handleCertSelect} className="hidden" />
+            {certPreviews.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {certPreviews.map((src, i) => (
+                  <div key={i} className="relative group h-16 w-16 rounded border overflow-hidden bg-gray-100">
+                    <img src={src} alt="" className="h-full w-full object-cover" />
+                    <button
+                      type="button"
+                      onClick={() => removeCert(i)}
+                      className="absolute top-0.5 right-0.5 bg-black/60 rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <X className="h-3 w-3 text-white" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            {certPreviews.length === 0 && (
+              <button
+                type="button"
+                onClick={() => certInputRef.current?.click()}
+                disabled={loading}
+                className="w-full border-2 border-dashed border-gray-200 rounded-md p-4 text-center text-xs text-gray-400 hover:border-primary hover:text-primary transition-colors"
+              >
+                Kéo thả hoặc nhấn để chọn ảnh chứng chỉ
+              </button>
+            )}
           </div>
         </div>
 

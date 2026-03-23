@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ExpertFormDialog } from '@/components/admin/expert-form-dialog';
+import { ExpertDetailDialog } from '@/components/admin/expert-detail-dialog';
 import { getAdminExperts, updateExpertStatus, deleteExpert } from '@/lib/admin-expert-api';
 import { toast } from 'sonner';
 import { Plus, Trash2, Ban, CheckCircle, Loader2 } from 'lucide-react';
@@ -31,6 +32,7 @@ export default function AdminExpertsPage() {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [selectedExpert, setSelectedExpert] = useState<ExpertProfile | null>(null);
 
   const fetchExperts = async () => {
     setLoading(true);
@@ -45,7 +47,6 @@ export default function AdminExpertsPage() {
 
   useEffect(() => { fetchExperts(); }, []);
 
-  // Ban = force OFFLINE, Unban = set AVAILABLE
   const handleToggleBan = async (expert: ExpertProfile) => {
     const isBanning = expert.status !== 'OFFLINE';
     const newStatus = isBanning ? 'OFFLINE' : 'AVAILABLE';
@@ -74,6 +75,11 @@ export default function AdminExpertsPage() {
     }
   };
 
+  const handleExpertUpdated = (updated: ExpertProfile) => {
+    setExperts((prev) => prev.map((e) => (e.id === updated.id ? updated : e)));
+    setSelectedExpert(updated);
+  };
+
   return (
     <div className="p-6 max-w-6xl mx-auto">
       <div className="flex items-center justify-between mb-6">
@@ -98,7 +104,7 @@ export default function AdminExpertsPage() {
           <table className="w-full text-sm">
             <thead className="bg-gray-50 border-b">
               <tr>
-                {['Giảng viên', 'Band Score', 'Chuyên môn', 'Trạng thái', 'Phiên', 'Đánh giá', 'Hành động'].map((h) => (
+                {['Giảng viên', 'Band Score', 'Trạng thái', 'Phiên', 'Đánh giá', 'Hành động'].map((h) => (
                   <th key={h} className="px-4 py-3 text-left font-medium text-gray-600 text-xs uppercase tracking-wide">
                     {h}
                   </th>
@@ -108,7 +114,7 @@ export default function AdminExpertsPage() {
             <tbody>
               {experts.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="text-center py-12 text-muted-foreground">
+                  <td colSpan={6} className="text-center py-12 text-muted-foreground">
                     Chưa có Expert nào
                   </td>
                 </tr>
@@ -123,14 +129,18 @@ export default function AdminExpertsPage() {
                             {getInitials(expert.displayName)}
                           </AvatarFallback>
                         </Avatar>
-                        <span className="font-medium">{expert.displayName}</span>
+                        {/* Clickable name opens detail dialog */}
+                        <button
+                          type="button"
+                          className="font-medium hover:text-primary hover:underline transition-colors text-left"
+                          onClick={() => setSelectedExpert(expert)}
+                        >
+                          {expert.displayName}
+                        </button>
                       </div>
                     </td>
                     <td className="px-4 py-3">
                       <Badge variant="outline">{expert.bandScore}</Badge>
-                    </td>
-                    <td className="px-4 py-3">
-                      <Badge variant="secondary" className="text-xs">{expert.specialization}</Badge>
                     </td>
                     <td className="px-4 py-3">
                       <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_COLORS[expert.status]}`}>
@@ -179,6 +189,13 @@ export default function AdminExpertsPage() {
         open={showForm}
         onClose={() => setShowForm(false)}
         onCreated={(expert) => setExperts((prev) => [expert, ...prev])}
+      />
+
+      <ExpertDetailDialog
+        expert={selectedExpert}
+        open={!!selectedExpert}
+        onClose={() => setSelectedExpert(null)}
+        onUpdated={handleExpertUpdated}
       />
     </div>
   );

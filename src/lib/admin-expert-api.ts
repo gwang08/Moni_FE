@@ -1,6 +1,6 @@
 import { apiClient } from '@/lib/api-client';
 import type { ApiResponse } from '@/types/auth.types';
-import type { ExpertProfile, CreateExpertRequest } from '@/types/expert.types';
+import type { ExpertProfile, CreateExpertRequest, UpdateExpertRequest } from '@/types/expert.types';
 
 export async function getAdminExperts(): Promise<ExpertProfile[]> {
   const response = await apiClient.get<ApiResponse<ExpertProfile[]>>(
@@ -17,6 +17,16 @@ export async function createExpert(data: CreateExpertRequest): Promise<ExpertPro
     true
   );
   if (!response.result) throw new Error('Failed to create expert');
+  return response.result;
+}
+
+export async function updateExpert(id: number, data: UpdateExpertRequest): Promise<ExpertProfile> {
+  const response = await apiClient.put<ApiResponse<ExpertProfile>>(
+    `/api/v1/admin/experts/${id}`,
+    data,
+    true
+  );
+  if (!response.result) throw new Error('Failed to update expert');
   return response.result;
 }
 

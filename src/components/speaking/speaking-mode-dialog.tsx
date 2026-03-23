@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { ArrowLeft, Search } from 'lucide-react';
-import { getServices } from '@/lib/payment-api';
 import { getExperts, createScoringSession } from '@/lib/expert-api';
 import { useAuthStore } from '@/store/auth-store';
 import { toast } from 'sonner';
@@ -16,16 +15,16 @@ import type { ExpertProfile } from '@/types/expert.types';
 interface Props {
   open: boolean;
   testId: string;
+  aiCost?: number | null;
+  expertCost?: number | null;
   onSelectAI: () => void;
   onClose: () => void;
 }
 
-export function SpeakingModeDialog({ open, testId, onSelectAI, onClose }: Props) {
+export function SpeakingModeDialog({ open, testId, aiCost = null, expertCost = null, onSelectAI, onClose }: Props) {
   const router = useRouter();
   const { user, refreshProfile } = useAuthStore();
   const [step, setStep] = useState<1 | 2>(1);
-  const [aiCost, setAiCost] = useState<number | null>(null);
-  const [expertCost, setExpertCost] = useState<number | null>(null);
   const [experts, setExperts] = useState<ExpertProfile[]>([]);
   const [loadingExperts, setLoadingExperts] = useState(false);
   const [search, setSearch] = useState('');
@@ -33,15 +32,7 @@ export function SpeakingModeDialog({ open, testId, onSelectAI, onClose }: Props)
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    if (!open) { setStep(1); setSearch(''); setConfirming(null); return; }
-    getServices()
-      .then((services) => {
-        const ai = services.find((s) => s.serviceCode === 'AI_SPEAKING_SCORE');
-        const expert = services.find((s) => s.serviceCode === 'EXPERT_SPEAKING_SCORE');
-        if (ai) setAiCost(ai.creditCost);
-        if (expert) setExpertCost(expert.creditCost);
-      })
-      .catch(() => {});
+    if (!open) { setStep(1); setSearch(''); setConfirming(null); }
   }, [open]);
 
   const handleGoToExpertList = () => {

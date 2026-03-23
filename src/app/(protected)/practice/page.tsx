@@ -1,11 +1,12 @@
 'use client';
 
-import { Suspense, useState, useMemo, useCallback } from 'react';
+import { Suspense, useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { usePracticeStore } from '@/store/practice-store';
 import { usePracticeExercises } from '@/hooks/use-practice-exercises';
 import { ModeSelectionModal } from '@/components/practice/mode-selection-modal';
 import { SpeakingModeDialog } from '@/components/speaking/speaking-mode-dialog';
+import { getServices } from '@/lib/payment-api';
 import { PracticeSidebar } from '@/components/practice/practice-sidebar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -63,6 +64,20 @@ function PracticePage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [speakingModeOpen, setSpeakingModeOpen] = useState(false);
   const [speakingTestId, setSpeakingTestId] = useState<string>('');
+  const [aiCost, setAiCost] = useState<number | null>(null);
+  const [expertCost, setExpertCost] = useState<number | null>(null);
+  const servicesFetched = useRef(false);
+
+  useEffect(() => {
+    if (servicesFetched.current) return;
+    servicesFetched.current = true;
+    getServices()
+      .then((services) => {
+        setAiCost(services.find((s) => s.serviceCode === 'AI_SPEAKING_SCORE')?.creditCost ?? null);
+        setExpertCost(services.find((s) => s.serviceCode === 'EXPERT_SPEAKING_SCORE')?.creditCost ?? null);
+      })
+      .catch(() => {});
+  }, []);
   const { showPrompt, setShowPrompt, requireAuth } = useLoginPrompt();
 
   const completedExercises = usePracticeStore((state) => state.completedExercises);
@@ -287,6 +302,8 @@ function PracticePage() {
       <SpeakingModeDialog
         open={speakingModeOpen}
         testId={speakingTestId}
+        aiCost={aiCost}
+        expertCost={expertCost}
         onSelectAI={() => {
           setSpeakingModeOpen(false);
           router.push(`/practice/speaking/${speakingTestId}`);

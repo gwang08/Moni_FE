@@ -86,6 +86,11 @@ export const useAuthStore = create<AuthStore>()(
           user: null,
           isAuthenticated: false,
         });
+        // Clear other persisted stores to prevent cross-user data leaks
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('moni-user-storage');
+          localStorage.removeItem('practice-progress');
+        }
       },
 
       updateUser: (data: Partial<User>) => {

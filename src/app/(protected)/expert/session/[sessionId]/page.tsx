@@ -110,7 +110,7 @@ export default function ExpertSessionPage({ params }: Props) {
   return (
     <div className="flex h-[calc(100vh-56px)]">
       {/* Left: Video call */}
-      <div className="w-1/2 bg-gray-900 p-4">
+      <div className="w-1/2 bg-gray-900 p-1">
         <DailyVideoCall
           roomUrl={session?.roomUrl || ''}
           userName={user?.fullName || 'Giảng viên'}

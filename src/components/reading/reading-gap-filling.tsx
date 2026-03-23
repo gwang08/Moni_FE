@@ -124,8 +124,8 @@ function ParagraphGapFilling({ groupContent, questions, submitted, textAnswers, 
   onTextAnswer: (questionId: number, text: string) => void;
   questionOffset?: number;
 }) {
-  // Build a map: globalPosition → question (offset + local position)
-  const posMap = new Map(questions.map(q => [questionOffset + q.position, q]));
+  // Build a map: position → question (questions already have global positions from panel)
+  const posMap = new Map(questions.map(q => [q.position, q]));
 
   // Find all gap patterns:
   // "[1]___" (new click-to-gap format), "1...", "10 ……….", "2…", "11 __"

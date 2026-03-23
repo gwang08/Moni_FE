@@ -11,8 +11,6 @@ import { useAuthStore } from '@/store/auth-store';
 import { toast } from 'sonner';
 import type { ExpertProfile } from '@/types/expert.types';
 
-type Filter = 'ALL' | 'WRITING' | 'SPEAKING';
-
 const EXPERT_CREDIT_COST = 50;
 
 export default function ExpertScoringPage() {
@@ -20,7 +18,6 @@ export default function ExpertScoringPage() {
   const { user } = useAuthStore();
   const [experts, setExperts] = useState<ExpertProfile[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<Filter>('ALL');
   const [selected, setSelected] = useState<ExpertProfile | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -31,10 +28,7 @@ export default function ExpertScoringPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  const filtered = experts.filter((e) => {
-    if (filter === 'ALL') return true;
-    return e.specialization === filter || e.specialization === 'BOTH';
-  });
+  const filtered = experts.filter((e) => e.status !== 'OFFLINE');
 
   const handleConfirm = async () => {
     if (!selected) return;
@@ -61,20 +55,6 @@ export default function ExpertScoringPage() {
         <p className="text-muted-foreground text-sm mt-1">
           Chọn giảng viên phù hợp để được chấm điểm qua video call
         </p>
-      </div>
-
-      {/* Filter buttons */}
-      <div className="flex gap-2 mb-6">
-        {(['ALL', 'WRITING', 'SPEAKING'] as Filter[]).map((f) => (
-          <Button
-            key={f}
-            size="sm"
-            variant={filter === f ? 'default' : 'outline'}
-            onClick={() => setFilter(f)}
-          >
-            {f === 'ALL' ? 'Tất cả' : f === 'WRITING' ? 'Writing' : 'Speaking'}
-          </Button>
-        ))}
       </div>
 
       {loading ? (

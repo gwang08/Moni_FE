@@ -18,12 +18,6 @@ const STATUS_CONFIG = {
   OFFLINE: { label: 'Ngoại tuyến', color: 'bg-gray-400' },
 } as const;
 
-const SPEC_LABELS = {
-  WRITING: 'Writing',
-  SPEAKING: 'Speaking',
-  BOTH: 'Writing & Speaking',
-} as const;
-
 function getInitials(name: string): string {
   return name
     .split(' ')
@@ -90,15 +84,6 @@ export function ExpertCard({ expert, onSelect }: ExpertCardProps) {
       <div className="text-xs text-muted-foreground space-y-1">
         <p>{expert.yearsExperience} năm kinh nghiệm</p>
         <p>{expert.totalSessions} phiên chấm</p>
-      </div>
-
-      {/* Specialization */}
-      <div className="flex gap-1.5 flex-wrap">
-        {(expert.specialization === 'BOTH' ? ['WRITING', 'SPEAKING'] : [expert.specialization]).map((spec) => (
-          <Badge key={spec} variant="secondary" className="text-xs">
-            {SPEC_LABELS[spec as keyof typeof SPEC_LABELS]}
-          </Badge>
-        ))}
       </div>
 
       {/* Rating */}

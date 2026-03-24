@@ -132,10 +132,21 @@ export default function ExpertCallPage({ params }: Props) {
     }
   };
 
-  // Session ended — show rating overlay
+  // Session ended — show rating overlay ON TOP of video (don't unmount DailyVideoCall!)
   if (sessionEnded) {
     return (
-      <div className="h-[calc(100vh-56px)] bg-gradient-to-br from-gray-50 to-white flex items-center justify-center">
+      <div className="h-[calc(100vh-56px)] relative">
+        {/* Keep DailyVideoCall mounted but hidden so recording blob callback fires */}
+        <div className="hidden">
+          <DailyVideoCall
+            roomUrl={roomUrl}
+            userName={user?.fullName || 'Học viên'}
+            enableRecording
+            onRecordingReady={handleRecordingReady}
+            stopRecordingRef={stopRecordingRef}
+          />
+        </div>
+        <div className="absolute inset-0 bg-gradient-to-br from-gray-50 to-white flex items-center justify-center">
         <div className="bg-white rounded-2xl shadow-xl border p-8 max-w-md w-full mx-4 space-y-6 text-center">
           <div>
             <h2 className="text-xl font-bold">Phiên chấm đã kết thúc</h2>
@@ -213,6 +224,7 @@ export default function ExpertCallPage({ params }: Props) {
               {submittingRating ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Gửi đánh giá'}
             </Button>
           </div>
+        </div>
         </div>
       </div>
     );

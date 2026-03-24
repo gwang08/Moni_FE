@@ -84,7 +84,9 @@ export function TestEditWritingContent({ test }: Props) {
   const [saving, setSaving] = useState(false);
   const [contentHtml, setContentHtml] = useState(stimulus?.content || '');
 
-  const rawSample = firstGroup?.instruction || '';
+  // Read bài mẫu from instruction (create flow) or explanation.text (edit flow)
+  const firstQuestion = firstGroup?.questions[0];
+  const rawSample = firstGroup?.instruction || (firstQuestion?.explanation as { text?: string })?.text || '';
   const [sampleFields, setSampleFields] = useState<Record<string, string>>(() => parseSample(rawSample));
 
   // Writing type/topic state — initialized from existing data
@@ -137,6 +139,7 @@ export function TestEditWritingContent({ test }: Props) {
         mediaUrl: stimulus.mediaUrl || undefined,
       });
 
+      // Save bài mẫu into first question's explanation
       const firstQuestion = firstGroup?.questions[0];
       const sampleText = buildSample(sampleFields);
       if (firstQuestion && sampleText.replace(/\n---SECTION---\n/g, '').trim()) {

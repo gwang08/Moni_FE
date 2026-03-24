@@ -34,7 +34,7 @@ const STATUS_VARIANT: Record<SessionStatus, string> = {
 function isSessionExpired(session: ScoringSession): boolean {
   if (session.status !== 'IN_PROGRESS') return false;
   if (!session.createdAt) return false;
-  const created = new Date(session.createdAt.includes('Z') ? session.createdAt : session.createdAt + 'Z');
+  const created = new Date(session.createdAt.includes('Z') || session.createdAt.includes('+') ? session.createdAt : session.createdAt + 'Z');
   return (Date.now() - created.getTime()) / 60000 > 35;
 }
 
@@ -58,8 +58,8 @@ export default function ScoringHistoryPage() {
     .filter(s => filters.status === 'ALL' || s.status === filters.status)
     .filter(s => filters.skill === 'ALL' || s.skill === filters.skill)
     .sort((a, b) => {
-      const ta = new Date(a.createdAt ?? 0).getTime();
-      const tb = new Date(b.createdAt ?? 0).getTime();
+      const ta = new Date(a.createdAt ?? '').getTime() || 0;
+      const tb = new Date(b.createdAt ?? '').getTime() || 0;
       return filters.sort === 'newest' ? tb - ta : ta - tb;
     });
 
@@ -129,7 +129,7 @@ export default function ScoringHistoryPage() {
                   </td>
                   <td className="px-4 py-3 text-muted-foreground text-xs">
                     {session.createdAt
-                      ? new Date(session.createdAt.includes('Z') ? session.createdAt : session.createdAt + 'Z')
+                      ? new Date(session.createdAt.includes('Z') || session.createdAt.includes('+') ? session.createdAt : session.createdAt + 'Z')
                           .toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
                       : '—'}
                   </td>

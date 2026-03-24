@@ -73,17 +73,21 @@ export default function ExpertCallPage({ params }: Props) {
     return () => { if (statusPollRef.current) clearInterval(statusPollRef.current); };
   }, [inCall, sessionId]);
 
-  // When session ends, upload the recording if available
+  // Track recording blob state for reactivity
+  const [recordingReady, setRecordingReady] = useState(false);
+
+  // When session ends AND recording is ready, upload
   useEffect(() => {
-    if (!sessionEnded || !recordingBlobRef.current) return;
+    if (!sessionEnded || !recordingReady || !recordingBlobRef.current) return;
+    if (recordingUrlRef.current) return; // already uploaded
     const blob = recordingBlobRef.current;
     setUploadingRecording(true);
     const file = new File([blob], `recording-${sessionId}.webm`, { type: 'audio/webm' });
     uploadMedia(file)
       .then((url) => { recordingUrlRef.current = url; })
-      .catch(() => { /* non-fatal — rating still submitted without URL */ })
+      .catch(() => { /* non-fatal */ })
       .finally(() => setUploadingRecording(false));
-  }, [sessionEnded, sessionId]);
+  }, [sessionEnded, recordingReady, sessionId]);
 
   const handleLeave = () => {
     if (!inCall) return;
@@ -94,6 +98,7 @@ export default function ExpertCallPage({ params }: Props) {
 
   const handleRecordingReady = (blob: Blob) => {
     recordingBlobRef.current = blob;
+    setRecordingReady(true);
   };
 
   const handleSubmitRating = async () => {

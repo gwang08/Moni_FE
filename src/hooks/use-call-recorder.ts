@@ -13,8 +13,18 @@ export function useCallRecorder() {
 
   const startRecording = useCallback(async () => {
     try {
+      // Request mic separately — browser may share with Daily.co iframe
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const recorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+
+      // Check supported mimeType
+      const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+        ? 'audio/webm;codecs=opus'
+        : MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : '';
+
+      const recorder = mimeType
+        ? new MediaRecorder(stream, { mimeType })
+        : new MediaRecorder(stream);
+
       chunksRef.current = [];
 
       recorder.ondataavailable = (e) => {
@@ -22,16 +32,22 @@ export function useCallRecorder() {
       };
 
       recorder.onstop = () => {
-        const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
-        setRecordingBlob(blob);
+        const blob = new Blob(chunksRef.current, { type: recorder.mimeType || 'audio/webm' });
+        console.log(`Recording stopped: ${chunksRef.current.length} chunks, ${blob.size} bytes`);
+        if (blob.size > 0) {
+          setRecordingBlob(blob);
+        } else {
+          console.warn('Recording blob is empty — mic may have been blocked');
+        }
         stream.getTracks().forEach((t) => t.stop());
       };
 
       mediaRecorderRef.current = recorder;
-      recorder.start(1000); // collect a chunk every 1s
+      recorder.start(1000);
       setIsRecording(true);
+      console.log('Recording started with mimeType:', recorder.mimeType);
     } catch (e) {
-      console.error('Recording failed:', e);
+      console.error('Recording failed — mic permission denied or unavailable:', e);
     }
   }, []);
 

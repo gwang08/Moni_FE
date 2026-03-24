@@ -29,6 +29,8 @@ export interface ScoringSession {
   content?: string;
   createdAt?: string;
   testId?: number;
+  recordingUrl?: string;
+  userRating?: number;
 }
 
 export interface ExpertEvaluation {

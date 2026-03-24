@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { LayoutDashboard, FileText, Tag, Users, GraduationCap, LogOut, Package, Cog, ClipboardList } from 'lucide-react';
+import { LayoutDashboard, FileText, Tag, Users, GraduationCap, LogOut, Package, Cog, ClipboardList, Headphones } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/store/auth-store';
 import { toast } from 'sonner';
@@ -16,6 +16,7 @@ const navItems = [
   { href: '/admin/experts', label: 'Giảng viên', icon: GraduationCap },
   { href: '/admin/packages', label: 'Gói credits', icon: Package },
   { href: '/admin/services', label: 'Dịch vụ', icon: Cog },
+  { href: '/admin/scoring-sessions', label: 'Phiên chấm', icon: Headphones },
 ];
 
 export function AdminSidebar() {

@@ -215,10 +215,20 @@ export default function ScoringHistoryPage() {
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-1.5">
                       {session.status === 'COMPLETED' && (
-                        <Button size="sm" variant="outline" className="h-7 text-xs gap-1"
-                          onClick={() => handleViewEvaluation(session.id)}>
-                          <Eye className="h-3.5 w-3.5" /> Xem đánh giá
-                        </Button>
+                        <>
+                          <Button size="sm" variant="outline" className="h-7 text-xs gap-1"
+                            onClick={() => handleViewEvaluation(session.id)}>
+                            <Eye className="h-3.5 w-3.5" /> Xem đánh giá
+                          </Button>
+                          {session.recordingUrl && (
+                            <audio
+                              controls
+                              src={session.recordingUrl}
+                              title="Nghe lại phiên"
+                              className="h-7 max-w-[180px]"
+                            />
+                          )}
+                        </>
                       )}
                       {session.status === 'IN_PROGRESS' && !isSessionExpired(session) && (
                         <Button size="sm" className="h-7 text-xs gap-1"

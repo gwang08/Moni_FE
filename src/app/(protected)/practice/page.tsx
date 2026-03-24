@@ -7,6 +7,8 @@ import { usePracticeExercises } from '@/hooks/use-practice-exercises';
 import { ModeSelectionModal } from '@/components/practice/mode-selection-modal';
 import { SpeakingModeDialog } from '@/components/speaking/speaking-mode-dialog';
 import { getServices } from '@/lib/payment-api';
+import type { WritingFilters } from '@/components/practice/writing-filters-panel';
+import { WRITING_TASK1_TYPE_CODES, WRITING_TASK2_TYPE_CODES } from '@/components/practice/writing-filter-constants';
 import { PracticeSidebar } from '@/components/practice/practice-sidebar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -66,6 +68,7 @@ function PracticePage() {
   const [speakingTestId, setSpeakingTestId] = useState<string>('');
   const [aiCost, setAiCost] = useState<number | null>(null);
   const [expertCost, setExpertCost] = useState<number | null>(null);
+  const [writingFilters, setWritingFilters] = useState<WritingFilters>({ task: null, types: [], topics: [] });
   const servicesFetched = useRef(false);
 
   useEffect(() => {
@@ -103,6 +106,12 @@ function PracticePage() {
     if (activeQuestionType) {
       list = list.filter((e) => e.questionTypes?.includes(activeQuestionType));
     }
+    // Filter by writing type (dạng đề)
+    if (activeSkill === 'writing' && writingFilters.types.length > 0) {
+      const allCodes = { ...WRITING_TASK1_TYPE_CODES, ...WRITING_TASK2_TYPE_CODES };
+      const selectedCodes = writingFilters.types.map(t => allCodes[t]).filter(Boolean);
+      list = list.filter((e) => e.questionTypes?.some(qt => selectedCodes.includes(qt)));
+    }
     // Filter completed/not
     if (showCompleted) {
       list = list.filter((e) => completedExercises.includes(e.id));
@@ -114,7 +123,7 @@ function PracticePage() {
       list = list.filter((e) => e.title.toLowerCase().includes(q) || e.description.toLowerCase().includes(q));
     }
     return list;
-  }, [exercises, activeMode, activeTestType, activeQuestionType, showCompleted, searchQuery, completedExercises]);
+  }, [exercises, activeMode, activeTestType, activeQuestionType, activeSkill, writingFilters, showCompleted, searchQuery, completedExercises]);
 
   const handleStartExercise = (exercise: Exercise) => {
     requireAuth(() => {
@@ -145,6 +154,10 @@ function PracticePage() {
         onSkillChange={handleSkillChange}
         onModeChange={setActiveMode}
         onPassageChange={setActivePassage}
+        onWritingFiltersChange={(f) => {
+          setWritingFilters(f);
+          setActivePassage(f.task); // task 1/2 = section 1/2
+        }}
       />
 
       {/* Main Content */}

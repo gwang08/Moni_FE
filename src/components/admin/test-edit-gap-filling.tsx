@@ -3,7 +3,7 @@
 import { useRef, useState, useCallback } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Loader2, Save, ChevronDown, ChevronUp, MousePointerClick, Undo2 } from 'lucide-react';
+import { Loader2, Save, ChevronDown, ChevronUp, MousePointerClick, Undo2, Plus, Trash2 } from 'lucide-react';
 import { EvidenceList } from '@/components/admin/evidence-list';
 import { GapSentenceInput, extractAnswer } from '@/components/admin/gap-sentence-input';
 import { batchUpdateQuestions, updateQuestionGroupContent } from '@/lib/admin-api';
@@ -24,6 +24,29 @@ interface Props {
 /** Sentence questions have content with text; paragraph questions have empty content */
 const isSentenceQ = (q: { content: string }) => q.content.trim().length > 0;
 
+function MultiAnswerInput({ answer, onChange }: { answer: string; onChange: (v: string) => void }) {
+  const answers = answer ? answer.split('|').map(a => a.trim()) : [''];
+  const update = (arr: string[]) => onChange(arr.filter(a => a.trim()).join('|'));
+  return (
+    <div className="space-y-1">
+      {answers.map((a, i) => (
+        <div key={i} className="flex items-center gap-1">
+          <Input value={a} onChange={e => { const u = [...answers]; u[i] = e.target.value; update(u); }}
+            placeholder={i === 0 ? 'Đáp án chính' : 'Đáp án thay thế'} className="text-sm h-7 flex-1" />
+          {answers.length > 1 && (
+            <button type="button" onClick={() => update(answers.filter((_, j) => j !== i))}
+              className="text-gray-300 hover:text-red-500 p-0.5"><Trash2 className="h-3 w-3" /></button>
+          )}
+        </div>
+      ))}
+      <button type="button" onClick={() => update([...answers, ''])}
+        className="text-[10px] text-primary hover:underline flex items-center gap-0.5">
+        <Plus className="h-2.5 w-2.5" /> Thêm đáp án
+      </button>
+    </div>
+  );
+}
+
 export function TestEditGapFilling({
   questions, groupId, groupContent: initialGroupContent, testId,
   pendingEvidence, onAssignEvidence, onEvidenceChange,
@@ -31,7 +54,6 @@ export function TestEditGapFilling({
   const queryClient = useQueryClient();
   const [collapsed, setCollapsed] = useState<Set<number>>(new Set());
   const [saving, setSaving] = useState(false);
-  const [mode, setMode] = useState<'sentence' | 'paragraph'>(initialGroupContent ? 'paragraph' : 'sentence');
   const [gapMode, setGapMode] = useState(false);
   const passageRef = useRef<HTMLDivElement>(null);
 
@@ -50,10 +72,7 @@ export function TestEditGapFilling({
     return map;
   });
 
-  const sentenceItems = items.filter(it => isSentenceQ(it));
   const paragraphItems = items.filter(it => !isSentenceQ(it));
-  const displayItems = mode === 'sentence' ? sentenceItems : paragraphItems;
-
   const realIndex = (item: typeof items[0]) => items.indexOf(item);
 
   const toggleCollapsed = (idx: number) => {
@@ -117,7 +136,7 @@ export function TestEditGapFilling({
       }
       const updates: Record<string, { content: string; options: { label: string; content: string; isCorrect: boolean }[]; explanation?: { text?: string; evidence?: string } }> = {};
       items.forEach((item, i) => {
-        if (item.id < 0) return; // skip new unsaved items (need createQuestion instead)
+        if (item.id < 0) return;
         updates[String(item.id)] = {
           content: item.content,
           options: [{ label: '', content: item.answer, isCorrect: true }],
@@ -136,20 +155,8 @@ export function TestEditGapFilling({
 
   return (
     <div className="space-y-3">
-      {/* Mode toggle */}
-      <div className="flex gap-1 p-0.5 bg-gray-100 rounded-md w-fit">
-        <button type="button" onClick={() => { setMode('sentence'); setGapMode(false); }}
-          className={`px-2.5 py-1 text-[11px] rounded transition-colors ${mode === 'sentence' ? 'bg-white shadow-sm font-medium text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}>
-          Câu lẻ {sentenceItems.length > 0 && `(${sentenceItems.length})`}
-        </button>
-        <button type="button" onClick={() => setMode('paragraph')}
-          className={`px-2.5 py-1 text-[11px] rounded transition-colors ${mode === 'paragraph' ? 'bg-white shadow-sm font-medium text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}>
-          Đoạn văn {paragraphItems.length > 0 && `(${paragraphItems.length})`}
-        </button>
-      </div>
-
-      {/* === PARAGRAPH MODE === */}
-      {mode === 'paragraph' && (
+      {/* === PARAGRAPH SECTION (only if groupContent exists) === */}
+      {initialGroupContent !== undefined && (
         <div className="space-y-2">
           <div className="flex items-center gap-2 flex-wrap">
             <Button type="button" size="sm" variant={gapMode ? 'default' : 'outline'}
@@ -197,18 +204,14 @@ export function TestEditGapFilling({
         </div>
       )}
 
-      {/* === QUESTIONS LIST (filtered by mode) === */}
-      {displayItems.length > 0 && (
+      {/* === ALL QUESTIONS LIST === */}
+      {items.length > 0 && (
         <div className="rounded-lg border border-gray-200 overflow-hidden divide-y divide-gray-100">
-          {mode === 'paragraph' && (
-            <div className="bg-gray-50 px-3 py-1.5 text-[10px] font-medium text-gray-500 uppercase tracking-wide">
-              Đáp án ({paragraphItems.length} gap)
-            </div>
-          )}
-          {displayItems.map((item) => {
+          {items.map((item) => {
             const rIdx = realIndex(item);
             const isCollapsed = collapsed.has(rIdx);
             const expl = explanations[rIdx];
+            const isParagraphQ = !isSentenceQ(item);
 
             return (
               <div key={item.id} className="bg-white">
@@ -221,23 +224,14 @@ export function TestEditGapFilling({
                     </button>
                   </div>
 
-                  {mode === 'sentence' ? (
+                  {isParagraphQ ? (
+                    <MultiAnswerInput answer={item.answer}
+                      onChange={val => setItems(prev => prev.map((it, j) => j === rIdx ? { ...it, answer: val } : it))} />
+                  ) : (
                     <GapSentenceInput value={item.content} onChange={val => {
                       const answer = extractAnswer(val);
                       setItems(prev => prev.map((it, j) => j === rIdx ? { ...it, content: val, answer } : it));
                     }} />
-                  ) : (
-                    <div className="space-y-1.5">
-                      <Input value={item.answer}
-                        onChange={e => setItems(prev => prev.map((it, j) => j === rIdx ? { ...it, answer: e.target.value } : it))}
-                        placeholder="Đáp án (nhiều đáp án cách bằng |)" className="text-sm h-8" />
-                      {item.answer && (
-                        <p className="text-[10px] text-green-700">
-                          Đáp án: <strong>{item.answer.split('|')[0]}</strong>
-                          {item.answer.includes('|') && <span className="text-gray-400 ml-1">(+{item.answer.split('|').length - 1} đáp án khác)</span>}
-                        </p>
-                      )}
-                    </div>
                   )}
                 </div>
 

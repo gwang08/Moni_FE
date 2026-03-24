@@ -2,18 +2,18 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { GraduationCap, Loader2, Eye, Video, XCircle, Volume2 } from 'lucide-react';
+import { GraduationCap, Loader2, Eye, Video, XCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
 } from '@/components/ui/dialog';
 import { getMySessions, getSessionEvaluation, cancelScoringSession } from '@/lib/expert-api';
 import type { ScoringSession, ExpertEvaluation } from '@/types/expert.types';
 import { toast } from 'sonner';
+import { EvaluationDialog } from './evaluation-dialog';
+import { ScoringHistoryFilters, type FilterState } from './scoring-history-filters';
 
 type SessionStatus = ScoringSession['status'];
 
@@ -31,104 +31,11 @@ const STATUS_VARIANT: Record<SessionStatus, string> = {
   CANCELLED: 'bg-gray-100 text-gray-500',
 };
 
-const SCORE_LABELS: Record<string, string> = {
-  fluency: 'Fluency',
-  vocabulary: 'Vocabulary',
-  grammar: 'Grammar',
-  pronunciation: 'Pronunciation',
-  taskResponse: 'Task Response',
-  coherence: 'Coherence',
-  lexicalResource: 'Lexical Resource',
-  grammaticalRange: 'Grammatical Range',
-};
-
-function EvaluationDialog({
-  open,
-  onClose,
-  evaluation,
-}: {
-  open: boolean;
-  onClose: () => void;
-  evaluation: ExpertEvaluation | null;
-}) {
-  if (!evaluation) return null;
-
-  const scoreKeys = Object.keys(SCORE_LABELS) as (keyof ExpertEvaluation)[];
-  const bandScores = scoreKeys.filter(
-    (k) => evaluation[k] !== undefined && evaluation[k] !== null
-  );
-
-  return (
-    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Kết quả đánh giá</DialogTitle>
-        </DialogHeader>
-
-        <div className="space-y-5 pt-1">
-          {/* Expert & date */}
-          <div className="flex items-center justify-between text-sm text-muted-foreground">
-            {evaluation.expertName && <span>Giảng viên: <strong className="text-foreground">{evaluation.expertName}</strong></span>}
-            <span>{new Date(evaluation.createdAt).toLocaleDateString('vi-VN')}</span>
-          </div>
-
-          {/* Overall score */}
-          <div className="flex flex-col items-center justify-center rounded-xl bg-primary/5 border py-5">
-            <span className="text-4xl font-bold text-primary">{evaluation.overallScore}</span>
-            <span className="text-sm text-muted-foreground mt-1">Band Score tổng thể</span>
-          </div>
-
-          {/* Band scores grid */}
-          {bandScores.length > 0 && (
-            <div>
-              <p className="text-sm font-medium mb-2">Chi tiết điểm</p>
-              <div className="grid grid-cols-2 gap-2">
-                {bandScores.map((k) => (
-                  <div key={k} className="flex items-center justify-between rounded-lg border px-3 py-2 text-sm">
-                    <span className="text-muted-foreground">{SCORE_LABELS[k as string]}</span>
-                    <span className="font-semibold">{evaluation[k] as number}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Feedback */}
-          {evaluation.feedback && (
-            <div>
-              <p className="text-sm font-medium mb-1">Nhận xét</p>
-              <p className="text-sm text-muted-foreground bg-muted rounded-lg px-3 py-2">{evaluation.feedback}</p>
-            </div>
-          )}
-
-          {/* Strengths */}
-          {evaluation.strengths && (
-            <div>
-              <p className="text-sm font-medium mb-1 text-green-700">Điểm mạnh</p>
-              <p className="text-sm text-muted-foreground bg-green-50 rounded-lg px-3 py-2">{evaluation.strengths}</p>
-            </div>
-          )}
-
-          {/* Areas for improvement */}
-          {evaluation.areasForImprovement && (
-            <div>
-              <p className="text-sm font-medium mb-1 text-amber-700">Cần cải thiện</p>
-              <p className="text-sm text-muted-foreground bg-amber-50 rounded-lg px-3 py-2">{evaluation.areasForImprovement}</p>
-            </div>
-          )}
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-/** Check if session room is expired (created > 30 min ago and still IN_PROGRESS) */
 function isSessionExpired(session: ScoringSession): boolean {
   if (session.status !== 'IN_PROGRESS') return false;
   if (!session.createdAt) return false;
   const created = new Date(session.createdAt.includes('Z') ? session.createdAt : session.createdAt + 'Z');
-  const minutesAgo = (Date.now() - created.getTime()) / 60000;
-  return minutesAgo > 35; // 30 min room + 5 min buffer
+  return (Date.now() - created.getTime()) / 60000 > 35;
 }
 
 export default function ScoringHistoryPage() {
@@ -138,6 +45,7 @@ export default function ScoringHistoryPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [evaluation, setEvaluation] = useState<ExpertEvaluation | null>(null);
   const [loadingEval, setLoadingEval] = useState(false);
+  const [filters, setFilters] = useState<FilterState>({ status: 'ALL', skill: 'ALL', sort: 'newest' });
 
   useEffect(() => {
     getMySessions()
@@ -145,6 +53,15 @@ export default function ScoringHistoryPage() {
       .catch(() => toast.error('Không thể tải lịch sử chấm điểm'))
       .finally(() => setLoading(false));
   }, []);
+
+  const filtered = sessions
+    .filter(s => filters.status === 'ALL' || s.status === filters.status)
+    .filter(s => filters.skill === 'ALL' || s.skill === filters.skill)
+    .sort((a, b) => {
+      const ta = new Date(a.createdAt ?? 0).getTime();
+      const tb = new Date(b.createdAt ?? 0).getTime();
+      return filters.sort === 'newest' ? tb - ta : ta - tb;
+    });
 
   const handleViewEvaluation = async (sessionId: number) => {
     setLoadingEval(true);
@@ -162,7 +79,6 @@ export default function ScoringHistoryPage() {
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-8 space-y-6">
-      {/* Header */}
       <div className="flex items-center gap-3">
         <div className="p-2 rounded-lg bg-primary/10">
           <GraduationCap className="h-6 w-6 text-primary" />
@@ -173,7 +89,10 @@ export default function ScoringHistoryPage() {
         </div>
       </div>
 
-      {/* Table */}
+      {!loading && sessions.length > 0 && (
+        <ScoringHistoryFilters filters={filters} onChange={setFilters} />
+      )}
+
       {loading ? (
         <div className="flex justify-center py-16">
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -188,17 +107,17 @@ export default function ScoringHistoryPage() {
           <table className="w-full text-sm">
             <thead className="bg-muted/50">
               <tr>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Phiên</th>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Kỹ năng</th>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Giảng viên</th>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Trạng thái</th>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Thời gian</th>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Bản ghi</th>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Hành động</th>
+                {['Phiên', 'Kỹ năng', 'Giảng viên', 'Trạng thái', 'Thời gian', 'Bản ghi', 'Hành động'].map(h => (
+                  <th key={h} className="text-left px-4 py-3 font-medium text-muted-foreground">{h}</th>
+                ))}
               </tr>
             </thead>
             <tbody className="divide-y">
-              {sessions.map((session) => (
+              {filtered.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="text-center py-10 text-muted-foreground">Không có phiên nào phù hợp</td>
+                </tr>
+              ) : filtered.map((session) => (
                 <tr key={session.id} className="hover:bg-muted/30 transition-colors">
                   <td className="px-4 py-3 font-mono text-xs text-muted-foreground">#{session.id}</td>
                   <td className="px-4 py-3 font-medium">{session.skill}</td>
@@ -243,7 +162,7 @@ export default function ScoringHistoryPage() {
                           onClick={async () => {
                             try {
                               await cancelScoringSession(session.id);
-                              setSessions((prev) => prev.map((s) => s.id === session.id ? { ...s, status: 'CANCELLED' } : s));
+                              setSessions(prev => prev.map(s => s.id === session.id ? { ...s, status: 'CANCELLED' } : s));
                               toast.success('Đã huỷ phiên');
                             } catch { toast.error('Không thể huỷ phiên'); }
                           }}>
@@ -262,7 +181,6 @@ export default function ScoringHistoryPage() {
         </div>
       )}
 
-      {/* Evaluation dialog */}
       {loadingEval ? (
         <Dialog open={dialogOpen} onOpenChange={(v) => !v && setDialogOpen(false)}>
           <DialogContent className="max-w-lg">

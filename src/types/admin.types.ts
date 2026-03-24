@@ -35,7 +35,22 @@ export type QuestionTypeCode =
   | 'SPEAKING_PART_2'
   | 'SPEAKING_PART_3'
   | 'WRITING_TASK_1'
-  | 'WRITING_TASK_2';
+  | 'WRITING_TASK_2'
+  // Writing Task 1 sub-types
+  | 'LINE_GRAPH'
+  | 'BAR_CHART'
+  | 'PIE_CHART'
+  | 'TABLE'
+  | 'MIXED_GRAPH'
+  | 'MAP'
+  | 'PROCESS'
+  // Writing Task 2 sub-types
+  | 'AGREE_DISAGREE'
+  | 'DISCUSSION'
+  | 'ADVANTAGES_DISADVANTAGES'
+  | 'CAUSES_PROBLEMS_SOLUTIONS'
+  | 'TWO_PART_QUESTION'
+  | 'POSITIVE_NEGATIVE';
 
 
 // --- Test Import Request (matches backend TestImportRequest DTO) ---

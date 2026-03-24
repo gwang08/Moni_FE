@@ -162,6 +162,10 @@ export async function updateQuestionGroupContent(groupId: number, groupContent: 
   await apiClient.patch<ApiResponse<void>>(`/api/v1/admin/question-groups/${groupId}/group-content`, { groupContent }, true);
 }
 
+export async function updateQuestionGroupTypeCode(groupId: number, questionTypeCode: string): Promise<void> {
+  await apiClient.patch<ApiResponse<void>>(`/api/v1/admin/question-groups/${groupId}/question-type-code`, { questionTypeCode }, true);
+}
+
 export async function createQuestion(groupId: number, data: QuestionRequest): Promise<number> {
   const response = await apiClient.post<ApiResponse<number>>(
     `/api/v1/admin/question-groups/${groupId}/questions`, data, true

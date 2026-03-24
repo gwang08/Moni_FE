@@ -188,7 +188,7 @@ export default function TestImportPage() {
             <TestImportStep2Listening stimuli={stimuli} onChange={setStimuli} onNext={handleStep2Next} onBack={() => setStep(1)} />
           )}
           {step === 2 && skill === 'WRITING' && (
-            <TestImportStep2Writing stimuli={stimuli} onChange={setStimuli} onNext={handleStep2Next} onBack={() => setStep(1)} />
+            <TestImportStep2Writing stimuli={stimuli} onChange={setStimuli} onNext={handleStep2Next} onBack={() => setStep(1)} section={basicInfo.section} />
           )}
           {step === 2 && skill === 'SPEAKING' && (
             <TestImportStep2Speaking stimuli={stimuli} onChange={setStimuli} onNext={handleStep2Next} onBack={() => setStep(1)} />

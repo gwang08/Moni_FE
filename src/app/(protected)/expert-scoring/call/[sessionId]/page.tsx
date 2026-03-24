@@ -171,7 +171,20 @@ export default function ExpertCallPage({ params }: Props) {
             <Button
               variant="outline"
               className="flex-1"
-              onClick={() => router.push('/scoring-history')}
+              disabled={uploadingRecording}
+              onClick={async () => {
+                // Save recording URL even if user skips rating
+                if (recordingUrlRef.current) {
+                  try {
+                    await apiClient.post<ApiResponse<unknown>>(
+                      `/api/v1/scoring-sessions/${sessionId}/rate`,
+                      { rating: 0, comment: '', recordingUrl: recordingUrlRef.current },
+                      true,
+                    );
+                  } catch { /* non-fatal */ }
+                }
+                router.push('/scoring-history');
+              }}
             >
               Bỏ qua
             </Button>

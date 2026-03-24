@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { GraduationCap, Loader2, Eye, Video, XCircle } from 'lucide-react';
+import { GraduationCap, Loader2, Eye, Video, XCircle, Volume2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -221,12 +221,13 @@ export default function ScoringHistoryPage() {
                             <Eye className="h-3.5 w-3.5" /> Xem đánh giá
                           </Button>
                           {session.recordingUrl && (
-                            <audio
-                              controls
-                              src={session.recordingUrl}
-                              title="Nghe lại phiên"
-                              className="h-7 max-w-[180px]"
-                            />
+                            <Button size="sm" variant="outline" className="h-7 text-xs gap-1"
+                              onClick={() => {
+                                const audio = new Audio(session.recordingUrl);
+                                audio.play();
+                              }}>
+                              <Volume2 className="h-3.5 w-3.5" /> Nghe lại
+                            </Button>
                           )}
                         </>
                       )}

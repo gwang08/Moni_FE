@@ -76,7 +76,14 @@ export function DailyVideoCall({
       setState('error');
     });
 
-    frame.join({ url: roomUrl, userName: userName || 'Participant' }).catch(() => setState('error'));
+    // Set a timeout — if join takes more than 15s, show error
+    const joinTimeout = setTimeout(() => {
+      if (state === 'loading') setState('error');
+    }, 15000);
+
+    frame.join({ url: roomUrl, userName: userName || 'Participant' })
+      .then(() => clearTimeout(joinTimeout))
+      .catch(() => { clearTimeout(joinTimeout); setState('error'); });
 
     return () => {
       frame.destroy();
@@ -108,9 +115,20 @@ export function DailyVideoCall({
       )}
       {state === 'error' && (
         <div className="absolute inset-0 flex items-center justify-center bg-gray-900/80 z-10">
-          <div className="text-center space-y-3">
+          <div className="text-center space-y-4">
             <VideoOff className="h-8 w-8 text-red-400 mx-auto" />
             <p className="text-red-400 text-sm">Kết nối video thất bại</p>
+            <div className="space-y-2">
+              <button
+                onClick={() => window.location.reload()}
+                className="px-4 py-2 bg-white/20 hover:bg-white/30 text-white text-sm rounded-lg transition"
+              >
+                Thử lại
+              </button>
+              <p className="text-gray-500 text-xs">
+                Hoặc mở trực tiếp: <a href={roomUrl} target="_blank" rel="noopener noreferrer" className="underline text-blue-400">{roomUrl?.split('/').pop()}</a>
+              </p>
+            </div>
           </div>
         </div>
       )}

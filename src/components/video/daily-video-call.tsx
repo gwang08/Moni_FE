@@ -10,10 +10,10 @@ interface DailyVideoCallProps {
   userName?: string;
   onJoined?: () => void;
   onLeave?: () => void;
-  /** When true, mic audio is recorded and returned via onRecordingReady */
   enableRecording?: boolean;
-  /** Called once after the user leaves and the recording blob is ready */
   onRecordingReady?: (blob: Blob) => void;
+  /** Ref to expose stopRecording so parent can stop recording externally */
+  stopRecordingRef?: React.MutableRefObject<(() => void) | null>;
   className?: string;
 }
 
@@ -24,6 +24,7 @@ export function DailyVideoCall({
   onLeave,
   enableRecording = false,
   onRecordingReady,
+  stopRecordingRef,
   className = '',
 }: DailyVideoCallProps) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -62,7 +63,10 @@ export function DailyVideoCall({
     frame.on('joined-meeting', () => {
       setState('joined');
       onJoined?.();
-      if (enableRecording) startRecording();
+      if (enableRecording) {
+        startRecording();
+        if (stopRecordingRef) stopRecordingRef.current = stopRecording;
+      }
     });
 
     frame.on('left-meeting', () => {

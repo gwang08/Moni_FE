@@ -75,6 +75,15 @@ export default function ExpertCallPage({ params }: Props) {
 
   // Track recording blob state for reactivity
   const [recordingReady, setRecordingReady] = useState(false);
+  const stopRecordingRef = useRef<(() => void) | null>(null);
+
+  // When session ends, stop recording immediately (don't wait for leave-meeting)
+  useEffect(() => {
+    if (sessionEnded && stopRecordingRef.current) {
+      stopRecordingRef.current();
+      stopRecordingRef.current = null;
+    }
+  }, [sessionEnded]);
 
   // When session ends AND recording is ready, upload
   useEffect(() => {
@@ -103,11 +112,14 @@ export default function ExpertCallPage({ params }: Props) {
 
   const handleSubmitRating = async () => {
     if (rating === 0) { toast.error('Vui lòng chọn số sao'); return; }
+    if (uploadingRecording) { toast.info('Đang lưu bản ghi, vui lòng đợi...'); return; }
     setSubmittingRating(true);
     try {
+      const body: Record<string, unknown> = { rating, comment: ratingComment };
+      if (recordingUrlRef.current) body.recordingUrl = recordingUrlRef.current;
       await apiClient.post<ApiResponse<unknown>>(
         `/api/v1/scoring-sessions/${sessionId}/rate`,
-        { rating, comment: ratingComment, recordingUrl: recordingUrlRef.current ?? undefined },
+        body,
         true,
       );
       toast.success('Cảm ơn bạn đã đánh giá!');
@@ -241,6 +253,7 @@ export default function ExpertCallPage({ params }: Props) {
             onLeave={handleLeave}
             enableRecording
             onRecordingReady={handleRecordingReady}
+            stopRecordingRef={stopRecordingRef}
             className="h-full"
           />
         )}

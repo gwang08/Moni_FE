@@ -111,12 +111,26 @@ export default function ListeningReviewPage({ params }: Props) {
               stimulus={stimulus}
               answers={resultData.answers}
               textAnswers={resultData.textAnswers}
-              onLocateEvidence={() => {}}
+              onLocateEvidence={(evidence) => {
+                // Find transcript segment containing the evidence text and scroll to it
+                const transcriptContainer = document.querySelector('[data-transcript]');
+                if (!transcriptContainer) return;
+                const buttons = transcriptContainer.querySelectorAll('button');
+                for (const btn of buttons) {
+                  const text = btn.textContent || '';
+                  if (evidence.split('\n---\n').some(chunk => text.toLowerCase().includes(chunk.trim().toLowerCase().slice(0, 30)))) {
+                    btn.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    btn.classList.add('bg-amber-100', 'ring-2', 'ring-amber-400');
+                    setTimeout(() => btn.classList.remove('bg-amber-100', 'ring-2', 'ring-amber-400'), 3000);
+                    break;
+                  }
+                }
+              }}
             />
           </div>
 
           {/* Transcript panel - always visible for listening */}
-          <div className="w-1/2 overflow-y-auto p-4 space-y-1">
+          <div className="w-1/2 overflow-y-auto p-4 space-y-1" data-transcript>
             <h4 className="text-sm font-semibold text-gray-700 mb-3 sticky top-0 bg-white py-1 z-10">Transcript</h4>
             {stimulus.transcript && stimulus.transcript.length > 0 ? (
               stimulus.transcript.map((seg, i) => {

@@ -124,38 +124,41 @@ function ParagraphGapFilling({ groupContent, questions, submitted, textAnswers, 
   onTextAnswer: (questionId: number, text: string) => void;
   questionOffset?: number;
 }) {
-  // Build a map: position → question (questions already have global positions from panel)
-  const posMap = new Map(questions.map(q => [q.position, q]));
+  // Sort questions by position to match gap order in content
+  const sortedQuestions = [...questions].sort((a, b) => a.position - b.position);
 
   // Find all gap patterns:
   // "[1]___" (new click-to-gap format), "1...", "10 ……….", "2…", "11 __"
   const pattern = /\[(\d+)\]_{2,}|(\d+)\s*(?:\.{2,}|…+|_{2,})/g;
+  const matches = [...groupContent.matchAll(pattern)];
   const rendered: React.ReactNode[] = [];
   let lastIndex = 0;
 
-  for (const match of groupContent.matchAll(pattern)) {
+  // Map gaps by ORDER of appearance → question by sorted index
+  matches.forEach((match, gapIndex) => {
     const num = parseInt(match[1] ?? match[2], 10);
-    const question = posMap.get(num);
+    const question = sortedQuestions[gapIndex]; // match by order, not by number
 
-    // Only replace if this number maps to a question position
-    if (!question) continue;
+    if (!question) return;
 
     // Add text before this match
     if (match.index! > lastIndex) {
       rendered.push(<span key={`t-${lastIndex}`}>{groupContent.slice(lastIndex, match.index!)}</span>);
     }
 
+    // Display the global position number (from remapped question)
+    const displayNum = question.position;
     const correctAnswer = question.options.find(o => o.isCorrect)?.content ?? '';
     const userAnswer = textAnswers[question.id] ?? '';
     rendered.push(
-      <span key={`q-${num}`} id={`question-${question.id}`} className="inline-flex items-baseline gap-0.5 mx-0.5">
-        <strong className="text-blue-600">{num}</strong>
+      <span key={`q-${gapIndex}`} id={`question-${question.id}`} className="inline-flex items-baseline gap-0.5 mx-0.5">
+        <strong className="text-blue-600">{displayNum}</strong>
         <GapInput questionId={question.id} userAnswer={userAnswer} submitted={submitted}
           correctAnswer={correctAnswer} onTextAnswer={onTextAnswer} />
       </span>
     );
     lastIndex = match.index! + match[0].length;
-  }
+  });
 
   // Add remaining text
   if (lastIndex < groupContent.length) {

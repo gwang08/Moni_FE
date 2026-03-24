@@ -162,7 +162,7 @@ export function GapFillingEditor({
   return (
     <div className="space-y-3">
       {/* === PARAGRAPH SECTION (always visible if groupContent exists) === */}
-      {(groupContent ?? '').trim() !== '' && (
+      {groupContent != null && (
         <div className="space-y-2">
           <div className="flex items-center gap-2 flex-wrap">
             <Button type="button" size="sm" variant={gapMode ? 'default' : 'outline'}
@@ -247,8 +247,13 @@ export function GapFillingEditor({
                   </div>
 
                   {isSentenceQ(q) ? (
-                    <GapSentenceInput value={q.content} onChange={val => updateContent(rIdx, val)}
-                      placeholder="Nhập câu đầy đủ, quét từ cần trống → bấm Đánh dấu" />
+                    <div className="space-y-2">
+                      <GapSentenceInput value={q.content} onChange={val => updateContent(rIdx, val)}
+                        placeholder="Nhập câu đầy đủ, quét từ cần trống → bấm Đánh dấu" />
+                      {answer && (
+                        <MultiAnswerInput answer={answer} onChange={val => updateAnswer(rIdx, val)} />
+                      )}
+                    </div>
                   ) : (
                     <MultiAnswerInput answer={answer} onChange={val => updateAnswer(rIdx, val)} />
                   )}
@@ -279,7 +284,7 @@ export function GapFillingEditor({
         <Button type="button" size="sm" variant="outline" className="text-xs h-7 gap-1" onClick={addSentenceQuestion}>
           <Plus className="h-3 w-3" /> Thêm câu lẻ
         </Button>
-        {!(groupContent ?? '').trim() && (
+        {groupContent == null && (
           <Button type="button" size="sm" variant="outline" className="text-xs h-7 gap-1"
             onClick={() => onGroupContentChange?.('')}>
             <Plus className="h-3 w-3" /> Thêm đoạn văn

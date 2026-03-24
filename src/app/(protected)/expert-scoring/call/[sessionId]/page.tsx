@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { DailyVideoCall } from '@/components/video/daily-video-call';
 import { getQueuePosition } from '@/lib/expert-api';
 import { apiClient } from '@/lib/api-client';
+import { uploadMedia } from '@/lib/admin-api';
 import { useAuthStore } from '@/store/auth-store';
 import { toast } from 'sonner';
 import { ArrowLeft, Loader2, Star } from 'lucide-react';
@@ -27,6 +28,9 @@ export default function ExpertCallPage({ params }: Props) {
   const [rating, setRating] = useState(0);
   const [ratingComment, setRatingComment] = useState('');
   const [submittingRating, setSubmittingRating] = useState(false);
+  const [uploadingRecording, setUploadingRecording] = useState(false);
+  const recordingBlobRef = useRef<Blob | null>(null);
+  const recordingUrlRef = useRef<string | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const statusPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -69,11 +73,27 @@ export default function ExpertCallPage({ params }: Props) {
     return () => { if (statusPollRef.current) clearInterval(statusPollRef.current); };
   }, [inCall, sessionId]);
 
+  // When session ends, upload the recording if available
+  useEffect(() => {
+    if (!sessionEnded || !recordingBlobRef.current) return;
+    const blob = recordingBlobRef.current;
+    setUploadingRecording(true);
+    const file = new File([blob], `recording-${sessionId}.webm`, { type: 'audio/webm' });
+    uploadMedia(file)
+      .then((url) => { recordingUrlRef.current = url; })
+      .catch(() => { /* non-fatal — rating still submitted without URL */ })
+      .finally(() => setUploadingRecording(false));
+  }, [sessionEnded, sessionId]);
+
   const handleLeave = () => {
     if (!inCall) return;
     if (!sessionEnded) {
       router.push('/expert-scoring');
     }
+  };
+
+  const handleRecordingReady = (blob: Blob) => {
+    recordingBlobRef.current = blob;
   };
 
   const handleSubmitRating = async () => {
@@ -82,13 +102,12 @@ export default function ExpertCallPage({ params }: Props) {
     try {
       await apiClient.post<ApiResponse<unknown>>(
         `/api/v1/scoring-sessions/${sessionId}/rate`,
-        { rating, comment: ratingComment },
+        { rating, comment: ratingComment, recordingUrl: recordingUrlRef.current ?? undefined },
         true,
       );
       toast.success('Cảm ơn bạn đã đánh giá!');
       router.push('/scoring-history');
     } catch {
-      // If endpoint not implemented yet, just navigate away
       toast.success('Cảm ơn bạn đã đánh giá!');
       router.push('/scoring-history');
     } finally {
@@ -141,6 +160,13 @@ export default function ExpertCallPage({ params }: Props) {
             className="w-full rounded-lg border px-3 py-2 text-sm min-h-[80px] resize-y focus:outline-none focus:ring-2 focus:ring-ring"
           />
 
+          {uploadingRecording && (
+            <p className="text-xs text-muted-foreground flex items-center justify-center gap-1">
+              <Loader2 className="h-3 w-3 animate-spin" />
+              Đang lưu bản ghi...
+            </p>
+          )}
+
           <div className="flex gap-3">
             <Button
               variant="outline"
@@ -152,7 +178,7 @@ export default function ExpertCallPage({ params }: Props) {
             <Button
               className="flex-1"
               onClick={handleSubmitRating}
-              disabled={submittingRating || rating === 0}
+              disabled={submittingRating || rating === 0 || uploadingRecording}
             >
               {submittingRating ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Gửi đánh giá'}
             </Button>
@@ -195,6 +221,8 @@ export default function ExpertCallPage({ params }: Props) {
             userName={user?.fullName || 'Học viên'}
             onJoined={() => setInCall(true)}
             onLeave={handleLeave}
+            enableRecording
+            onRecordingReady={handleRecordingReady}
             className="h-full"
           />
         )}

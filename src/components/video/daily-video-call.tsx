@@ -3,19 +3,44 @@
 import { useEffect, useRef, useState } from 'react';
 import DailyIframe, { DailyCall } from '@daily-co/daily-js';
 import { Loader2, VideoOff } from 'lucide-react';
+import { useCallRecorder } from '@/hooks/use-call-recorder';
 
 interface DailyVideoCallProps {
   roomUrl: string;
   userName?: string;
   onJoined?: () => void;
   onLeave?: () => void;
+  /** When true, mic audio is recorded and returned via onRecordingReady */
+  enableRecording?: boolean;
+  /** Called once after the user leaves and the recording blob is ready */
+  onRecordingReady?: (blob: Blob) => void;
   className?: string;
 }
 
-export function DailyVideoCall({ roomUrl, userName, onJoined, onLeave, className = '' }: DailyVideoCallProps) {
+export function DailyVideoCall({
+  roomUrl,
+  userName,
+  onJoined,
+  onLeave,
+  enableRecording = false,
+  onRecordingReady,
+  className = '',
+}: DailyVideoCallProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const callRef = useRef<DailyCall | null>(null);
   const [state, setState] = useState<'loading' | 'joined' | 'error' | 'left'>('loading');
+
+  const { startRecording, stopRecording, recordingBlob } = useCallRecorder();
+
+  // Deliver the blob to the parent once it is ready after stop
+  const onRecordingReadyRef = useRef(onRecordingReady);
+  onRecordingReadyRef.current = onRecordingReady;
+
+  useEffect(() => {
+    if (recordingBlob && enableRecording) {
+      onRecordingReadyRef.current?.(recordingBlob);
+    }
+  }, [recordingBlob, enableRecording]);
 
   useEffect(() => {
     if (!roomUrl || !containerRef.current) return;
@@ -37,11 +62,15 @@ export function DailyVideoCall({ roomUrl, userName, onJoined, onLeave, className
     frame.on('joined-meeting', () => {
       setState('joined');
       onJoined?.();
+      if (enableRecording) startRecording();
     });
+
     frame.on('left-meeting', () => {
       setState('left');
+      if (enableRecording) stopRecording();
       onLeave?.();
     });
+
     frame.on('error', (e) => {
       console.error('Daily.co error:', e);
       setState('error');

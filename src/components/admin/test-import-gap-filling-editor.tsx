@@ -8,6 +8,29 @@ import { GapSentenceInput, extractAnswer } from '@/components/admin/gap-sentence
 import { EvidenceList } from '@/components/admin/evidence-list';
 import type { QuestionRequest } from '@/types/admin.types';
 
+function MultiAnswerInput({ answer, onChange }: { answer: string; onChange: (v: string) => void }) {
+  const answers = answer ? answer.split('|').map(a => a.trim()) : [''];
+  const update = (arr: string[]) => onChange(arr.filter(a => a.trim()).join('|'));
+  return (
+    <div className="space-y-1">
+      {answers.map((a, i) => (
+        <div key={i} className="flex items-center gap-1">
+          <Input value={a} onChange={e => { const u = [...answers]; u[i] = e.target.value; update(u); }}
+            placeholder={i === 0 ? 'Đáp án chính' : 'Đáp án thay thế'} className="text-sm h-7 flex-1" />
+          {answers.length > 1 && (
+            <button type="button" onClick={() => update(answers.filter((_, j) => j !== i))}
+              className="text-gray-300 hover:text-red-500 p-0.5"><Trash2 className="h-3 w-3" /></button>
+          )}
+        </div>
+      ))}
+      <button type="button" onClick={() => update([...answers, ''])}
+        className="text-[10px] text-primary hover:underline flex items-center gap-0.5">
+        <Plus className="h-2.5 w-2.5" /> Thêm đáp án
+      </button>
+    </div>
+  );
+}
+
 interface Props {
   questions: QuestionRequest[];
   positionOffset: number;
@@ -29,7 +52,6 @@ export function GapFillingEditor({
   onAssignEvidence, onGroupContentChange, onChange, onBatchUpdate,
 }: Props) {
   const [collapsed, setCollapsed] = useState<Set<number>>(new Set());
-  const [mode, setMode] = useState<'sentence' | 'paragraph'>(groupContent ? 'paragraph' : 'sentence');
   const [gapMode, setGapMode] = useState(false);
   const passageRef = useRef<HTMLDivElement>(null);
 
@@ -137,25 +159,10 @@ export function GapFillingEditor({
     });
   }, [questions, positionOffset]);
 
-  // Which questions to show in the answer list
-  const displayQuestions = mode === 'sentence' ? sentenceQs : paragraphQs;
-
   return (
     <div className="space-y-3">
-      {/* Mode toggle */}
-      <div className="flex gap-1 p-0.5 bg-gray-100 rounded-md w-fit">
-        <button type="button" onClick={() => { setMode('sentence'); setGapMode(false); }}
-          className={`px-2.5 py-1 text-[11px] rounded transition-colors ${mode === 'sentence' ? 'bg-white shadow-sm font-medium text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}>
-          Câu lẻ {sentenceQs.length > 0 && `(${sentenceQs.length})`}
-        </button>
-        <button type="button" onClick={() => setMode('paragraph')}
-          className={`px-2.5 py-1 text-[11px] rounded transition-colors ${mode === 'paragraph' ? 'bg-white shadow-sm font-medium text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}>
-          Đoạn văn {paragraphQs.length > 0 && `(${paragraphQs.length})`}
-        </button>
-      </div>
-
-      {/* === PARAGRAPH MODE === */}
-      {mode === 'paragraph' && (
+      {/* === PARAGRAPH SECTION (always visible if groupContent exists) === */}
+      {(groupContent ?? '').trim() !== '' && (
         <div className="space-y-2">
           <div className="flex items-center gap-2 flex-wrap">
             <Button type="button" size="sm" variant={gapMode ? 'default' : 'outline'}
@@ -207,15 +214,15 @@ export function GapFillingEditor({
         </div>
       )}
 
-      {/* === QUESTIONS LIST (filtered by mode) === */}
-      {displayQuestions.length > 0 && (
+      {/* === ALL QUESTIONS LIST === */}
+      {questions.length > 0 && (
         <div className="rounded-lg border border-gray-200 overflow-hidden divide-y divide-gray-100">
-          {mode === 'paragraph' && (
+          {paragraphQs.length > 0 && (
             <div className="bg-gray-50 px-3 py-1.5 text-[10px] font-medium text-gray-500 uppercase tracking-wide">
-              Đáp án ({paragraphQs.length} gap)
+              {sentenceQs.length > 0 ? `${questions.length} câu (${sentenceQs.length} câu lẻ + ${paragraphQs.length} gap)` : `${paragraphQs.length} gap`}
             </div>
           )}
-          {displayQuestions.map((q) => {
+          {questions.map((q) => {
             const rIdx = realIndex(q);
             const isCollapsed = collapsed.has(rIdx);
             const expl = q.explanation;
@@ -231,7 +238,7 @@ export function GapFillingEditor({
                         className="flex items-center justify-center h-7 w-7 rounded hover:bg-gray-100 text-gray-400">
                         {isCollapsed ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronUp className="h-3.5 w-3.5" />}
                       </button>
-                      {mode === 'sentence' && (
+                      {isSentenceQ(q) && (
                         <button type="button" onClick={() => removeQuestion(rIdx)} className="text-gray-300 hover:text-red-500 h-7 w-7 flex items-center justify-center">
                           <Trash2 className="h-3.5 w-3.5" />
                         </button>
@@ -239,20 +246,11 @@ export function GapFillingEditor({
                     </div>
                   </div>
 
-                  {mode === 'sentence' ? (
+                  {isSentenceQ(q) ? (
                     <GapSentenceInput value={q.content} onChange={val => updateContent(rIdx, val)}
                       placeholder="Nhập câu đầy đủ, quét từ cần trống → bấm Đánh dấu" />
                   ) : (
-                    <div className="space-y-1.5">
-                      <Input value={answer} onChange={e => updateAnswer(rIdx, e.target.value)}
-                        placeholder="Đáp án (nhiều đáp án cách bằng |)" className="text-sm h-8" />
-                      {answer && (
-                        <p className="text-[10px] text-green-700">
-                          Đáp án: <strong>{answer.split('|')[0]}</strong>
-                          {answer.includes('|') && <span className="text-gray-400 ml-1">(+{answer.split('|').length - 1} đáp án khác)</span>}
-                        </p>
-                      )}
-                    </div>
+                    <MultiAnswerInput answer={answer} onChange={val => updateAnswer(rIdx, val)} />
                   )}
                 </div>
 
@@ -276,11 +274,18 @@ export function GapFillingEditor({
         </div>
       )}
 
-      {mode === 'sentence' && (
+      {/* Add question buttons */}
+      <div className="flex gap-2">
         <Button type="button" size="sm" variant="outline" className="text-xs h-7 gap-1" onClick={addSentenceQuestion}>
-          <Plus className="h-3 w-3" /> Thêm câu
+          <Plus className="h-3 w-3" /> Thêm câu lẻ
         </Button>
-      )}
+        {!(groupContent ?? '').trim() && (
+          <Button type="button" size="sm" variant="outline" className="text-xs h-7 gap-1"
+            onClick={() => onGroupContentChange?.('')}>
+            <Plus className="h-3 w-3" /> Thêm đoạn văn
+          </Button>
+        )}
+      </div>
     </div>
   );
 }

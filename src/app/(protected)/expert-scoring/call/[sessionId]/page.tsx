@@ -59,36 +59,36 @@ export default function ExpertCallPage({ params }: Props) {
   }, [sessionId, router]);
 
   // Poll session status during call to detect COMPLETED
+  // Track recording
+  const [recordingReady, setRecordingReady] = useState(false);
+  const stopRecordingRef = useRef<(() => void) | null>(null);
+  const sessionCompletedRef = useRef(false);
+
+  // Poll session status — when COMPLETED, stop recording first, wait for blob, then show overlay
   useEffect(() => {
     if (!inCall) return;
     statusPollRef.current = setInterval(async () => {
       try {
         const data = await getQueuePosition(Number(sessionId));
-        if (data.status === 'COMPLETED') {
+        if (data.status === 'COMPLETED' && !sessionCompletedRef.current) {
+          sessionCompletedRef.current = true;
           if (statusPollRef.current) clearInterval(statusPollRef.current);
-          setSessionEnded(true);
+          // Stop recording FIRST — blob callback needs DailyVideoCall still mounted
+          if (stopRecordingRef.current) {
+            stopRecordingRef.current();
+            stopRecordingRef.current = null;
+          }
+          // Wait a bit for blob to be ready, then show overlay
+          setTimeout(() => setSessionEnded(true), 1500);
         }
       } catch { /* ignore */ }
     }, 5000);
     return () => { if (statusPollRef.current) clearInterval(statusPollRef.current); };
   }, [inCall, sessionId]);
 
-  // Track recording blob state for reactivity
-  const [recordingReady, setRecordingReady] = useState(false);
-  const stopRecordingRef = useRef<(() => void) | null>(null);
-
-  // When session ends, stop recording immediately (don't wait for leave-meeting)
+  // When recording blob ready + session completed, upload immediately
   useEffect(() => {
-    if (sessionEnded && stopRecordingRef.current) {
-      stopRecordingRef.current();
-      stopRecordingRef.current = null;
-    }
-  }, [sessionEnded]);
-
-  // When session ends AND recording is ready, upload
-  useEffect(() => {
-    if (!sessionEnded || !recordingReady || !recordingBlobRef.current) return;
-    if (recordingUrlRef.current) return; // already uploaded
+    if (!recordingReady || !recordingBlobRef.current || recordingUrlRef.current) return;
     const blob = recordingBlobRef.current;
     setUploadingRecording(true);
     const file = new File([blob], `recording-${sessionId}.webm`, { type: 'audio/webm' });
@@ -96,7 +96,7 @@ export default function ExpertCallPage({ params }: Props) {
       .then((url) => { recordingUrlRef.current = url; })
       .catch(() => { /* non-fatal */ })
       .finally(() => setUploadingRecording(false));
-  }, [sessionEnded, recordingReady, sessionId]);
+  }, [recordingReady, sessionId]);
 
   const handleLeave = () => {
     if (!inCall) return;
@@ -132,21 +132,10 @@ export default function ExpertCallPage({ params }: Props) {
     }
   };
 
-  // Session ended — show rating overlay ON TOP of video (don't unmount DailyVideoCall!)
+  // Session ended — show rating overlay
   if (sessionEnded) {
     return (
-      <div className="h-[calc(100vh-56px)] relative">
-        {/* Keep DailyVideoCall mounted but hidden so recording blob callback fires */}
-        <div className="hidden">
-          <DailyVideoCall
-            roomUrl={roomUrl}
-            userName={user?.fullName || 'Học viên'}
-            enableRecording
-            onRecordingReady={handleRecordingReady}
-            stopRecordingRef={stopRecordingRef}
-          />
-        </div>
-        <div className="absolute inset-0 bg-gradient-to-br from-gray-50 to-white flex items-center justify-center">
+      <div className="h-[calc(100vh-56px)] bg-gradient-to-br from-gray-50 to-white flex items-center justify-center">
         <div className="bg-white rounded-2xl shadow-xl border p-8 max-w-md w-full mx-4 space-y-6 text-center">
           <div>
             <h2 className="text-xl font-bold">Phiên chấm đã kết thúc</h2>
@@ -224,7 +213,6 @@ export default function ExpertCallPage({ params }: Props) {
               {submittingRating ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Gửi đánh giá'}
             </Button>
           </div>
-        </div>
         </div>
       </div>
     );

@@ -192,7 +192,8 @@ export default function ScoringHistoryPage() {
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground">Kỹ năng</th>
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground">Giảng viên</th>
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground">Trạng thái</th>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Ngày</th>
+                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Thời gian</th>
+                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Bản ghi</th>
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground">Hành động</th>
               </tr>
             </thead>
@@ -207,29 +208,26 @@ export default function ScoringHistoryPage() {
                       {STATUS_LABEL[session.status]}
                     </Badge>
                   </td>
-                  <td className="px-4 py-3 text-muted-foreground">
+                  <td className="px-4 py-3 text-muted-foreground text-xs">
                     {session.createdAt
-                      ? new Date(session.createdAt).toLocaleDateString('vi-VN')
+                      ? new Date(session.createdAt.includes('Z') ? session.createdAt : session.createdAt + 'Z')
+                          .toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
                       : '—'}
+                  </td>
+                  <td className="px-4 py-3">
+                    {session.recordingUrl ? (
+                      <audio controls src={session.recordingUrl} className="h-8 w-40" />
+                    ) : (
+                      <span className="text-xs text-muted-foreground">—</span>
+                    )}
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-1.5">
                       {session.status === 'COMPLETED' && (
-                        <>
-                          <Button size="sm" variant="outline" className="h-7 text-xs gap-1"
-                            onClick={() => handleViewEvaluation(session.id)}>
-                            <Eye className="h-3.5 w-3.5" /> Xem đánh giá
-                          </Button>
-                          {session.recordingUrl && (
-                            <Button size="sm" variant="outline" className="h-7 text-xs gap-1"
-                              onClick={() => {
-                                const audio = new Audio(session.recordingUrl);
-                                audio.play();
-                              }}>
-                              <Volume2 className="h-3.5 w-3.5" /> Nghe lại
-                            </Button>
-                          )}
-                        </>
+                        <Button size="sm" variant="outline" className="h-7 text-xs gap-1"
+                          onClick={() => handleViewEvaluation(session.id)}>
+                          <Eye className="h-3.5 w-3.5" /> Xem đánh giá
+                        </Button>
                       )}
                       {session.status === 'IN_PROGRESS' && !isSessionExpired(session) && (
                         <Button size="sm" className="h-7 text-xs gap-1"

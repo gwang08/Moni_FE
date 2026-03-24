@@ -20,6 +20,8 @@ export default function ExpertDashboardPage() {
   const [loading, setLoading] = useState(true);
   const initRef = useRef(false);
 
+  const [historySessions, setHistorySessions] = useState<ScoringSession[]>([]);
+
   const fetchSessions = async () => {
     try {
       const sessRes = await apiClient.get<ApiResponse<ScoringSession[]>>(
@@ -40,6 +42,10 @@ export default function ExpertDashboardPage() {
         const res = await apiClient.get<ApiResponse<ExpertProfile>>('/api/v1/experts/me', true);
         setProfile(res.result ?? null);
         await fetchSessions();
+        // Fetch history (all sessions including completed)
+        apiClient.get<ApiResponse<ScoringSession[]>>('/api/v1/expert/sessions/history', true)
+          .then(res => setHistorySessions(res.result ?? []))
+          .catch(() => {});
       } catch {
         toast.error('Không thể tải thông tin');
       } finally {
@@ -171,6 +177,55 @@ export default function ExpertDashboardPage() {
                       <Button size="sm" onClick={() => handleStartSession(s.id)} disabled={startingId === s.id}>
                         {startingId === s.id ? <><Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />Đang nhận...</> : 'Nhận phiên'}
                       </Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* Session History */}
+      <div>
+        <h2 className="font-semibold mb-3">Lịch sử phiên chấm</h2>
+        {historySessions.filter(s => s.status !== 'QUEUED').length === 0 ? (
+          <Card className="p-8 text-center text-muted-foreground text-sm">
+            Chưa có phiên nào đã chấm
+          </Card>
+        ) : (
+          <div className="rounded-lg border bg-white overflow-hidden">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50 border-b">
+                <tr>
+                  <th className="px-4 py-3 text-left font-medium text-gray-600 text-xs">Phiên</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-600 text-xs">Kỹ năng</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-600 text-xs">Trạng thái</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-600 text-xs">Đánh giá</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-600 text-xs">Thời gian</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y">
+                {historySessions.filter(s => s.status !== 'QUEUED').slice(0, 10).map((s) => (
+                  <tr key={s.id} className="hover:bg-gray-50/50">
+                    <td className="px-4 py-3 font-medium">#{s.id}</td>
+                    <td className="px-4 py-3">
+                      <Badge variant="outline" className="text-xs">{s.skill}</Badge>
+                    </td>
+                    <td className="px-4 py-3">
+                      <Badge className={`text-xs border-0 ${s.status === 'COMPLETED' ? 'bg-green-100 text-green-700' : s.status === 'CANCELLED' ? 'bg-gray-100 text-gray-500' : 'bg-blue-100 text-blue-700'}`}>
+                        {s.status === 'COMPLETED' ? 'Hoàn thành' : s.status === 'CANCELLED' ? 'Đã huỷ' : 'Đang diễn ra'}
+                      </Badge>
+                    </td>
+                    <td className="px-4 py-3">
+                      {s.userRating ? (
+                        <span className="text-xs">{'⭐'.repeat(s.userRating)}</span>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">—</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-muted-foreground text-xs">
+                      {s.createdAt ? new Date(s.createdAt).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' }) : '—'}
                     </td>
                   </tr>
                 ))}

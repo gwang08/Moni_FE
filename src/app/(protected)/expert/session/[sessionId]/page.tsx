@@ -58,7 +58,7 @@ export default function ExpertSessionPage({ params }: Props) {
   const [submitting, setSubmitting] = useState(false);
   const [inCall, setInCall] = useState(false);
   const [questions, setQuestions] = useState<TestQuestion[]>([]);
-  const [showQuestions, setShowQuestions] = useState(false);
+  const [showQuestions, setShowQuestions] = useState(true);
 
   // Fetch session details
   useEffect(() => {

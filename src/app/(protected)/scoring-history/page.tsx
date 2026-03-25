@@ -134,11 +134,23 @@ export default function ScoringHistoryPage() {
                       : '—'}
                   </td>
                   <td className="px-4 py-3">
-                    {session.recordingUrl ? (
-                      <audio controls src={session.recordingUrl} className="h-8 w-40" />
-                    ) : (
-                      <span className="text-xs text-muted-foreground">—</span>
-                    )}
+                    <div className="space-y-1">
+                      {session.recordingUrl && (
+                        <div className="flex items-center gap-1">
+                          <span className="text-[10px] text-muted-foreground w-10 shrink-0">Bạn:</span>
+                          <audio controls src={session.recordingUrl} className="h-7 w-36" />
+                        </div>
+                      )}
+                      {session.expertRecordingUrl && (
+                        <div className="flex items-center gap-1">
+                          <span className="text-[10px] text-muted-foreground w-10 shrink-0">GV:</span>
+                          <audio controls src={session.expertRecordingUrl} className="h-7 w-36" />
+                        </div>
+                      )}
+                      {!session.recordingUrl && !session.expertRecordingUrl && (
+                        <span className="text-xs text-muted-foreground">—</span>
+                      )}
+                    </div>
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-1.5">

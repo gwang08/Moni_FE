@@ -124,7 +124,21 @@ export default function ExpertSessionsPage() {
                   </td>
                   <td className="px-4 py-3 text-xs text-muted-foreground">{formatDate(s.createdAt)}</td>
                   <td className="px-4 py-3">
-                    {s.recordingUrl ? <audio controls src={s.recordingUrl} className="h-7 w-36" /> : <span className="text-xs text-muted-foreground">—</span>}
+                    <div className="space-y-1">
+                      {s.recordingUrl && (
+                        <div className="flex items-center gap-1">
+                          <span className="text-[10px] text-muted-foreground w-10 shrink-0">User:</span>
+                          <audio controls src={s.recordingUrl} className="h-7 w-32" />
+                        </div>
+                      )}
+                      {s.expertRecordingUrl && (
+                        <div className="flex items-center gap-1">
+                          <span className="text-[10px] text-muted-foreground w-10 shrink-0">Bạn:</span>
+                          <audio controls src={s.expertRecordingUrl} className="h-7 w-32" />
+                        </div>
+                      )}
+                      {!s.recordingUrl && !s.expertRecordingUrl && <span className="text-xs text-muted-foreground">—</span>}
+                    </div>
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-1.5">

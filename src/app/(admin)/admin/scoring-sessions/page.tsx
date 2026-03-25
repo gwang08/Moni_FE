@@ -142,11 +142,23 @@ export default function AdminScoringSessionsPage() {
                     <StarRating rating={session.userRating} />
                   </td>
                   <td className="px-4 py-3">
-                    {session.recordingUrl ? (
-                      <audio controls src={session.recordingUrl} className="h-8 max-w-[200px]" />
-                    ) : (
-                      <span className="text-muted-foreground text-xs">—</span>
-                    )}
+                    <div className="space-y-1">
+                      {session.recordingUrl && (
+                        <div className="flex items-center gap-1">
+                          <span className="text-[10px] text-muted-foreground w-12 shrink-0">User:</span>
+                          <audio controls src={session.recordingUrl} className="h-7 w-36" />
+                        </div>
+                      )}
+                      {session.expertRecordingUrl && (
+                        <div className="flex items-center gap-1">
+                          <span className="text-[10px] text-muted-foreground w-12 shrink-0">Expert:</span>
+                          <audio controls src={session.expertRecordingUrl} className="h-7 w-36" />
+                        </div>
+                      )}
+                      {!session.recordingUrl && !session.expertRecordingUrl && (
+                        <span className="text-muted-foreground text-xs">—</span>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}

@@ -1,6 +1,6 @@
 'use client';
 
-import { use, useEffect, useState } from 'react';
+import { use, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { DailyVideoCall } from '@/components/video/daily-video-call';
 import { Send, Loader2 } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
+import { uploadMedia } from '@/lib/admin-api';
 import { useAuthStore } from '@/store/auth-store';
 import type { ApiResponse } from '@/types/auth.types';
 import type { ScoringSession } from '@/types/expert.types';
@@ -59,6 +60,7 @@ export default function ExpertSessionPage({ params }: Props) {
   const [inCall, setInCall] = useState(false);
   const [questions, setQuestions] = useState<TestQuestion[]>([]);
   const [showQuestions, setShowQuestions] = useState(true);
+  const recordingBlobRef = useRef<Blob | null>(null);
 
   // Fetch session details
   useEffect(() => {
@@ -123,6 +125,14 @@ export default function ExpertSessionPage({ params }: Props) {
         true,
       );
       toast.success('Đã gửi đánh giá thành công!');
+      // Upload expert recording if available
+      if (recordingBlobRef.current) {
+        try {
+          const file = new File([recordingBlobRef.current], `expert-recording-${sessionId}.webm`, { type: 'audio/webm' });
+          const url = await uploadMedia(file);
+          await apiClient.post(`/api/v1/expert/sessions/${sessionId}/recording`, { expertRecordingUrl: url }, true);
+        } catch { /* non-fatal */ }
+      }
       router.push('/expert/dashboard');
     } catch {
       toast.error('Gửi đánh giá thất bại');
@@ -148,6 +158,8 @@ export default function ExpertSessionPage({ params }: Props) {
           userName={user?.fullName || 'Giảng viên'}
           onJoined={() => setInCall(true)}
           onLeave={() => { if (inCall) router.push('/expert/dashboard'); }}
+          enableRecording
+          onRecordingReady={(blob) => { recordingBlobRef.current = blob; }}
           className="h-full"
         />
       </div>

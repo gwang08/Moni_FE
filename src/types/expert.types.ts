@@ -30,6 +30,7 @@ export interface ScoringSession {
   createdAt?: string;
   testId?: number;
   recordingUrl?: string;
+  expertRecordingUrl?: string;
   userRating?: number;
 }
 

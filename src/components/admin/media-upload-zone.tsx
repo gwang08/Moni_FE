@@ -1,22 +1,44 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { Loader2, Upload } from 'lucide-react';
 import { uploadMedia } from '@/lib/admin-api';
 
 interface Props {
+  /** Called with the uploaded URL (immediate upload mode) */
   onUploaded: (url: string) => void;
+  /** When provided, file is NOT uploaded immediately. Parent receives file + preview URL. */
+  onFileSelected?: (file: File, previewUrl: string) => void;
 }
 
-export function MediaUploadZone({ onUploaded }: Props) {
+export function MediaUploadZone({ onUploaded, onFileSelected }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
   const [dragging, setDragging] = useState(false);
+  const previewUrlRef = useRef<string | null>(null);
+
+  // Cleanup object URL on unmount
+  useEffect(() => {
+    return () => {
+      if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
+    };
+  }, []);
 
   const handleFile = async (file: File) => {
-    setUploading(true);
     setError('');
+
+    // Deferred mode: preview only, no upload
+    if (onFileSelected) {
+      if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
+      const previewUrl = URL.createObjectURL(file);
+      previewUrlRef.current = previewUrl;
+      onFileSelected(file, previewUrl);
+      return;
+    }
+
+    // Immediate upload mode
+    setUploading(true);
     try {
       const url = await uploadMedia(file);
       onUploaded(url);

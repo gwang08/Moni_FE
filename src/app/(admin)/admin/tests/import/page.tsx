@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { AdminHeader } from '@/components/admin/admin-header';
@@ -11,7 +11,7 @@ import { TestImportStep2Writing } from '@/components/admin/test-import-step2-wri
 import { TestImportStep2Speaking } from '@/components/admin/test-import-step2-speaking';
 import { TestImportStep3 } from '@/components/admin/test-import-step3-questions';
 import { TestImportStep4 } from '@/components/admin/test-import-step4-review';
-import { importTest, transcribeStimulus } from '@/lib/admin-api';
+import { importTest, transcribeStimulus, uploadMedia } from '@/lib/admin-api';
 import { getTestDetail } from '@/lib/tests-api';
 import { toast } from 'sonner';
 import type { StimulusRequest } from '@/types/admin.types';
@@ -65,6 +65,7 @@ export default function TestImportPage() {
   const draft = loadDraft();
   const [basicInfo, setBasicInfo] = useState<BasicInfo>(draft?.basicInfo ?? { title: '', description: '', skill: '', thumbnailUrl: '', testMode: '', section: null, testType: '', duration: null });
   const [stimuli, setStimuli] = useState<StimulusRequest[]>(draft?.stimuli ?? []);
+  const thumbnailFileRef = useRef<File | null>(null);
 
   const skill = basicInfo.skill;
   const skipQuestionStep = skill === 'WRITING' || skill === 'SPEAKING';
@@ -86,13 +87,20 @@ export default function TestImportPage() {
     setSubmitting(true);
     setError('');
     try {
+      // Upload thumbnail if user selected a file (deferred upload)
+      let thumbnailUrl = basicInfo.thumbnailUrl || undefined;
+      if (thumbnailFileRef.current) {
+        thumbnailUrl = await uploadMedia(thumbnailFileRef.current);
+        thumbnailFileRef.current = null;
+      }
+
       const testId = await importTest({
         title: basicInfo.title,
         description: basicInfo.description || undefined,
         skill: basicInfo.skill,
         testMode: basicInfo.testMode || undefined,
         section: basicInfo.section ?? undefined,
-        thumbnailUrl: basicInfo.thumbnailUrl || undefined,
+        thumbnailUrl,
         testType: basicInfo.testType || undefined,
         duration: basicInfo.duration ?? undefined,
         stimuli: stimuli.map((s, i) => ({
@@ -182,7 +190,8 @@ export default function TestImportPage() {
         <StepIndicator step={step} skill={skill} />
 
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          {step === 1 && <TestImportStep1 data={basicInfo} onChange={setBasicInfo} onNext={() => setStep(2)} />}
+          {step === 1 && <TestImportStep1 data={basicInfo} onChange={setBasicInfo} onNext={() => setStep(2)}
+            onThumbnailFileSelected={(file) => { thumbnailFileRef.current = file; }} />}
 
           {step === 2 && skill === 'LISTENING' && (
             <TestImportStep2Listening stimuli={stimuli} onChange={setStimuli} onNext={handleStep2Next} onBack={() => setStep(1)} />

@@ -1,12 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Loader2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { updateTest } from '@/lib/admin-api';
+import { updateTest, uploadMedia } from '@/lib/admin-api';
 import { MediaUploadZone } from '@/components/admin/media-upload-zone';
 import { SKILL_SECTIONS } from '@/components/admin/test-import-step1-basic-info';
 import { toast } from 'sonner';
@@ -58,6 +58,7 @@ export function TestEditBasicInfoTab({ test }: Props) {
   const [testMode, setTestMode] = useState(test.testMode || '');
   const [section, setSection] = useState<number | null>(test.section ?? null);
   const [testType, setTestType] = useState(test.testType || '');
+  const thumbnailFileRef = useRef<File | null>(null);
 
   const modes = skill ? (SKILL_MODES[skill] || []) : [];
   const sections = skill && testMode === 'PRACTICE' ? (SKILL_SECTIONS[skill] || []) : [];
@@ -81,10 +82,17 @@ export function TestEditBasicInfoTab({ test }: Props) {
     if (!title.trim()) { toast.error('Vui lòng nhập tiêu đề'); return; }
     setSubmitting(true);
     try {
+      // Upload thumbnail file if pending (deferred upload)
+      let finalThumbnailUrl = thumbnailUrl || undefined;
+      if (thumbnailFileRef.current) {
+        finalThumbnailUrl = await uploadMedia(thumbnailFileRef.current);
+        thumbnailFileRef.current = null;
+      }
+
       await updateTest(String(test.id), {
         title,
         description: description || undefined,
-        thumbnailUrl: thumbnailUrl || undefined,
+        thumbnailUrl: finalThumbnailUrl,
         status,
         duration: duration ? Number(duration) : undefined,
         skill: skill || undefined,
@@ -174,13 +182,19 @@ export function TestEditBasicInfoTab({ test }: Props) {
           {thumbnailUrl ? (
             <div className="relative w-fit">
               <img src={thumbnailUrl} alt="Thumbnail" className="h-32 rounded-lg object-cover border" />
-              <button type="button" onClick={() => setThumbnailUrl('')}
+              <button type="button" onClick={() => { setThumbnailUrl(''); thumbnailFileRef.current = null; }}
                 className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-0.5 hover:bg-red-600">
                 <X className="h-4 w-4" />
               </button>
             </div>
           ) : (
-            <MediaUploadZone onUploaded={setThumbnailUrl} />
+            <MediaUploadZone
+              onUploaded={setThumbnailUrl}
+              onFileSelected={(file, previewUrl) => {
+                setThumbnailUrl(previewUrl);
+                thumbnailFileRef.current = file;
+              }}
+            />
           )}
         </div>
         <div className="grid grid-cols-2 gap-4">

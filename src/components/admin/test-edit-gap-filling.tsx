@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState, useCallback } from 'react';
+import { useRef, useState, useCallback, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Loader2, Save, ChevronDown, ChevronUp, MousePointerClick, Undo2, Plus, Trash2 } from 'lucide-react';
@@ -25,21 +25,33 @@ interface Props {
 const isSentenceQ = (q: { content: string }) => q.content.trim().length > 0;
 
 function MultiAnswerInput({ answer, onChange }: { answer: string; onChange: (v: string) => void }) {
-  const answers = answer ? answer.split('|').map(a => a.trim()) : [''];
-  const update = (arr: string[]) => onChange(arr.filter(a => a.trim()).join('|'));
+  const [answers, setAnswers] = useState(() => answer ? answer.split('|').map(a => a.trim()) : ['']);
+
+  useEffect(() => {
+    const parsed = answer ? answer.split('|').map(a => a.trim()) : [''];
+    const currentFiltered = answers.filter(a => a.trim()).join('|');
+    if (currentFiltered !== answer) setAnswers(parsed);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [answer]);
+
+  const commit = (arr: string[]) => {
+    setAnswers(arr);
+    onChange(arr.filter(a => a.trim()).join('|'));
+  };
+
   return (
     <div className="space-y-1">
       {answers.map((a, i) => (
         <div key={i} className="flex items-center gap-1">
-          <Input value={a} onChange={e => { const u = [...answers]; u[i] = e.target.value; update(u); }}
+          <Input value={a} onChange={e => { const u = [...answers]; u[i] = e.target.value; commit(u); }}
             placeholder={i === 0 ? 'Đáp án chính' : 'Đáp án thay thế'} className="text-sm h-7 flex-1" />
           {answers.length > 1 && (
-            <button type="button" onClick={() => update(answers.filter((_, j) => j !== i))}
+            <button type="button" onClick={() => commit(answers.filter((_, j) => j !== i))}
               className="text-gray-300 hover:text-red-500 p-0.5"><Trash2 className="h-3 w-3" /></button>
           )}
         </div>
       ))}
-      <button type="button" onClick={() => update([...answers, ''])}
+      <button type="button" onClick={() => setAnswers([...answers, ''])}
         className="text-[10px] text-primary hover:underline flex items-center gap-0.5">
         <Plus className="h-2.5 w-2.5" /> Thêm đáp án
       </button>
@@ -228,10 +240,16 @@ export function TestEditGapFilling({
                     <MultiAnswerInput answer={item.answer}
                       onChange={val => setItems(prev => prev.map((it, j) => j === rIdx ? { ...it, answer: val } : it))} />
                   ) : (
-                    <GapSentenceInput value={item.content} onChange={val => {
-                      const answer = extractAnswer(val);
-                      setItems(prev => prev.map((it, j) => j === rIdx ? { ...it, content: val, answer } : it));
-                    }} />
+                    <div className="space-y-2">
+                      <GapSentenceInput value={item.content} onChange={val => {
+                        const answer = extractAnswer(val);
+                        setItems(prev => prev.map((it, j) => j === rIdx ? { ...it, content: val, answer } : it));
+                      }} />
+                      {item.answer && (
+                        <MultiAnswerInput answer={item.answer}
+                          onChange={val => setItems(prev => prev.map((it, j) => j === rIdx ? { ...it, answer: val } : it))} />
+                      )}
+                    </div>
                   )}
                 </div>
 

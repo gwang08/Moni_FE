@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { StickyNote } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { SkeletonPractice } from '@/components/ui/skeleton';
 import { ListeningPracticeHeader } from '@/components/listening/listening-practice-header';
 import { ListeningAudioPlayer } from '@/components/listening/listening-audio-player';
@@ -17,8 +18,20 @@ import { useTestDetail } from '@/hooks/use-test-detail';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { useElapsedTimer } from '@/hooks/use-elapsed-timer';
 import { useCountdownTimer } from '@/hooks/use-countdown-timer';
+import { useExamSession } from '@/hooks/use-exam-session';
 import { submitAttempt } from '@/lib/practice-api';
 import { updateTaskStatus } from '@/lib/roadmap-api';
+import type { SavedAnswer } from '@/lib/exam-api';
+
+function parseSavedAnswers(savedAnswers: SavedAnswer[]) {
+  const answers: Record<number, number> = {};
+  const textAnswers: Record<number, string> = {};
+  for (const sa of savedAnswers) {
+    if (sa.selectedOptionId) answers[sa.questionId] = sa.selectedOptionId;
+    if (sa.answerText) textAnswers[sa.questionId] = sa.answerText;
+  }
+  return { answers, textAnswers };
+}
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -40,22 +53,27 @@ export default function ListeningExercisePage({ params }: Props) {
   const [notesOpen, setNotesOpen] = useState(false);
   const notes = useListeningStore((s) => s.notes);
   const progressKey = `practice-progress-${id}`;
+  const modeParam = searchParams.get('mode');
+  const isExamMode = modeParam === 'exam';
+
+  // Exam session hook (only active in exam mode)
+  const examSession = useExamSession(Number(id), isExamMode);
+
   const [answers, setAnswers] = useState<Record<number, number>>(() => {
-    if (typeof window === 'undefined') return {};
+    if (typeof window === 'undefined' || isExamMode) return {};
     try {
       const saved = sessionStorage.getItem(progressKey);
       return saved ? JSON.parse(saved).answers ?? {} : {};
     } catch { return {}; }
   });
   const [textAnswers, setTextAnswers] = useState<Record<number, string>>(() => {
-    if (typeof window === 'undefined') return {};
+    if (typeof window === 'undefined' || isExamMode) return {};
     try {
       const saved = sessionStorage.getItem(progressKey);
       return saved ? JSON.parse(saved).textAnswers ?? {} : {};
     } catch { return {}; }
   });
-  const modeParam = searchParams.get('mode');
-  const isExamMode = modeParam === 'exam';
+
   const testDuration = testDetail?.duration ?? 0;
 
   const elapsedTimer = useElapsedTimer(submitted || isExamMode);
@@ -63,12 +81,41 @@ export default function ListeningExercisePage({ params }: Props) {
     testDuration > 0 ? testDuration : 60,
     submitted || !isExamMode,
     () => { if (!submitted) setConfirmOpen(true); },
+    isExamMode && examSession.session ? examSession.session.remainingSeconds : undefined,
   );
 
   const elapsed = isExamMode ? countdownTimer.elapsed : elapsedTimer.elapsed;
   const elapsedTime = isExamMode ? countdownTimer.formatted : elapsedTimer.formatted;
 
   useEffect(() => { resetPlayer(); }, [resetPlayer]);
+
+  // Restore answers from server on resume (exam mode)
+  useEffect(() => {
+    if (!isExamMode || !examSession.isResuming || !examSession.session?.savedAnswers) return;
+    const { answers: saved, textAnswers: savedText } = parseSavedAnswers(examSession.session.savedAnswers);
+    if (Object.keys(saved).length > 0) setAnswers(prev => ({ ...saved, ...prev }));
+    if (Object.keys(savedText).length > 0) setTextAnswers(prev => ({ ...savedText, ...prev }));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [examSession.isResuming, examSession.session?.savedAnswers?.length]);
+
+  // Sync answers to exam hook refs (for auto-save)
+  useEffect(() => {
+    if (!isExamMode) return;
+    examSession.syncAnswers(answers, textAnswers);
+  }, [answers, textAnswers, isExamMode, examSession]);
+
+  // Auto-save progress to sessionStorage (practice mode only)
+  useEffect(() => {
+    if (submitted || isExamMode) return;
+    sessionStorage.setItem(progressKey, JSON.stringify({ answers, textAnswers }));
+  }, [answers, textAnswers, submitted, progressKey, isExamMode]);
+
+  // Handle EXPIRED exam session
+  useEffect(() => {
+    if (isExamMode && examSession.session?.status === 'EXPIRED') {
+      router.push(`/practice/listening/${id}/result`);
+    }
+  }, [isExamMode, examSession.session?.status, id, router]);
 
   const stimuli = testDetail?.stimuli[0];
   const questionIds = useMemo(() => {
@@ -87,12 +134,6 @@ export default function ListeningExercisePage({ params }: Props) {
   const totalAnsweredCount = answeredSet.size + Object.values(textAnswers).filter(t => t.trim() !== '').length;
   const unansweredCount = questionCount - totalAnsweredCount;
 
-  // Auto-save progress to sessionStorage
-  useEffect(() => {
-    if (submitted) return;
-    sessionStorage.setItem(progressKey, JSON.stringify({ answers, textAnswers }));
-  }, [answers, textAnswers, submitted, progressKey]);
-
   const handleAnswer = (questionId: number, optionId: number) => {
     if (optionId === 0) {
       setAnswers((prev) => { const next = { ...prev }; delete next[questionId]; return next; });
@@ -108,6 +149,26 @@ export default function ListeningExercisePage({ params }: Props) {
   const handleComplete = async () => {
     setConfirmOpen(false);
     markCompleted(id);
+
+    // --- Exam mode: submit via exam session ---
+    if (isExamMode && examSession.session) {
+      try {
+        const res = await examSession.submit();
+        sessionStorage.setItem(`practice-result-${id}`, JSON.stringify({
+          attemptId: res.attemptId, testId: id, answers, textAnswers,
+          elapsedSeconds: countdownTimer.elapsed,
+        }));
+      } catch {
+        sessionStorage.setItem(`practice-result-${id}`, JSON.stringify({
+          testId: id, answers, textAnswers, elapsedSeconds: countdownTimer.elapsed,
+        }));
+      }
+      if (roadmapTaskId) updateTaskStatus(Number(roadmapTaskId), 'DONE').catch(() => {});
+      router.push(`/practice/listening/${id}/result`);
+      return;
+    }
+
+    // --- Practice mode: existing flow ---
     sessionStorage.removeItem(progressKey);
     if (stimuli) {
       const optionAnswers = Object.entries(answers).map(([qId, optId]) => ({
@@ -126,7 +187,6 @@ export default function ListeningExercisePage({ params }: Props) {
     } else {
       sessionStorage.setItem(`practice-result-${id}`, JSON.stringify({ testId: id, answers, textAnswers, elapsedSeconds: elapsed }));
     }
-    // Mark roadmap task as DONE if navigated from roadmap
     if (roadmapTaskId) {
       updateTaskStatus(Number(roadmapTaskId), 'DONE').catch(() => {});
     }
@@ -134,7 +194,7 @@ export default function ListeningExercisePage({ params }: Props) {
     router.push(`/practice/listening/${id}/result`);
   };
 
-  if (loading) return <SkeletonPractice />;
+  if (loading || (isExamMode && examSession.loading)) return <SkeletonPractice />;
 
   if (error || !testDetail) {
     return (
@@ -151,7 +211,6 @@ export default function ListeningExercisePage({ params }: Props) {
 
   return (
     <div className="h-[calc(100vh-56px)] flex flex-col bg-white">
-      {/* Top header: X + timer + title */}
       <ListeningPracticeHeader
         title={testDetail.title}
         questionCount={questionCount}
@@ -164,8 +223,14 @@ export default function ListeningExercisePage({ params }: Props) {
         onSubmit={() => setConfirmOpen(true)}
         onExit={() => setExitOpen(true)}
       />
+      {/* Exam mode badges */}
+      {isExamMode && (examSession.isResuming || examSession.saving) && !submitted && (
+        <div className="flex gap-2 px-5 py-1 bg-white border-b border-gray-50">
+          {examSession.isResuming && <Badge className="bg-blue-100 text-blue-700 border-blue-300">Đang tiếp tục...</Badge>}
+          {examSession.saving && <Badge variant="outline" className="text-gray-400 border-gray-200 text-[10px]">Đang lưu...</Badge>}
+        </div>
+      )}
 
-      {/* Notes toggle */}
       <div className="flex justify-end px-4 py-1 border-b bg-gray-50/50">
         <Button
           variant="outline"
@@ -178,7 +243,6 @@ export default function ListeningExercisePage({ params }: Props) {
         </Button>
       </div>
 
-      {/* Main content: scrollable questions */}
       <div className="flex-1 overflow-y-auto">
         <div className="max-w-4xl mx-auto px-4 py-3">
           {stimuli && stimuli.questionGroups.length > 0 ? (
@@ -196,12 +260,10 @@ export default function ListeningExercisePage({ params }: Props) {
         </div>
       </div>
 
-      {/* Bottom: Audio player */}
       {stimuli?.mediaUrl && (
         <ListeningAudioPlayer audioUrl={stimuli.mediaUrl} />
       )}
 
-      {/* Bottom bar: question nav + submit */}
       <ListeningQuestionNav
         totalQuestions={questionCount}
         answeredQuestions={answeredSet}
@@ -228,11 +290,15 @@ export default function ListeningExercisePage({ params }: Props) {
       <ConfirmDialog
         open={exitOpen}
         onOpenChange={setExitOpen}
-        title="Thoát khỏi bài làm?"
-        description="Bạn đang thoát khỏi phần làm bài, bạn có chắc chắn muốn thoát không?"
+        title={isExamMode ? 'Tạm thời thoát?' : 'Thoát khỏi bài làm?'}
+        description={
+          isExamMode
+            ? 'Bài làm của bạn đã được lưu tự động. Bạn có thể quay lại tiếp tục bất cứ lúc nào trước khi hết giờ.'
+            : 'Bạn đang thoát khỏi phần làm bài, bạn có chắc chắn muốn thoát không?'
+        }
         cancelText="Quay lại làm bài"
         confirmText="Thoát"
-        variant="destructive"
+        variant={isExamMode ? 'default' : 'destructive'}
         onConfirm={() => router.push('/practice?skill=listening')}
       />
     </div>

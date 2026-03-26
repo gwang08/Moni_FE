@@ -21,6 +21,7 @@ interface Props {
   data: BasicInfo;
   onChange: (data: BasicInfo) => void;
   onNext: () => void;
+  onThumbnailFileSelected?: (file: File | null) => void;
 }
 
 const SKILLS = ['LISTENING', 'READING', 'SPEAKING', 'WRITING'];
@@ -69,7 +70,7 @@ export const SKILL_SECTIONS: Record<string, { value: number; label: string }[]> 
   ],
 };
 
-export function TestImportStep1({ data, onChange, onNext }: Props) {
+export function TestImportStep1({ data, onChange, onNext, onThumbnailFileSelected }: Props) {
   const modes = data.skill ? (SKILL_MODES[data.skill] || []) : [];
   const sections = data.skill && data.testMode === 'PRACTICE' ? (SKILL_SECTIONS[data.skill] || []) : [];
   const needsSection = data.testMode === 'PRACTICE' && sections.length > 0;
@@ -183,13 +184,19 @@ export function TestImportStep1({ data, onChange, onNext }: Props) {
         {data.thumbnailUrl ? (
           <div className="relative w-fit">
             <img src={data.thumbnailUrl} alt="Thumbnail" className="h-32 rounded-lg object-cover border" />
-            <button type="button" onClick={() => onChange({ ...data, thumbnailUrl: '' })}
+            <button type="button" onClick={() => { onChange({ ...data, thumbnailUrl: '' }); onThumbnailFileSelected?.(null); }}
               className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-0.5 hover:bg-red-600">
               <X className="h-4 w-4" />
             </button>
           </div>
         ) : (
-          <MediaUploadZone onUploaded={(url) => onChange({ ...data, thumbnailUrl: url })} />
+          <MediaUploadZone
+            onUploaded={(url) => onChange({ ...data, thumbnailUrl: url })}
+            onFileSelected={(file, previewUrl) => {
+              onChange({ ...data, thumbnailUrl: previewUrl });
+              onThumbnailFileSelected?.(file);
+            }}
+          />
         )}
       </div>
 

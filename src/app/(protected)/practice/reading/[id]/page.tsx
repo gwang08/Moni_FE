@@ -18,13 +18,25 @@ import { useTestDetail } from '@/hooks/use-test-detail';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { useElapsedTimer } from '@/hooks/use-elapsed-timer';
 import { useCountdownTimer } from '@/hooks/use-countdown-timer';
+import { useExamSession } from '@/hooks/use-exam-session';
 import { submitAttempt } from '@/lib/practice-api';
 import { updateTaskStatus } from '@/lib/roadmap-api';
+import type { SavedAnswer } from '@/lib/exam-api';
 
 const FALLBACK_PASSAGE = {
   title: 'Bài đọc',
   content: 'Nội dung bài đọc đang được tải. Vui lòng thử lại sau.',
 };
+
+function parseSavedAnswers(savedAnswers: SavedAnswer[]) {
+  const answers: Record<number, number> = {};
+  const textAnswers: Record<number, string> = {};
+  for (const sa of savedAnswers) {
+    if (sa.selectedOptionId) answers[sa.questionId] = sa.selectedOptionId;
+    if (sa.answerText) textAnswers[sa.questionId] = sa.answerText;
+  }
+  return { answers, textAnswers };
+}
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -44,22 +56,26 @@ export default function ReadingExercisePage({ params }: Props) {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [exitOpen, setExitOpen] = useState(false);
   const progressKey = `practice-progress-${id}`;
+  const isExamMode = modeParam === 'exam';
+
+  // Exam session hook (only active in exam mode)
+  const examSession = useExamSession(Number(id), isExamMode);
+
   const [answers, setAnswers] = useState<Record<number, number>>(() => {
-    if (typeof window === 'undefined') return {};
+    if (typeof window === 'undefined' || isExamMode) return {};
     try {
       const saved = sessionStorage.getItem(progressKey);
       return saved ? JSON.parse(saved).answers ?? {} : {};
     } catch { return {}; }
   });
   const [textAnswers, setTextAnswers] = useState<Record<number, string>>(() => {
-    if (typeof window === 'undefined') return {};
+    if (typeof window === 'undefined' || isExamMode) return {};
     try {
       const saved = sessionStorage.getItem(progressKey);
       return saved ? JSON.parse(saved).textAnswers ?? {} : {};
     } catch { return {}; }
   });
   const [selectedPillId, setSelectedPillId] = useState<number | null>(null);
-  const isExamMode = modeParam === 'exam';
   const testDuration = testDetail?.duration ?? 0;
 
   const elapsedTimer = useElapsedTimer(submitted || isExamMode);
@@ -67,6 +83,7 @@ export default function ReadingExercisePage({ params }: Props) {
     testDuration > 0 ? testDuration : 60,
     submitted || !isExamMode,
     () => { if (!submitted) setConfirmOpen(true); },
+    isExamMode && examSession.session ? examSession.session.remainingSeconds : undefined,
   );
 
   const elapsed = isExamMode ? countdownTimer.elapsed : elapsedTimer.elapsed;
@@ -78,15 +95,36 @@ export default function ReadingExercisePage({ params }: Props) {
     clearAll();
   }, [modeParam, setMode, clearAll]);
 
-  // Auto-save progress to sessionStorage
+  // Restore answers from server on resume (exam mode)
   useEffect(() => {
-    if (submitted) return;
+    if (!isExamMode || !examSession.isResuming || !examSession.session?.savedAnswers) return;
+    const { answers: saved, textAnswers: savedText } = parseSavedAnswers(examSession.session.savedAnswers);
+    if (Object.keys(saved).length > 0) setAnswers(prev => ({ ...saved, ...prev }));
+    if (Object.keys(savedText).length > 0) setTextAnswers(prev => ({ ...savedText, ...prev }));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [examSession.isResuming, examSession.session?.savedAnswers?.length]);
+
+  // Sync answers to exam hook refs (for auto-save)
+  useEffect(() => {
+    if (!isExamMode) return;
+    examSession.syncAnswers(answers, textAnswers);
+  }, [answers, textAnswers, isExamMode, examSession]);
+
+  // Auto-save progress to sessionStorage (practice mode only)
+  useEffect(() => {
+    if (submitted || isExamMode) return;
     sessionStorage.setItem(progressKey, JSON.stringify({ answers, textAnswers }));
-  }, [answers, textAnswers, submitted, progressKey]);
+  }, [answers, textAnswers, submitted, progressKey, isExamMode]);
+
+  // Handle EXPIRED exam session
+  useEffect(() => {
+    if (isExamMode && examSession.session?.status === 'EXPIRED') {
+      router.push(`/practice/reading/${id}/result`);
+    }
+  }, [isExamMode, examSession.session?.status, id, router]);
 
   const handleAnswer = (questionId: number, optionId: number) => {
     if (optionId === 0) {
-      // Clear answer (matching group X button)
       setAnswers(prev => { const next = { ...prev }; delete next[questionId]; return next; });
     } else {
       setAnswers(prev => ({ ...prev, [questionId]: optionId }));
@@ -100,9 +138,27 @@ export default function ReadingExercisePage({ params }: Props) {
   const handleComplete = async () => {
     setConfirmOpen(false);
     markCompleted(id);
-    sessionStorage.removeItem(progressKey);
 
-    // Submit to backend, save attemptId for result page
+    // --- Exam mode: submit via exam session ---
+    if (isExamMode && examSession.session) {
+      try {
+        const res = await examSession.submit();
+        sessionStorage.setItem(`practice-result-${id}`, JSON.stringify({
+          attemptId: res.attemptId, testId: id, answers, textAnswers,
+          elapsedSeconds: countdownTimer.elapsed,
+        }));
+      } catch {
+        sessionStorage.setItem(`practice-result-${id}`, JSON.stringify({
+          testId: id, answers, textAnswers, elapsedSeconds: countdownTimer.elapsed,
+        }));
+      }
+      if (roadmapTaskId) updateTaskStatus(Number(roadmapTaskId), 'DONE').catch(() => {});
+      router.push(`/practice/reading/${id}/result`);
+      return;
+    }
+
+    // --- Practice mode: existing flow ---
+    sessionStorage.removeItem(progressKey);
     if (stimuli) {
       const optionAnswers = Object.entries(answers).map(([qId, optId]) => ({
         questionId: Number(qId),
@@ -123,7 +179,6 @@ export default function ReadingExercisePage({ params }: Props) {
           attemptId: res.attemptId, testId: id, answers, textAnswers, elapsedSeconds: elapsed,
         }));
       } catch {
-        // Fallback: save local data without attemptId
         sessionStorage.setItem(`practice-result-${id}`, JSON.stringify({
           testId: id, answers, textAnswers, elapsedSeconds: elapsed,
         }));
@@ -134,7 +189,6 @@ export default function ReadingExercisePage({ params }: Props) {
       }));
     }
 
-    // Mark roadmap task as DONE if navigated from roadmap
     if (roadmapTaskId) {
       updateTaskStatus(Number(roadmapTaskId), 'DONE').catch(() => {});
     }
@@ -142,7 +196,7 @@ export default function ReadingExercisePage({ params }: Props) {
     router.push(`/practice/reading/${id}/result`);
   };
 
-  if (loading) {
+  if (loading || (isExamMode && examSession.loading)) {
     return <SkeletonPractice />;
   }
 
@@ -164,7 +218,6 @@ export default function ReadingExercisePage({ params }: Props) {
   const answeredCount = Object.keys(answers).length + Object.values(textAnswers).filter(t => t.trim() !== '').length;
   const unansweredCount = questionCount - answeredCount;
 
-  // Build set of answered question IDs for the nav bar
   const answeredQuestionIds = new Set<number>([
     ...Object.keys(answers).map(Number),
     ...Object.entries(textAnswers).filter(([, t]) => t.trim() !== '').map(([k]) => Number(k)),
@@ -188,6 +241,12 @@ export default function ReadingExercisePage({ params }: Props) {
             <div className="flex items-center gap-2">
               <h1 className="text-xl font-bold">{testDetail.title}</h1>
               {submitted && <Badge className="bg-green-100 text-green-700 border-green-300">Đã hoàn thành</Badge>}
+              {isExamMode && examSession.isResuming && !submitted && (
+                <Badge className="bg-blue-100 text-blue-700 border-blue-300">Đang tiếp tục...</Badge>
+              )}
+              {isExamMode && examSession.saving && !submitted && (
+                <Badge variant="outline" className="text-gray-400 border-gray-200 text-[10px]">Đang lưu...</Badge>
+              )}
             </div>
             <div className="flex items-center gap-3 text-sm text-muted-foreground">
               {questionCount > 0 && <span>{questionCount} câu hỏi</span>}
@@ -210,7 +269,6 @@ export default function ReadingExercisePage({ params }: Props) {
 
       {/* Main content */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Left: Passage */}
         <div className="w-1/2 overflow-y-auto p-6 border-r border-gray-200">
           <h2 className="text-2xl font-bold mb-6">{passage.title}</h2>
           {(() => {
@@ -230,7 +288,6 @@ export default function ReadingExercisePage({ params }: Props) {
             );
           })()}
         </div>
-        {/* Right: Questions (+ Notes sidebar when active) */}
         <div className="w-1/2 overflow-y-auto p-6">
           {stimuli && stimuli.questionGroups.length > 0 ? (
             <ReadingQuestionsPanel
@@ -249,7 +306,6 @@ export default function ReadingExercisePage({ params }: Props) {
         </div>
       </div>
 
-      {/* Bottom question navigator */}
       {stimuli && stimuli.questionGroups.length > 0 && (
         <ReadingQuestionNav
           questionGroups={stimuli.questionGroups}
@@ -276,11 +332,15 @@ export default function ReadingExercisePage({ params }: Props) {
       <ConfirmDialog
         open={exitOpen}
         onOpenChange={setExitOpen}
-        title="Thoát khỏi bài làm"
-        description="Bạn ơi, bạn đang thoát khỏi phần làm bài, bạn có chắc chắn muốn thoát chứ"
+        title={isExamMode ? 'Tạm thời thoát?' : 'Thoát khỏi bài làm'}
+        description={
+          isExamMode
+            ? 'Bài làm của bạn đã được lưu tự động. Bạn có thể quay lại tiếp tục bất cứ lúc nào trước khi hết giờ.'
+            : 'Bạn ơi, bạn đang thoát khỏi phần làm bài, bạn có chắc chắn muốn thoát chứ'
+        }
         cancelText="Quay lại làm bài"
         confirmText="Thoát"
-        variant="destructive"
+        variant={isExamMode ? 'default' : 'destructive'}
         onConfirm={() => router.push('/practice?skill=reading')}
       />
     </div>

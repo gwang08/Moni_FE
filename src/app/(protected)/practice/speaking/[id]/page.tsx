@@ -15,6 +15,7 @@ import { SpeakingNotesPanel } from '@/components/speaking/speaking-notes-panel';
 import { useTestDetail } from '@/hooks/use-test-detail';
 import { useSpeakingStore } from '@/store/speaking-store';
 import { usePracticeStore } from '@/store/practice-store';
+import { useAuthStore } from '@/store/auth-store';
 import { submitAttempt } from '@/lib/practice-api';
 
 const FALLBACK_CONTENT = 'Hãy trả lời câu hỏi theo chủ đề được giao. Sử dụng ngôn ngữ tự nhiên và rõ ràng.';
@@ -43,6 +44,7 @@ export default function SpeakingPracticePage({ params }: Props) {
   } = useSpeakingStore();
 
   const markCompleted = usePracticeStore((state) => state.markCompleted);
+  const refreshProfile = useAuthStore((state) => state.refreshProfile);
 
   const [showSample, setShowSample] = useState(false);
   const [showExitDialog, setShowExitDialog] = useState(false);
@@ -142,6 +144,8 @@ export default function SpeakingPracticePage({ params }: Props) {
     const allQuestions = questions.map((q) => `Part ${q.partNumber} Q${q.position}: ${q.content}`).join('\n');
     await submitForScoring(file, allQuestions);
     setHasScored(true);
+    // Refresh credit balance in header
+    refreshProfile();
     // Save attempt to history after scoring
     await saveProgress();
   };

@@ -17,6 +17,8 @@ interface ResultData {
   answers: Record<number, number>;
   textAnswers?: Record<number, string>;
   elapsedSeconds: number;
+  /** Explanation/evidence from API keyed by questionId */
+  explanations?: Record<number, { text?: string; evidence?: string }>;
 }
 
 /** Injects <mark> highlights around all evidence chunks in passage HTML */
@@ -63,9 +65,16 @@ export default function ReadingReviewPage({ params }: Props) {
       getAttemptResult(Number(attemptIdParam)).then((res) => {
         const answers: Record<number, number> = {};
         const textAnswers: Record<number, string> = {};
+        const explanations: Record<number, { text?: string; evidence?: string }> = {};
         for (const r of res.results) {
           if (r.selectedOptionId) answers[r.questionId] = r.selectedOptionId;
           if (r.answerText) textAnswers[r.questionId] = r.answerText;
+          if (r.explanation || r.evidence) {
+            explanations[r.questionId] = {
+              text: r.explanation ?? undefined,
+              evidence: r.evidence ?? undefined,
+            };
+          }
         }
         setResultData({
           attemptId: res.attemptId,
@@ -73,6 +82,7 @@ export default function ReadingReviewPage({ params }: Props) {
           answers,
           textAnswers,
           elapsedSeconds: res.elapsedSeconds,
+          explanations,
         });
       }).catch(() => {
         router.replace(`/practice/reading/${id}`);
@@ -94,6 +104,30 @@ export default function ReadingReviewPage({ params }: Props) {
   }, [activeEvidence]);
 
   const stimuli = testDetail?.stimuli[0];
+
+  // Merge API explanation/evidence into stimulus questions (for history review)
+  const enrichedStimulus = useMemo(() => {
+    if (!stimuli || !resultData?.explanations) return stimuli;
+    return {
+      ...stimuli,
+      questionGroups: stimuli.questionGroups.map((g) => ({
+        ...g,
+        questions: g.questions.map((q) => {
+          const apiExpl = resultData.explanations?.[q.id];
+          if (!apiExpl) return q;
+          return {
+            ...q,
+            explanation: {
+              ...q.explanation,
+              text: apiExpl.text ?? q.explanation?.text,
+              evidence: apiExpl.evidence ?? q.explanation?.evidence,
+            },
+          };
+        }),
+      })),
+    };
+  }, [stimuli, resultData?.explanations]);
+
   const passageHtml = useMemo(() => {
     const formatted = formatReadingPassage(stimuli?.content ?? '');
     return injectEvidence(formatted, activeEvidence);
@@ -139,7 +173,7 @@ export default function ReadingReviewPage({ params }: Props) {
         {/* Right: Review panel */}
         <div className="w-1/2 flex flex-col overflow-hidden">
           <ReadingReviewPanel
-            stimulus={stimuli}
+            stimulus={enrichedStimulus!}
             answers={resultData.answers}
             textAnswers={resultData.textAnswers}
             onLocateEvidence={setActiveEvidence}

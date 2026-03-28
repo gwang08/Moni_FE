@@ -1,6 +1,6 @@
 'use client';
 
-import { use, useEffect, useRef, useState } from 'react';
+import { use, useEffect, useRef, useState, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
@@ -16,6 +16,7 @@ interface ResultData {
   answers: Record<number, number>;
   textAnswers?: Record<number, string>;
   elapsedSeconds: number;
+  explanations?: Record<number, { text?: string; evidence?: string }>;
 }
 
 interface Props {
@@ -45,11 +46,18 @@ export default function ListeningReviewPage({ params }: Props) {
       getAttemptResult(Number(attemptIdParam)).then((res) => {
         const answers: Record<number, number> = {};
         const textAnswers: Record<number, string> = {};
+        const explanations: Record<number, { text?: string; evidence?: string }> = {};
         for (const r of res.results) {
           if (r.selectedOptionId) answers[r.questionId] = r.selectedOptionId;
           if (r.answerText) textAnswers[r.questionId] = r.answerText;
+          if (r.explanation || r.evidence) {
+            explanations[r.questionId] = {
+              text: r.explanation ?? undefined,
+              evidence: r.evidence ?? undefined,
+            };
+          }
         }
-        setResultData({ attemptId: res.attemptId, testId: id, answers, textAnswers, elapsedSeconds: res.elapsedSeconds });
+        setResultData({ attemptId: res.attemptId, testId: id, answers, textAnswers, elapsedSeconds: res.elapsedSeconds, explanations });
       }).catch(() => {
         router.replace(`/practice/listening/${id}`);
       });
@@ -72,7 +80,31 @@ export default function ListeningReviewPage({ params }: Props) {
     );
   }
 
-  const stimulus = testDetail.stimuli[0];
+  const rawStimulus = testDetail.stimuli[0];
+
+  // Merge API explanation/evidence into stimulus questions (for history review)
+  const stimulus = useMemo(() => {
+    if (!rawStimulus || !resultData?.explanations) return rawStimulus;
+    return {
+      ...rawStimulus,
+      questionGroups: rawStimulus.questionGroups.map((g) => ({
+        ...g,
+        questions: g.questions.map((q) => {
+          const apiExpl = resultData.explanations?.[q.id];
+          if (!apiExpl) return q;
+          return {
+            ...q,
+            explanation: {
+              ...q.explanation,
+              text: apiExpl.text ?? q.explanation?.text,
+              evidence: apiExpl.evidence ?? q.explanation?.evidence,
+            },
+          };
+        }),
+      })),
+    };
+  }, [rawStimulus, resultData?.explanations]);
+
   if (!stimulus) {
     return (
       <div className="flex flex-col items-center justify-center h-[calc(100vh-56px)] gap-4">

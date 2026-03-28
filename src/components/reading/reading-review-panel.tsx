@@ -43,7 +43,14 @@ function MatchingQuestionReview({ question, selectedOption, correctOption, isCor
       </span>
       {/* User answer */}
       {isSkipped ? (
-        <span className="px-2 py-1 rounded border border-gray-200 text-gray-400 text-xs min-w-[100px] text-center">—</span>
+        <>
+          <span className="px-2 py-1 rounded border border-gray-200 text-gray-400 text-xs text-center">—</span>
+          {correctOption && (
+            <span className="px-2 py-1 rounded border border-green-300 bg-green-50 text-green-700 text-xs font-medium">
+              {correctOption.content}
+            </span>
+          )}
+        </>
       ) : isCorrect ? (
         <span className="px-2 py-1 rounded border border-green-300 bg-green-50 text-green-700 text-xs font-medium flex items-center gap-1">
           {selectedOption?.content}
@@ -263,9 +270,9 @@ export function ReadingReviewPanel({ stimulus, answers, textAnswers = {}, onLoca
         ))}
       </div>
 
-      {/* Bottom navigation bar */}
+      {/* Bottom navigation bar — continuous numbering across groups */}
       <div className="border-t bg-white px-4 py-3 flex flex-wrap gap-2">
-        {allQuestions.map((q) => {
+        {allQuestions.map((q, idx) => {
           const group = stimulus.questionGroups.find(g => g.questions.some(gq => gq.id === q.id));
           const isGap = GAP_TYPES.includes(group?.questionTypeCode || '');
 
@@ -295,7 +302,7 @@ export function ReadingReviewPanel({ stimulus, answers, textAnswers = {}, onLoca
                   : 'bg-red-100 border-red-400 text-red-700'
               }`}
             >
-              {q.position}
+              {idx + 1}
             </button>
           );
         })}

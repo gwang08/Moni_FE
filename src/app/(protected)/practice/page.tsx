@@ -91,6 +91,28 @@ function PracticePage() {
       })
       .catch(() => {});
   }, []);
+  // Realtime countdown: decrement remainingSeconds every second
+  useEffect(() => {
+    if (activeSessions.size === 0) return;
+    const interval = setInterval(() => {
+      setActiveSessions((prev) => {
+        const next = new Map(prev);
+        let changed = false;
+        for (const [testId, session] of next) {
+          if (session.remainingSeconds > 0) {
+            next.set(testId, { ...session, remainingSeconds: session.remainingSeconds - 1 });
+            changed = true;
+          } else {
+            next.delete(testId);
+            changed = true;
+          }
+        }
+        return changed ? next : prev;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [activeSessions.size]);
+
   const { showPrompt, setShowPrompt, requireAuth } = useLoginPrompt();
 
   const completedExercises = usePracticeStore((state) => state.completedExercises);

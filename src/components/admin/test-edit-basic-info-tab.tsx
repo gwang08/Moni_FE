@@ -33,11 +33,10 @@ const MODE_LABELS: Record<string, string> = {
   FULL_TEST: 'Full đề',
 };
 
-const TEST_TYPES = ['ACADEMIC', 'GENERAL_TRAINING', 'BOTH'];
+const TEST_TYPES = ['ACADEMIC', 'GENERAL_TRAINING'];
 const TEST_TYPE_LABELS: Record<string, string> = {
   ACADEMIC: 'Academic',
   GENERAL_TRAINING: 'General Training',
-  BOTH: 'Cả hai',
 };
 const SKILLS_WITH_TEST_TYPE = ['READING', 'LISTENING'];
 
@@ -80,6 +79,7 @@ export function TestEditBasicInfoTab({ test }: Props) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) { toast.error('Vui lòng nhập tiêu đề'); return; }
+    if (!duration || Number(duration) <= 0) { toast.error('Vui lòng nhập thời gian làm bài'); return; }
     setSubmitting(true);
     try {
       // Upload thumbnail file if pending (deferred upload)

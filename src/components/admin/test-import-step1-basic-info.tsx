@@ -26,11 +26,10 @@ interface Props {
 
 const SKILLS = ['LISTENING', 'READING', 'SPEAKING', 'WRITING'];
 
-const TEST_TYPES = ['ACADEMIC', 'GENERAL_TRAINING', 'BOTH'];
+const TEST_TYPES = ['ACADEMIC', 'GENERAL_TRAINING'];
 const TEST_TYPE_LABELS: Record<string, string> = {
   ACADEMIC: 'Academic',
   GENERAL_TRAINING: 'General Training',
-  BOTH: 'Cả hai',
 };
 const SKILLS_WITH_TEST_TYPE = ['READING', 'LISTENING'];
 
@@ -76,7 +75,8 @@ export function TestImportStep1({ data, onChange, onNext, onThumbnailFileSelecte
   const needsSection = data.testMode === 'PRACTICE' && sections.length > 0;
 
   const isValid = data.title.trim() && data.description.trim() && data.skill && data.testMode
-    && (!needsSection || data.section !== null);
+    && (!needsSection || data.section !== null)
+    && (data.duration != null && data.duration > 0);
 
   const handleSkillChange = (skill: string) => {
     const skillModes = SKILL_MODES[skill] || [];
@@ -175,8 +175,8 @@ export function TestImportStep1({ data, onChange, onNext, onThumbnailFileSelecte
       )}
 
       <div>
-        <Label htmlFor="duration" className="mb-1.5 block text-sm font-medium">Thời gian làm bài (phút)</Label>
-        <Input id="duration" type="number" value={data.duration ?? ''} onChange={e => onChange({ ...data, duration: e.target.value ? Number(e.target.value) : null })} placeholder="VD: 60" min={1} />
+        <Label htmlFor="duration" className="mb-1.5 block text-sm font-medium">Thời gian làm bài (phút) *</Label>
+        <Input id="duration" type="number" value={data.duration ?? ''} onChange={e => onChange({ ...data, duration: e.target.value ? Number(e.target.value) : null })} placeholder="VD: 60" min={1} required />
       </div>
 
       <div>

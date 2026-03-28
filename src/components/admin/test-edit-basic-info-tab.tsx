@@ -206,8 +206,8 @@ export function TestEditBasicInfoTab({ test }: Props) {
             </select>
           </div>
           <div>
-            <Label htmlFor="duration" className="mb-1.5 block text-sm font-medium">Thời gian (phút)</Label>
-            <Input id="duration" type="number" value={duration} onChange={e => setDuration(e.target.value)} placeholder="VD: 60" min={0} />
+            <Label htmlFor="duration" className="mb-1.5 block text-sm font-medium">Thời gian làm bài (phút) *</Label>
+            <Input id="duration" type="number" value={duration} onChange={e => setDuration(e.target.value)} placeholder="VD: 60" min={1} required />
           </div>
         </div>
         <div className="flex justify-end gap-3 pt-2">

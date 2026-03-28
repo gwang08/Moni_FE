@@ -366,7 +366,7 @@ function PracticePage() {
         expertCost={expertCost}
         onSelectAI={() => {
           setSpeakingModeOpen(false);
-          router.push(`/practice/speaking/${speakingTestId}`);
+          router.push(`/speaking-exam/${speakingTestId}`);
         }}
         onClose={() => setSpeakingModeOpen(false)}
       />

@@ -117,11 +117,19 @@ export default function SpeakingPracticePage({ params }: Props) {
   };
 
   const handleSubmitForScoring = async () => {
-    if (!lastRecordedBlob || !currentQuestion) return;
-    const mimeType = lastRecordedBlob.type || 'audio/webm';
+    if (!allRecorded) return;
+    // Merge all recorded blobs into one audio file
+    const orderedBlobs = questions
+      .map((q) => recordedBlobs[`${id}-q${q.id}`])
+      .filter(Boolean);
+    const firstBlob = orderedBlobs[0];
+    const mimeType = firstBlob.type || 'audio/webm';
     const ext = mimeType.includes('mp4') ? 'mp4' : 'webm';
-    const file = new File([lastRecordedBlob], `recording.${ext}`, { type: mimeType });
-    await submitForScoring(file, currentQuestion.content);
+    const mergedBlob = new Blob(orderedBlobs, { type: mimeType });
+    const file = new File([mergedBlob], `speaking-full.${ext}`, { type: mimeType });
+    // Build all questions as context
+    const allQuestions = questions.map((q) => `Part ${q.partNumber} Q${q.position}: ${q.content}`).join('\n');
+    await submitForScoring(file, allQuestions);
     // Save attempt to history after scoring
     await saveProgress();
   };

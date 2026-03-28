@@ -10,6 +10,7 @@ import { SpeakingTopicSidebar } from '@/components/speaking/speaking-topic-sideb
 import { SpeakingQuestionCenter } from '@/components/speaking/speaking-question-center';
 import { SpeakingRecorder } from '@/components/speaking/speaking-recorder';
 import { SpeakingFeedbackPanel } from '@/components/speaking/speaking-feedback-panel';
+import { SpeakingScoringDialog } from '@/components/speaking/speaking-scoring-dialog';
 import { SpeakingNotesPanel } from '@/components/speaking/speaking-notes-panel';
 import { useTestDetail } from '@/hooks/use-test-detail';
 import { useSpeakingStore } from '@/store/speaking-store';
@@ -46,6 +47,7 @@ export default function SpeakingPracticePage({ params }: Props) {
   const [showSample, setShowSample] = useState(false);
   const [showExitDialog, setShowExitDialog] = useState(false);
   const [recordedBlobs, setRecordedBlobs] = useState<Record<string, Blob>>({});
+  const [hasScored, setHasScored] = useState(false);
 
   useEffect(() => {
     reset();
@@ -139,6 +141,7 @@ export default function SpeakingPracticePage({ params }: Props) {
     // Build all questions as context
     const allQuestions = questions.map((q) => `Part ${q.partNumber} Q${q.position}: ${q.content}`).join('\n');
     await submitForScoring(file, allQuestions);
+    setHasScored(true);
     // Save attempt to history after scoring
     await saveProgress();
   };
@@ -254,17 +257,31 @@ export default function SpeakingPracticePage({ params }: Props) {
             </>
           )}
 
-          {allRecorded && (
+          {allRecorded && !hasScored && !isScoring && (
             <div className="mt-6 space-y-3">
               <p className="text-center text-sm text-muted-foreground font-medium">
                 Đã ghi âm {Object.keys(recordedBlobs).length}/{questions.length} câu
               </p>
               <button
                 onClick={handleSubmitForScoring}
-                disabled={isScoring}
-                className="w-full py-3 px-4 rounded-2xl bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white font-semibold text-sm shadow-lg shadow-blue-300/30 transition-all duration-200 hover:scale-[1.01] hover:shadow-xl hover:shadow-blue-300/40 border border-blue-400/20 disabled:opacity-50"
+                className="w-full py-3 px-4 rounded-2xl bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white font-semibold text-sm shadow-lg shadow-blue-300/30 transition-all duration-200 hover:scale-[1.01] hover:shadow-xl hover:shadow-blue-300/40 border border-blue-400/20"
               >
-                🤖 Nộp bài
+                🤖 Nộp bài chấm điểm
+              </button>
+            </div>
+          )}
+
+          {hasScored && !isScoring && (
+            <div className="mt-6 space-y-3">
+              <button
+                onClick={() => {
+                  setHasScored(false);
+                  setRecordedBlobs({});
+                  reset();
+                }}
+                className="w-full py-3 px-4 rounded-2xl bg-gradient-to-r from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 text-gray-700 font-semibold text-sm transition-all duration-200 border border-gray-200"
+              >
+                Ghi âm lại & Làm lại
               </button>
             </div>
           )}
@@ -275,6 +292,8 @@ export default function SpeakingPracticePage({ params }: Props) {
           <SpeakingNotesPanel notes={notes} onNotesChange={setNotes} />
         </div>
       </div>
+
+      <SpeakingScoringDialog open={isScoring} />
 
       <ConfirmDialog
         open={showExitDialog}

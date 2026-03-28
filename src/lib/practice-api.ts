@@ -41,6 +41,7 @@ export async function submitAttempt(request: SubmitAttemptRequest): Promise<Subm
 
 export interface AttemptHistory {
   attemptId: number;
+  testId: number | null;
   stimulusId: number | null;
   stimulusTitle: string | null;
   skill: string | null;

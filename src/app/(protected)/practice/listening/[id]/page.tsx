@@ -1,8 +1,9 @@
 'use client';
 
-import { use, useEffect, useState, useMemo } from 'react';
+import { use, useEffect, useRef, useState, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import { toast } from 'sonner';
 import { StickyNote } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -51,6 +52,8 @@ export default function ListeningExercisePage({ params }: Props) {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [exitOpen, setExitOpen] = useState(false);
   const [notesOpen, setNotesOpen] = useState(false);
+  // Ref to handleComplete so onTimeUp callback always calls the latest version
+  const handleCompleteRef = useRef<(() => Promise<void>) | null>(null);
   const notes = useListeningStore((s) => s.notes);
   const progressKey = `practice-progress-${id}`;
   const modeParam = searchParams.get('mode');
@@ -80,7 +83,12 @@ export default function ListeningExercisePage({ params }: Props) {
   const countdownTimer = useCountdownTimer(
     testDuration > 0 ? testDuration : 60,
     submitted || !isExamMode,
-    () => { if (!submitted) setConfirmOpen(true); },
+    () => {
+      if (!submitted && handleCompleteRef.current) {
+        toast('Hết giờ — bài đã được nộp tự động');
+        handleCompleteRef.current();
+      }
+    },
     isExamMode && examSession.session ? examSession.session.remainingSeconds : undefined,
   );
 
@@ -147,6 +155,8 @@ export default function ListeningExercisePage({ params }: Props) {
   };
 
   const handleComplete = async () => {
+    if (submitted) return; // guard against double-submit
+    setSubmitted(true);
     setConfirmOpen(false);
     markCompleted(id);
 
@@ -193,6 +203,8 @@ export default function ListeningExercisePage({ params }: Props) {
 
     router.push(`/practice/listening/${id}/result`);
   };
+  // Keep ref in sync so onTimeUp always has the latest handleComplete
+  handleCompleteRef.current = handleComplete;
 
   if (loading || (isExamMode && examSession.loading)) return <SkeletonPractice />;
 

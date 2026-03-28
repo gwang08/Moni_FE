@@ -5,7 +5,18 @@ import {
 } from '@/lib/exam-api';
 import type { SubmitAttemptResponse } from '@/lib/practice-api';
 
-const AUTO_SAVE_INTERVAL = 30_000; // 30 seconds
+const AUTO_SAVE_INTERVAL = 5_000; // 5 seconds
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+
+/** Read auth token from localStorage (mirrors api-client logic). */
+function getAuthToken(): string | null {
+  try {
+    const raw = localStorage.getItem('auth-storage');
+    if (!raw) return null;
+    return JSON.parse(raw).state?.token || null;
+  } catch { return null; }
+}
 
 interface UseExamSessionReturn {
   session: ExamSession | null;
@@ -29,6 +40,11 @@ export function useExamSession(testId: number, enabled: boolean = true): UseExam
   const textAnswersRef = useRef<Record<number, string>>({});
   const sessionRef = useRef<ExamSession | null>(null);
   sessionRef.current = session;
+
+  // Dirty tracking: true when answers changed since last successful save
+  const dirtyRef = useRef(false);
+  // Snapshot of answers at last save for change detection
+  const lastSavedAnswersRef = useRef<string>('');
 
   // Init: check active session or start new
   useEffect(() => {
@@ -75,27 +91,65 @@ export function useExamSession(testId: number, enabled: boolean = true): UseExam
     return [...mcq, ...text];
   }, []);
 
-  // Auto-save interval
+  // Auto-save interval — only fires when dirty
   useEffect(() => {
     if (!enabled || !session || session.status !== 'IN_PROGRESS') return;
     const interval = setInterval(() => {
       const s = sessionRef.current;
       if (!s || s.status !== 'IN_PROGRESS') return;
+      if (!dirtyRef.current) return; // skip if nothing changed
       const payload = buildPayload();
       if (payload.length === 0) return;
       setSaving(true);
       saveExamProgress(s.sessionId, payload)
+        .then(() => { dirtyRef.current = false; })
         .catch(() => {}) // fire-and-forget
         .finally(() => setSaving(false));
     }, AUTO_SAVE_INTERVAL);
     return () => clearInterval(interval);
   }, [enabled, session?.sessionId, session?.status, buildPayload]);
 
-  // Sync answer refs (called by page on every answer change)
+  // beforeunload: fire a keepalive fetch to persist unsaved answers
+  useEffect(() => {
+    if (!enabled || !session || session.status !== 'IN_PROGRESS') return;
+
+    const handleBeforeUnload = () => {
+      if (!dirtyRef.current) return;
+      const s = sessionRef.current;
+      if (!s || s.status !== 'IN_PROGRESS') return;
+      const payload = buildPayload();
+      if (payload.length === 0) return;
+      const token = getAuthToken();
+      if (!token) return;
+
+      const body = JSON.stringify({ sessionId: s.sessionId, answers: payload });
+      // keepalive: true ensures the request completes even after page unload
+      fetch(`${API_BASE_URL}/api/v1/practice/exam/save`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body,
+        keepalive: true,
+      }).catch(() => {}); // best-effort, no await
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [enabled, session?.sessionId, session?.status, buildPayload]);
+
+  // Sync answer refs (called by page on every answer change); marks dirty on change
   const syncAnswers = useCallback(
     (answers: Record<number, number>, textAnswers: Record<number, string>) => {
       answersRef.current = answers;
       textAnswersRef.current = textAnswers;
+      // Mark dirty if the serialized state differs from last saved snapshot
+      const snapshot = JSON.stringify({ answers, textAnswers });
+      if (snapshot !== lastSavedAnswersRef.current) {
+        dirtyRef.current = true;
+        lastSavedAnswersRef.current = snapshot;
+      }
     },
     []
   );

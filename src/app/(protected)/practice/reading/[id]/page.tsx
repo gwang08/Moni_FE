@@ -1,8 +1,9 @@
 'use client';
 
-import { use, useEffect, useState } from 'react';
+import { use, useEffect, useRef, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { toast } from 'sonner';
 import { ArrowLeft, Clock } from 'lucide-react';
 import { SkeletonPractice } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
@@ -55,6 +56,8 @@ export default function ReadingExercisePage({ params }: Props) {
   const [submitted, setSubmitted] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [exitOpen, setExitOpen] = useState(false);
+  // Ref to handleComplete so onTimeUp callback always calls the latest version
+  const handleCompleteRef = useRef<(() => Promise<void>) | null>(null);
   const progressKey = `practice-progress-${id}`;
   const isExamMode = modeParam === 'exam';
 
@@ -82,7 +85,12 @@ export default function ReadingExercisePage({ params }: Props) {
   const countdownTimer = useCountdownTimer(
     testDuration > 0 ? testDuration : 60,
     submitted || !isExamMode,
-    () => { if (!submitted) setConfirmOpen(true); },
+    () => {
+      if (!submitted && handleCompleteRef.current) {
+        toast('Hết giờ — bài đã được nộp tự động');
+        handleCompleteRef.current();
+      }
+    },
     isExamMode && examSession.session ? examSession.session.remainingSeconds : undefined,
   );
 
@@ -136,6 +144,8 @@ export default function ReadingExercisePage({ params }: Props) {
   };
 
   const handleComplete = async () => {
+    if (submitted) return; // guard against double-submit
+    setSubmitted(true);
     setConfirmOpen(false);
     markCompleted(id);
 
@@ -195,6 +205,8 @@ export default function ReadingExercisePage({ params }: Props) {
 
     router.push(`/practice/reading/${id}/result`);
   };
+  // Keep ref in sync so onTimeUp always has the latest handleComplete
+  handleCompleteRef.current = handleComplete;
 
   if (loading || (isExamMode && examSession.loading)) {
     return <SkeletonPractice />;

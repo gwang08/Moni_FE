@@ -84,10 +84,21 @@ export default function WritingExercisePage({ params }: Props) {
 
   const handleGrade = async () => {
     const answer = stripHtml(content);
+    // Fetch chart image as File for Task 1
+    let chartFile: File | undefined;
+    if (taskType === 1 && chartImageUrl) {
+      try {
+        const res = await fetch(chartImageUrl);
+        const blob = await res.blob();
+        const ext = chartImageUrl.split('.').pop()?.split('?')[0] || 'png';
+        chartFile = new File([blob], `chart.${ext}`, { type: blob.type || 'image/png' });
+      } catch { /* proceed without chart */ }
+    }
     await submitForGrading({
       taskType,
       question: prompt,
       answer,
+      chartImage: chartFile,
     });
     markCompleted(id);
     // Submit attempt to track in practice history

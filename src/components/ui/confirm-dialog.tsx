@@ -19,6 +19,8 @@ interface ConfirmDialogProps {
   cancelText?: string;
   variant?: 'default' | 'destructive';
   onConfirm: () => void | Promise<void>;
+  /** Callback tùy chọn khi nhấn nút Hủy */
+  onCancel?: () => void;
 }
 
 const VARIANT_CONFIG: Record<string, { mood: ChibiMood; gradient: string; btnClass: string }> = {
@@ -43,6 +45,7 @@ export function ConfirmDialog({
   cancelText = 'Hủy',
   variant = 'default',
   onConfirm,
+  onCancel,
 }: ConfirmDialogProps) {
   const [loading, setLoading] = useState(false);
   const config = VARIANT_CONFIG[variant] ?? VARIANT_CONFIG.default;
@@ -94,7 +97,7 @@ export function ConfirmDialog({
               )}
             </button>
             <button
-              onClick={() => onOpenChange(false)}
+              onClick={() => { onCancel?.(); onOpenChange(false); }}
               disabled={loading}
               className="w-full rounded-2xl h-10 text-sm font-medium border border-gray-200 hover:bg-gray-50 text-gray-600 transition-all"
             >

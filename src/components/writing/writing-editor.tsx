@@ -10,6 +10,9 @@ interface WritingEditorProps {
   sampleAnswer?: string;
   showSample: boolean;
   onToggleSample: () => void;
+  readOnly?: boolean;
+  /** Nội dung khởi tạo (từ draft đã lưu) — chia theo \n\n cho các section */
+  initialContent?: string;
 }
 
 interface SectionConfig {
@@ -39,11 +42,17 @@ function countWords(text: string): number {
 
 const SEPARATOR = '\n---SECTION---\n';
 
-export function WritingEditor({ taskType = 2, sampleAnswer, showSample, onToggleSample }: WritingEditorProps) {
+export function WritingEditor({ taskType = 2, sampleAnswer, showSample, onToggleSample, readOnly = false, initialContent }: WritingEditorProps) {
   const { setContent, setWordCount } = useWritingStore();
   const sections = SECTIONS[taskType] ?? SECTIONS[2];
 
-  const [texts, setTexts] = useState<string[]>(() => sections.map(() => ''));
+  const [texts, setTexts] = useState<string[]>(() => {
+    if (initialContent) {
+      const parts = initialContent.split('\n\n');
+      return sections.map((_, i) => parts[i] ?? '');
+    }
+    return sections.map(() => '');
+  });
   const [savedTexts, setSavedTexts] = useState<string[]>([]);
 
   const sampleParts = sampleAnswer?.includes('---SECTION---')
@@ -123,9 +132,12 @@ export function WritingEditor({ taskType = 2, sampleAnswer, showSample, onToggle
                 onChange={(e) => handleTextChange(idx, e.target.value)}
                 placeholder={section.placeholder}
                 rows={5}
-                disabled={showSample}
+                disabled={showSample || readOnly}
+                readOnly={readOnly}
                 className={`w-full rounded-2xl border px-4 py-3 text-sm leading-relaxed resize-y shadow-sm transition-all ${
-                  showSample
+                  readOnly
+                    ? 'border-gray-200 bg-gray-50/80 text-gray-600 cursor-default'
+                    : showSample
                     ? 'border-green-200 bg-green-50/60 text-gray-700 cursor-default'
                     : 'border-gray-200/80 bg-white/80 backdrop-blur-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-teal-300/50 focus:border-teal-200 placeholder:text-gray-300 hover:shadow-md hover:border-teal-200/60'
                 }`}

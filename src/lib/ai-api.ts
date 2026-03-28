@@ -1,4 +1,44 @@
+import { apiClient } from '@/lib/api-client';
+import type { ApiResponse } from '@/types/auth.types';
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+
+export type WritingTaskType = 'TASK_1' | 'TASK_2';
+export type WritingEvaluationStatus = 'PENDING' | 'SUBMITTED' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | string;
+
+export interface WritingSubmission {
+  submissionId: number;
+  testId: number | null;
+  taskType: WritingTaskType;
+  wordCount: number | null;
+  evaluationStatus: WritingEvaluationStatus;
+  submittedAt: string;
+}
+
+export async function getWritingSubmissions(): Promise<WritingSubmission[]> {
+  const response = await apiClient.get<ApiResponse<WritingSubmission[]>>(
+    '/api/v1/writing/submissions',
+    true
+  );
+  return response.result ?? [];
+}
+
+// Submit writing essay (save without grading immediately)
+export async function submitWriting(params: {
+  testId: number;
+  stimulusId: number;
+  taskType: number;
+  essayContent: string;
+  wordCount: number;
+}): Promise<{ submissionId: number }> {
+  const response = await apiClient.post<ApiResponse<{ submissionId: number }>>(
+    '/api/v1/writing/submit',
+    params,
+    true
+  );
+  if (!response.result) throw new Error('Submit writing failed');
+  return response.result;
+}
 
 function getAuthToken(): string {
   const stored = localStorage.getItem('auth-storage');

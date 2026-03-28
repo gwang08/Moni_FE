@@ -1,7 +1,8 @@
 'use client';
 
-import { use, useEffect, useState } from 'react';
+import { use, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { SkeletonPractice } from '@/components/ui/skeleton';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
@@ -10,12 +11,14 @@ import { WritingPromptPanel } from '@/components/writing/writing-prompt-panel';
 import { WritingEditor } from '@/components/writing/writing-editor';
 import { WritingToolbarPanel } from '@/components/writing/writing-toolbar-panel';
 import { GradingModal } from '@/components/writing/grading-modal';
-import { ScoringDialog } from '@/components/scoring/scoring-dialog';
+import { WritingScoringOptionsDialog } from '@/components/writing/writing-scoring-options-dialog';
+import { getServices } from '@/lib/payment-api';
 import { useWritingStore } from '@/store/writing-store';
 import { usePracticeStore } from '@/store/practice-store';
 import { useTestDetail } from '@/hooks/use-test-detail';
 import { useElapsedTimer } from '@/hooks/use-elapsed-timer';
 import { submitAttempt } from '@/lib/practice-api';
+import { submitWriting } from '@/lib/ai-api';
 import { useRouter } from 'next/navigation';
 import type { WritingTaskType } from '@/types/writing.types';
 
@@ -27,6 +30,17 @@ interface Props {
 
 function stripHtml(html: string): string {
   return html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+/** Key localStorage cho draft theo testId */
+function draftKey(testId: string) {
+  return `writing-draft-${testId}`;
+}
+
+interface WritingDraft {
+  content: string;
+  wordCount: number;
+  elapsed: number;
 }
 
 export default function WritingExercisePage({ params }: Props) {
@@ -41,6 +55,7 @@ export default function WritingExercisePage({ params }: Props) {
     isGrading,
     submitForGrading,
     reset,
+    setContent,
   } = useWritingStore();
   const markCompleted = usePracticeStore((state) => state.markCompleted);
 
@@ -48,12 +63,70 @@ export default function WritingExercisePage({ params }: Props) {
   const [exitOpen, setExitOpen] = useState(false);
   const [showSample, setShowSample] = useState(false);
   const [showScoringDialog, setShowScoringDialog] = useState(false);
+  const [aiCost, setAiCost] = useState<number | null>(null);
+  const [expertCost, setExpertCost] = useState<number | null>(null);
+
+  // Draft restore dialog
+  const [draftDialogOpen, setDraftDialogOpen] = useState(false);
+  const [pendingDraft, setPendingDraft] = useState<WritingDraft | null>(null);
+  // Restored content passed to editor
+  const [restoredContent, setRestoredContent] = useState<string | undefined>(undefined);
+  // Editor remount key — force re-init when content is restored
+  const [editorKey, setEditorKey] = useState(0);
+
+  // Submit state
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [submissionId, setSubmissionId] = useState<number | null>(null);
 
   const { elapsed, formatted: elapsedTime } = useElapsedTimer(isGrading);
 
+  // Auto-save debounce timer
+  const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // On mount: reset store + fetch service costs
   useEffect(() => {
     reset();
+    getServices()
+      .then((services) => {
+        setAiCost(services.find((s) => s.serviceCode === 'AI_WRITING_SCORE')?.creditCost ?? null);
+        setExpertCost(services.find((s) => s.serviceCode === 'EXPERT_WRITING_SCORE')?.creditCost ?? null);
+      })
+      .catch(() => {});
   }, [reset]);
+
+  // Check draft after testDetail loads
+  useEffect(() => {
+    if (!testDetail) return;
+    const raw = localStorage.getItem(draftKey(id));
+    if (!raw) return;
+    try {
+      const draft: WritingDraft = JSON.parse(raw);
+      if (draft.content) {
+        setPendingDraft(draft);
+        setDraftDialogOpen(true);
+      }
+    } catch {
+      localStorage.removeItem(draftKey(id));
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [testDetail]);
+
+  // Auto-save draft on content/wordCount/elapsed change (debounce 1s)
+  useEffect(() => {
+    if (submitted) return; // Don't auto-save after submission
+    if (!content && wordCount === 0) return;
+
+    if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
+    autoSaveTimer.current = setTimeout(() => {
+      const draft: WritingDraft = { content, wordCount, elapsed };
+      localStorage.setItem(draftKey(id), JSON.stringify(draft));
+    }, 1000);
+
+    return () => {
+      if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
+    };
+  }, [content, wordCount, elapsed, id, submitted]);
 
   useEffect(() => {
     if (isGrading || gradingResult) setShowGrading(true);
@@ -80,11 +153,52 @@ export default function WritingExercisePage({ params }: Props) {
   const chartImageUrl = taskType === 1 ? (stimulus?.mediaUrl ?? undefined) : undefined;
   const sampleAnswer = stimulus?.questionGroups[0]?.instruction || undefined;
 
-  const canGrade = wordCount > 0 && !isGrading;
+  const canGrade = wordCount > 0 && !isGrading && !submitted;
 
+  // Phase 2: Nộp bài (lưu essay, không chấm điểm ngay)
+  const handleSubmit = async () => {
+    if (!stimulus || isSubmitting || submitted) return;
+    setIsSubmitting(true);
+    try {
+      const answer = stripHtml(content);
+
+      // 1. Lưu essay vào DB
+      const result = await submitWriting({
+        testId: Number(id),
+        stimulusId: stimulus.id,
+        taskType,
+        essayContent: answer,
+        wordCount,
+      });
+      setSubmissionId(result.submissionId);
+
+      // 2. Ghi lịch sử luyện tập
+      try {
+        await submitAttempt({
+          testId: Number(id),
+          stimulusId: stimulus.id,
+          elapsedSeconds: elapsed,
+          answers: [{ questionId: stimulus.questionGroups[0]?.questions[0]?.id ?? 0, answerText: answer }],
+        });
+      } catch { /* không ảnh hưởng đến luồng nộp bài */ }
+
+      // 3. Xoá draft
+      localStorage.removeItem(draftKey(id));
+      markCompleted(id);
+
+      // 4. Đánh dấu đã nộp — giữ nguyên trang để Phase 3 hiển thị dialog chấm điểm
+      setSubmitted(true);
+      setShowScoringDialog(true);
+    } catch {
+      toast.error('Nộp bài thất bại', { description: 'Vui lòng thử lại.' });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Phase 3 (giữ lại): Chấm điểm AI
   const handleGrade = async () => {
     const answer = stripHtml(content);
-    // Fetch chart image as File for Task 1
     let chartFile: File | undefined;
     if (taskType === 1 && chartImageUrl) {
       try {
@@ -100,17 +214,18 @@ export default function WritingExercisePage({ params }: Props) {
       answer,
       chartImage: chartFile,
     });
-    markCompleted(id);
-    // Submit attempt to track in practice history
-    if (stimulus) {
-      try {
-        await submitAttempt({
-          testId: Number(id),
-          stimulusId: stimulus.id,
-          elapsedSeconds: elapsed,
-          answers: [{ questionId: stimulus.questionGroups[0]?.questions[0]?.id ?? 0, answerText: answer }],
-        });
-      } catch { /* ignore - grading already done */ }
+    if (!submitted) {
+      markCompleted(id);
+      if (stimulus) {
+        try {
+          await submitAttempt({
+            testId: Number(id),
+            stimulusId: stimulus.id,
+            elapsedSeconds: elapsed,
+            answers: [{ questionId: stimulus.questionGroups[0]?.questions[0]?.id ?? 0, answerText: answer }],
+          });
+        } catch { /* ignore */ }
+      }
     }
   };
 
@@ -127,7 +242,9 @@ export default function WritingExercisePage({ params }: Props) {
         elapsedTime={elapsedTime}
         isGrading={isGrading}
         canGrade={canGrade}
-        onGrade={() => setShowScoringDialog(true)}
+        submitted={submitted}
+        isSubmitting={isSubmitting}
+        onGrade={handleSubmit}
         onExit={() => setExitOpen(true)}
       />
 
@@ -144,10 +261,13 @@ export default function WritingExercisePage({ params }: Props) {
         {/* Center: Editor */}
         <div className="flex-1 overflow-y-auto">
           <WritingEditor
+            key={editorKey}
             taskType={taskType}
             sampleAnswer={sampleAnswer}
             showSample={showSample}
             onToggleSample={() => setShowSample(v => !v)}
+            readOnly={submitted}
+            initialContent={restoredContent}
           />
         </div>
 
@@ -160,11 +280,23 @@ export default function WritingExercisePage({ params }: Props) {
         </div>
       </div>
 
-      <ScoringDialog
+      {/* Phase 3: Scoring options dialog (mở sau khi nộp bài) */}
+      <WritingScoringOptionsDialog
         open={showScoringDialog}
-        onClose={() => setShowScoringDialog(false)}
-        onAIScore={handleGrade}
-        skill="writing"
+        aiCost={aiCost}
+        expertCost={expertCost}
+        onAIScore={() => {
+          setShowScoringDialog(false);
+          handleGrade();
+        }}
+        onExpertScore={() => {
+          setShowScoringDialog(false);
+          router.push(`/expert-scoring?skill=writing&testId=${id}`);
+        }}
+        onSkip={() => {
+          setShowScoringDialog(false);
+          router.push('/practice?skill=writing');
+        }}
       />
 
       <GradingModal
@@ -172,6 +304,30 @@ export default function WritingExercisePage({ params }: Props) {
         onClose={() => setShowGrading(false)}
         result={gradingResult}
         isLoading={isGrading}
+      />
+
+      {/* Draft restore dialog */}
+      <ConfirmDialog
+        open={draftDialogOpen}
+        onOpenChange={setDraftDialogOpen}
+        title="Bạn có bài chưa nộp"
+        description="Bạn muốn tiếp tục bài viết trước đó hay bắt đầu lại?"
+        confirmText="Tiếp tục"
+        cancelText="Làm mới"
+        onConfirm={() => {
+          if (pendingDraft) {
+            setContent(pendingDraft.content);
+            setRestoredContent(pendingDraft.content);
+            setEditorKey(k => k + 1);
+          }
+          setPendingDraft(null);
+          setDraftDialogOpen(false);
+        }}
+        onCancel={() => {
+          localStorage.removeItem(draftKey(id));
+          setPendingDraft(null);
+          setDraftDialogOpen(false);
+        }}
       />
 
       <ConfirmDialog

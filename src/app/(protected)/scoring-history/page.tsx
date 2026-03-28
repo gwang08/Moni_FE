@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { GraduationCap, Loader2, Eye, Video, XCircle } from 'lucide-react';
+import { GraduationCap, Loader2, Eye, Video, XCircle, PenLine } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -14,6 +14,8 @@ import type { ScoringSession, ExpertEvaluation } from '@/types/expert.types';
 import { toast } from 'sonner';
 import { EvaluationDialog } from './evaluation-dialog';
 import { ScoringHistoryFilters, type FilterState } from './scoring-history-filters';
+import { WritingSubmissionsSection } from './writing-submissions-section';
+import { getWritingSubmissions, type WritingSubmission } from '@/lib/ai-api';
 
 type SessionStatus = ScoringSession['status'];
 
@@ -46,13 +48,28 @@ export default function ScoringHistoryPage() {
   const [evaluation, setEvaluation] = useState<ExpertEvaluation | null>(null);
   const [loadingEval, setLoadingEval] = useState(false);
   const [filters, setFilters] = useState<FilterState>({ status: 'ALL', skill: 'ALL', sort: 'newest' });
+  const [writingSubmissions, setWritingSubmissions] = useState<WritingSubmission[]>([]);
+  const [loadingWriting, setLoadingWriting] = useState(true);
 
   useEffect(() => {
     getMySessions()
       .then(setSessions)
       .catch(() => toast.error('Không thể tải lịch sử chấm điểm'))
       .finally(() => setLoading(false));
+
+    getWritingSubmissions()
+      .then(setWritingSubmissions)
+      .catch(() => toast.error('Không thể tải danh sách bài viết'))
+      .finally(() => setLoadingWriting(false));
   }, []);
+
+  const refreshWritingSubmissions = () => {
+    setLoadingWriting(true);
+    getWritingSubmissions()
+      .then(setWritingSubmissions)
+      .catch(() => toast.error('Không thể tải danh sách bài viết'))
+      .finally(() => setLoadingWriting(false));
+  };
 
   const filtered = sessions
     .filter(s => filters.status === 'ALL' || s.status === filters.status)
@@ -78,7 +95,31 @@ export default function ScoringHistoryPage() {
   };
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-8 space-y-6">
+    <div className="max-w-5xl mx-auto px-4 py-8 space-y-8">
+      {/* Writing Submissions Section */}
+      <section className="space-y-4">
+        <div className="flex items-center gap-3">
+          <div className="p-2 rounded-lg bg-primary/10">
+            <PenLine className="h-6 w-6 text-primary" />
+          </div>
+          <div>
+            <h2 className="text-xl font-bold">Bài viết đã nộp</h2>
+            <p className="text-sm text-muted-foreground">Danh sách bài writing của bạn</p>
+          </div>
+        </div>
+        <WritingSubmissionsSection
+          submissions={writingSubmissions}
+          loading={loadingWriting}
+          onRefresh={refreshWritingSubmissions}
+          onViewResult={(submissionId) => {
+            // Navigate to writing result page
+            router.push(`/writing/result/${submissionId}`);
+          }}
+        />
+      </section>
+
+      {/* Expert Sessions Section */}
+      <section className="space-y-4">
       <div className="flex items-center gap-3">
         <div className="p-2 rounded-lg bg-primary/10">
           <GraduationCap className="h-6 w-6 text-primary" />
@@ -208,6 +249,7 @@ export default function ScoringHistoryPage() {
           evaluation={evaluation}
         />
       )}
+      </section>
     </div>
   );
 }

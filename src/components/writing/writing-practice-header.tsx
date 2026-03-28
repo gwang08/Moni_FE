@@ -1,6 +1,6 @@
 'use client';
 
-import { ArrowLeft, Clock, Loader2, Sparkles } from 'lucide-react';
+import { ArrowLeft, Clock, Loader2, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { WritingTaskType } from '@/types/writing.types';
 
@@ -10,6 +10,8 @@ interface WritingPracticeHeaderProps {
   elapsedTime: string;
   isGrading: boolean;
   canGrade: boolean;
+  submitted?: boolean;
+  isSubmitting?: boolean;
   onGrade: () => void;
   onExit: () => void;
 }
@@ -20,6 +22,8 @@ export function WritingPracticeHeader({
   elapsedTime,
   isGrading,
   canGrade,
+  submitted = false,
+  isSubmitting = false,
   onGrade,
   onExit,
 }: WritingPracticeHeaderProps) {
@@ -47,23 +51,25 @@ export function WritingPracticeHeader({
 
       {/* Right */}
       <div className="flex items-center gap-2">
-        <Button
-          onClick={onGrade}
-          disabled={!canGrade || isGrading}
-          className="rounded-full bg-gradient-to-r from-teal-400 to-emerald-400 hover:from-teal-500 hover:to-emerald-500 text-white shadow-lg shadow-teal-300/40 px-5 text-sm h-9 gap-1.5 transition-all duration-200 hover:scale-105 hover:shadow-xl hover:shadow-teal-300/50 border border-teal-300/20"
-        >
-          {isGrading ? (
-            <>
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              Đang chấm...
-            </>
-          ) : (
-            <>
-              <Sparkles className="h-3.5 w-3.5" />
-              Chấm điểm
-            </>
-          )}
-        </Button>
+        {!submitted && (
+          <Button
+            onClick={onGrade}
+            disabled={!canGrade || isGrading || isSubmitting}
+            className="rounded-full bg-gradient-to-r from-teal-400 to-emerald-400 hover:from-teal-500 hover:to-emerald-500 text-white shadow-lg shadow-teal-300/40 px-5 text-sm h-9 gap-1.5 transition-all duration-200 hover:scale-105 hover:shadow-xl hover:shadow-teal-300/50 border border-teal-300/20"
+          >
+            {isSubmitting ? (
+              <>
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                Đang nộp...
+              </>
+            ) : (
+              <>
+                <Send className="h-3.5 w-3.5" />
+                Nộp bài
+              </>
+            )}
+          </Button>
+        )}
         <Button
           variant="ghost"
           onClick={onExit}

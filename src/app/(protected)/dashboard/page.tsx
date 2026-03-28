@@ -8,7 +8,7 @@ import { ExamCountdown } from '@/components/dashboard/exam-countdown';
 import { ActivityCalendar } from '@/components/dashboard/activity-calendar';
 import { WeeklyStats } from '@/components/dashboard/weekly-stats';
 import { PracticeHistory } from '@/components/dashboard/practice-history';
-import { RecentScoringSessions } from '@/components/dashboard/recent-scoring-sessions';
+// RecentScoringSessions merged into PracticeHistory (speaking tab)
 import { PlacementDialog } from '@/components/dashboard/placement-dialog';
 import { LearningRoadmap } from '@/components/dashboard/learning-roadmap';
 import { useUserStore } from '@/store/user-store';
@@ -115,10 +115,7 @@ export default function DashboardPage() {
               <WeeklyStats />
             </div>
 
-            {/* Scoring Sessions */}
-            <RecentScoringSessions />
-
-            {/* Bottom: Practice History */}
+            {/* Practice History (includes expert sessions in Speaking tab) */}
             <PracticeHistory />
           </div>
         )}

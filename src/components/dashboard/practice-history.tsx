@@ -197,7 +197,7 @@ export function PracticeHistory() {
     // Score filter
     if (scoreFilter !== 'all') {
       allEntries = allEntries.filter((e) => {
-        if (e.total === 0) return scoreFilter === 'all'; // expert sessions have no score
+        if (e.total === 0) return true; // expert sessions have no score — always show
         if (scoreFilter === 'high') return e.percentage >= 70;
         if (scoreFilter === 'mid') return e.percentage >= 40 && e.percentage < 70;
         return e.percentage < 40;

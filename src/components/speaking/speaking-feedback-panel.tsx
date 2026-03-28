@@ -41,7 +41,9 @@ export function SpeakingFeedbackPanel({
           <Info className="h-4 w-4 text-amber-500" />
         </div>
         <p className="text-sm text-amber-700 leading-relaxed">
-          {'Tính năng chấm điểm Speaking đang được phát triển. Vui lòng sử dụng bài mẫu để tự đánh giá.'}
+          {scoringError === 'PLACEHOLDER'
+            ? 'Tính năng chấm điểm Speaking đang được phát triển. Vui lòng sử dụng bài mẫu để tự đánh giá.'
+            : scoringError}
         </p>
       </div>
     );

@@ -100,8 +100,9 @@ export const useSpeakingStore = create<SpeakingStore>((set, get) => ({
       if (currentRecording) {
         addFeedback(currentRecording.id, feedback);
       }
-    } catch {
-      set({ scoringError: 'PLACEHOLDER' });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Chấm điểm thất bại. Vui lòng thử lại.';
+      set({ scoringError: msg });
     } finally {
       set({ isScoring: false });
     }

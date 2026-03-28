@@ -122,6 +122,8 @@ export default function SpeakingPracticePage({ params }: Props) {
     const ext = mimeType.includes('mp4') ? 'mp4' : 'webm';
     const file = new File([lastRecordedBlob], `recording.${ext}`, { type: mimeType });
     await submitForScoring(file, currentQuestion.content);
+    // Save attempt to history after scoring
+    await saveProgress();
   };
 
   const saveProgress = async () => {
@@ -132,7 +134,12 @@ export default function SpeakingPracticePage({ params }: Props) {
       try {
         const answers = questions
           .filter((q) => recordedBlobs[`${id}-q${q.id}`])
-          .map((q) => ({ questionId: q.id, answerText: q.content }));
+          .map((q) => {
+            // Use feedback transcript if available, otherwise mark as recorded
+            const rec = recordings.find((r) => r.taskId === `${id}-q${q.id}`);
+            const transcript = rec?.feedback?.comments || '[Đã ghi âm]';
+            return { questionId: q.id, answerText: transcript };
+          });
         if (answers.length > 0) {
           await submitAttempt({
             testId: Number(id),
@@ -143,11 +150,6 @@ export default function SpeakingPracticePage({ params }: Props) {
         }
       } catch { /* ignore */ }
     }
-  };
-
-  const handleSubmitAll = async () => {
-    await saveProgress();
-    router.push('/practice?skill=speaking');
   };
 
   const allRecorded = questions.length > 0 && questions.every((q) => recordedBlobs[`${id}-q${q.id}`]);

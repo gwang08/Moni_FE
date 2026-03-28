@@ -19,9 +19,9 @@ import type { QuestionGroupRequest, QuestionRequest, QuestionTypeCode, OptionReq
 
 const SHARED_OPTION_TYPES: QuestionTypeCode[] = ['MATCHING_HEADINGS', 'MATCHING_INFORMATION', 'MATCHING_FEATURE'];
 const DEFAULT_SHARED_HEADINGS = [
-  { label: 'i', content: '' }, { label: 'ii', content: '' },
-  { label: 'iii', content: '' }, { label: 'iv', content: '' },
-  { label: 'v', content: '' }, { label: 'vi', content: '' },
+  { label: 'A', content: '' }, { label: 'B', content: '' },
+  { label: 'C', content: '' }, { label: 'D', content: '' },
+  { label: 'E', content: '' }, { label: 'F', content: '' },
 ];
 
 interface Props {
@@ -179,7 +179,6 @@ export function QuestionGroupEditor({ group, groupIndex, positionOffset, stimulu
           <SharedOptionsEditor
             options={group.sharedOptions || []}
             onChange={opts => onChange({ ...group, sharedOptions: opts })}
-            labelPrefix="alpha"
             usageCounts={(() => {
               const counts: Record<string, number> = {};
               for (const q of group.questions) {

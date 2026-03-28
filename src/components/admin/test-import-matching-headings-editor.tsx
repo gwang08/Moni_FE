@@ -7,7 +7,7 @@ import { ChevronDown, ChevronUp, Plus, Trash2 } from 'lucide-react';
 import { EvidenceList, appendEvidence } from '@/components/admin/evidence-list';
 import type { QuestionRequest } from '@/types/admin.types';
 
-const ROMAN = ['i', 'ii', 'iii', 'iv', 'v', 'vi', 'vii', 'viii', 'ix', 'x', 'xi', 'xii'];
+const ALPHA = (idx: number) => String.fromCharCode(65 + idx); // A, B, C, D...
 
 /** Extract paragraph labels (A, B, C...) from passage HTML */
 export function detectParagraphs(html: string): string[] {
@@ -47,7 +47,7 @@ export function MatchingHeadingsEditor({ paragraphs, questions, pendingEvidence,
   // Extract distractors from existing sharedOptions (headings beyond paragraph count)
   const existingDistractors = (() => {
     // Find existing distractor headings from questions' options that don't map to any paragraph
-    const paraLabels = new Set(paragraphs.map((_, i) => ROMAN[i]));
+    const paraLabels = new Set(paragraphs.map((_, i) => ALPHA(i)));
     const seen = new Set<string>();
     for (const q of questions) {
       for (const o of q.options) {
@@ -75,16 +75,16 @@ export function MatchingHeadingsEditor({ paragraphs, questions, pendingEvidence,
     const allHeadings: { label: string; content: string }[] = [];
     paragraphs.forEach((p, i) => {
       const content = heads[`Paragraph ${p}`] || '';
-      if (content.trim()) allHeadings.push({ label: ROMAN[i] || String(i + 1), content });
+      if (content.trim()) allHeadings.push({ label: ALPHA(i) || String(i + 1), content });
     });
     const nextIdx = paragraphs.length;
     dists.forEach((d, i) => {
-      if (d.trim()) allHeadings.push({ label: ROMAN[nextIdx + i] || String(nextIdx + i + 1), content: d });
+      if (d.trim()) allHeadings.push({ label: ALPHA(nextIdx + i), content: d });
     });
 
     const newQuestions: QuestionRequest[] = paragraphs.map((p, i) => {
       const myHeading = heads[`Paragraph ${p}`] || '';
-      const myLabel = ROMAN[i] || String(i + 1);
+      const myLabel = ALPHA(i) || String(i + 1);
       const options = allHeadings.length > 0
         ? allHeadings.map(h => ({ label: h.label, content: h.content, isCorrect: h.label === myLabel && myHeading.trim() !== '' }))
         : [];
@@ -192,7 +192,7 @@ export function MatchingHeadingsEditor({ paragraphs, questions, pendingEvidence,
           </div>
           {distractors.map((d, i) => (
             <div key={i} className="flex items-center gap-2 px-3 py-2 bg-white">
-              <span className="text-xs text-gray-400 font-medium shrink-0 w-6">{ROMAN[paragraphs.length + i]}</span>
+              <span className="text-xs text-gray-400 font-medium shrink-0 w-6">{ALPHA(paragraphs.length + i)}</span>
               <Input value={d} onChange={e => updateDistractor(i, e.target.value)} placeholder="Heading ..." className="text-sm h-8" />
               <button type="button" onClick={() => removeDistractor(i)} className="text-gray-300 hover:text-red-500 shrink-0">
                 <Trash2 className="h-3.5 w-3.5" />

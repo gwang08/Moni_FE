@@ -133,7 +133,6 @@ export function TestEditAddQuestionGroupForm({ stimulusId, testId, stimulusConte
           <SharedOptionsEditor
             options={sharedOptions}
             onChange={setSharedOptions}
-            labelPrefix="alpha"
           />
           <MatchingTableEditor
             questions={questions.map((q, i) => ({ content: q.content, options: q.options, position: i + 1 }))}

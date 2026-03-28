@@ -14,18 +14,14 @@ interface SharedOption {
 interface Props {
   options: SharedOption[];
   onChange: (options: SharedOption[]) => void;
-  labelPrefix?: string; // "roman" for i,ii,iii or "alpha" for A,B,C
   usageCounts?: Record<string, number>; // label → count of questions using it
 }
 
-const ROMAN = ['i', 'ii', 'iii', 'iv', 'v', 'vi', 'vii', 'viii', 'ix', 'x', 'xi', 'xii'];
-
-export function SharedOptionsEditor({ options, onChange, labelPrefix = 'roman', usageCounts }: Props) {
+export function SharedOptionsEditor({ options, onChange, usageCounts }: Props) {
   const [showPaste, setShowPaste] = useState(false);
   const [pasteText, setPasteText] = useState('');
 
-  const getNextLabel = (idx: number) =>
-    labelPrefix === 'roman' ? ROMAN[idx] || `${idx + 1}` : String.fromCharCode(65 + idx);
+  const getNextLabel = (idx: number) => String.fromCharCode(65 + idx); // A, B, C, D...
 
   const addOption = () => {
     const label = getNextLabel(options.length);

@@ -11,7 +11,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { detectParagraphs } from '@/components/admin/test-import-matching-headings-editor';
 import type { QuestionDetail } from '@/types/test.types';
 
-const ROMAN = ['i', 'ii', 'iii', 'iv', 'v', 'vi', 'vii', 'viii', 'ix', 'x', 'xi', 'xii'];
+const ALPHA = (idx: number) => String.fromCharCode(65 + idx); // A, B, C, D...
 
 function buildParaMap(questions: QuestionDetail[]): Record<string, QuestionDetail> {
   const map: Record<string, QuestionDetail> = {};
@@ -37,7 +37,7 @@ export function TestEditMatchingHeadings({ questions, passageHtml, testId, pendi
   const [expanded, setExpanded] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const paraToQuestion = buildParaMap(questions);
-  const paraLabels = new Set(paragraphs.map((_, i) => ROMAN[i]));
+  const paraLabels = new Set(paragraphs.map((_, i) => ALPHA(i)));
   const allOptionLabels = questions[0]?.options.map(o => o.label) ?? [];
   const distractorLabels = allOptionLabels.filter(l => !paraLabels.has(l));
 
@@ -64,13 +64,13 @@ export function TestEditMatchingHeadings({ questions, passageHtml, testId, pendi
     setSaving(true);
     try {
       const allOptions: { label: string; content: string }[] = [];
-      paragraphs.forEach((p, i) => { const c = headings[p] ?? ''; if (c.trim()) allOptions.push({ label: ROMAN[i], content: c }); });
-      distractors.forEach((d, i) => { if (d.trim()) allOptions.push({ label: ROMAN[paragraphs.length + i], content: d }); });
+      paragraphs.forEach((p, i) => { const c = headings[p] ?? ''; if (c.trim()) allOptions.push({ label: ALPHA(i), content: c }); });
+      distractors.forEach((d, i) => { if (d.trim()) allOptions.push({ label: ALPHA(paragraphs.length + i), content: d }); });
       const updates: Record<string, { content: string; options: { label: string; content: string; isCorrect: boolean }[]; explanation?: { text?: string; evidence?: string } }> = {};
       paragraphs.forEach((p, i) => {
         const q = paraToQuestion[p];
         if (!q) return;
-        const myLabel = ROMAN[i];
+        const myLabel = ALPHA(i);
         const options = allOptions.map(o => ({ label: o.label, content: o.content, isCorrect: o.label === myLabel }));
         updates[String(q.id)] = { content: q.content, options, explanation: explanations[p] || undefined };
       });
@@ -143,7 +143,7 @@ export function TestEditMatchingHeadings({ questions, passageHtml, testId, pendi
           <div className="px-3 py-2 text-xs font-medium text-orange-600 bg-orange-50">Heading gây nhiễu</div>
           {distractors.map((d, i) => (
             <div key={i} className="flex items-center gap-2 px-3 py-2 bg-white">
-              <span className="text-xs text-gray-400 font-medium shrink-0 w-6">{ROMAN[paragraphs.length + i]}</span>
+              <span className="text-xs text-gray-400 font-medium shrink-0 w-6">{ALPHA(paragraphs.length + i)}</span>
               <Input value={d} onChange={e => { const next = [...distractors]; next[i] = e.target.value; setDistractors(next); }} placeholder="Heading ..." className="text-sm h-8" />
               <button type="button" onClick={() => setDistractors(d => d.filter((_, j) => j !== i))} className="text-gray-300 hover:text-red-500 shrink-0">
                 <Trash2 className="h-3.5 w-3.5" />

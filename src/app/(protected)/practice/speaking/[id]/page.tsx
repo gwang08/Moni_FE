@@ -118,15 +118,24 @@ export default function SpeakingPracticePage({ params }: Props) {
 
   const handleSubmitForScoring = async () => {
     if (!allRecorded) return;
-    // Merge all recorded blobs into one audio file
-    const orderedBlobs = questions
-      .map((q) => recordedBlobs[`${id}-q${q.id}`])
-      .filter(Boolean);
-    const firstBlob = orderedBlobs[0];
-    const mimeType = firstBlob.type || 'audio/webm';
+    // Collect all recorded blobs in question order
+    const orderedBlobs: Blob[] = [];
+    for (const q of questions) {
+      const blob = recordedBlobs[`${id}-q${q.id}`];
+      if (blob && blob.size > 0) orderedBlobs.push(blob);
+    }
+    if (orderedBlobs.length === 0) return;
+
+    // Use first blob's mime type
+    const mimeType = orderedBlobs[0].type || 'audio/webm';
     const ext = mimeType.includes('mp4') ? 'mp4' : 'webm';
-    const mergedBlob = new Blob(orderedBlobs, { type: mimeType });
-    const file = new File([mergedBlob], `speaking-full.${ext}`, { type: mimeType });
+
+    // If only 1 recording, send directly; otherwise merge
+    const finalBlob = orderedBlobs.length === 1
+      ? orderedBlobs[0]
+      : new Blob(orderedBlobs, { type: mimeType });
+    const file = new File([finalBlob], `speaking-full.${ext}`, { type: mimeType });
+
     // Build all questions as context
     const allQuestions = questions.map((q) => `Part ${q.partNumber} Q${q.position}: ${q.content}`).join('\n');
     await submitForScoring(file, allQuestions);

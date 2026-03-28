@@ -13,7 +13,8 @@ import { PracticeSidebar } from '@/components/practice/practice-sidebar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { BookOpen, Pencil, Headphones, Mic, Search, CheckCircle, Users } from 'lucide-react';
+import { BookOpen, Pencil, Headphones, Mic, Search, CheckCircle, Users, Play, Clock } from 'lucide-react';
+import { getAllActiveSessions, type ExamSession } from '@/lib/exam-api';
 import { SkeletonCard } from '@/components/ui/skeleton';
 import { QuestionTypeFilter, QUESTION_TYPE_LABELS } from '@/components/practice/question-type-filter';
 import type { Exercise, Skill, TestMode, TestType } from '@/types/practice.types';
@@ -70,6 +71,7 @@ function PracticePage() {
   const [expertCost, setExpertCost] = useState<number | null>(null);
   const [writingFilters, setWritingFilters] = useState<WritingFilters>({ task: null, types: [], topics: [] });
   const servicesFetched = useRef(false);
+  const [activeSessions, setActiveSessions] = useState<Map<number, ExamSession>>(new Map());
 
   useEffect(() => {
     if (servicesFetched.current) return;
@@ -78,6 +80,14 @@ function PracticePage() {
       .then((services) => {
         setAiCost(services.find((s) => s.serviceCode === 'AI_SPEAKING_SCORE')?.creditCost ?? null);
         setExpertCost(services.find((s) => s.serviceCode === 'EXPERT_SPEAKING_SCORE')?.creditCost ?? null);
+      })
+      .catch(() => {});
+    // Fetch active exam sessions
+    getAllActiveSessions()
+      .then((sessions) => {
+        const map = new Map<number, ExamSession>();
+        sessions.forEach((s) => map.set(s.testId, s));
+        setActiveSessions(map);
       })
       .catch(() => {});
   }, []);
@@ -256,15 +266,24 @@ function PracticePage() {
                 const config = SKILL_CONFIG[exercise.skill];
                 const isCompleted = completedExercises.includes(exercise.id);
                 const imgSrc = exercise.thumbnailUrl || DEFAULT_IMAGES[exercise.skill] || DEFAULT_IMAGES.reading;
+                const activeExam = activeSessions.get(Number(exercise.id));
+                const remainingMin = activeExam ? Math.floor(activeExam.remainingSeconds / 60) : 0;
+                const remainingSec = activeExam ? activeExam.remainingSeconds % 60 : 0;
                 return (
-                  <div key={exercise.id} className="relative bg-white rounded-xl overflow-hidden border hover:shadow-lg transition-all cursor-pointer group" onClick={() => handleStartExercise(exercise)}>
+                  <div key={exercise.id} className={`relative bg-white rounded-xl overflow-hidden border hover:shadow-lg transition-all cursor-pointer group ${activeExam ? 'ring-2 ring-orange-400' : ''}`} onClick={() => activeExam ? router.push(`/practice/${exercise.skill}/${exercise.id}?mode=exam`) : handleStartExercise(exercise)}>
                     <div className="relative h-36 bg-gray-200 overflow-hidden">
                       <img src={imgSrc} alt={exercise.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                       <div className="absolute top-2 left-2 bg-black/60 text-white text-xs px-2 py-1 rounded-full flex items-center gap-1">
                         <Users className="h-3 w-3" />{exercise.attemptCount ?? 0} lượt làm bài
                       </div>
                       <Badge className={`absolute bottom-2 left-2 ${config.bgColor} ${config.color} border-0`}>{config.label}</Badge>
-                      {isCompleted && (
+                      {activeExam && (
+                        <div className="absolute top-2 right-2 bg-orange-500 text-white text-[10px] font-bold px-2 py-1 rounded-full flex items-center gap-1 animate-pulse">
+                          <Clock className="h-3 w-3" />
+                          {remainingMin}:{String(remainingSec).padStart(2, '0')}
+                        </div>
+                      )}
+                      {!activeExam && isCompleted && (
                         <div className="absolute top-2 right-2 bg-green-500 text-white p-1 rounded-full">
                           <CheckCircle className="h-4 w-4" />
                         </div>
@@ -289,9 +308,15 @@ function PracticePage() {
                           ))}
                         </ul>
                       )}
-                      <Button className="w-full mt-auto bg-orange-500 hover:bg-orange-600 text-white rounded-full">
-                        Làm bài
-                      </Button>
+                      {activeExam ? (
+                        <Button className="w-full mt-auto bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white rounded-full flex items-center gap-2">
+                          <Play className="h-4 w-4" /> Làm tiếp ({remainingMin}:{String(remainingSec).padStart(2, '0')})
+                        </Button>
+                      ) : (
+                        <Button className="w-full mt-auto bg-orange-500 hover:bg-orange-600 text-white rounded-full">
+                          Làm bài
+                        </Button>
+                      )}
                     </div>
                   </div>
                 );

@@ -47,6 +47,18 @@ export async function getActiveSession(testId: number): Promise<ExamSession | nu
   }
 }
 
+export async function getAllActiveSessions(): Promise<ExamSession[]> {
+  try {
+    const res = await apiClient.get<ApiResponse<ExamSession[]>>(
+      '/api/v1/practice/exam/active-sessions',
+      true
+    );
+    return res.result ?? [];
+  } catch {
+    return [];
+  }
+}
+
 export async function saveExamProgress(
   sessionId: number,
   answers: AnswerPayload[]

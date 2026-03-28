@@ -57,6 +57,7 @@ export async function scoreWriting(params: {
   question: string;
   answer: string;
   chartImage?: File;
+  stimulusId?: number;
 }): Promise<Record<string, unknown>> {
   const token = getAuthToken();
   const formData = new FormData();
@@ -65,6 +66,9 @@ export async function scoreWriting(params: {
   formData.append('answer', params.answer);
   if (params.chartImage) {
     formData.append('chartImage', params.chartImage);
+  }
+  if (params.stimulusId) {
+    formData.append('stimulusId', String(params.stimulusId));
   }
 
   const response = await fetch(`${API_BASE_URL}/api/v1/ai/writing/score`, {

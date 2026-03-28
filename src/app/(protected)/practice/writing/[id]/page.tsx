@@ -213,6 +213,7 @@ export default function WritingExercisePage({ params }: Props) {
       question: prompt,
       answer,
       chartImage: chartFile,
+      stimulusId: stimulus?.id,
     });
     if (!submitted) {
       markCompleted(id);

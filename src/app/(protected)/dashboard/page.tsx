@@ -8,7 +8,7 @@ import { ExamCountdown } from '@/components/dashboard/exam-countdown';
 import { ActivityCalendar } from '@/components/dashboard/activity-calendar';
 import { WeeklyStats } from '@/components/dashboard/weekly-stats';
 import { PracticeHistory } from '@/components/dashboard/practice-history';
-// RecentScoringSessions merged into PracticeHistory (speaking tab)
+import { useAuthStore } from '@/store/auth-store';
 import { PlacementDialog } from '@/components/dashboard/placement-dialog';
 import { LearningRoadmap } from '@/components/dashboard/learning-roadmap';
 import { useUserStore } from '@/store/user-store';
@@ -37,6 +37,7 @@ export default function DashboardPage() {
   const setPlacementResult = useUserStore((s) => s.setPlacementResult);
   const setTargetScore = useUserStore((s) => s.setTargetScore);
   const setExamDate = useUserStore((s) => s.setExamDate);
+  const refreshProfile = useAuthStore((s) => s.refreshProfile);
   const [showPlacementDialog, setShowPlacementDialog] = useState(false);
   const fetchedRef = useRef(false);
 
@@ -79,6 +80,7 @@ export default function DashboardPage() {
 
     fetchPlacement();
     fetchProfile();
+    refreshProfile(); // Sync credit balance in header
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hydrated]);
 

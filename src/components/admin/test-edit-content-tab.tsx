@@ -454,7 +454,8 @@ export function TestEditContentTab({ test }: Props) {
             <PassageEditor value={passageEdit} onChange={setPassageEdit} />
           ) : (
             <div ref={passageRef}
-              className="flex-1 overflow-y-auto rounded-lg border border-gray-300 bg-white px-5 py-4 text-sm text-gray-800 leading-relaxed cursor-text select-text prose prose-sm max-w-none" />
+              className="flex-1 overflow-y-auto rounded-lg border border-gray-300 bg-white px-5 py-4 text-sm text-gray-800 leading-relaxed cursor-text select-text prose prose-sm max-w-none"
+              dangerouslySetInnerHTML={{ __html: stimulus.content || '<p class="text-gray-400 italic">Chưa có nội dung đề bài.</p>' }} />
           )}
 
           {!editingPassage && pendingEvidence && (

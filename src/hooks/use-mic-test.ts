@@ -6,9 +6,11 @@ import { useRef, useState, useCallback, useEffect } from 'react';
  */
 export function useMicTest(maxDuration = 20) {
   const [isRecording, setIsRecording] = useState(false);
+  const [isRequestingMic, setIsRequestingMic] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [hasRecorded, setHasRecorded] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const recorderRef = useRef<MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -50,11 +52,14 @@ export function useMicTest(maxDuration = 20) {
     }
     setHasRecorded(false);
     setRecordingTime(0);
+    setError(null);
     chunksRef.current = [];
+    setIsRequestingMic(true);
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       streamRef.current = stream;
+      setIsRequestingMic(false);
 
       const recorder = new MediaRecorder(stream);
       recorderRef.current = recorder;
@@ -83,7 +88,11 @@ export function useMicTest(maxDuration = 20) {
         stopRecording();
       }, maxDuration * 1000);
     } catch (err) {
+      setIsRequestingMic(false);
       console.error('[MicTest] Failed to access microphone:', err);
+      setError(
+        'Cannot access microphone. Please allow microphone permission and try again.',
+      );
     }
   }, [audioUrl, maxDuration, stopRecording]);
 
@@ -94,6 +103,7 @@ export function useMicTest(maxDuration = 20) {
     setAudioUrl(null);
     setHasRecorded(false);
     setRecordingTime(0);
+    setError(null);
   }, [audioUrl]);
 
   // Cleanup on unmount
@@ -108,9 +118,11 @@ export function useMicTest(maxDuration = 20) {
 
   return {
     isRecording,
+    isRequestingMic,
     recordingTime,
     audioUrl,
     hasRecorded,
+    error,
     startRecording,
     stopRecording,
     reset,

@@ -11,10 +11,9 @@ import { useSilenceDetector } from '@/hooks/use-silence-detector';
 import { ExamGuideScreen } from '@/components/speaking-exam/exam-guide-screen';
 import { ExamMicTestScreen } from '@/components/speaking-exam/exam-mic-test-screen';
 import { ExamQuestionDisplay } from '@/components/speaking-exam/exam-question-display';
-import { ExamCueCardDisplay } from '@/components/speaking-exam/exam-cue-card-display';
 import { ExamSpeakingTimer } from '@/components/speaking-exam/exam-speaking-timer';
 import { ExamEvaluationResult } from '@/components/speaking-exam/exam-evaluation-result';
-import { ExamPart2IntroScreen } from '@/components/speaking-exam/exam-part2-intro-screen';
+import { ExamPart2IntroScreen, ExamPart2CueCardWithNote } from '@/components/speaking-exam/exam-part2-intro-screen';
 import { ExamTransitionScreen } from '@/components/speaking-exam/exam-transition-screen';
 import { ExamErrorDisplay } from '@/components/speaking-exam/exam-error-display';
 
@@ -38,6 +37,9 @@ export default function SpeakingPracticePage({ params }: Props) {
   const stt = useAssemblyAISTT();
   const startedRef = useRef(false);
 
+  // Guard: prevent double-submit for the same question
+  const submittedQuestionRef = useRef<number | null>(null);
+
   // Refs to avoid unstable dependencies causing infinite loops
   const sttRef = useRef(stt);
   useEffect(() => { sttRef.current = stt; }, [stt]);
@@ -55,22 +57,53 @@ export default function SpeakingPracticePage({ params }: Props) {
   }, []);
 
   const handlePrepEnd = useCallback(() => {
-    examRef.current.startSpeakingPart2();
-    sttRef.current.startListening();
+    // AI speaks introduction before recording starts
+    if (typeof window !== 'undefined' && window.speechSynthesis) {
+      const intro = new SpeechSynthesisUtterance(
+        'You are going to have two minutes to answer. Your speaking part 2 will start now.',
+      );
+      intro.lang = 'en-US';
+      intro.rate = 0.9;
+
+      intro.onend = () => {
+        examRef.current.startSpeakingPart2();
+        sttRef.current.startListening();
+      };
+
+      window.speechSynthesis.cancel();
+      window.speechSynthesis.speak(intro);
+    } else {
+      // Fallback: start immediately
+      examRef.current.startSpeakingPart2();
+      sttRef.current.startListening();
+    }
   }, []);
 
   const timers = useSpeakingExamTimers(exam.examState, handlePrepEnd, handleStopPart2);
 
-  // ── Submit answer (Part 1 & 3) ────────────────────────────
+  // ── Submit answer (Part 1 & 3) with double-submit guard ───
   const handleSubmitAnswer = useCallback(() => {
-    if (!examRef.current.currentQuestion) return;
+    const currentQ = examRef.current.currentQuestion;
+    if (!currentQ) return;
+
+    // Guard: don't submit twice for the same question
+    if (submittedQuestionRef.current === currentQ.questionId) return;
+    submittedQuestionRef.current = currentQ.questionId;
+
     sttRef.current.stopListening();
     examRef.current.sendTranscript(
-      examRef.current.currentQuestion.partNumber,
-      examRef.current.currentQuestion.questionId,
+      currentQ.partNumber,
+      currentQ.questionId,
       sttRef.current.transcript || '[no response]',
     );
   }, []);
+
+  // Reset guard when question changes
+  useEffect(() => {
+    if (exam.currentQuestion) {
+      submittedQuestionRef.current = null;
+    }
+  }, [exam.currentQuestion?.questionId]);
 
   // ── Silence detection — auto-submit after 6s silence ──────
   const isSilenceActive =
@@ -138,6 +171,11 @@ export default function SpeakingPracticePage({ params }: Props) {
     }
   }, [exam.examState]);
 
+  // ── Skip prep handler ─────────────────────────────────────
+  const handleSkipPrep = useCallback(() => {
+    handlePrepEnd();
+  }, [handlePrepEnd]);
+
   // ── RENDER ────────────────────────────────────────────────
 
   // Stage 1: Guide screen
@@ -195,7 +233,7 @@ export default function SpeakingPracticePage({ params }: Props) {
     );
   }
 
-  // Part 2: Show intro screen first, then cue card
+  // Part 2: Show intro screen FIRST (before cue card)
   if (showPart2Intro && (examState === 'TRANSITIONING_TO_PART2' || examState === 'PART2_PREPARATION')) {
     return (
       <PageShell wide>
@@ -206,10 +244,15 @@ export default function SpeakingPracticePage({ params }: Props) {
     );
   }
 
+  // Part 2: Cue card with Note sidebar + thinking time
   if (examState === 'PART2_PREPARATION' && exam.cueCard) {
     return (
-      <PageShell>
-        <ExamCueCardDisplay topic={exam.cueCard.topic} prepTimer={timers.prepTimer} />
+      <PageShell wide>
+        <ExamPart2CueCardWithNote
+          topic={exam.cueCard.topic}
+          prepTimer={timers.prepTimer}
+          onSkipPrep={handleSkipPrep}
+        />
       </PageShell>
     );
   }

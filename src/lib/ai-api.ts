@@ -15,6 +15,31 @@ export interface WritingSubmission {
   submittedAt: string;
 }
 
+export interface WritingSubmissionDetail {
+  submissionId: number;
+  testId: number | null;
+  stimulusId: number | null;
+  taskType: WritingTaskType;
+  essayContent: string;
+  wordCount: number;
+  evaluationStatus: WritingEvaluationStatus;
+  submittedAt: string;
+  evaluation?: {
+    overallScore: number;
+    analysisResult: Record<string, unknown>;
+    feedbackResponse: Record<string, unknown>;
+  };
+}
+
+export async function getWritingSubmissionDetail(id: number): Promise<WritingSubmissionDetail> {
+  const response = await apiClient.get<ApiResponse<WritingSubmissionDetail>>(
+    `/api/v1/writing/submissions/${id}`,
+    true
+  );
+  if (!response.result) throw new Error('Không tìm thấy bài viết');
+  return response.result;
+}
+
 export async function getWritingSubmissions(): Promise<WritingSubmission[]> {
   const response = await apiClient.get<ApiResponse<WritingSubmission[]>>(
     '/api/v1/writing/submissions',

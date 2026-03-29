@@ -1,16 +1,10 @@
 'use client';
 
-import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Loader2, PenLine, RefreshCw } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { toast } from 'sonner';
-import { getWritingSubmissions, scoreWriting, type WritingSubmission, type WritingEvaluationStatus } from '@/lib/ai-api';
-import { CreditConfirmDialog } from '@/components/scoring/credit-confirm-dialog';
-import { useAuthStore } from '@/store/auth-store';
-
-// Will be passed from parent via props
+import type { WritingSubmission, WritingEvaluationStatus } from '@/lib/ai-api';
 
 function formatDate(dateStr: string): string {
   const d = new Date(
@@ -54,41 +48,10 @@ interface WritingSubmissionsSectionProps {
 export function WritingSubmissionsSection({
   submissions,
   loading,
-  aiCost,
   onRefresh,
-  onViewResult,
   onExpertScore,
 }: WritingSubmissionsSectionProps) {
   const router = useRouter();
-  const { user } = useAuthStore();
-  const [confirmOpen, setConfirmOpen] = useState(false);
-  const [pendingSubmissionId, setPendingSubmissionId] = useState<number | null>(null);
-  const [scoringId, setScoringId] = useState<number | null>(null);
-
-  const creditBalance = user?.credit ?? 0;
-
-  const handleAiScore = (submissionId: number) => {
-    setPendingSubmissionId(submissionId);
-    setConfirmOpen(true);
-  };
-
-  const handleConfirmAiScore = async () => {
-    if (!pendingSubmissionId) return;
-    setConfirmOpen(false);
-    setScoringId(pendingSubmissionId);
-    try {
-      toast.info('Tính năng chấm lại từ lịch sử đang phát triển. Vui lòng chấm ngay khi nộp bài.');
-    } catch {
-      toast.error('Không thể chấm điểm. Vui lòng thử lại.');
-    } finally {
-      setScoringId(null);
-      setPendingSubmissionId(null);
-    }
-  };
-
-  const handleSendExpert = (submissionId: number) => {
-    onExpertScore(submissionId);
-  };
 
   if (loading) {
     return (
@@ -108,89 +71,74 @@ export function WritingSubmissionsSection({
   }
 
   return (
-    <>
-      <div className="space-y-3">
-        {submissions.map((sub) => (
-          <div
-            key={sub.submissionId}
-            className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border px-4 py-3 bg-card hover:bg-muted/30 transition-colors"
-          >
-            {/* Left: info */}
-            <div className="flex items-center gap-3 flex-wrap">
-              <Badge variant="outline" className="text-xs font-semibold">
-                {sub.taskType === 'TASK_1' ? 'Task 1' : 'Task 2'}
-              </Badge>
-              <span className="text-sm text-muted-foreground">
-                {sub.wordCount != null ? `${sub.wordCount} từ` : '—'}
-              </span>
-              <span className="text-xs text-muted-foreground">{formatDate(sub.submittedAt)}</span>
-              <StatusBadge status={sub.evaluationStatus} />
-            </div>
+    <div className="space-y-3">
+      {submissions.map((sub) => (
+        <div
+          key={sub.submissionId}
+          className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border px-4 py-3 bg-card hover:bg-muted/30 transition-colors"
+        >
+          {/* Left: info */}
+          <div className="flex items-center gap-3 flex-wrap">
+            <Badge variant="outline" className="text-xs font-semibold">
+              {sub.taskType === 'TASK_1' ? 'Task 1' : 'Task 2'}
+            </Badge>
+            <span className="text-sm text-muted-foreground">
+              {sub.wordCount != null ? `${sub.wordCount} từ` : '—'}
+            </span>
+            <span className="text-xs text-muted-foreground">{formatDate(sub.submittedAt)}</span>
+            <StatusBadge status={sub.evaluationStatus} />
+          </div>
 
-            {/* Right: actions */}
-            <div className="flex items-center gap-2 shrink-0">
-              {(sub.evaluationStatus === 'PENDING' || sub.evaluationStatus === 'SUBMITTED') && (
-                <>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-7 text-xs"
-                    disabled={scoringId === sub.submissionId}
-                    onClick={() => handleAiScore(sub.submissionId)}
-                  >
-                    {scoringId === sub.submissionId ? (
-                      <Loader2 className="h-3 w-3 animate-spin mr-1" />
-                    ) : null}
-                    Chấm AI
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-7 text-xs"
-                    onClick={() => handleSendExpert(sub.submissionId)}
-                  >
-                    Gửi Expert
-                  </Button>
-                </>
-              )}
-              {sub.evaluationStatus === 'PROCESSING' && (
-                <Button size="sm" variant="ghost" className="h-7 text-xs gap-1" onClick={onRefresh}>
-                  <RefreshCw className="h-3 w-3" /> Làm mới
-                </Button>
-              )}
-              {sub.evaluationStatus === 'COMPLETED' && (
+          {/* Right: actions */}
+          <div className="flex items-center gap-2 shrink-0">
+            {(sub.evaluationStatus === 'PENDING' || sub.evaluationStatus === 'SUBMITTED') && (
+              <>
                 <Button
                   size="sm"
                   variant="outline"
                   className="h-7 text-xs"
-                  onClick={() => onViewResult(sub.submissionId)}
+                  onClick={() => router.push(`/writing/result/${sub.submissionId}`)}
                 >
-                  Xem kết quả
+                  Chấm AI
                 </Button>
-              )}
-              {sub.evaluationStatus === 'FAILED' && (
                 <Button
                   size="sm"
                   variant="outline"
-                  className="h-7 text-xs gap-1 text-red-500 hover:text-red-600"
-                  onClick={() => handleAiScore(sub.submissionId)}
+                  className="h-7 text-xs"
+                  onClick={() => onExpertScore(sub.submissionId)}
                 >
-                  <RefreshCw className="h-3 w-3" /> Thử lại
+                  Gửi Expert
                 </Button>
-              )}
-            </div>
+              </>
+            )}
+            {sub.evaluationStatus === 'PROCESSING' && (
+              <Button size="sm" variant="ghost" className="h-7 text-xs gap-1" onClick={onRefresh}>
+                <RefreshCw className="h-3 w-3" /> Làm mới
+              </Button>
+            )}
+            {sub.evaluationStatus === 'COMPLETED' && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-7 text-xs"
+                onClick={() => router.push(`/writing/result/${sub.submissionId}`)}
+              >
+                Xem kết quả
+              </Button>
+            )}
+            {sub.evaluationStatus === 'FAILED' && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-7 text-xs gap-1 text-red-500 hover:text-red-600"
+                onClick={() => router.push(`/writing/result/${sub.submissionId}`)}
+              >
+                <RefreshCw className="h-3 w-3" /> Thử lại
+              </Button>
+            )}
           </div>
-        ))}
-      </div>
-
-      <CreditConfirmDialog
-        open={confirmOpen}
-        onClose={() => { setConfirmOpen(false); setPendingSubmissionId(null); }}
-        onConfirm={handleConfirmAiScore}
-        serviceName="Chấm writing bằng AI"
-        creditCost={aiCost}
-        currentBalance={creditBalance}
-      />
-    </>
+        </div>
+      ))}
+    </div>
   );
 }

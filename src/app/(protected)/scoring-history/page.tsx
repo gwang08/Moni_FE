@@ -137,8 +137,8 @@ export default function ScoringHistoryPage() {
           loading={loadingWriting}
           aiCost={aiCost}
           onRefresh={refreshWritingSubmissions}
-          onViewResult={() => {
-            toast.info('Tính năng xem lại bài chấm đang phát triển.');
+          onViewResult={(submissionId) => {
+            router.push(`/writing/result/${submissionId}`);
           }}
           onExpertScore={(submissionId) => {
             setExpertSubmissionId(submissionId);

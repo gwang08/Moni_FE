@@ -10,7 +10,7 @@ import { WritingPracticeHeader } from '@/components/writing/writing-practice-hea
 import { WritingPromptPanel } from '@/components/writing/writing-prompt-panel';
 import { WritingEditor } from '@/components/writing/writing-editor';
 import { WritingToolbarPanel } from '@/components/writing/writing-toolbar-panel';
-import { GradingModal } from '@/components/writing/grading-modal';
+// GradingModal removed — redirect to /writing/result/{id} for full detail
 import { WritingScoringOptionsDialog } from '@/components/writing/writing-scoring-options-dialog';
 import { getServices } from '@/lib/payment-api';
 import { useWritingStore } from '@/store/writing-store';
@@ -60,7 +60,6 @@ export default function WritingExercisePage({ params }: Props) {
   const markCompleted = usePracticeStore((state) => state.markCompleted);
   const refreshProfile = useAuthStore((state) => state.refreshProfile);
 
-  const [showGrading, setShowGrading] = useState(false);
   const [exitOpen, setExitOpen] = useState(false);
   const [showSample, setShowSample] = useState(false);
   const [showScoringDialog, setShowScoringDialog] = useState(false);
@@ -129,9 +128,7 @@ export default function WritingExercisePage({ params }: Props) {
     };
   }, [content, wordCount, elapsed, id, submitted]);
 
-  useEffect(() => {
-    if (isGrading) setShowGrading(true);
-  }, [isGrading]);
+  // Removed GradingModal — redirect to /writing/result/{id} instead
 
   if (loading) {
     return <SkeletonPractice />;
@@ -211,6 +208,7 @@ export default function WritingExercisePage({ params }: Props) {
       submissionId: submissionId ?? undefined,
     });
     refreshProfile();
+    if (submissionId) router.push(`/writing/result/${submissionId}`);
   };
 
   return (
@@ -281,16 +279,6 @@ export default function WritingExercisePage({ params }: Props) {
           setShowScoringDialog(false);
           router.push('/scoring-history');
         }}
-      />
-
-      <GradingModal
-        isOpen={showGrading}
-        onClose={() => {
-          setShowGrading(false);
-          if (gradingResult) router.push('/scoring-history');
-        }}
-        result={gradingResult}
-        isLoading={isGrading}
       />
 
       {/* Draft restore dialog */}

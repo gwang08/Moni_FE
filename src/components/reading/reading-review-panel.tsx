@@ -145,6 +145,7 @@ function ReviewQuestionGroup({ group, answers, textAnswers, onLocateEvidence }: 
             submitted={true}
             explanation={q.explanation}
             onAnswer={() => {}}
+            onLocateEvidence={onLocateEvidence}
           />
         ))}
       </div>

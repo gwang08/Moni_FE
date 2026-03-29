@@ -14,13 +14,15 @@ interface Props {
   submitted: boolean;
   explanation?: { text?: string; evidence?: string };
   onAnswer: (questionId: number, optionId: number) => void;
+  onLocateEvidence?: (evidence: string) => void;
 }
 
 /** Button-style renderer for MCQ, MCQ_MULTIPLE, TFNG, YNNG */
-export function ReadingQuestionMcq({ questionId, position, content, options, selectedId, selectedIds, multiple, submitted, explanation, onAnswer }: Props) {
+export function ReadingQuestionMcq({ questionId, position, content, options, selectedId, selectedIds, multiple, submitted, explanation, onAnswer, onLocateEvidence }: Props) {
   const selected = multiple ? (selectedIds ?? []) : (selectedId != null ? [selectedId] : []);
   const hasAnswer = selected.length > 0;
-  const showResult = submitted && hasAnswer;
+  // Show correct answers when submitted (even if user didn't answer)
+  const showResult = submitted;
 
   return (
     <div id={`question-${questionId}`} className="border border-gray-200 rounded-lg p-4">
@@ -83,8 +85,11 @@ export function ReadingQuestionMcq({ questionId, position, content, options, sel
           {explanation.evidence && (
             <div className="space-y-1 mt-1">
               {explanation.evidence.split('\n---\n').filter((e: string) => e.trim()).map((chunk: string, i: number) => (
-                <p key={i} className="text-xs text-amber-700 bg-amber-50 px-2 py-1 rounded">
-                  Dẫn chứng: &ldquo;{chunk.trim()}&rdquo;
+                <p key={i}
+                  className={`text-xs text-amber-700 bg-amber-50 px-2 py-1 rounded ${onLocateEvidence ? 'cursor-pointer hover:bg-amber-100' : ''}`}
+                  onClick={() => onLocateEvidence?.(chunk.trim())}
+                >
+                  Dẫn chứng {i + 1}: &ldquo;{chunk.trim()}&rdquo;
                 </p>
               ))}
             </div>

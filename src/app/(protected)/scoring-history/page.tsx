@@ -310,6 +310,7 @@ export default function ScoringHistoryPage() {
                     skill: 'WRITING',
                     content: sub.essayContent,
                     testId: sub.testId ?? undefined,
+                    writingSubmissionId: sub.submissionId,
                   });
                   await refreshProfile();
                   toast.success('Đã gửi bài cho giảng viên!');

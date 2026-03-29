@@ -25,6 +25,7 @@ export async function createScoringSession(data: {
   skill: string;
   content: string;
   testId?: number;
+  writingSubmissionId?: number;
 }): Promise<ScoringSession> {
   const response = await apiClient.post<ApiResponse<ScoringSession>>(
     '/api/v1/scoring-sessions',

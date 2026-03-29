@@ -9,7 +9,14 @@ import {
   Dialog,
   DialogContent,
 } from '@/components/ui/dialog';
-import { getMySessions, getSessionEvaluation, cancelScoringSession } from '@/lib/expert-api';
+import { getMySessions, getSessionEvaluation, cancelScoringSession, getExperts, createScoringSession } from '@/lib/expert-api';
+import { getServices } from '@/lib/payment-api';
+import type { ExpertProfile } from '@/types/expert.types';
+import { SpeakingModeExpertGrid } from '@/components/speaking/speaking-mode-expert-grid';
+import { SpeakingModeExpertInlineConfirm } from '@/components/speaking/speaking-mode-expert-inline-confirm';
+import { useAuthStore } from '@/store/auth-store';
+import { Input } from '@/components/ui/input';
+import { Search, ArrowLeft } from 'lucide-react';
 import type { ScoringSession, ExpertEvaluation } from '@/types/expert.types';
 import { toast } from 'sonner';
 import { EvaluationDialog } from './evaluation-dialog';
@@ -50,6 +57,17 @@ export default function ScoringHistoryPage() {
   const [filters, setFilters] = useState<FilterState>({ status: 'ALL', skill: 'ALL', sort: 'newest' });
   const [writingSubmissions, setWritingSubmissions] = useState<WritingSubmission[]>([]);
   const [loadingWriting, setLoadingWriting] = useState(true);
+  const [aiCost, setAiCost] = useState(0);
+  const [expertCost, setExpertCost] = useState(0);
+  // Expert selection modal
+  const [expertModalOpen, setExpertModalOpen] = useState(false);
+  const [expertSubmissionId, setExpertSubmissionId] = useState<number | null>(null);
+  const [experts, setExperts] = useState<ExpertProfile[]>([]);
+  const [loadingExperts, setLoadingExperts] = useState(false);
+  const [expertSearch, setExpertSearch] = useState('');
+  const [confirming, setConfirming] = useState<ExpertProfile | null>(null);
+  const [submittingExpert, setSubmittingExpert] = useState(false);
+  const { user, refreshProfile } = useAuthStore();
 
   useEffect(() => {
     getMySessions()
@@ -61,6 +79,13 @@ export default function ScoringHistoryPage() {
       .then(setWritingSubmissions)
       .catch(() => toast.error('Không thể tải danh sách bài viết'))
       .finally(() => setLoadingWriting(false));
+
+    getServices()
+      .then((services) => {
+        setAiCost(services.find((s) => s.serviceCode === 'AI_WRITING_SCORE')?.creditCost ?? 0);
+        setExpertCost(services.find((s) => s.serviceCode === 'EXPERT_WRITING_SCORE')?.creditCost ?? 0);
+      })
+      .catch(() => {});
   }, []);
 
   const refreshWritingSubmissions = () => {
@@ -110,10 +135,21 @@ export default function ScoringHistoryPage() {
         <WritingSubmissionsSection
           submissions={writingSubmissions}
           loading={loadingWriting}
+          aiCost={aiCost}
           onRefresh={refreshWritingSubmissions}
           onViewResult={(submissionId) => {
-            // Navigate to writing result page
             router.push(`/writing/result/${submissionId}`);
+          }}
+          onExpertScore={(submissionId) => {
+            setExpertSubmissionId(submissionId);
+            setExpertModalOpen(true);
+            if (experts.length === 0) {
+              setLoadingExperts(true);
+              getExperts('WRITING')
+                .then(setExperts)
+                .catch(() => toast.error('Không thể tải danh sách giảng viên'))
+                .finally(() => setLoadingExperts(false));
+            }
           }}
         />
       </section>
@@ -250,6 +286,59 @@ export default function ScoringHistoryPage() {
         />
       )}
       </section>
+
+      {/* Expert selection modal for writing */}
+      <Dialog open={expertModalOpen} onOpenChange={(v) => { if (!v) { setExpertModalOpen(false); setConfirming(null); } }}>
+        <DialogContent className="sm:max-w-2xl">
+          <div className="flex items-center gap-2 mb-3">
+            <h3 className="text-lg font-bold">Chọn giảng viên chấm Writing</h3>
+          </div>
+          {confirming && (
+            <SpeakingModeExpertInlineConfirm
+              expert={confirming}
+              cost={expertCost}
+              balance={user?.credit ?? 0}
+              submitting={submittingExpert}
+              onConfirm={async () => {
+                if (!expertSubmissionId) return;
+                setSubmittingExpert(true);
+                try {
+                  await createScoringSession({
+                    expertId: confirming.id,
+                    skill: 'WRITING',
+                    content: '',
+                    testId: 0,
+                  });
+                  await refreshProfile();
+                  toast.success('Đã gửi bài cho giảng viên!');
+                  setExpertModalOpen(false);
+                  setConfirming(null);
+                  refreshWritingSubmissions();
+                } catch {
+                  toast.error('Không thể tạo phiên chấm');
+                } finally {
+                  setSubmittingExpert(false);
+                }
+              }}
+              onCancel={() => setConfirming(null)}
+            />
+          )}
+          <div className="relative mb-3">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Input value={expertSearch} onChange={(e) => setExpertSearch(e.target.value)} placeholder="Tìm theo tên..." className="pl-9" />
+          </div>
+          {loadingExperts ? (
+            <div className="grid grid-cols-2 gap-3">{Array.from({ length: 4 }).map((_, i) => <div key={i} className="h-28 rounded-xl bg-muted animate-pulse" />)}</div>
+          ) : (
+            <SpeakingModeExpertGrid
+              experts={experts.filter((e) => !expertSearch.trim() || e.displayName.toLowerCase().includes(expertSearch.toLowerCase()))}
+              expertCost={expertCost}
+              onBook={(e) => setConfirming(e)}
+              onDetail={(e) => router.push(`/experts/${e.id}`)}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

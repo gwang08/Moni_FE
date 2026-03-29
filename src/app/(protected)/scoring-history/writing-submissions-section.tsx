@@ -10,8 +10,7 @@ import { getWritingSubmissions, scoreWriting, type WritingSubmission, type Writi
 import { CreditConfirmDialog } from '@/components/scoring/credit-confirm-dialog';
 import { useAuthStore } from '@/store/auth-store';
 
-// Credit cost for AI writing scoring
-const AI_WRITING_CREDIT_COST = 5;
+// Will be passed from parent via props
 
 function formatDate(dateStr: string): string {
   const d = new Date(
@@ -46,15 +45,19 @@ function StatusBadge({ status }: { status: WritingEvaluationStatus }) {
 interface WritingSubmissionsSectionProps {
   submissions: WritingSubmission[];
   loading: boolean;
+  aiCost: number;
   onRefresh: () => void;
   onViewResult: (submissionId: number) => void;
+  onExpertScore: (submissionId: number) => void;
 }
 
 export function WritingSubmissionsSection({
   submissions,
   loading,
+  aiCost,
   onRefresh,
   onViewResult,
+  onExpertScore,
 }: WritingSubmissionsSectionProps) {
   const router = useRouter();
   const { user } = useAuthStore();
@@ -89,7 +92,7 @@ export function WritingSubmissionsSection({
   };
 
   const handleSendExpert = (submissionId: number) => {
-    router.push(`/experts?submissionId=${submissionId}&skill=WRITING`);
+    onExpertScore(submissionId);
   };
 
   if (loading) {
@@ -190,7 +193,7 @@ export function WritingSubmissionsSection({
         onClose={() => { setConfirmOpen(false); setPendingSubmissionId(null); }}
         onConfirm={handleConfirmAiScore}
         serviceName="Chấm writing bằng AI"
-        creditCost={AI_WRITING_CREDIT_COST}
+        creditCost={aiCost}
         currentBalance={creditBalance}
       />
     </>

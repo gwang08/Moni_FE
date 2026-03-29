@@ -22,7 +22,7 @@ import { toast } from 'sonner';
 import { EvaluationDialog } from './evaluation-dialog';
 import { ScoringHistoryFilters, type FilterState } from './scoring-history-filters';
 import { WritingSubmissionsSection } from './writing-submissions-section';
-import { getWritingSubmissions, type WritingSubmission } from '@/lib/ai-api';
+import { getWritingSubmissions, getWritingSubmissionDetail, type WritingSubmission } from '@/lib/ai-api';
 
 type SessionStatus = ScoringSession['status'];
 
@@ -303,11 +303,13 @@ export default function ScoringHistoryPage() {
                 if (!expertSubmissionId) return;
                 setSubmittingExpert(true);
                 try {
+                  // Fetch full essay content before sending to expert
+                  const sub = await getWritingSubmissionDetail(expertSubmissionId);
                   await createScoringSession({
                     expertId: confirming.id,
                     skill: 'WRITING',
-                    content: '',
-                    testId: 0,
+                    content: sub.essayContent,
+                    testId: sub.testId ?? undefined,
                   });
                   await refreshProfile();
                   toast.success('Đã gửi bài cho giảng viên!');

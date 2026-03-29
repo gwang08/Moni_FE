@@ -151,10 +151,9 @@ export default function WritingExercisePage({ params }: Props) {
   const taskType: WritingTaskType = testDetail.section === 1 ? 1 : 2;
   const stimulus = testDetail.stimuli[0];
   const prompt = stimulus?.content || testDetail.description || FALLBACK_PROMPT;
-  // Chart image: prefer mediaUrl, fallback to extracting from content HTML <img>
-  const chartImageUrl = taskType === 1
-    ? (stimulus?.mediaUrl || stimulus?.content?.match(/<img[^>]+src="([^"]+)"/)?.[1] || undefined)
-    : undefined;
+  // Only use mediaUrl for chart display — if image is embedded in HTML content,
+  // WritingPromptPanel will render it from the HTML directly (avoid double rendering)
+  const chartImageUrl = taskType === 1 ? (stimulus?.mediaUrl ?? undefined) : undefined;
   const sampleAnswer = stimulus?.questionGroups[0]?.instruction || undefined;
 
   const canGrade = wordCount > 0 && !isGrading && !submitted;
@@ -193,13 +192,14 @@ export default function WritingExercisePage({ params }: Props) {
   // Phase 3 (giữ lại): Chấm điểm AI
   const handleGrade = async () => {
     const answer = stripHtml(content);
+    // For scoring API: get chart image from mediaUrl or extract from HTML content
+    const scoringChartUrl = stimulus?.mediaUrl || stimulus?.content?.match(/<img[^>]+src="([^"]+)"/)?.[1];
     let chartFile: File | undefined;
-    if (taskType === 1 && chartImageUrl) {
+    if (taskType === 1 && scoringChartUrl) {
       try {
-        const res = await fetch(chartImageUrl);
+        const res = await fetch(scoringChartUrl);
         const blob = await res.blob();
-        const ext = chartImageUrl.split('.').pop()?.split('?')[0] || 'png';
-        chartFile = new File([blob], `chart.${ext}`, { type: blob.type || 'image/png' });
+        chartFile = new File([blob], 'chart.png', { type: blob.type || 'image/png' });
       } catch { /* proceed without chart */ }
     }
     await submitForGrading({
@@ -274,7 +274,7 @@ export default function WritingExercisePage({ params }: Props) {
         }}
         onExpertScore={() => {
           setShowScoringDialog(false);
-          router.push(`/expert-scoring?skill=writing&testId=${id}`);
+          router.push('/scoring-history');
         }}
         onSkip={() => {
           setShowScoringDialog(false);

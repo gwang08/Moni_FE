@@ -83,14 +83,16 @@ export default function ListeningReviewPage({ params }: Props) {
   const rawStimulus = testDetail.stimuli[0];
 
   // Merge API explanation/evidence into stimulus questions (for history review)
+  const explanationsJson = resultData?.explanations ? JSON.stringify(resultData.explanations) : '';
   const stimulus = useMemo(() => {
-    if (!rawStimulus || !resultData?.explanations) return rawStimulus;
+    if (!rawStimulus || !explanationsJson) return rawStimulus;
+    const explanations: Record<number, { text?: string; evidence?: string }> = JSON.parse(explanationsJson);
     return {
       ...rawStimulus,
       questionGroups: rawStimulus.questionGroups.map((g) => ({
         ...g,
         questions: g.questions.map((q) => {
-          const apiExpl = resultData.explanations?.[q.id];
+          const apiExpl = explanations[q.id];
           if (!apiExpl) return q;
           return {
             ...q,
@@ -103,7 +105,7 @@ export default function ListeningReviewPage({ params }: Props) {
         }),
       })),
     };
-  }, [rawStimulus, resultData?.explanations]);
+  }, [rawStimulus, explanationsJson]);
 
   if (!stimulus) {
     return (

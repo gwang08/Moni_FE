@@ -106,14 +106,16 @@ export default function ReadingReviewPage({ params }: Props) {
   const stimuli = testDetail?.stimuli[0];
 
   // Merge API explanation/evidence into stimulus questions (for history review)
+  const explanationsJson = resultData?.explanations ? JSON.stringify(resultData.explanations) : '';
   const enrichedStimulus = useMemo(() => {
-    if (!stimuli || !resultData?.explanations) return stimuli;
+    if (!stimuli || !explanationsJson) return stimuli;
+    const explanations: Record<number, { text?: string; evidence?: string }> = JSON.parse(explanationsJson);
     return {
       ...stimuli,
       questionGroups: stimuli.questionGroups.map((g) => ({
         ...g,
         questions: g.questions.map((q) => {
-          const apiExpl = resultData.explanations?.[q.id];
+          const apiExpl = explanations[q.id];
           if (!apiExpl) return q;
           return {
             ...q,
@@ -126,7 +128,7 @@ export default function ReadingReviewPage({ params }: Props) {
         }),
       })),
     };
-  }, [stimuli, resultData?.explanations]);
+  }, [stimuli, explanationsJson]);
 
   const passageHtml = useMemo(() => {
     const formatted = formatReadingPassage(stimuli?.content ?? '');

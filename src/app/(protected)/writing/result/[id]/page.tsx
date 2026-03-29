@@ -8,7 +8,7 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { GradingModal } from '@/components/writing/grading-modal';
+import { WritingScoringProgressDialog } from '@/components/writing/writing-scoring-progress-dialog';
 import { WritingPromptPanel } from '@/components/writing/writing-prompt-panel';
 import { useTestDetail } from '@/hooks/use-test-detail';
 import { useAuthStore } from '@/store/auth-store';
@@ -428,7 +428,7 @@ export default function WritingResultPage({ params }: Props) {
         </div>
       </div>
 
-      <GradingModal isOpen={showGrading} onClose={() => setShowGrading(false)} result={gradingResult} isLoading={isGrading} />
+      <WritingScoringProgressDialog open={isGrading} />
     </div>
   );
 }

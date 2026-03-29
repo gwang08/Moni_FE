@@ -10,7 +10,7 @@ import { WritingPracticeHeader } from '@/components/writing/writing-practice-hea
 import { WritingPromptPanel } from '@/components/writing/writing-prompt-panel';
 import { WritingEditor } from '@/components/writing/writing-editor';
 import { WritingToolbarPanel } from '@/components/writing/writing-toolbar-panel';
-// GradingModal removed — redirect to /writing/result/{id} for full detail
+import { WritingScoringProgressDialog } from '@/components/writing/writing-scoring-progress-dialog';
 import { WritingScoringOptionsDialog } from '@/components/writing/writing-scoring-options-dialog';
 import { getServices } from '@/lib/payment-api';
 import { useWritingStore } from '@/store/writing-store';
@@ -280,6 +280,9 @@ export default function WritingExercisePage({ params }: Props) {
           router.push('/scoring-history');
         }}
       />
+
+      {/* Scoring progress dialog */}
+      <WritingScoringProgressDialog open={isGrading} />
 
       {/* Draft restore dialog */}
       <ConfirmDialog

@@ -17,6 +17,7 @@ interface WritingStore {
     answer: string;
     chartImage?: File;
     stimulusId?: number;
+    submissionId?: number;
   }) => Promise<void>;
   clearResult: () => void;
   reset: () => void;

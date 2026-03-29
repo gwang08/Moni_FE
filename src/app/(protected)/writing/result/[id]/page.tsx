@@ -140,6 +140,7 @@ export default function WritingResultPage({ params }: Props) {
       answer: submission.essayContent,
       chartImage: chartFile,
       stimulusId: submission.stimulusId ?? undefined,
+      submissionId: submission.submissionId,
     });
     refreshProfile();
   };

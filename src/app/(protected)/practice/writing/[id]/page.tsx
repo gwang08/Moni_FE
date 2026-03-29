@@ -208,6 +208,7 @@ export default function WritingExercisePage({ params }: Props) {
       answer,
       chartImage: chartFile,
       stimulusId: stimulus?.id,
+      submissionId: submissionId ?? undefined,
     });
     refreshProfile();
   };

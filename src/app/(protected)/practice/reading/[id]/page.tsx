@@ -33,7 +33,7 @@ function parseSavedAnswers(savedAnswers: SavedAnswer[]) {
   const answers: Record<number, number> = {};
   const textAnswers: Record<number, string> = {};
   for (const sa of savedAnswers) {
-    if (sa.selectedOptionId) answers[sa.questionId] = sa.selectedOptionId;
+    if (sa.selectedOptionId != null) answers[sa.questionId] = sa.selectedOptionId;
     if (sa.answerText) textAnswers[sa.questionId] = sa.answerText;
   }
   return { answers, textAnswers };

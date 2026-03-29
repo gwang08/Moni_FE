@@ -67,7 +67,7 @@ export default function ReadingReviewPage({ params }: Props) {
         const textAnswers: Record<number, string> = {};
         const explanations: Record<number, { text?: string; evidence?: string }> = {};
         for (const r of res.results) {
-          if (r.selectedOptionId) answers[r.questionId] = r.selectedOptionId;
+          if (r.selectedOptionId != null) answers[r.questionId] = r.selectedOptionId;
           if (r.answerText) textAnswers[r.questionId] = r.answerText;
           if (r.explanation || r.evidence) {
             explanations[r.questionId] = {

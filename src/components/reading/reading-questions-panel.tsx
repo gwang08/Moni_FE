@@ -128,7 +128,6 @@ export function ReadingQuestionsPanel({ stimulus, submitted = false, answers, on
                 submitted={submitted}
                 textAnswers={textAnswers}
                 onTextAnswer={onTextAnswer || (() => {})}
-                questionOffset={questionOffset}
               />
             ) : (
               <div className="space-y-4">

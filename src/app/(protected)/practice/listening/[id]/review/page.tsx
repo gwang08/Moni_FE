@@ -48,7 +48,7 @@ export default function ListeningReviewPage({ params }: Props) {
         const textAnswers: Record<number, string> = {};
         const explanations: Record<number, { text?: string; evidence?: string }> = {};
         for (const r of res.results) {
-          if (r.selectedOptionId) answers[r.questionId] = r.selectedOptionId;
+          if (r.selectedOptionId != null) answers[r.questionId] = r.selectedOptionId;
           if (r.answerText) textAnswers[r.questionId] = r.answerText;
           if (r.explanation || r.evidence) {
             explanations[r.questionId] = {
@@ -151,7 +151,7 @@ export default function ListeningReviewPage({ params }: Props) {
                 container.querySelectorAll('.ring-amber-400').forEach((el) => {
                   el.classList.remove('bg-amber-100', 'ring-2', 'ring-amber-400');
                 });
-                const buttons = container.querySelectorAll('button');
+                const buttons = container.querySelectorAll<HTMLButtonElement>('button[data-start-time]');
                 const chunks = evidence.split('\n---\n').map(c => c.trim().toLowerCase()).filter(Boolean);
                 // Try matching each transcript segment — use progressive word matching
                 for (const btn of buttons) {
@@ -165,6 +165,11 @@ export default function ListeningReviewPage({ params }: Props) {
                     return false;
                   });
                   if (matched) {
+                    const startTime = Number(btn.dataset.startTime ?? '0');
+                    if (audioRef.current) {
+                      audioRef.current.currentTime = Number.isFinite(startTime) ? startTime : 0;
+                      void audioRef.current.play().catch(() => {});
+                    }
                     btn.scrollIntoView({ behavior: 'smooth', block: 'center' });
                     btn.classList.add('bg-amber-100', 'ring-2', 'ring-amber-400');
                     setTimeout(() => btn.classList.remove('bg-amber-100', 'ring-2', 'ring-amber-400'), 5000);
@@ -187,6 +192,7 @@ export default function ListeningReviewPage({ params }: Props) {
                   <button
                     key={seg.id || i}
                     type="button"
+                    data-start-time={seg.startTime}
                     onClick={() => {
                       if (audioRef.current) {
                         audioRef.current.currentTime = seg.startTime;

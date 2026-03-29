@@ -35,9 +35,13 @@ export function ReadingQuestionMcq({ questionId, position, content, options, sel
         {options.map((option) => {
           const isSelected = selected.includes(option.id);
           const isCorrect = option.isCorrect;
+          const isSelectedCorrect = showResult && isCorrect && isSelected;
+          const isUnselectedCorrect = showResult && isCorrect && !isSelected;
 
           let className = 'w-full flex items-center gap-2 text-sm px-3 py-2 rounded-lg border transition-colors text-left ';
-          if (showResult && isCorrect) {
+          if (isSelectedCorrect) {
+            className += 'bg-green-100 text-green-700 border-green-400';
+          } else if (isUnselectedCorrect) {
             className += 'bg-green-50 text-green-700 border-green-300';
           } else if (showResult && isSelected && !isCorrect) {
             className += 'bg-red-50 text-red-700 border-red-300';
@@ -55,7 +59,7 @@ export function ReadingQuestionMcq({ questionId, position, content, options, sel
               onClick={() => !submitted && onAnswer(questionId, option.id)}
               className={className}
             >
-              {showResult && isCorrect ? (
+              {isSelectedCorrect ? (
                 <CheckCircle2 className="h-4 w-4 shrink-0" />
               ) : multiple ? (
                 isSelected

@@ -145,16 +145,29 @@ export default function ListeningReviewPage({ params }: Props) {
               answers={resultData.answers}
               textAnswers={resultData.textAnswers}
               onLocateEvidence={(evidence) => {
-                // Find transcript segment containing the evidence text and scroll to it
-                const transcriptContainer = document.querySelector('[data-transcript]');
-                if (!transcriptContainer) return;
-                const buttons = transcriptContainer.querySelectorAll('button');
+                const container = document.querySelector('[data-transcript]');
+                if (!container) return;
+                // Clear previous highlights
+                container.querySelectorAll('.ring-amber-400').forEach((el) => {
+                  el.classList.remove('bg-amber-100', 'ring-2', 'ring-amber-400');
+                });
+                const buttons = container.querySelectorAll('button');
+                const chunks = evidence.split('\n---\n').map(c => c.trim().toLowerCase()).filter(Boolean);
+                // Try matching each transcript segment — use progressive word matching
                 for (const btn of buttons) {
-                  const text = btn.textContent || '';
-                  if (evidence.split('\n---\n').some(chunk => text.toLowerCase().includes(chunk.trim().toLowerCase().slice(0, 30)))) {
+                  const text = (btn.textContent || '').toLowerCase();
+                  const matched = chunks.some(chunk => {
+                    // Try full match first
+                    if (text.includes(chunk)) return true;
+                    // Try first few words (at least 4 words)
+                    const words = chunk.split(/\s+/).slice(0, 6).join(' ');
+                    if (words.length > 10 && text.includes(words)) return true;
+                    return false;
+                  });
+                  if (matched) {
                     btn.scrollIntoView({ behavior: 'smooth', block: 'center' });
                     btn.classList.add('bg-amber-100', 'ring-2', 'ring-amber-400');
-                    setTimeout(() => btn.classList.remove('bg-amber-100', 'ring-2', 'ring-amber-400'), 3000);
+                    setTimeout(() => btn.classList.remove('bg-amber-100', 'ring-2', 'ring-amber-400'), 5000);
                     break;
                   }
                 }

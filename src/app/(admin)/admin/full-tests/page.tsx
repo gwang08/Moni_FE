@@ -1,13 +1,13 @@
-'use client';
+﻿'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, Shuffle, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { AdminHeader } from '@/components/admin/admin-header';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
-import { FullTestCreateDialog } from '@/components/admin/full-test-create-dialog';
 import { FullTestAutoDialog } from '@/components/admin/full-test-auto-dialog';
 import { getFullTests, deleteFullTest } from '@/lib/admin-full-test-api';
 import { toast } from 'sonner';
@@ -17,6 +17,7 @@ const SKILL_BADGE: Record<string, string> = {
   READING: 'bg-blue-100 text-blue-800 border-blue-200',
   LISTENING: 'bg-purple-100 text-purple-800 border-purple-200',
   SPEAKING: 'bg-orange-100 text-orange-800 border-orange-200',
+  WRITING: 'bg-emerald-100 text-emerald-800 border-emerald-200',
 };
 
 const STATUS_BADGE: Record<string, string> = {
@@ -25,17 +26,32 @@ const STATUS_BADGE: Record<string, string> = {
   HIDDEN: 'bg-gray-100 text-gray-600 border-gray-200',
 };
 
+const SKILL_FILTERS = ['ALL', 'READING', 'LISTENING', 'WRITING', 'SPEAKING'] as const;
+const SKILL_LABELS: Record<string, string> = {
+  ALL: 'Tất cả',
+  READING: 'Reading',
+  LISTENING: 'Listening',
+  WRITING: 'Writing',
+  SPEAKING: 'Speaking',
+};
+
 export default function AdminFullTestsPage() {
+  const router = useRouter();
   const queryClient = useQueryClient();
-  const [createOpen, setCreateOpen] = useState(false);
   const [autoOpen, setAutoOpen] = useState(false);
   const [confirmId, setConfirmId] = useState<number | null>(null);
+  const [skillFilter, setSkillFilter] = useState<string>('ALL');
 
   const { data: fullTests = [], isLoading } = useQuery({
     queryKey: ['full-tests'],
     queryFn: getFullTests,
     staleTime: 30_000,
   });
+
+  const filteredFullTests = useMemo(() => {
+    if (skillFilter === 'ALL') return fullTests;
+    return fullTests.filter(test => test.skill === skillFilter);
+  }, [fullTests, skillFilter]);
 
   const deleteMutation = useMutation({
     mutationFn: deleteFullTest,
@@ -52,24 +68,43 @@ export default function AdminFullTestsPage() {
 
       <div className="flex-1 p-6 space-y-4">
         <div className="flex items-center justify-between">
-          <p className="text-sm text-gray-500">{fullTests.length} full test</p>
+          <p className="text-sm text-gray-500">
+            {filteredFullTests.length} full test
+            {skillFilter !== 'ALL' ? ` (${SKILL_LABELS[skillFilter]})` : ''}
+          </p>
           <div className="flex gap-2">
             <Button variant="outline" onClick={() => setAutoOpen(true)}>
               <Shuffle className="h-4 w-4 mr-2" />
               Tạo ngẫu nhiên
             </Button>
-            <Button onClick={() => setCreateOpen(true)}>
+            <Button onClick={() => router.push('/admin/full-tests/new')}>
               <Plus className="h-4 w-4 mr-2" />
               Tạo Full Test
             </Button>
           </div>
         </div>
 
+        <div className="flex flex-wrap gap-2">
+          {SKILL_FILTERS.map(skill => (
+            <button
+              key={skill}
+              onClick={() => setSkillFilter(skill)}
+              className={`px-3 py-1.5 text-xs font-medium rounded-full border transition-colors ${
+                skillFilter === skill
+                  ? 'bg-blue-600 text-white border-blue-600'
+                  : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
+              }`}
+            >
+              {SKILL_LABELS[skill]}
+            </button>
+          ))}
+        </div>
+
         {isLoading ? (
           <SkeletonTable />
-        ) : fullTests.length === 0 ? (
+        ) : filteredFullTests.length === 0 ? (
           <div className="text-center py-16 text-gray-400 border rounded-lg">
-            Chưa có Full Test nào. Hãy tạo mới!
+            Chưa có Full Test nào theo bộ lọc hiện tại.
           </div>
         ) : (
           <div className="border rounded-lg overflow-hidden">
@@ -86,7 +121,7 @@ export default function AdminFullTestsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y">
-                {fullTests.map((test) => (
+                {filteredFullTests.map((test) => (
                   <tr key={test.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-4 py-3 font-medium text-gray-900">{test.title}</td>
                     <td className="px-4 py-3">
@@ -124,7 +159,6 @@ export default function AdminFullTestsPage() {
         )}
       </div>
 
-      <FullTestCreateDialog open={createOpen} onClose={() => setCreateOpen(false)} />
       <FullTestAutoDialog open={autoOpen} onClose={() => setAutoOpen(false)} />
 
       <ConfirmDialog
@@ -135,7 +169,9 @@ export default function AdminFullTestsPage() {
           if (confirmId !== null) deleteMutation.mutate(confirmId);
           setConfirmId(null);
         }}
-        onOpenChange={(open) => { if (!open) setConfirmId(null); }}
+        onOpenChange={(open) => {
+          if (!open) setConfirmId(null);
+        }}
       />
     </div>
   );

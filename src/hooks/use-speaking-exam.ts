@@ -43,6 +43,35 @@ export function useSpeakingExam() {
     }
   }, []);
 
+  // ── Browser TTS fallback ───────────────────────────────────
+  const pendingTextRef = useRef<string | null>(null);
+  const hasReceivedChunksRef = useRef(false);
+
+  const speakWithBrowserTTS = useCallback((text: string) => {
+    if (typeof window === 'undefined' || !window.speechSynthesis) return;
+    
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'en-US';
+    utterance.rate = 0.9;
+    utterance.pitch = 1.0;
+    
+    // Try to find an English voice
+    const voices = window.speechSynthesis.getVoices();
+    const englishVoice = voices.find(v => v.lang.startsWith('en') && v.name.includes('Female'))
+      || voices.find(v => v.lang.startsWith('en'))
+      || voices[0];
+    if (englishVoice) utterance.voice = englishVoice;
+
+    utterance.onstart = () => audio.setIsAudioPlaying(true);
+    utterance.onend = () => audio.setIsAudioPlaying(false);
+    utterance.onerror = () => audio.setIsAudioPlaying(false);
+
+    // Mark as playing via audio state
+    window.speechSynthesis.cancel(); // cancel any ongoing speech
+    window.speechSynthesis.speak(utterance);
+    console.log('[TTS Fallback] Reading question with browser voice');
+  }, [audio]);
+
   // ── Message handler ───────────────────────────────────────
   const handleMessage = useCallback(
     (msg: ServerMessage) => {
@@ -50,16 +79,26 @@ export function useSpeakingExam() {
         case 'question':
           setCurrentQuestion(msg);
           audio.resetChunks();
+          pendingTextRef.current = msg.text;
+          hasReceivedChunksRef.current = false;
           if (msg.partNumber === 1) setExamState('PART1_QUESTIONING');
           if (msg.partNumber === 3) setExamState('PART3_QUESTIONING');
           break;
 
         case 'audio_chunk':
           audio.pushChunk(msg.data);
+          hasReceivedChunksRef.current = true;
           break;
 
         case 'audio_end':
-          audio.playChunks();
+          if (hasReceivedChunksRef.current) {
+            // ElevenLabs TTS succeeded — play the audio chunks  
+            audio.playChunks();
+          } else if (pendingTextRef.current) {
+            // ElevenLabs TTS failed — use browser speech synthesis as fallback
+            speakWithBrowserTTS(pendingTextRef.current);
+          }
+          pendingTextRef.current = null;
           break;
 
         case 'show_cue_card':
@@ -82,7 +121,7 @@ export function useSpeakingExam() {
           break;
       }
     },
-    [audio],
+    [audio, speakWithBrowserTTS],
   );
 
   // ── Connect ───────────────────────────────────────────────

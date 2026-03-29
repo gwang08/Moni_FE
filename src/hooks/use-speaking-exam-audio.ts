@@ -55,5 +55,5 @@ export function useSpeakingExamAudio() {
     }
   }, []);
 
-  return { isAudioPlaying, pushChunk, resetChunks, playChunks };
+  return { isAudioPlaying, setIsAudioPlaying, pushChunk, resetChunks, playChunks };
 }

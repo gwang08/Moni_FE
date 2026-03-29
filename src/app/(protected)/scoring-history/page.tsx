@@ -146,6 +146,13 @@ export default function ScoringHistoryPage() {
               {subs.map((s) => {
                 const st = STATUS_BADGE[s.evaluationStatus] ?? STATUS_BADGE.PENDING;
                 const canScore = s.evaluationStatus === 'PENDING' || s.evaluationStatus === 'SUBMITTED';
+                // Find linked expert session (match by WRITING skill + timing)
+                const linkedSession = sessions.find(
+                  ss => ss.skill === 'WRITING' && (ss.status === 'COMPLETED' || ss.status === 'IN_PROGRESS' || ss.status === 'QUEUED')
+                    && ss.content && s.submittedAt && new Date(String(ss.createdAt)).getTime() > new Date(s.submittedAt).getTime() - 60000
+                );
+                const scoredByExpert = s.evaluationStatus === 'COMPLETED' && linkedSession?.status === 'COMPLETED';
+                const scoredByAI = s.evaluationStatus === 'COMPLETED' && !scoredByExpert;
                 return (
                   <div key={s.submissionId} className="flex items-center justify-between gap-3 rounded-2xl border border-gray-100 bg-white px-4 py-3 hover:shadow-sm transition-shadow">
                     <div className="flex items-center gap-3 flex-wrap min-w-0">
@@ -153,6 +160,15 @@ export default function ScoringHistoryPage() {
                       <span className="text-sm text-gray-600">{s.wordCount ?? 0} từ</span>
                       <span className="text-xs text-gray-400">{fmtDate(s.submittedAt)}</span>
                       <Badge className={`text-xs border-0 ${st.cls}`}>{st.label}</Badge>
+                      {scoredByAI && (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 font-medium">🤖 AI</span>
+                      )}
+                      {scoredByExpert && linkedSession && (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-green-100 text-green-700 font-medium">👨‍🏫 {linkedSession.expertDisplayName}</span>
+                      )}
+                      {s.evaluationStatus === 'PROCESSING' && linkedSession && (
+                        <span className="text-[10px] text-gray-400">→ {linkedSession.expertDisplayName}</span>
+                      )}
                     </div>
                     <div className="flex gap-2 shrink-0">
                       {canScore && (
@@ -165,7 +181,7 @@ export default function ScoringHistoryPage() {
                         <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => router.push(`/writing/result/${s.submissionId}`)}>Xem kết quả</Button>
                       )}
                       {s.evaluationStatus === 'PROCESSING' && (
-                        <Badge className="text-xs bg-blue-50 text-blue-600 border-0">Đang chờ Expert...</Badge>
+                        <Badge className="text-xs bg-blue-50 text-blue-600 border-0">Đang chờ...</Badge>
                       )}
                     </div>
                   </div>

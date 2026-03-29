@@ -129,8 +129,8 @@ export default function WritingExercisePage({ params }: Props) {
   }, [content, wordCount, elapsed, id, submitted]);
 
   useEffect(() => {
-    if (isGrading || gradingResult) setShowGrading(true);
-  }, [isGrading, gradingResult]);
+    if (isGrading) setShowGrading(true);
+  }, [isGrading]);
 
   if (loading) {
     return <SkeletonPractice />;

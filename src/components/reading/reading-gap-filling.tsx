@@ -12,6 +12,7 @@ interface Props {
   textAnswers: Record<number, string>;
   onTextAnswer: (questionId: number, text: string) => void;
   questionOffset?: number;
+  onLocateEvidence?: (evidence: string) => void;
 }
 
 function isAnswerCorrect(userAnswer: string, correctContent: string): boolean {
@@ -103,8 +104,9 @@ function GapQuestion({ question, userAnswer, submitted, onTextAnswer }: {
           {question.explanation.evidence && (
             <div className="space-y-1 mt-1">
               {question.explanation.evidence.split('\n---\n').filter((e: string) => e.trim()).map((chunk: string, i: number) => (
-                <p key={i} className="text-xs text-amber-700 bg-amber-50 px-2 py-1 rounded">
-                  Dẫn chứng: &ldquo;{chunk.trim()}&rdquo;
+                <p key={i} className={`text-xs text-amber-700 bg-amber-50 px-2 py-1 rounded ${onLocateEvidence ? 'cursor-pointer hover:bg-amber-100' : ''}`}
+                  onClick={() => onLocateEvidence?.(chunk.trim())}>
+                  Dẫn chứng {i + 1}: &ldquo;{chunk.trim()}&rdquo;
                 </p>
               ))}
             </div>
@@ -215,7 +217,7 @@ function ParagraphGapFilling({ groupContent, questions, submitted, textAnswers, 
   );
 }
 
-export function ReadingGapFilling({ questions, groupContent, imageUrl, submitted, textAnswers, onTextAnswer, questionOffset = 0 }: Props) {
+export function ReadingGapFilling({ questions, groupContent, imageUrl, submitted, textAnswers, onTextAnswer, questionOffset = 0, onLocateEvidence }: Props) {
   // Sentence questions: have content (with {{answer}} or text)
   // Paragraph questions: empty content OR tagged with gapMode='paragraph'
   const sentenceQs = questions.filter(q => q.content.trim());

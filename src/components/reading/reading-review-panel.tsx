@@ -162,6 +162,7 @@ function ReviewQuestionGroup({ group, answers, textAnswers, onLocateEvidence }: 
         submitted={true}
         textAnswers={textAnswers}
         onTextAnswer={() => {}}
+        onLocateEvidence={onLocateEvidence}
       />
     );
   }

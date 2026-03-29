@@ -248,6 +248,8 @@ function ScoreDisplay({ result }: { result: Record<string, unknown> }) {
   let overallBand: number;
   let ta: number, cc: number, lr: number, gra: number;
   let feedbackText: string;
+  let strengths = '';
+  let improvements = '';
 
   if (isStoreFormat) {
     overallBand = Number(result.overallBand ?? 0);
@@ -265,6 +267,8 @@ function ScoreDisplay({ result }: { result: Record<string, unknown> }) {
     gra = getCriterionBand(assessment, 'GRA', 'GRA');
     const fb = (result.feedbackResponse ?? {}) as Record<string, unknown>;
     feedbackText = extractFeedback(fb);
+    strengths = String(fb.strengths ?? '');
+    improvements = String(fb.improvements ?? '');
   }
 
   const scores = [
@@ -298,6 +302,18 @@ function ScoreDisplay({ result }: { result: Record<string, unknown> }) {
         <div className="rounded-2xl bg-teal-50/50 border border-teal-100/60 p-4">
           <p className="text-xs font-bold text-teal-600 mb-2">Nhận xét</p>
           <p className="text-[13px] text-gray-600 leading-relaxed whitespace-pre-line">{feedbackText}</p>
+        </div>
+      )}
+      {strengths && (
+        <div className="rounded-2xl bg-green-50/50 border border-green-100/60 p-4">
+          <p className="text-xs font-bold text-green-600 mb-2">Điểm mạnh</p>
+          <p className="text-[13px] text-gray-600 leading-relaxed whitespace-pre-line">{strengths}</p>
+        </div>
+      )}
+      {improvements && (
+        <div className="rounded-2xl bg-amber-50/50 border border-amber-100/60 p-4">
+          <p className="text-xs font-bold text-amber-600 mb-2">Cần cải thiện</p>
+          <p className="text-[13px] text-gray-600 leading-relaxed whitespace-pre-line">{improvements}</p>
         </div>
       )}
     </div>

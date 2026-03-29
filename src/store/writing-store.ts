@@ -6,6 +6,8 @@ interface WritingStore {
   content: string;
   wordCount: number;
   gradingResult: GradingResult | null;
+  // Raw API response from scoreWriting — preserves full AI scoring detail
+  rawScoringData: Record<string, unknown> | null;
   isGrading: boolean;
   gradingError: string | null;
 
@@ -86,6 +88,7 @@ export const useWritingStore = create<WritingStore>((set) => ({
   content: '',
   wordCount: 0,
   gradingResult: null,
+  rawScoringData: null,
   isGrading: false,
   gradingError: null,
 
@@ -97,19 +100,20 @@ export const useWritingStore = create<WritingStore>((set) => ({
     try {
       const data = await scoreWriting(params);
       const result = mapApiResponse(data);
-      set({ gradingResult: result, isGrading: false });
+      set({ gradingResult: result, rawScoringData: data, isGrading: false });
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Không thể chấm bài. Vui lòng thử lại.';
       set({ gradingError: msg, isGrading: false });
     }
   },
 
-  clearResult: () => set({ gradingResult: null, gradingError: null }),
+  clearResult: () => set({ gradingResult: null, rawScoringData: null, gradingError: null }),
 
   reset: () => set({
     content: '',
     wordCount: 0,
     gradingResult: null,
+    rawScoringData: null,
     isGrading: false,
     gradingError: null,
   }),

@@ -3,9 +3,11 @@
 import { use, useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, FileText, Loader2, Sparkles } from 'lucide-react';
+import { ArrowLeft, FileText, Loader2, Sparkles, ChevronDown, ChevronUp } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { GradingModal } from '@/components/writing/grading-modal';
 import { WritingPromptPanel } from '@/components/writing/writing-prompt-panel';
 import { useTestDetail } from '@/hooks/use-test-detail';
@@ -14,63 +16,217 @@ import { useWritingStore } from '@/store/writing-store';
 import { getWritingSubmissionDetail, type WritingSubmissionDetail } from '@/lib/ai-api';
 import type { WritingTaskType } from '@/types/writing.types';
 
-interface Props {
-  params: Promise<{ id: string }>;
-}
+interface Props { params: Promise<{ id: string }> }
 
-function bandColor(band: number): string {
-  if (band >= 8) return 'text-emerald-600';
-  if (band >= 6.5) return 'text-teal-600';
-  if (band >= 5) return 'text-amber-600';
+// ---------- colour helpers ----------
+function bc(b: number) {
+  if (b >= 8) return 'text-emerald-600';
+  if (b >= 6.5) return 'text-teal-600';
+  if (b >= 5) return 'text-amber-600';
   return 'text-red-500';
 }
-
-function bandBg(band: number): string {
-  if (band >= 8) return 'bg-emerald-50 border-emerald-200/60';
-  if (band >= 6.5) return 'bg-teal-50 border-teal-200/60';
-  if (band >= 5) return 'bg-amber-50 border-amber-200/60';
+function bbg(b: number) {
+  if (b >= 8) return 'bg-emerald-50 border-emerald-200/60';
+  if (b >= 6.5) return 'bg-teal-50 border-teal-200/60';
+  if (b >= 5) return 'bg-amber-50 border-amber-200/60';
   return 'bg-red-50 border-red-200/60';
 }
 
-const CRITERIA = [
-  { key: 'TA', altKey: 'TR', label: 'Task Achievement', short: 'TA/TR' },
-  { key: 'CC', altKey: 'CC', label: 'Coherence & Cohesion', short: 'CC' },
-  { key: 'LR', altKey: 'LR', label: 'Lexical Resource', short: 'LR' },
-  { key: 'GRA', altKey: 'GRA', label: 'Grammatical Range', short: 'GRA' },
+// ---------- data normalisation ----------
+/* eslint-disable @typescript-eslint/no-explicit-any */
+function dig(o: any, ...paths: string[]): number {
+  for (const p of paths) {
+    let v: any = o;
+    for (const k of p.split('.')) { v = v?.[k]; }
+    if (typeof v === 'number') return v;
+  }
+  return 0;
+}
+
+interface NormalisedData {
+  overall: number;
+  criteria: { key: string; label: string; band: number; justification?: string; strengths?: string[]; weaknesses?: string[]; violations?: Record<string, unknown> }[];
+  improvements: { criterion: string; issue_type?: string; original_sentence?: string; improved_sentence?: string; reason?: string }[];
+  overall_strategy?: string;
+  // expert format fields
+  summary?: string;
+  strengths?: string;
+  feedbackImprovements?: string;
+}
+
+const CRIT_META = [
+  { key: 'TA', altKeys: ['TR'], label: 'Task Achievement', short: 'TA/TR' },
+  { key: 'CC', altKeys: ['CC'], label: 'Coherence & Cohesion', short: 'CC' },
+  { key: 'LR', altKeys: ['LR'], label: 'Lexical Resource', short: 'LR' },
+  { key: 'GRA', altKeys: ['GRA'], label: 'Grammatical Range', short: 'GRA' },
 ];
 
-function getCriterionBand(assessment: Record<string, unknown>, key: string, altKey: string): number {
-  const criteria = assessment?.criteria as Record<string, Record<string, unknown>> | undefined;
-  if (!criteria) return 0;
-  const c = criteria[key] ?? criteria[altKey];
-  if (!c) return 0;
-  return Number(c.adjusted_band ?? c.band ?? 0);
+function normalise(raw: Record<string, unknown>): NormalisedData {
+  // Determine which format we have
+  // Format A (AI scoreWriting): raw.assessment + raw.feedback
+  // Format B (BE saved evaluation): raw.overallScore + raw.analysisResult + raw.feedbackResponse
+  const isFormatB = 'overallScore' in raw || 'analysisResult' in raw;
+
+  const overall = isFormatB
+    ? dig(raw, 'overallScore')
+    : dig(raw, 'assessment.final_band', 'overallBand');
+
+  // Criteria source
+  const critSource: any = isFormatB
+    ? (raw as any)?.analysisResult?.criteria
+    : (raw as any)?.assessment?.criteria;
+
+  const criteria = CRIT_META.map(({ key, altKeys, label, short }) => {
+    const cObj: any = critSource?.[key] ?? altKeys.reduce((acc: any, k) => acc ?? critSource?.[k], undefined);
+    const band = Number(cObj?.adjusted_band ?? cObj?.band ?? 0);
+    return {
+      key: short,
+      label,
+      band,
+      justification: cObj?.justification as string | undefined,
+      strengths: Array.isArray(cObj?.strengths) ? cObj.strengths as string[] : undefined,
+      weaknesses: Array.isArray(cObj?.weaknesses) ? cObj.weaknesses as string[] : undefined,
+      violations: cObj?.violations as Record<string, unknown> | undefined,
+    };
+  });
+
+  // Feedback / improvements
+  const fbObj: any = isFormatB ? raw?.feedbackResponse : raw?.feedback;
+  const improvements: NormalisedData['improvements'] = Array.isArray(fbObj?.improvements)
+    ? fbObj.improvements
+    : [];
+  const overall_strategy = typeof fbObj?.overall_strategy === 'string' ? fbObj.overall_strategy : undefined;
+
+  return {
+    overall,
+    criteria,
+    improvements,
+    overall_strategy,
+    summary: isFormatB ? String(fbObj?.summary ?? '') : undefined,
+    strengths: isFormatB ? String(fbObj?.strengths ?? '') : undefined,
+    feedbackImprovements: isFormatB ? String(fbObj?.improvements ?? '') : undefined,
+  };
+}
+/* eslint-enable @typescript-eslint/no-explicit-any */
+
+// ---------- sub-components ----------
+function ScoreOverview({ data }: { data: NormalisedData }) {
+  return (
+    <div className="flex items-center gap-3 flex-wrap">
+      {/* Overall circle */}
+      <div className="w-16 h-16 rounded-full bg-gradient-to-br from-teal-400 to-emerald-400 flex items-center justify-center shadow-md shadow-teal-200/40 shrink-0">
+        <div className="w-13 h-13 rounded-full bg-white flex flex-col items-center justify-center w-[52px] h-[52px]">
+          <span className={`text-lg font-black leading-none ${bc(data.overall)}`}>{data.overall.toFixed(1)}</span>
+          <span className="text-[9px] text-gray-400">Band</span>
+        </div>
+      </div>
+      {/* Criteria chips */}
+      <div className="flex gap-2 flex-wrap flex-1">
+        {data.criteria.map((c) => (
+          <div key={c.key} className={`rounded-xl border px-3 py-1.5 ${bbg(c.band)} min-w-[72px]`}>
+            <p className="text-[10px] font-semibold text-gray-500">{c.key}</p>
+            <p className={`text-base font-black leading-none mt-0.5 ${bc(c.band)}`}>{c.band.toFixed(1)}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 }
 
-function extractFeedback(data: Record<string, unknown>): string {
-  const fb = data as Record<string, unknown>;
-  if (typeof fb?.overall_strategy === 'string') return fb.overall_strategy;
-  if (Array.isArray(fb?.improvements)) {
-    return (fb.improvements as Array<Record<string, string>>)
-      .map((imp) => `[${imp.criterion}] ${imp.reason}`)
-      .join('\n');
-  }
-  if (typeof fb?.summary === 'string') return fb.summary;
-  return '';
+function CriterionTab({ c }: { c: NormalisedData['criteria'][number] }) {
+  // Count active violations (non-empty arrays)
+  const activeViolations = c.violations
+    ? Object.entries(c.violations).filter(([, v]) => Array.isArray(v) && (v as unknown[]).length > 0)
+    : [];
+
+  return (
+    <div className="space-y-3 pt-2">
+      <div className="flex items-center gap-3">
+        <span className={`text-3xl font-black ${bc(c.band)}`}>{c.band.toFixed(1)}</span>
+        <span className="text-sm text-gray-500">{c.label}</span>
+      </div>
+      {c.justification && (
+        <p className="text-[13px] text-gray-700 leading-relaxed">{c.justification}</p>
+      )}
+      {c.strengths && c.strengths.length > 0 && (
+        <div className="rounded-xl bg-emerald-50 border border-emerald-100 p-3 space-y-1">
+          <p className="text-[11px] font-bold text-emerald-600 uppercase tracking-wide">Điểm mạnh</p>
+          {c.strengths.map((s, i) => (
+            <p key={i} className="text-[12px] text-gray-700 flex gap-1.5"><span className="text-emerald-500 shrink-0">✓</span>{s}</p>
+          ))}
+        </div>
+      )}
+      {c.weaknesses && c.weaknesses.length > 0 && (
+        <div className="rounded-xl bg-amber-50 border border-amber-100 p-3 space-y-1">
+          <p className="text-[11px] font-bold text-amber-600 uppercase tracking-wide">Điểm yếu</p>
+          {c.weaknesses.map((w, i) => (
+            <p key={i} className="text-[12px] text-gray-700 flex gap-1.5"><span className="text-amber-500 shrink-0">⚠</span>{w}</p>
+          ))}
+        </div>
+      )}
+      {activeViolations.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-[11px] font-bold text-red-500 uppercase tracking-wide">Lỗi phát hiện</p>
+          {activeViolations.map(([vKey, vArr]) => (
+            <div key={vKey} className="rounded-xl bg-red-50 border border-red-100 p-3">
+              <p className="text-[11px] font-semibold text-red-600 mb-1">{vKey}</p>
+              {(vArr as Record<string, unknown>[]).slice(0, 3).map((item, i) => {
+                const evidence = item.evidence != null ? String(item.evidence) : '';
+                const reason = item.reason != null ? String(item.reason) : '';
+                return (
+                  <div key={i} className="text-[12px] text-gray-700 mb-1.5 last:mb-0">
+                    {evidence && <p className="italic text-gray-500">&ldquo;{evidence}&rdquo;</p>}
+                    {reason && <p>{reason}</p>}
+                  </div>
+                );
+              })}
+            </div>
+          ))}
+        </div>
+      )}
+      {!c.justification && !c.strengths?.length && !c.weaknesses?.length && activeViolations.length === 0 && (
+        <p className="text-[13px] text-gray-400 italic">Không có chi tiết cho tiêu chí này.</p>
+      )}
+    </div>
+  );
 }
 
+function ImprovementsSection({ improvements }: { improvements: NormalisedData['improvements'] }) {
+  if (!improvements.length) return null;
+  return (
+    <div className="space-y-2.5">
+      <p className="text-xs font-bold text-teal-500 uppercase tracking-wider">Gợi ý cải thiện</p>
+      {improvements.map((imp, i) => (
+        <div key={i} className="rounded-2xl border border-gray-100 bg-white p-4 space-y-2 shadow-sm">
+          <div className="flex items-center gap-2">
+            <Badge variant="secondary" className="text-[10px]">{imp.criterion}</Badge>
+            {imp.issue_type && <span className="text-[11px] text-gray-400">{imp.issue_type}</span>}
+          </div>
+          {imp.original_sentence && (
+            <p className="text-[12px] text-gray-500 line-through leading-relaxed">"{imp.original_sentence}"</p>
+          )}
+          {imp.improved_sentence && (
+            <p className="text-[12px] text-emerald-700 bg-emerald-50 rounded-lg px-2 py-1 leading-relaxed">"{imp.improved_sentence}"</p>
+          )}
+          {imp.reason && <p className="text-[12px] text-gray-600">{imp.reason}</p>}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ---------- page ----------
 export default function WritingResultPage({ params }: Props) {
   const { id } = use(params);
   const submissionId = Number(id);
   const router = useRouter();
   const refreshProfile = useAuthStore((s) => s.refreshProfile);
-  const { gradingResult, isGrading, submitForGrading } = useWritingStore();
+  const { gradingResult, rawScoringData, isGrading, submitForGrading } = useWritingStore();
 
   const [submission, setSubmission] = useState<WritingSubmissionDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [showGrading, setShowGrading] = useState(false);
-  // Store inline result from scoreWriting response (since BE creates new submission)
-  const [inlineResult, setInlineResult] = useState<Record<string, unknown> | null>(null);
+  const [essayOpen, setEssayOpen] = useState(true);
 
   const testIdStr = submission?.testId ? String(submission.testId) : '';
   const { testDetail } = useTestDetail(testIdStr);
@@ -88,11 +244,7 @@ export default function WritingResultPage({ params }: Props) {
   }, [submissionId, router]);
 
   useEffect(() => { fetchSubmission(); }, [fetchSubmission]);
-
-  // Show grading modal when scoring starts
-  useEffect(() => {
-    if (isGrading) setShowGrading(true);
-  }, [isGrading]);
+  useEffect(() => { if (isGrading) setShowGrading(true); }, [isGrading]);
 
   const handleAiScore = async () => {
     if (!submission) return;
@@ -101,69 +253,53 @@ export default function WritingResultPage({ params }: Props) {
     const taskType = submission.taskType === 'TASK_1' ? 1 : 2;
     const imgUrl = stimulus?.mediaUrl || rawPrompt.match(/<img[^>]+src="([^"]+)"/)?.[1];
 
-    // Fetch chart image for Task 1 (try with crossorigin)
     let chartFile: File | undefined;
     if (taskType === 1 && imgUrl) {
       try {
         const res = await fetch(imgUrl, { mode: 'cors' });
         if (res.ok) {
           const blob = await res.blob();
-          if (blob.size > 0) {
-            chartFile = new File([blob], 'chart.png', { type: blob.type || 'image/png' });
-          }
+          if (blob.size > 0) chartFile = new File([blob], 'chart.png', { type: blob.type || 'image/png' });
         }
       } catch {
-        // CORS blocked — try loading via Image canvas as fallback
         try {
-          const img = new Image();
-          img.crossOrigin = 'anonymous';
-          await new Promise<void>((resolve, reject) => {
-            img.onload = () => resolve();
-            img.onerror = reject;
-            img.src = imgUrl;
-          });
+          const img = new Image(); img.crossOrigin = 'anonymous';
+          await new Promise<void>((resolve, reject) => { img.onload = () => resolve(); img.onerror = reject; img.src = imgUrl!; });
           const canvas = document.createElement('canvas');
-          canvas.width = img.naturalWidth;
-          canvas.height = img.naturalHeight;
+          canvas.width = img.naturalWidth; canvas.height = img.naturalHeight;
           canvas.getContext('2d')?.drawImage(img, 0, 0);
           const blob = await new Promise<Blob | null>((r) => canvas.toBlob(r, 'image/png'));
-          if (blob && blob.size > 0) {
-            chartFile = new File([blob], 'chart.png', { type: 'image/png' });
-          }
+          if (blob && blob.size > 0) chartFile = new File([blob], 'chart.png', { type: 'image/png' });
         } catch { /* give up */ }
       }
     }
 
-    await submitForGrading({
-      taskType,
-      question: rawPrompt,
-      answer: submission.essayContent,
-      chartImage: chartFile,
-      stimulusId: submission.stimulusId ?? undefined,
-      submissionId: submission.submissionId,
-    });
+    await submitForGrading({ taskType, question: rawPrompt, answer: submission.essayContent, chartImage: chartFile, stimulusId: submission.stimulusId ?? undefined, submissionId: submission.submissionId });
     refreshProfile();
   };
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-[calc(100vh-56px)]">
-        <Loader2 className="h-8 w-8 animate-spin text-teal-500" />
-      </div>
-    );
+    return <div className="flex items-center justify-center h-[calc(100vh-56px)]"><Loader2 className="h-8 w-8 animate-spin text-teal-500" /></div>;
   }
-
   if (!submission) return null;
 
   const stimulus = testDetail?.stimuli[0];
   const taskType: WritingTaskType = submission.taskType === 'TASK_1' ? 1 : 2;
   const prompt = stimulus?.content ?? '';
-  // Only pass chartImageUrl if it's from mediaUrl (not embedded in HTML)
-  // If image is already in prompt HTML, WritingPromptPanel will render it
   const chartImageUrl = stimulus?.mediaUrl ?? undefined;
   const hasEvaluation = submission.evaluation != null;
-  // Use inline result from grading or saved evaluation
-  const displayResult = (gradingResult as Record<string, unknown> | null) || (hasEvaluation ? submission.evaluation as Record<string, unknown> : null);
+
+  // Determine raw data source for rich display
+  // Priority: rawScoringData (immediate score) > submission.evaluation (saved)
+  const rawForDisplay: Record<string, unknown> | null =
+    rawScoringData ?? (hasEvaluation ? submission.evaluation as Record<string, unknown> : null);
+
+  const normData = rawForDisplay ? normalise(rawForDisplay) : null;
+  const scored = normData !== null;
+
+  const submittedDate = new Date(
+    submission.submittedAt.includes('Z') ? submission.submittedAt : submission.submittedAt + 'Z'
+  ).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 
   return (
     <div className="h-[calc(100vh-56px)] flex flex-col">
@@ -172,50 +308,113 @@ export default function WritingResultPage({ params }: Props) {
         <Link href="/scoring-history">
           <Button variant="ghost" size="icon"><ArrowLeft className="h-5 w-5" /></Button>
         </Link>
-        <div>
+        <div className="flex-1">
           <h1 className="font-bold">Chi tiết bài viết</h1>
-          <p className="text-xs text-muted-foreground">
-            {displayResult ? 'Kết quả chấm điểm' : 'Chưa chấm điểm'}
-          </p>
+          <p className="text-xs text-muted-foreground">{submittedDate}</p>
         </div>
+        <Badge variant={scored ? 'default' : 'secondary'} className={scored ? 'bg-emerald-100 text-emerald-700 border-0' : ''}>
+          {scored ? 'Đã chấm điểm' : 'Chưa chấm điểm'}
+        </Badge>
       </div>
 
       {/* Body */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Left: Prompt */}
+        {/* Left: Prompt (40%) */}
         {prompt && (
           <div className="w-2/5 overflow-y-auto p-6 border-r border-gray-200 bg-gradient-to-b from-teal-50/40 to-emerald-50/20 shrink-0">
             <WritingPromptPanel prompt={prompt} chartImageUrl={chartImageUrl} taskType={taskType} />
           </div>
         )}
 
-        {/* Center: Essay + scores */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-6">
-          {/* Meta */}
-          <div className="flex items-center gap-4 text-sm text-gray-500">
-            <div className="flex items-center gap-1.5">
-              <FileText className="h-4 w-4 text-teal-500" />
-              <span className="font-medium text-gray-800">{submission.wordCount}</span> từ
+        {/* Right: Results (60%) */}
+        <div className="flex-1 overflow-y-auto p-6 space-y-5">
+          {/* Score overview */}
+          {normData && (
+            <div className="rounded-2xl border border-teal-100/60 bg-white p-4 shadow-sm">
+              <p className="text-[10px] font-bold text-teal-500 uppercase tracking-wider mb-3">Tổng quan điểm số</p>
+              <ScoreOverview data={normData} />
             </div>
-            <span className="text-xs text-gray-400">
-              {new Date(submission.submittedAt.includes('Z') ? submission.submittedAt : submission.submittedAt + 'Z')
-                .toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
-            </span>
+          )}
+
+          {/* Essay (collapsible) */}
+          <div className="rounded-2xl border border-gray-100 bg-white shadow-sm overflow-hidden">
+            <button
+              className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition-colors"
+              onClick={() => setEssayOpen((o) => !o)}
+            >
+              <div className="flex items-center gap-2">
+                <FileText className="h-4 w-4 text-teal-500" />
+                <span className="text-sm font-bold text-gray-800">Bài viết của bạn</span>
+                <Badge variant="secondary" className="text-[10px]">{submission.wordCount} từ</Badge>
+              </div>
+              {essayOpen ? <ChevronUp className="h-4 w-4 text-gray-400" /> : <ChevronDown className="h-4 w-4 text-gray-400" />}
+            </button>
+            {essayOpen && (
+              <div className="px-4 pb-4">
+                <div className="rounded-xl bg-gray-50/60 border border-gray-100 p-4">
+                  <p className="text-[13px] text-gray-800 leading-relaxed whitespace-pre-wrap">{submission.essayContent}</p>
+                </div>
+              </div>
+            )}
           </div>
 
-          {/* Essay */}
-          <div>
-            <p className="text-xs font-bold text-teal-500 uppercase tracking-wider mb-3">Bài viết của bạn</p>
-            <div className="rounded-2xl bg-white border border-teal-100/60 p-5 shadow-sm">
-              <p className="text-[13px] text-gray-800 leading-relaxed whitespace-pre-wrap">{submission.essayContent}</p>
+          {/* Detailed criteria tabs */}
+          {normData && (
+            <div className="rounded-2xl border border-gray-100 bg-white shadow-sm p-4">
+              <p className="text-[10px] font-bold text-teal-500 uppercase tracking-wider mb-3">Phân tích chi tiết</p>
+              <Tabs defaultValue={normData.criteria[0]?.key ?? 'TA/TR'}>
+                <TabsList className="grid grid-cols-4 w-full h-8 bg-gray-100/80">
+                  {normData.criteria.map((c) => (
+                    <TabsTrigger key={c.key} value={c.key} className="text-[11px] font-semibold">{c.key}</TabsTrigger>
+                  ))}
+                </TabsList>
+                {normData.criteria.map((c) => (
+                  <TabsContent key={c.key} value={c.key}>
+                    <CriterionTab c={c} />
+                  </TabsContent>
+                ))}
+              </Tabs>
             </div>
-          </div>
+          )}
 
-          {/* Score display OR score button */}
-          {displayResult ? (
-            <ScoreDisplay result={displayResult} />
-          ) : (
-            <div className="flex justify-center">
+          {/* Expert format: summary/strengths/improvements text */}
+          {normData && (normData.summary || normData.strengths) && (
+            <div className="space-y-3">
+              {normData.summary && (
+                <div className="rounded-2xl bg-teal-50/50 border border-teal-100/60 p-4">
+                  <p className="text-xs font-bold text-teal-600 mb-1.5">Nhận xét tổng quan</p>
+                  <p className="text-[13px] text-gray-600 leading-relaxed whitespace-pre-line">{normData.summary}</p>
+                </div>
+              )}
+              {normData.strengths && (
+                <div className="rounded-2xl bg-emerald-50/50 border border-emerald-100/60 p-4">
+                  <p className="text-xs font-bold text-emerald-600 mb-1.5">Điểm mạnh</p>
+                  <p className="text-[13px] text-gray-600 leading-relaxed whitespace-pre-line">{normData.strengths}</p>
+                </div>
+              )}
+              {normData.feedbackImprovements && (
+                <div className="rounded-2xl bg-amber-50/50 border border-amber-100/60 p-4">
+                  <p className="text-xs font-bold text-amber-600 mb-1.5">Cần cải thiện</p>
+                  <p className="text-[13px] text-gray-600 leading-relaxed whitespace-pre-line">{normData.feedbackImprovements}</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* AI format: improvements list */}
+          {normData && <ImprovementsSection improvements={normData.improvements} />}
+
+          {/* Overall strategy */}
+          {normData?.overall_strategy && (
+            <div className="rounded-2xl bg-gradient-to-br from-teal-50 to-emerald-50/60 border border-teal-100/60 p-4">
+              <p className="text-xs font-bold text-teal-600 mb-1.5">Chiến lược tổng thể</p>
+              <p className="text-[13px] text-gray-700 leading-relaxed">{normData.overall_strategy}</p>
+            </div>
+          )}
+
+          {/* AI score CTA */}
+          {!scored && (
+            <div className="flex justify-center pb-2">
               <Button
                 onClick={handleAiScore}
                 disabled={isGrading}
@@ -229,93 +428,7 @@ export default function WritingResultPage({ params }: Props) {
         </div>
       </div>
 
-      {/* Grading modal (chibi loading) */}
-      <GradingModal
-        isOpen={showGrading}
-        onClose={() => setShowGrading(false)}
-        result={gradingResult}
-        isLoading={isGrading}
-      />
-    </div>
-  );
-}
-
-function ScoreDisplay({ result }: { result: Record<string, unknown> }) {
-  // GradingResult from store: { overallBand, taskAchievement, coherenceCohesion, lexicalResource, grammaticalRange, feedback }
-  // API evaluation: { overallScore, analysisResult: { criteria: { TA, CC, LR, GRA } }, feedbackResponse }
-  const isStoreFormat = 'overallBand' in result;
-
-  let overallBand: number;
-  let ta: number, cc: number, lr: number, gra: number;
-  let feedbackText: string;
-  let strengths = '';
-  let improvements = '';
-
-  if (isStoreFormat) {
-    overallBand = Number(result.overallBand ?? 0);
-    ta = Number(result.taskAchievement ?? 0);
-    cc = Number(result.coherenceCohesion ?? 0);
-    lr = Number(result.lexicalResource ?? 0);
-    gra = Number(result.grammaticalRange ?? 0);
-    feedbackText = String(result.feedback ?? '');
-  } else {
-    const assessment = (result.analysisResult ?? result) as Record<string, unknown>;
-    overallBand = Number(result.overallScore ?? assessment.final_band ?? 0);
-    ta = getCriterionBand(assessment, 'TA', 'TR');
-    cc = getCriterionBand(assessment, 'CC', 'CC');
-    lr = getCriterionBand(assessment, 'LR', 'LR');
-    gra = getCriterionBand(assessment, 'GRA', 'GRA');
-    const fb = (result.feedbackResponse ?? {}) as Record<string, unknown>;
-    feedbackText = extractFeedback(fb);
-    strengths = String(fb.strengths ?? '');
-    improvements = String(fb.improvements ?? '');
-  }
-
-  const scores = [
-    { short: 'TA/TR', label: 'Task Achievement', score: ta },
-    { short: 'CC', label: 'Coherence & Cohesion', score: cc },
-    { short: 'LR', label: 'Lexical Resource', score: lr },
-    { short: 'GRA', label: 'Grammatical Range', score: gra },
-  ];
-
-  return (
-    <div className="space-y-4">
-      <p className="text-xs font-bold text-teal-500 uppercase tracking-wider">Kết quả chấm điểm</p>
-      <div className="flex flex-col items-center py-4">
-        <div className="w-24 h-24 rounded-full bg-gradient-to-br from-teal-400 to-emerald-400 flex items-center justify-center shadow-lg shadow-teal-200/50">
-          <div className="w-20 h-20 rounded-full bg-white flex flex-col items-center justify-center">
-            <span className={`text-2xl font-black ${bandColor(overallBand)}`}>{overallBand.toFixed(1)}</span>
-            <span className="text-[10px] text-gray-400">Overall</span>
-          </div>
-        </div>
-      </div>
-      <div className="grid grid-cols-2 gap-2">
-        {scores.map(({ short, label, score }) => (
-          <div key={short} className={`rounded-2xl border p-3 ${bandBg(score)}`}>
-            <p className="text-[11px] font-semibold text-gray-500 mb-0.5">{short}</p>
-            <p className={`text-xl font-black ${bandColor(score)}`}>{score.toFixed(1)}</p>
-            <p className="text-[10px] text-gray-400 mt-0.5">{label}</p>
-          </div>
-        ))}
-      </div>
-      {feedbackText && (
-        <div className="rounded-2xl bg-teal-50/50 border border-teal-100/60 p-4">
-          <p className="text-xs font-bold text-teal-600 mb-2">Nhận xét</p>
-          <p className="text-[13px] text-gray-600 leading-relaxed whitespace-pre-line">{feedbackText}</p>
-        </div>
-      )}
-      {strengths && (
-        <div className="rounded-2xl bg-green-50/50 border border-green-100/60 p-4">
-          <p className="text-xs font-bold text-green-600 mb-2">Điểm mạnh</p>
-          <p className="text-[13px] text-gray-600 leading-relaxed whitespace-pre-line">{strengths}</p>
-        </div>
-      )}
-      {improvements && (
-        <div className="rounded-2xl bg-amber-50/50 border border-amber-100/60 p-4">
-          <p className="text-xs font-bold text-amber-600 mb-2">Cần cải thiện</p>
-          <p className="text-[13px] text-gray-600 leading-relaxed whitespace-pre-line">{improvements}</p>
-        </div>
-      )}
+      <GradingModal isOpen={showGrading} onClose={() => setShowGrading(false)} result={gradingResult} isLoading={isGrading} />
     </div>
   );
 }

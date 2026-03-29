@@ -18,7 +18,6 @@ import { usePracticeStore } from '@/store/practice-store';
 import { useAuthStore } from '@/store/auth-store';
 import { useTestDetail } from '@/hooks/use-test-detail';
 import { useElapsedTimer } from '@/hooks/use-elapsed-timer';
-import { submitAttempt } from '@/lib/practice-api';
 import { submitWriting } from '@/lib/ai-api';
 import { useRouter } from 'next/navigation';
 import type { WritingTaskType } from '@/types/writing.types';
@@ -177,17 +176,7 @@ export default function WritingExercisePage({ params }: Props) {
       });
       setSubmissionId(result.submissionId);
 
-      // 2. Ghi lịch sử luyện tập
-      try {
-        await submitAttempt({
-          testId: Number(id),
-          stimulusId: stimulus.id,
-          elapsedSeconds: elapsed,
-          answers: [{ questionId: stimulus.questionGroups[0]?.questions[0]?.id ?? 0, answerText: answer }],
-        });
-      } catch { /* không ảnh hưởng đến luồng nộp bài */ }
-
-      // 3. Xoá draft
+      // 2. Xoá draft
       localStorage.removeItem(draftKey(id));
       markCompleted(id);
 
@@ -289,13 +278,16 @@ export default function WritingExercisePage({ params }: Props) {
         }}
         onSkip={() => {
           setShowScoringDialog(false);
-          router.push('/practice?skill=writing');
+          router.push('/scoring-history');
         }}
       />
 
       <GradingModal
         isOpen={showGrading}
-        onClose={() => setShowGrading(false)}
+        onClose={() => {
+          setShowGrading(false);
+          if (gradingResult) router.push('/scoring-history');
+        }}
         result={gradingResult}
         isLoading={isGrading}
       />

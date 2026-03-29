@@ -145,7 +145,7 @@ export default function ScoringHistoryPage() {
             setExpertModalOpen(true);
             if (experts.length === 0) {
               setLoadingExperts(true);
-              getExperts('WRITING')
+              getExperts()
                 .then(setExperts)
                 .catch(() => toast.error('Không thể tải danh sách giảng viên'))
                 .finally(() => setLoadingExperts(false));

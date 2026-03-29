@@ -59,12 +59,11 @@ export default function SpeakingExamPage({ params }: Props) {
 
   // ── Start exam after WS connected ─────────────────────────
   useEffect(() => {
-    if (exam.examState === 'CONNECTING' && !startedRef.current) {
+    if (exam.isWsConnected && !startedRef.current) {
       startedRef.current = true;
-      const t = setTimeout(() => examRef.current.startExam(testId), 300);
-      return () => clearTimeout(t);
+      examRef.current.startExam(testId);
     }
-  }, [exam.examState, testId]);
+  }, [exam.isWsConnected, testId]);
 
   // ── Auto-start mic when TTS finishes (Part 1 & 3) ─────────
   useEffect(() => {

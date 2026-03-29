@@ -28,6 +28,7 @@ export function useSpeakingExam() {
   const wsRef = useRef<WebSocket | null>(null);
 
   const [examState, setExamState] = useState<ExamState>('IDLE');
+  const [isWsConnected, setIsWsConnected] = useState(false);
   const [currentQuestion, setCurrentQuestion] = useState<QuestionEvent | null>(null);
   const [cueCard, setCueCard] = useState<CueCardEvent | null>(null);
   const [evaluation, setEvaluation] = useState<EvaluationEvent | null>(null);
@@ -105,6 +106,7 @@ export function useSpeakingExam() {
 
     ws.onopen = () => {
       console.log('[SpeakingExam] WS connected');
+      setIsWsConnected(true);
     };
 
     ws.onmessage = (event) => {
@@ -123,6 +125,7 @@ export function useSpeakingExam() {
 
     ws.onclose = () => {
       console.log('[SpeakingExam] WS closed');
+      setIsWsConnected(false);
     };
 
     wsRef.current = ws;
@@ -155,6 +158,7 @@ export function useSpeakingExam() {
   const disconnect = useCallback(() => {
     wsRef.current?.close();
     wsRef.current = null;
+    setIsWsConnected(false);
   }, []);
 
   // ── Cleanup on unmount ────────────────────────────────────
@@ -170,6 +174,7 @@ export function useSpeakingExam() {
     cueCard,
     evaluation,
     error,
+    isWsConnected,
     isAudioPlaying: audio.isAudioPlaying,
     connect,
     startExam,

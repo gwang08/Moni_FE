@@ -87,12 +87,24 @@ export function useMicTest(maxDuration = 20) {
       maxTimerRef.current = setTimeout(() => {
         stopRecording();
       }, maxDuration * 1000);
-    } catch (err) {
+    } catch (err: unknown) {
       setIsRequestingMic(false);
       console.error('[MicTest] Failed to access microphone:', err);
-      setError(
-        'Cannot access microphone. Please allow microphone permission and try again.',
-      );
+
+      const error = err as DOMException;
+      if (error.name === 'NotFoundError') {
+        setError(
+          'No microphone found on your device. Please connect a microphone and try again.',
+        );
+      } else if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
+        setError(
+          'Microphone permission denied. Please allow microphone access in your browser settings and try again.',
+        );
+      } else {
+        setError(
+          'Cannot access microphone. Please check your device and browser settings.',
+        );
+      }
     }
   }, [audioUrl, maxDuration, stopRecording]);
 

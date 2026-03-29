@@ -26,6 +26,7 @@ function getAuthToken(): string {
 
 export function useSpeakingExam() {
   const wsRef = useRef<WebSocket | null>(null);
+  const keepaliveRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const [examState, setExamState] = useState<ExamState>('IDLE');
   const [isWsConnected, setIsWsConnected] = useState(false);
@@ -158,16 +159,40 @@ export function useSpeakingExam() {
     };
 
     ws.onerror = () => {
-      setError('Mất kết nối WebSocket');
-      setExamState('ERROR');
+      console.error('[SpeakingExam] WS error');
+      // Don't set ERROR if we're evaluating — the backend might still be processing
+      setExamState((prev) => {
+        if (prev === 'EVALUATING') return prev; // keep EVALUATING state
+        setError('WebSocket connection lost');
+        return 'ERROR';
+      });
     };
 
-    ws.onclose = () => {
-      console.log('[SpeakingExam] WS closed');
+    ws.onclose = (event) => {
+      console.log('[SpeakingExam] WS closed, code:', event.code);
       setIsWsConnected(false);
+
+      // If WS closes while evaluating, don't crash — show timeout message
+      setExamState((prev) => {
+        if (prev === 'EVALUATING') {
+          // WS died during evaluation — backend is still processing
+          // Show a friendly message instead of infinite spinner
+          setError('Evaluation is taking longer than expected. Your results will be available in your test history shortly.');
+          return 'ERROR';
+        }
+        return prev;
+      });
     };
 
     wsRef.current = ws;
+
+    // Keepalive ping every 25s to prevent WS timeout during long evaluation
+    if (keepaliveRef.current) clearInterval(keepaliveRef.current);
+    keepaliveRef.current = setInterval(() => {
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: 'ping' }));
+      }
+    }, 25000);
   }, [handleMessage]);
 
   // ── Actions ───────────────────────────────────────────────
@@ -195,6 +220,10 @@ export function useSpeakingExam() {
   const endExam = useCallback(() => send({ type: 'end_exam' }), [send]);
 
   const disconnect = useCallback(() => {
+    if (keepaliveRef.current) {
+      clearInterval(keepaliveRef.current);
+      keepaliveRef.current = null;
+    }
     wsRef.current?.close();
     wsRef.current = null;
     setIsWsConnected(false);

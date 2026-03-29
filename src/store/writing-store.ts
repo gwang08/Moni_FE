@@ -60,6 +60,8 @@ function mapApiResponse(data: Record<string, unknown>): GradingResult {
       'assessment.final_band',
       'overallBand', 'overall_band', 'band', 'score'),
     taskAchievement: dig(data,
+      'assessment.criteria.TA.adjusted_band',
+      'assessment.criteria.TA.band',
       'assessment.criteria.TR.adjusted_band',
       'assessment.criteria.TR.band',
       'taskAchievement', 'task_achievement'),

@@ -52,9 +52,10 @@ function GapInput({ questionId, userAnswer, submitted, correctAnswer, onTextAnsw
 }
 
 /** Renders a single gap-fill question as inline sentence with blank */
-function GapQuestion({ question, userAnswer, submitted, onTextAnswer }: {
+function GapQuestion({ question, userAnswer, submitted, onTextAnswer, onLocateEvidence }: {
   question: QuestionDetail; userAnswer: string; submitted: boolean;
   onTextAnswer: (questionId: number, text: string) => void;
+  onLocateEvidence?: (evidence: string) => void;
 }) {
   const correctAnswer = question.options.find(o => o.isCorrect)?.content ?? '';
   const parsed = parseGapContent(question.content);
@@ -118,13 +119,14 @@ function GapQuestion({ question, userAnswer, submitted, onTextAnswer }: {
 }
 
 /** Render groupContent paragraph with inline blanks replacing number patterns */
-function ParagraphGapFilling({ groupContent, questions, submitted, textAnswers, onTextAnswer, questionOffset = 0 }: {
+function ParagraphGapFilling({ groupContent, questions, submitted, textAnswers, onTextAnswer, questionOffset = 0, onLocateEvidence }: {
   groupContent: string;
   questions: QuestionDetail[];
   submitted: boolean;
   textAnswers: Record<number, string>;
   onTextAnswer: (questionId: number, text: string) => void;
   questionOffset?: number;
+  onLocateEvidence?: (evidence: string) => void;
 }) {
   // Sort questions by position to match gap order in content
   const sortedQuestions = [...questions].sort((a, b) => a.position - b.position);
@@ -200,8 +202,9 @@ function ParagraphGapFilling({ groupContent, questions, submitted, textAnswers, 
                     {question.explanation.evidence && (
                       <div className="space-y-1 mt-1">
                         {question.explanation.evidence.split('\n---\n').filter((e: string) => e.trim()).map((chunk: string, ci: number) => (
-                          <p key={ci} className="text-xs text-amber-700 bg-amber-50 px-2 py-1 rounded">
-                            Dẫn chứng: &ldquo;{chunk.trim()}&rdquo;
+                          <p key={ci} className={`text-xs text-amber-700 bg-amber-50 px-2 py-1 rounded ${onLocateEvidence ? 'cursor-pointer hover:bg-amber-100' : ''}`}
+                            onClick={() => onLocateEvidence?.(chunk.trim())}>
+                            Dẫn chứng {ci + 1}: &ldquo;{chunk.trim()}&rdquo;
                           </p>
                         ))}
                       </div>
@@ -240,6 +243,7 @@ export function ReadingGapFilling({ questions, groupContent, imageUrl, submitted
           userAnswer={textAnswers[question.id] ?? ''}
           submitted={submitted}
           onTextAnswer={onTextAnswer}
+          onLocateEvidence={onLocateEvidence}
         />
       ))}
 
@@ -252,6 +256,7 @@ export function ReadingGapFilling({ questions, groupContent, imageUrl, submitted
           textAnswers={textAnswers}
           onTextAnswer={onTextAnswer}
           questionOffset={questionOffset}
+          onLocateEvidence={onLocateEvidence}
         />
       )}
     </div>

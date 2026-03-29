@@ -15,6 +15,7 @@ import { WritingScoringOptionsDialog } from '@/components/writing/writing-scorin
 import { getServices } from '@/lib/payment-api';
 import { useWritingStore } from '@/store/writing-store';
 import { usePracticeStore } from '@/store/practice-store';
+import { useAuthStore } from '@/store/auth-store';
 import { useTestDetail } from '@/hooks/use-test-detail';
 import { useElapsedTimer } from '@/hooks/use-elapsed-timer';
 import { submitAttempt } from '@/lib/practice-api';
@@ -58,6 +59,7 @@ export default function WritingExercisePage({ params }: Props) {
     setContent,
   } = useWritingStore();
   const markCompleted = usePracticeStore((state) => state.markCompleted);
+  const refreshProfile = useAuthStore((state) => state.refreshProfile);
 
   const [showGrading, setShowGrading] = useState(false);
   const [exitOpen, setExitOpen] = useState(false);
@@ -218,6 +220,7 @@ export default function WritingExercisePage({ params }: Props) {
       chartImage: chartFile,
       stimulusId: stimulus?.id,
     });
+    refreshProfile();
   };
 
   return (

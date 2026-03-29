@@ -67,22 +67,8 @@ export default function ListeningReviewPage({ params }: Props) {
     router.replace(`/practice/listening/${id}`);
   }, [id, router, attemptIdParam]);
 
-  if (loading || !resultData) {
-    return <SkeletonPractice />;
-  }
-
-  if (error || !testDetail) {
-    return (
-      <div className="flex flex-col items-center justify-center h-[calc(100vh-56px)] gap-4">
-        <p className="text-red-500">{error || 'Không tìm thấy bài tập.'}</p>
-        <Link href="/practice?skill=listening"><Button variant="outline">Quay lại danh sách</Button></Link>
-      </div>
-    );
-  }
-
-  const rawStimulus = testDetail.stimuli[0];
-
-  // Merge API explanation/evidence into stimulus questions (for history review)
+  // Merge API explanation/evidence into stimulus questions (must be before early returns)
+  const rawStimulus = testDetail?.stimuli[0] ?? null;
   const explanationsJson = resultData?.explanations ? JSON.stringify(resultData.explanations) : '';
   const stimulus = useMemo(() => {
     if (!rawStimulus || !explanationsJson) return rawStimulus;
@@ -106,6 +92,19 @@ export default function ListeningReviewPage({ params }: Props) {
       })),
     };
   }, [rawStimulus, explanationsJson]);
+
+  if (loading || !resultData) {
+    return <SkeletonPractice />;
+  }
+
+  if (error || !testDetail) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[calc(100vh-56px)] gap-4">
+        <p className="text-red-500">{error || 'Không tìm thấy bài tập.'}</p>
+        <Link href="/practice?skill=listening"><Button variant="outline">Quay lại danh sách</Button></Link>
+      </div>
+    );
+  }
 
   if (!stimulus) {
     return (

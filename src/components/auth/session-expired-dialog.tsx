@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
+import { useAuthStore } from '@/store/auth-store';
 import {
   Dialog,
   DialogContent,
@@ -22,8 +23,11 @@ export function SessionExpiredDialog() {
     return () => window.removeEventListener('session-expired', handler);
   }, []);
 
+  const clearAuth = useAuthStore((s) => s.clearAuth);
+
   const handleLogin = () => {
     setOpen(false);
+    clearAuth();
     router.push(`/login?redirect=${encodeURIComponent(pathname)}`);
   };
 

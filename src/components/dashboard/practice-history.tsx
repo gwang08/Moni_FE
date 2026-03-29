@@ -5,6 +5,7 @@ import { BookOpen, Headphones, Pencil, Mic, Clock, ArrowUpDown, Filter, Graduati
 import Link from 'next/link';
 import type { AttemptHistory } from '@/lib/practice-api';
 import { getMySessions } from '@/lib/expert-api';
+import { getWritingSubmissions, type WritingSubmission } from '@/lib/ai-api';
 import type { ScoringSession } from '@/types/expert.types';
 import type { SkillKey } from '@/types';
 import { SkeletonCard } from '@/components/ui/skeleton';
@@ -86,6 +87,15 @@ function EntryCard({ entry }: { entry: UnifiedEntry }) {
               <Bot className="h-2.5 w-2.5" /> AI
             </span>
           )}
+          {entry.id.startsWith('writing-sub-') && entry.status && (
+            <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${
+              entry.status === 'Đã chấm' ? 'bg-green-100 text-green-700' :
+              entry.status === 'Đang chấm' ? 'bg-blue-100 text-blue-700' :
+              'bg-orange-100 text-orange-700'
+            }`}>
+              {entry.status}
+            </span>
+          )}
           {isSpeakingExpert && entry.status && entry.status !== 'COMPLETED' && (
             <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${
               entry.status === 'QUEUED' ? 'bg-yellow-100 text-yellow-700' :
@@ -135,6 +145,24 @@ function toUnifiedAttempt(a: AttemptHistory, skill: string): UnifiedEntry {
   };
 }
 
+function toUnifiedWritingSub(s: WritingSubmission): UnifiedEntry {
+  const statusLabel = s.evaluationStatus === 'COMPLETED' ? 'Đã chấm'
+    : s.evaluationStatus === 'PROCESSING' ? 'Đang chấm'
+    : 'Chưa chấm';
+  return {
+    id: `writing-sub-${s.submissionId}`,
+    title: `Writing ${s.taskType === 'TASK_1' ? 'Task 1' : 'Task 2'}`,
+    date: s.submittedAt,
+    score: 0,
+    total: 0,
+    percentage: 0,
+    elapsedSeconds: 0,
+    reviewUrl: '/scoring-history',
+    source: 'ai',
+    status: statusLabel,
+  };
+}
+
 function toUnifiedSession(s: ScoringSession): UnifiedEntry {
   return {
     id: `expert-${s.id}`,
@@ -156,18 +184,24 @@ export function PracticeHistory() {
   const [scoreFilter, setScoreFilter] = useState<ScoreFilter>('all');
   const { attempts, loading } = useAttemptHistory();
 
-  // Fetch expert sessions for speaking tab
+  // Fetch expert sessions + writing submissions
   const [expertSessions, setExpertSessions] = useState<ScoringSession[]>([]);
   const [expertLoading, setExpertLoading] = useState(true);
-  const expertFetched = useRef(false);
+  const [writingSubs, setWritingSubs] = useState<WritingSubmission[]>([]);
+  const [writingSubsLoading, setWritingSubsLoading] = useState(true);
+  const fetched = useRef(false);
 
   useEffect(() => {
-    if (expertFetched.current) return;
-    expertFetched.current = true;
+    if (fetched.current) return;
+    fetched.current = true;
     getMySessions()
       .then(setExpertSessions)
       .catch(() => {})
       .finally(() => setExpertLoading(false));
+    getWritingSubmissions()
+      .then(setWritingSubs)
+      .catch(() => {})
+      .finally(() => setWritingSubsLoading(false));
   }, []);
 
   const activeSkill = TABS.find((t) => t.key === activeTab)?.skill ?? 'READING';
@@ -178,8 +212,15 @@ export function PracticeHistory() {
       .filter((a) => a.skill === activeSkill)
       .map((a) => toUnifiedAttempt(a, activeSkill.toLowerCase()));
 
-    // Add expert sessions for speaking
     let allEntries = practiceEntries;
+
+    // Add writing submissions for writing tab
+    if (activeTab === 'writing') {
+      const writingEntries = writingSubs.map(toUnifiedWritingSub);
+      allEntries = [...practiceEntries, ...writingEntries];
+    }
+
+    // Add expert sessions for speaking tab
     if (activeTab === 'speaking') {
       const expertEntries = expertSessions
         .filter((s) => s.skill === 'SPEAKING')
@@ -205,9 +246,9 @@ export function PracticeHistory() {
     }
 
     return allEntries;
-  }, [attempts, expertSessions, activeSkill, activeTab, sortOrder, scoreFilter]);
+  }, [attempts, expertSessions, writingSubs, activeSkill, activeTab, sortOrder, scoreFilter]);
 
-  const isLoading = loading || (activeTab === 'speaking' && expertLoading);
+  const isLoading = loading || (activeTab === 'speaking' && expertLoading) || (activeTab === 'writing' && writingSubsLoading);
 
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">

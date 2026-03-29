@@ -132,9 +132,12 @@ function toUnifiedAttempt(a: AttemptHistory, skill: string): UnifiedEntry {
   const percentage = a.totalQuestions > 0 ? Math.round((a.score / a.totalQuestions) * 100) : 0;
   const skillPath = a.skill?.toLowerCase() ?? 'reading';
   const testOrStimulusId = a.testId ?? a.stimulusId;
+  const normalizedTitle = a.stimulusTitle
+    ? (a.skill === 'LISTENING' ? a.stimulusTitle.replace(/\bpassage\b/gi, 'Section') : a.stimulusTitle)
+    : 'Bài tập';
   return {
     id: `${skill}-${a.attemptId}`,
-    title: a.stimulusTitle || 'Bài tập',
+    title: normalizedTitle,
     date: a.submittedAt,
     score: a.score,
     total: a.totalQuestions,

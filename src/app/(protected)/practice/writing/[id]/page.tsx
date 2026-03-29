@@ -150,7 +150,10 @@ export default function WritingExercisePage({ params }: Props) {
   const taskType: WritingTaskType = testDetail.section === 1 ? 1 : 2;
   const stimulus = testDetail.stimuli[0];
   const prompt = stimulus?.content || testDetail.description || FALLBACK_PROMPT;
-  const chartImageUrl = taskType === 1 ? (stimulus?.mediaUrl ?? undefined) : undefined;
+  // Chart image: prefer mediaUrl, fallback to extracting from content HTML <img>
+  const chartImageUrl = taskType === 1
+    ? (stimulus?.mediaUrl || stimulus?.content?.match(/<img[^>]+src="([^"]+)"/)?.[1] || undefined)
+    : undefined;
   const sampleAnswer = stimulus?.questionGroups[0]?.instruction || undefined;
 
   const canGrade = wordCount > 0 && !isGrading && !submitted;
@@ -215,19 +218,6 @@ export default function WritingExercisePage({ params }: Props) {
       chartImage: chartFile,
       stimulusId: stimulus?.id,
     });
-    if (!submitted) {
-      markCompleted(id);
-      if (stimulus) {
-        try {
-          await submitAttempt({
-            testId: Number(id),
-            stimulusId: stimulus.id,
-            elapsedSeconds: elapsed,
-            answers: [{ questionId: stimulus.questionGroups[0]?.questions[0]?.id ?? 0, answerText: answer }],
-          });
-        } catch { /* ignore */ }
-      }
-    }
   };
 
   return (

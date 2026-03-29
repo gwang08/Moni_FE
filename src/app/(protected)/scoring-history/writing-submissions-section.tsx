@@ -77,12 +77,7 @@ export function WritingSubmissionsSection({
     setConfirmOpen(false);
     setScoringId(pendingSubmissionId);
     try {
-      // Call scoreWriting — we need essay content and question from the submission
-      // Since we only have summary data here, navigate to the submission detail
-      // In the interim, just call with empty params to trigger the endpoint
-      toast.info('Đang gửi bài viết để chấm AI...');
-      // The actual scoring needs essay content — navigate to writing result page
-      router.push(`/writing/result/${pendingSubmissionId}`);
+      toast.info('Tính năng chấm lại từ lịch sử đang phát triển. Vui lòng chấm ngay khi nộp bài.');
     } catch {
       toast.error('Không thể chấm điểm. Vui lòng thử lại.');
     } finally {

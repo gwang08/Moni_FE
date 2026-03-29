@@ -97,22 +97,46 @@ export default function WritingResultPage({ params }: Props) {
   const handleAiScore = async () => {
     if (!submission) return;
     const stimulus = testDetail?.stimuli[0];
-    const prompt = stimulus?.content ?? '';
+    const rawPrompt = stimulus?.content ?? '';
     const taskType = submission.taskType === 'TASK_1' ? 1 : 2;
-    const chartImageUrl = stimulus?.mediaUrl || prompt.match(/<img[^>]+src="([^"]+)"/)?.[1];
+    const imgUrl = stimulus?.mediaUrl || rawPrompt.match(/<img[^>]+src="([^"]+)"/)?.[1];
 
+    // Fetch chart image for Task 1 (try with crossorigin)
     let chartFile: File | undefined;
-    if (taskType === 1 && chartImageUrl) {
+    if (taskType === 1 && imgUrl) {
       try {
-        const res = await fetch(chartImageUrl);
-        const blob = await res.blob();
-        chartFile = new File([blob], 'chart.png', { type: blob.type || 'image/png' });
-      } catch { /* proceed without chart */ }
+        const res = await fetch(imgUrl, { mode: 'cors' });
+        if (res.ok) {
+          const blob = await res.blob();
+          if (blob.size > 0) {
+            chartFile = new File([blob], 'chart.png', { type: blob.type || 'image/png' });
+          }
+        }
+      } catch {
+        // CORS blocked — try loading via Image canvas as fallback
+        try {
+          const img = new Image();
+          img.crossOrigin = 'anonymous';
+          await new Promise<void>((resolve, reject) => {
+            img.onload = () => resolve();
+            img.onerror = reject;
+            img.src = imgUrl;
+          });
+          const canvas = document.createElement('canvas');
+          canvas.width = img.naturalWidth;
+          canvas.height = img.naturalHeight;
+          canvas.getContext('2d')?.drawImage(img, 0, 0);
+          const blob = await new Promise<Blob | null>((r) => canvas.toBlob(r, 'image/png'));
+          if (blob && blob.size > 0) {
+            chartFile = new File([blob], 'chart.png', { type: 'image/png' });
+          }
+        } catch { /* give up */ }
+      }
     }
 
     await submitForGrading({
       taskType,
-      question: prompt,
+      question: rawPrompt,
       answer: submission.essayContent,
       chartImage: chartFile,
       stimulusId: submission.stimulusId ?? undefined,
@@ -133,7 +157,9 @@ export default function WritingResultPage({ params }: Props) {
   const stimulus = testDetail?.stimuli[0];
   const taskType: WritingTaskType = submission.taskType === 'TASK_1' ? 1 : 2;
   const prompt = stimulus?.content ?? '';
-  const chartImageUrl = stimulus?.mediaUrl || prompt.match(/<img[^>]+src="([^"]+)"/)?.[1];
+  // Only pass chartImageUrl if it's from mediaUrl (not embedded in HTML)
+  // If image is already in prompt HTML, WritingPromptPanel will render it
+  const chartImageUrl = stimulus?.mediaUrl ?? undefined;
   const hasEvaluation = submission.evaluation != null;
   // Use inline result from grading or saved evaluation
   const displayResult = (gradingResult as Record<string, unknown> | null) || (hasEvaluation ? submission.evaluation as Record<string, unknown> : null);
@@ -214,17 +240,42 @@ export default function WritingResultPage({ params }: Props) {
 }
 
 function ScoreDisplay({ result }: { result: Record<string, unknown> }) {
-  // Handle both GradingResult (from store) and evaluation from API
-  const assessment = (result.assessment ?? result) as Record<string, unknown>;
-  const feedback = (result.feedback ?? result) as Record<string, unknown>;
-  const overallBand = Number(assessment.final_band ?? (result as Record<string, unknown>).overallBand ?? assessment.overallScore ?? 0);
-  const feedbackText = extractFeedback(feedback);
+  // GradingResult from store: { overallBand, taskAchievement, coherenceCohesion, lexicalResource, grammaticalRange, feedback }
+  // API evaluation: { overallScore, analysisResult: { criteria: { TA, CC, LR, GRA } }, feedbackResponse }
+  const isStoreFormat = 'overallBand' in result;
+
+  let overallBand: number;
+  let ta: number, cc: number, lr: number, gra: number;
+  let feedbackText: string;
+
+  if (isStoreFormat) {
+    overallBand = Number(result.overallBand ?? 0);
+    ta = Number(result.taskAchievement ?? 0);
+    cc = Number(result.coherenceCohesion ?? 0);
+    lr = Number(result.lexicalResource ?? 0);
+    gra = Number(result.grammaticalRange ?? 0);
+    feedbackText = String(result.feedback ?? '');
+  } else {
+    const assessment = (result.analysisResult ?? result) as Record<string, unknown>;
+    overallBand = Number(result.overallScore ?? assessment.final_band ?? 0);
+    ta = getCriterionBand(assessment, 'TA', 'TR');
+    cc = getCriterionBand(assessment, 'CC', 'CC');
+    lr = getCriterionBand(assessment, 'LR', 'LR');
+    gra = getCriterionBand(assessment, 'GRA', 'GRA');
+    const fb = (result.feedbackResponse ?? {}) as Record<string, unknown>;
+    feedbackText = extractFeedback(fb);
+  }
+
+  const scores = [
+    { short: 'TA/TR', label: 'Task Achievement', score: ta },
+    { short: 'CC', label: 'Coherence & Cohesion', score: cc },
+    { short: 'LR', label: 'Lexical Resource', score: lr },
+    { short: 'GRA', label: 'Grammatical Range', score: gra },
+  ];
 
   return (
     <div className="space-y-4">
       <p className="text-xs font-bold text-teal-500 uppercase tracking-wider">Kết quả chấm điểm</p>
-
-      {/* Overall */}
       <div className="flex flex-col items-center py-4">
         <div className="w-24 h-24 rounded-full bg-gradient-to-br from-teal-400 to-emerald-400 flex items-center justify-center shadow-lg shadow-teal-200/50">
           <div className="w-20 h-20 rounded-full bg-white flex flex-col items-center justify-center">
@@ -233,22 +284,15 @@ function ScoreDisplay({ result }: { result: Record<string, unknown> }) {
           </div>
         </div>
       </div>
-
-      {/* Criteria */}
       <div className="grid grid-cols-2 gap-2">
-        {CRITERIA.map(({ key, altKey, label, short }) => {
-          const score = getCriterionBand(assessment, key, altKey);
-          return (
-            <div key={key} className={`rounded-2xl border p-3 ${bandBg(score)}`}>
-              <p className="text-[11px] font-semibold text-gray-500 mb-0.5">{short}</p>
-              <p className={`text-xl font-black ${bandColor(score)}`}>{score.toFixed(1)}</p>
-              <p className="text-[10px] text-gray-400 mt-0.5">{label}</p>
-            </div>
-          );
-        })}
+        {scores.map(({ short, label, score }) => (
+          <div key={short} className={`rounded-2xl border p-3 ${bandBg(score)}`}>
+            <p className="text-[11px] font-semibold text-gray-500 mb-0.5">{short}</p>
+            <p className={`text-xl font-black ${bandColor(score)}`}>{score.toFixed(1)}</p>
+            <p className="text-[10px] text-gray-400 mt-0.5">{label}</p>
+          </div>
+        ))}
       </div>
-
-      {/* Feedback */}
       {feedbackText && (
         <div className="rounded-2xl bg-teal-50/50 border border-teal-100/60 p-4">
           <p className="text-xs font-bold text-teal-600 mb-2">Nhận xét</p>

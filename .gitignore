@@ -48,3 +48,7 @@ CLAUDE.md
 release-manifest.json
 .repomixignore
 plans/
+
+# agents and documentation
+_agent_tmp/
+docs/

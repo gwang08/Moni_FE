@@ -1,25 +1,18 @@
 'use client';
 
-import { use, useEffect, useMemo, useState } from 'react';
+import { use, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { SkeletonPractice } from '@/components/ui/skeleton';
-import { ConfirmDialog } from '@/components/ui/confirm-dialog';
-import { SpeakingPracticeHeader } from '@/components/speaking/speaking-practice-header';
-import { SpeakingTopicSidebar } from '@/components/speaking/speaking-topic-sidebar';
-import { SpeakingQuestionCenter } from '@/components/speaking/speaking-question-center';
-import { SpeakingRecorder } from '@/components/speaking/speaking-recorder';
-import { SpeakingFeedbackPanel } from '@/components/speaking/speaking-feedback-panel';
-import { SpeakingScoringDialog } from '@/components/speaking/speaking-scoring-dialog';
-import { SpeakingNotesPanel } from '@/components/speaking/speaking-notes-panel';
-import { useTestDetail } from '@/hooks/use-test-detail';
-import { useSpeakingStore } from '@/store/speaking-store';
-import { usePracticeStore } from '@/store/practice-store';
-import { useAuthStore } from '@/store/auth-store';
-import { submitAttempt } from '@/lib/practice-api';
-
-const FALLBACK_CONTENT = 'Hãy trả lời câu hỏi theo chủ đề được giao. Sử dụng ngôn ngữ tự nhiên và rõ ràng.';
-
+import { useSpeakingExam } from '@/hooks/use-speaking-exam';
+import { useAssemblyAISTT } from '@/hooks/use-assemblyai-stt';
+import { useSpeakingExamTimers } from '@/hooks/use-speaking-exam-timers';
+import { ExamQuestionDisplay } from '@/components/speaking-exam/exam-question-display';
+import { ExamCueCardDisplay } from '@/components/speaking-exam/exam-cue-card-display';
+import { ExamSpeakingTimer } from '@/components/speaking-exam/exam-speaking-timer';
+import { ExamEvaluationResult } from '@/components/speaking-exam/exam-evaluation-result';
+import { ExamTransitionScreen } from '@/components/speaking-exam/exam-transition-screen';
+import { ExamErrorDisplay } from '@/components/speaking-exam/exam-error-display';
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -27,288 +20,194 @@ interface Props {
 
 export default function SpeakingPracticePage({ params }: Props) {
   const { id } = use(params);
+  const testId = Number(id);
   const router = useRouter();
-  const { testDetail, loading, error } = useTestDetail(id);
+  
+  const exam = useSpeakingExam();
+  const stt = useAssemblyAISTT();
+  const startedRef = useRef(false);
 
-  const {
-    currentQuestionIndex,
-    notes,
-    isScoring,
-    scoringError,
-    recordings,
-    currentRecording,
-    setCurrentQuestionIndex,
-    setNotes,
-    submitForScoring,
-    reset,
-  } = useSpeakingStore();
+  // Refs to avoid unstable dependencies causing infinite loops
+  const sttRef = useRef(stt);
+  useEffect(() => { sttRef.current = stt; }, [stt]);
 
-  const markCompleted = usePracticeStore((state) => state.markCompleted);
-  const refreshProfile = useAuthStore((state) => state.refreshProfile);
+  const examRef = useRef(exam);
+  useEffect(() => { examRef.current = exam; }, [exam]);
 
-  const [showSample, setShowSample] = useState(false);
-  const [showExitDialog, setShowExitDialog] = useState(false);
-  const [recordedBlobs, setRecordedBlobs] = useState<Record<string, Blob>>({});
-  const [hasScored, setHasScored] = useState(false);
+  // Track if we already started listening for the current question
+  const hasStartedMicForQuestionRef = useRef<number | null>(null);
 
+  // ── Handlers (defined before timers so they can be passed) ──
+  const handleStopPart2 = useCallback(() => {
+    sttRef.current.stopListening();
+    examRef.current.stopSpeakingPart2(sttRef.current.transcript || '[no response]');
+  }, []);
+
+  const handlePrepEnd = useCallback(() => {
+    examRef.current.startSpeakingPart2();
+    sttRef.current.startListening();
+  }, []);
+
+  const timers = useSpeakingExamTimers(exam.examState, handlePrepEnd, handleStopPart2);
+
+  // ── Connect WS on mount ────────────────────────────────────
   useEffect(() => {
-    reset();
-  }, [reset]);
+    examRef.current.connect();
+    return () => examRef.current.disconnect();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  const questions = useMemo(() => {
-    if (!testDetail) return [];
+  // ── Start exam after WS connected ─────────────────────────
+  useEffect(() => {
+    if (exam.examState === 'CONNECTING' && !startedRef.current) {
+      startedRef.current = true;
+      const t = setTimeout(() => examRef.current.startExam(testId), 300);
+      return () => clearTimeout(t);
+    }
+  }, [exam.examState, testId]);
 
-    // Aggregate questions from all stimuli (all Parts)
-    const allQuestions: { id: number; content: string; position: number; sampleAnswer?: string; partNumber: number; questionCategory?: string }[] = [];
+  // ── Auto-start mic when TTS finishes (Part 1 & 3) ─────────
+  useEffect(() => {
+    // If no question is active, reset our tracking ref
+    if (!exam.currentQuestion) {
+      hasStartedMicForQuestionRef.current = null;
+      return;
+    }
+    
+    // Defer taking mic if audio is actively playing
+    if (exam.isAudioPlaying) return;
 
-    for (const stimulus of testDetail.stimuli) {
-      const section = stimulus.section ?? 1;
-      for (const group of stimulus.questionGroups ?? []) {
-        for (const q of group.questions ?? []) {
-          // Skip transition scripts (position 0)
-          if (q.position === 0) continue;
-          // Skip Part 2 cue card in practice mode (it's shown differently in exam)
-          // But keep it for Part 2 as it IS the question
-          allQuestions.push({
-            id: q.id,
-            content: q.content || FALLBACK_CONTENT,
-            position: q.position,
-            sampleAnswer: q.explanation?.text,
-            partNumber: section,
-            questionCategory: q.questionCategory,
-          });
-        }
+    const state = exam.examState;
+    if (state === 'PART1_QUESTIONING' || state === 'PART3_QUESTIONING') {
+      const qId = exam.currentQuestion.questionId;
+      // Only start once per question
+      if (hasStartedMicForQuestionRef.current !== qId && !sttRef.current.isListening) {
+        hasStartedMicForQuestionRef.current = qId;
+        sttRef.current.startListening();
       }
     }
+  }, [exam.currentQuestion, exam.isAudioPlaying, exam.examState]);
 
-    // Sort by part number, then position
-    allQuestions.sort((a, b) => a.partNumber - b.partNumber || a.position - b.position);
+  // ── Submit answer (Part 1 & 3) ────────────────────────────
+  const handleSubmitAnswer = useCallback(() => {
+    if (!examRef.current.currentQuestion) return;
+    sttRef.current.stopListening();
+    examRef.current.sendTranscript(
+      examRef.current.currentQuestion.partNumber,
+      examRef.current.currentQuestion.questionId,
+      sttRef.current.transcript || '[no response]',
+    );
+  }, []);
 
-    if (allQuestions.length > 0) return allQuestions;
-
-    // Fallback for old-format tests
-    return [{
-      id: 0,
-      content: testDetail.stimuli[0]?.content || testDetail.description || FALLBACK_CONTENT,
-      position: 1,
-      sampleAnswer: undefined,
-      partNumber: 1,
-    }];
-  }, [testDetail]);
-
-  const currentQuestion = questions[currentQuestionIndex];
-  const currentPart = currentQuestion?.partNumber ?? testDetail?.section ?? 1;
-
-  const completedIds = useMemo(() => {
-    const ids = new Set<number>();
-    recordings.forEach((r) => {
-      const qId = parseInt(r.taskId.replace(`${id}-q`, ''), 10);
-      if (!isNaN(qId)) ids.add(qId);
-    });
-    return ids;
-  }, [recordings, id]);
-
-  const taskId = currentQuestion ? `${id}-q${currentQuestion.id}` : id;
-
-  const questionRecording = currentQuestion
-    ? recordings.filter((r) => r.taskId === taskId).at(-1) ?? null
-    : null;
-
-  const lastRecordedBlob = taskId ? recordedBlobs[taskId] ?? null : null;
-
-  const handleRecordingComplete = (blob: Blob) => {
-    setRecordedBlobs((prev) => ({ ...prev, [taskId]: blob }));
-  };
-
-  const handleSubmitForScoring = async () => {
-    if (!allRecorded) return;
-    // Collect all recorded blobs in question order
-    const orderedBlobs: Blob[] = [];
-    for (const q of questions) {
-      const blob = recordedBlobs[`${id}-q${q.id}`];
-      if (blob && blob.size > 0) orderedBlobs.push(blob);
+  // ── End exam when evaluating ──────────────────────────────
+  useEffect(() => {
+    if (exam.examState === 'EVALUATING') {
+      examRef.current.endExam();
     }
-    if (orderedBlobs.length === 0) return;
+  }, [exam.examState]);
 
-    // Use first blob's mime type
-    const mimeType = orderedBlobs[0].type || 'audio/webm';
-    const ext = mimeType.includes('mp4') ? 'mp4' : 'webm';
+  // ── Render ────────────────────────────────────────────────
+  const { examState } = exam;
 
-    // If only 1 recording, send directly; otherwise merge
-    const finalBlob = orderedBlobs.length === 1
-      ? orderedBlobs[0]
-      : new Blob(orderedBlobs, { type: mimeType });
-    const file = new File([finalBlob], `speaking-full.${ext}`, { type: mimeType });
-
-    // Build all questions as context
-    const allQuestions = questions.map((q) => `Part ${q.partNumber} Q${q.position}: ${q.content}`).join('\n');
-    await submitForScoring(file, allQuestions);
-    setHasScored(true);
-    // Refresh credit balance in header
-    refreshProfile();
-    // Save attempt to history after scoring
-    await saveProgress();
-  };
-
-  const saveProgress = async () => {
-    if (!testDetail || questions.length === 0) return;
-    markCompleted(id);
-    const stimulus = testDetail.stimuli[0];
-    if (stimulus) {
-      try {
-        const answers = questions
-          .filter((q) => recordedBlobs[`${id}-q${q.id}`])
-          .map((q) => {
-            // Use feedback transcript if available, otherwise mark as recorded
-            const rec = recordings.find((r) => r.taskId === `${id}-q${q.id}`);
-            const transcript = rec?.feedback?.comments || '[Đã ghi âm]';
-            return { questionId: q.id, answerText: transcript };
-          });
-        if (answers.length > 0) {
-          await submitAttempt({
-            testId: Number(id),
-            stimulusId: stimulus.id,
-            elapsedSeconds: 0,
-            answers,
-          });
-        }
-      } catch { /* ignore */ }
-    }
-  };
-
-  const allRecorded = questions.length > 0 && questions.every((q) => recordedBlobs[`${id}-q${q.id}`]);
-
-  const handleExit = () => setShowExitDialog(true);
-  const handleConfirmExit = () => router.push('/practice?skill=speaking');
-
-  if (loading) return <SkeletonPractice />;
-
-  if (error || !testDetail) {
+  if (examState === 'IDLE' || examState === 'CONNECTING') {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen gap-4">
-        <p className="text-red-500">{error || 'Không tìm thấy bài tập.'}</p>
-        <Button variant="outline" onClick={() => router.push('/practice?skill=speaking')}>
-          Quay lại danh sách
-        </Button>
-      </div>
+      <PageShell>
+        <div className="flex flex-col items-center gap-4 py-20">
+          <Loader2 className="h-10 w-10 animate-spin text-blue-500" />
+          <p className="text-gray-600">Đang khởi tạo buổi thi (Real-time WS)...</p>
+        </div>
+      </PageShell>
     );
   }
 
+  if (
+    (examState === 'PART1_QUESTIONING' || examState === 'PART3_QUESTIONING') &&
+    exam.currentQuestion
+  ) {
+    return (
+      <PageShell>
+        <ExamQuestionDisplay
+          question={exam.currentQuestion}
+          isAudioPlaying={exam.isAudioPlaying}
+          isListening={stt.isListening}
+          transcript={stt.transcript}
+          onSubmitAnswer={handleSubmitAnswer}
+        />
+      </PageShell>
+    );
+  }
+
+  if (examState === 'PART2_PREPARATION' && exam.cueCard) {
+    return (
+      <PageShell>
+        <ExamCueCardDisplay topic={exam.cueCard.topic} prepTimer={timers.prepTimer} />
+      </PageShell>
+    );
+  }
+
+  if (examState === 'PART2_SPEAKING') {
+    return (
+      <PageShell>
+        <ExamSpeakingTimer
+          speakTimer={timers.speakTimer}
+          transcript={stt.transcript}
+          isListening={stt.isListening}
+          onStop={handleStopPart2}
+        />
+      </PageShell>
+    );
+  }
+
+  if (examState === 'TRANSITIONING_TO_PART2' || examState === 'TRANSITIONING_TO_PART3') {
+    return (
+      <PageShell>
+        <ExamTransitionScreen />
+      </PageShell>
+    );
+  }
+
+  if (examState === 'EVALUATING') {
+    return (
+      <PageShell>
+        <ExamTransitionScreen message="Đang chấm điểm... Vui lòng đợi." />
+      </PageShell>
+    );
+  }
+
+  if (examState === 'COMPLETED' && exam.evaluation) {
+    return (
+      <PageShell>
+        <ExamEvaluationResult evaluation={exam.evaluation} />
+        <div className="mt-8 flex justify-center">
+          <Button onClick={() => router.push('/practice')} variant="outline">
+            Quay về danh sách bài tập
+          </Button>
+        </div>
+      </PageShell>
+    );
+  }
+
+  if (examState === 'ERROR') {
+    return (
+      <PageShell>
+        <ExamErrorDisplay error={exam.error || 'Đã xảy ra lỗi không xác định'} onRetry={() => {
+          startedRef.current = false;
+          exam.connect();
+        }} />
+      </PageShell>
+    );
+  }
+
+  return <PageShell><ExamTransitionScreen message="Đang tải..." /></PageShell>;
+}
+
+function PageShell({ children }: { children: React.ReactNode }) {
   return (
-    <div className="h-[calc(100vh-56px)] flex flex-col relative overflow-hidden">
-      {/* Decorative background blobs */}
-      <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
-        <div className="absolute -top-32 -left-32 w-96 h-96 rounded-full bg-orange-200/20 blur-3xl" />
-        <div className="absolute top-1/3 -right-24 w-80 h-80 rounded-full bg-amber-200/15 blur-3xl" />
-        <div className="absolute -bottom-20 left-1/3 w-72 h-72 rounded-full bg-rose-200/10 blur-3xl" />
+    <div className="min-h-screen bg-gray-50 p-4 md:p-8">
+      <div className="mx-auto max-w-2xl">
+        <h1 className="mb-6 text-2xl font-bold text-gray-900">IELTS Speaking Exam (Mock Mode)</h1>
+        {children}
       </div>
-
-      <SpeakingPracticeHeader
-        title={testDetail.title}
-        currentPart={currentPart}
-        currentQuestion={currentQuestionIndex + 1}
-        totalQuestions={questions.length}
-        onExit={handleExit}
-      />
-
-      <div className="flex-1 flex overflow-hidden bg-gradient-to-br from-orange-50/40 via-white to-amber-50/30">
-        {/* Left sidebar */}
-        <div className="w-[22%] min-w-[200px] overflow-y-auto p-3">
-          <SpeakingTopicSidebar
-            questions={questions}
-            currentIndex={currentQuestionIndex}
-            completedIds={completedIds}
-            onSelect={(idx) => {
-              setCurrentQuestionIndex(idx);
-              setShowSample(false);
-            }}
-          />
-        </div>
-
-        {/* Center */}
-        <div className="flex-1 overflow-y-auto px-6 py-5 space-y-0">
-          {currentQuestion && (
-            <>
-              <SpeakingQuestionCenter
-                question={currentQuestion}
-                showSample={showSample}
-                onToggleSample={() => setShowSample((v) => !v)}
-                onPrev={() => {
-                  setCurrentQuestionIndex(currentQuestionIndex - 1);
-                  setShowSample(false);
-                }}
-                onNext={() => {
-                  setCurrentQuestionIndex(currentQuestionIndex + 1);
-                  setShowSample(false);
-                }}
-                canPrev={currentQuestionIndex > 0}
-                canNext={currentQuestionIndex < questions.length - 1}
-              />
-
-              <SpeakingRecorder
-                key={`${taskId}-recorder`}
-                taskId={taskId}
-                maxDuration={180}
-                existingBlob={lastRecordedBlob}
-                onRecordingComplete={handleRecordingComplete}
-              />
-
-              <SpeakingFeedbackPanel
-                feedback={questionRecording?.feedback ?? currentRecording?.feedback ?? null}
-                isScoring={isScoring}
-                scoringError={scoringError}
-              />
-            </>
-          )}
-
-          {allRecorded && !hasScored && !isScoring && (
-            <div className="mt-6 space-y-3">
-              <p className="text-center text-sm text-muted-foreground font-medium">
-                Đã ghi âm {Object.keys(recordedBlobs).length}/{questions.length} câu
-              </p>
-              <button
-                onClick={handleSubmitForScoring}
-                className="w-full py-3 px-4 rounded-2xl bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white font-semibold text-sm shadow-lg shadow-blue-300/30 transition-all duration-200 hover:scale-[1.01] hover:shadow-xl hover:shadow-blue-300/40 border border-blue-400/20"
-              >
-                🤖 Nộp bài chấm điểm
-              </button>
-            </div>
-          )}
-
-          {hasScored && !isScoring && (
-            <div className="mt-6 space-y-3">
-              <button
-                onClick={() => {
-                  setHasScored(false);
-                  setRecordedBlobs({});
-                  reset();
-                }}
-                className="w-full py-3 px-4 rounded-2xl bg-gradient-to-r from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 text-gray-700 font-semibold text-sm transition-all duration-200 border border-gray-200"
-              >
-                Ghi âm lại & Làm lại
-              </button>
-            </div>
-          )}
-        </div>
-
-        {/* Right sidebar */}
-        <div className="w-[20%] min-w-[180px] overflow-y-auto p-3">
-          <SpeakingNotesPanel notes={notes} onNotesChange={setNotes} />
-        </div>
-      </div>
-
-      <SpeakingScoringDialog open={isScoring} />
-
-      <ConfirmDialog
-        open={showExitDialog}
-        onOpenChange={setShowExitDialog}
-        title="Thoát bài tập?"
-        description="Tiến độ ghi âm của bạn sẽ không được lưu. Bạn có chắc chắn muốn thoát?"
-        confirmText="Thoát"
-        cancelText="Tiếp tục"
-        variant="destructive"
-        onConfirm={handleConfirmExit}
-      />
     </div>
   );
 }

@@ -13,8 +13,11 @@ export function useSpeakingExamTimers(
   const [speakTimer, setSpeakTimer] = useState(120);
   const onPrepEndRef = useRef(onPrepEnd);
   const onSpeakEndRef = useRef(onSpeakEnd);
-  onPrepEndRef.current = onPrepEnd;
-  onSpeakEndRef.current = onSpeakEnd;
+  
+  useEffect(() => {
+    onPrepEndRef.current = onPrepEnd;
+    onSpeakEndRef.current = onSpeakEnd;
+  }, [onPrepEnd, onSpeakEnd]);
 
   // Part 2 preparation countdown (60s)
   useEffect(() => {

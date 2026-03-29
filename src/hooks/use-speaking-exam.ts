@@ -94,6 +94,13 @@ export function useSpeakingExam() {
     }
 
     setExamState('CONNECTING');
+
+    // Close any existing connection to avoid duplicates
+    if (wsRef.current && wsRef.current.readyState !== WebSocket.CLOSED) {
+      wsRef.current.close();
+      wsRef.current = null;
+    }
+
     const ws = new WebSocket(`${WS_BASE}/ws/speaking/exam?token=${token}`);
 
     ws.onopen = () => {

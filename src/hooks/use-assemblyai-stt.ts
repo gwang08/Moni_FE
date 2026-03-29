@@ -1,4 +1,4 @@
-import { useRef, useState, useCallback } from 'react';
+import { useRef, useState, useCallback, useEffect } from 'react';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
@@ -21,14 +21,46 @@ export function useAssemblyAISTT() {
   const [transcript, setTranscript] = useState('');
   const [isListening, setIsListening] = useState(false);
   const socketRef = useRef<WebSocket | null>(null);
-  const recorderRef = useRef<MediaRecorder | null>(null);
+  
   const streamRef = useRef<MediaStream | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const processorRef = useRef<ScriptProcessorNode | null>(null);
+  const sourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
+
+  const stopListening = useCallback(() => {
+    if (processorRef.current) {
+      processorRef.current.disconnect();
+      processorRef.current = null;
+    }
+    if (sourceRef.current) {
+      sourceRef.current.disconnect();
+      sourceRef.current = null;
+    }
+    if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
+      audioContextRef.current.close().catch(console.error);
+      audioContextRef.current = null;
+    }
+
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((t) => t.stop());
+      streamRef.current = null;
+    }
+
+    if (socketRef.current) {
+      socketRef.current.close();
+      socketRef.current = null;
+    }
+
+    setIsListening(false);
+  }, []);
 
   const startListening = useCallback(async () => {
+    // Stop any existing session
+    stopListening();
     setTranscript('');
 
     try {
-      // 1. Get temporary token from backend proxy (not directly from AssemblyAI)
+      // 1. Get temporary token from backend proxy
       const authToken = getAuthToken();
       const tokenRes = await fetch(`${API_URL}/api/v1/assemblyai/token`, {
         method: 'POST',
@@ -59,7 +91,7 @@ export function useAssemblyAISTT() {
 
       ws.onerror = () => {
         console.error('[STT] WebSocket error');
-        setIsListening(false);
+        stopListening();
       };
 
       ws.onopen = async () => {
@@ -68,21 +100,41 @@ export function useAssemblyAISTT() {
           const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
           streamRef.current = stream;
 
-          const recorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+          // 4. Downsample to 16kHz & S16LE PCM using AudioContext
+          const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+          if (!AudioContextClass) {
+             throw new Error("Web Audio API is not supported in this browser");
+          }
+          const audioContext = new AudioContextClass({ sampleRate: 16000 });
+          audioContextRef.current = audioContext;
 
-          recorder.ondataavailable = (event) => {
-            if (event.data.size > 0 && ws.readyState === WebSocket.OPEN) {
-              event.data.arrayBuffer().then((buffer) => {
-                ws.send(new Uint8Array(buffer));
-              });
+          const source = audioContext.createMediaStreamSource(stream);
+          sourceRef.current = source;
+
+          const processor = audioContext.createScriptProcessor(4096, 1, 1);
+          processorRef.current = processor;
+
+          processor.onaudioprocess = (e) => {
+            if (ws.readyState === WebSocket.OPEN) {
+              const inputData = e.inputBuffer.getChannelData(0);
+              const pcmData = new Int16Array(inputData.length);
+              
+              for (let i = 0; i < inputData.length; i++) {
+                // Convert float to 16-bit PCM
+                let s = Math.max(-1, Math.min(1, inputData[i]));
+                pcmData[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+              }
+              
+              ws.send(pcmData.buffer);
             }
           };
 
-          recorder.start(250);
-          recorderRef.current = recorder;
+          source.connect(processor);
+          processor.connect(audioContext.destination);
+
           setIsListening(true);
         } catch (err) {
-          console.error('[STT] Mic access denied:', err);
+          console.error('[STT] Mic access denied or Audio Context failed:', err);
           ws.close();
         }
       };
@@ -91,22 +143,14 @@ export function useAssemblyAISTT() {
     } catch (err) {
       console.error('[STT] Failed to start:', err);
     }
-  }, []);
+  }, [stopListening]);
 
-  const stopListening = useCallback(() => {
-    if (recorderRef.current && recorderRef.current.state !== 'inactive') {
-      recorderRef.current.stop();
-    }
-    recorderRef.current = null;
-
-    streamRef.current?.getTracks().forEach((t) => t.stop());
-    streamRef.current = null;
-
-    socketRef.current?.close();
-    socketRef.current = null;
-
-    setIsListening(false);
-  }, []);
+  // Clean up on unmount
+  useEffect(() => {
+    return () => {
+      stopListening();
+    };
+  }, [stopListening]);
 
   return { transcript, isListening, startListening, stopListening };
 }

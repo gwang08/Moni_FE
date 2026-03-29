@@ -22,27 +22,38 @@ export default function SpeakingExamPage({ params }: Props) {
   const { id } = use(params);
   const testId = Number(id);
   const router = useRouter();
+  
   const exam = useSpeakingExam();
   const stt = useAssemblyAISTT();
   const startedRef = useRef(false);
 
+  // Refs to avoid unstable dependencies causing infinite loops
+  const sttRef = useRef(stt);
+  useEffect(() => { sttRef.current = stt; }, [stt]);
+
+  const examRef = useRef(exam);
+  useEffect(() => { examRef.current = exam; }, [exam]);
+
+  // Track if we already started listening for the current question
+  const hasStartedMicForQuestionRef = useRef<number | null>(null);
+
   // ── Handlers (defined before timers so they can be passed) ──
   const handleStopPart2 = useCallback(() => {
-    stt.stopListening();
-    exam.stopSpeakingPart2(stt.transcript || '[no response]');
-  }, [stt, exam]);
+    sttRef.current.stopListening();
+    examRef.current.stopSpeakingPart2(sttRef.current.transcript || '[no response]');
+  }, []);
 
   const handlePrepEnd = useCallback(() => {
-    exam.startSpeakingPart2();
-    stt.startListening();
-  }, [exam, stt]);
+    examRef.current.startSpeakingPart2();
+    sttRef.current.startListening();
+  }, []);
 
   const timers = useSpeakingExamTimers(exam.examState, handlePrepEnd, handleStopPart2);
 
   // ── Connect WS on mount ────────────────────────────────────
   useEffect(() => {
-    exam.connect();
-    return () => exam.disconnect();
+    examRef.current.connect();
+    return () => examRef.current.disconnect();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -50,44 +61,54 @@ export default function SpeakingExamPage({ params }: Props) {
   useEffect(() => {
     if (exam.examState === 'CONNECTING' && !startedRef.current) {
       startedRef.current = true;
-      // Small delay to ensure WS is fully ready
-      const t = setTimeout(() => exam.startExam(testId), 300);
+      const t = setTimeout(() => examRef.current.startExam(testId), 300);
       return () => clearTimeout(t);
     }
-  }, [exam.examState, exam, testId]);
+  }, [exam.examState, testId]);
 
   // ── Auto-start mic when TTS finishes (Part 1 & 3) ─────────
   useEffect(() => {
-    if (!exam.currentQuestion) return;
+    // If no question is active, reset our tracking ref
+    if (!exam.currentQuestion) {
+      hasStartedMicForQuestionRef.current = null;
+      return;
+    }
+    
+    // Defer taking mic if audio is actively playing
     if (exam.isAudioPlaying) return;
+
     const state = exam.examState;
     if (state === 'PART1_QUESTIONING' || state === 'PART3_QUESTIONING') {
-      stt.startListening();
+      const qId = exam.currentQuestion.questionId;
+      // Only start once per question
+      if (hasStartedMicForQuestionRef.current !== qId && !sttRef.current.isListening) {
+        hasStartedMicForQuestionRef.current = qId;
+        sttRef.current.startListening();
+      }
     }
-  }, [exam.currentQuestion, exam.isAudioPlaying, exam.examState, stt]);
+  }, [exam.currentQuestion, exam.isAudioPlaying, exam.examState]);
 
   // ── Submit answer (Part 1 & 3) ────────────────────────────
   const handleSubmitAnswer = useCallback(() => {
-    if (!exam.currentQuestion) return;
-    stt.stopListening();
-    exam.sendTranscript(
-      exam.currentQuestion.partNumber,
-      exam.currentQuestion.questionId,
-      stt.transcript || '[no response]',
+    if (!examRef.current.currentQuestion) return;
+    sttRef.current.stopListening();
+    examRef.current.sendTranscript(
+      examRef.current.currentQuestion.partNumber,
+      examRef.current.currentQuestion.questionId,
+      sttRef.current.transcript || '[no response]',
     );
-  }, [exam, stt]);
+  }, []);
 
   // ── End exam when evaluating ──────────────────────────────
   useEffect(() => {
     if (exam.examState === 'EVALUATING') {
-      exam.endExam();
+      examRef.current.endExam();
     }
-  }, [exam.examState, exam]);
+  }, [exam.examState]);
 
   // ── Render ────────────────────────────────────────────────
   const { examState } = exam;
 
-  // Loading / connecting
   if (examState === 'IDLE' || examState === 'CONNECTING') {
     return (
       <PageShell>
@@ -99,7 +120,6 @@ export default function SpeakingExamPage({ params }: Props) {
     );
   }
 
-  // Part 1 & 3 Q&A
   if (
     (examState === 'PART1_QUESTIONING' || examState === 'PART3_QUESTIONING') &&
     exam.currentQuestion
@@ -117,7 +137,6 @@ export default function SpeakingExamPage({ params }: Props) {
     );
   }
 
-  // Part 2 prep
   if (examState === 'PART2_PREPARATION' && exam.cueCard) {
     return (
       <PageShell>
@@ -126,7 +145,6 @@ export default function SpeakingExamPage({ params }: Props) {
     );
   }
 
-  // Part 2 speaking
   if (examState === 'PART2_SPEAKING') {
     return (
       <PageShell>
@@ -140,7 +158,6 @@ export default function SpeakingExamPage({ params }: Props) {
     );
   }
 
-  // Transitions
   if (examState === 'TRANSITIONING_TO_PART2' || examState === 'TRANSITIONING_TO_PART3') {
     return (
       <PageShell>
@@ -149,7 +166,6 @@ export default function SpeakingExamPage({ params }: Props) {
     );
   }
 
-  // Evaluating
   if (examState === 'EVALUATING') {
     return (
       <PageShell>
@@ -158,7 +174,6 @@ export default function SpeakingExamPage({ params }: Props) {
     );
   }
 
-  // Completed
   if (examState === 'COMPLETED' && exam.evaluation) {
     return (
       <PageShell>
@@ -172,7 +187,6 @@ export default function SpeakingExamPage({ params }: Props) {
     );
   }
 
-  // Error
   if (examState === 'ERROR') {
     return (
       <PageShell>

@@ -165,4 +165,17 @@ export interface AdminRevenueDashboardResponse {
   expertSpeakingJobs: number;
   totalExpertCredits: number;
   totalExpertJobs: number;
+  dailyRevenue: DailyRevenue[];
+  dailyExpertJobs: DailyExpertJobs[];
+}
+
+export interface DailyRevenue {
+  date: string;
+  amount: number;
+}
+
+export interface DailyExpertJobs {
+  date: string;
+  writingJobs: number;
+  speakingJobs: number;
 }

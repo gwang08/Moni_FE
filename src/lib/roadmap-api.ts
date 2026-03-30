@@ -1,6 +1,6 @@
 import { apiClient } from '@/lib/api-client';
 import type { ApiResponse } from '@/types/auth.types';
-import type { RoadmapGoal } from '@/types/roadmap.types';
+import type { LearnerRoadmapInsights, RoadmapGoal } from '@/types/roadmap.types';
 
 export async function getRoadmapGoals(): Promise<RoadmapGoal[]> {
   const res = await apiClient.get<ApiResponse<RoadmapGoal[]>>(
@@ -26,4 +26,12 @@ export async function updateTaskStatus(
     { status },
     true
   );
+}
+
+export async function getRoadmapInsights(): Promise<LearnerRoadmapInsights | null> {
+  const res = await apiClient.get<ApiResponse<LearnerRoadmapInsights>>(
+    '/api/v1/learner/goals/insights',
+    true
+  );
+  return res.result ?? null;
 }

@@ -11,6 +11,7 @@ import { PracticeHistory } from '@/components/dashboard/practice-history';
 import { useAuthStore } from '@/store/auth-store';
 import { PlacementDialog } from '@/components/dashboard/placement-dialog';
 import { LearningRoadmap } from '@/components/dashboard/learning-roadmap';
+import { RoadmapInsights } from '@/components/dashboard/roadmap-insights';
 import { useUserStore } from '@/store/user-store';
 import { getPlacementResult } from '@/lib/placement-api';
 import { apiClient } from '@/lib/api-client';
@@ -107,6 +108,9 @@ export default function DashboardPage() {
               <TargetScores />
               <ExamCountdown />
             </div>
+
+            {/* Personalized Roadmap Metrics */}
+            <RoadmapInsights />
 
             {/* Learning Roadmap */}
             <LearningRoadmap />

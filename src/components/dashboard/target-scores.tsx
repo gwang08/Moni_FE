@@ -6,6 +6,7 @@ import { useUserStore } from '@/store/user-store';
 import { calculateOverallScore } from '@/lib/calendar-utils';
 import { generatePlacement, resetPlacement } from '@/lib/placement-api';
 import { apiClient } from '@/lib/api-client';
+import { getRoadmapInsights } from '@/lib/roadmap-api';
 import type { ApiResponse } from '@/types/auth.types';
 import type { SkillKey } from '@/types';
 import { Pencil, Check, X, RotateCcw, Sparkles, CheckCircle2, Circle } from 'lucide-react';
@@ -84,13 +85,27 @@ export function TargetScores() {
     });
     setEditing(false);
     const overall = calculateOverallScore(newScores);
-    apiClient.put<ApiResponse<unknown>>('/users/me', {
-      targetReading: newScores.reading,
-      targetListening: newScores.listening,
-      targetWriting: newScores.writing,
-      targetSpeaking: newScores.speaking,
-      targetBand: overall,
-    }, true).catch(() => {});
+
+    // Persist targets, then do a quick "reality check" warning based on exam date + recent practice metrics.
+    try {
+      await apiClient.put<ApiResponse<unknown>>('/users/me', {
+        targetReading: newScores.reading,
+        targetListening: newScores.listening,
+        targetWriting: newScores.writing,
+        targetSpeaking: newScores.speaking,
+        targetBand: overall,
+      }, true);
+
+      const insights = await getRoadmapInsights().catch(() => null);
+      if (insights?.targetOverAmbitious) {
+        toast.warning(insights.targetWarning || 'Muc tieu co the hoi qua tam so voi thoi gian con lai.');
+      }
+
+      // Let dashboard panels refetch (roadmap + insights).
+      window.dispatchEvent(new Event('roadmap-updated'));
+    } catch {
+      // Keep UI responsive even if backend update fails.
+    }
   };
 
   const cancelEdit = () => setEditing(false);

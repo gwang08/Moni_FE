@@ -116,6 +116,10 @@ export default function AdminFullTestCreatePage() {
 
   const selectedCount = Object.keys(selected).length;
   const allSectionsSelected = sectionCount > 0 && selectedCount === sectionCount;
+  const totalReadingQuestions = useMemo(() => {
+    if (skill !== 'READING') return null;
+    return selectedSummary.reduce((sum, { item }) => sum + (item.questionCount || 0), 0);
+  }, [selectedSummary, skill]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -130,6 +134,10 @@ export default function AdminFullTestCreatePage() {
 
   const handleCreate = () => {
     if (!skill || !title.trim() || !allSectionsSelected) return;
+    if (skill === 'READING' && totalReadingQuestions !== 40) {
+      toast.error(`Reading phải đủ 40 câu (hiện tại: ${totalReadingQuestions ?? 0})`);
+      return;
+    }
 
     const stimulusIds = Array.from({ length: sectionCount }, (_, i) => selected[i + 1]).filter(
       (id): id is number => typeof id === 'number'
@@ -207,6 +215,15 @@ export default function AdminFullTestCreatePage() {
                 Đã chọn {selectedCount}/{sectionCount} {sectionLabel.toLowerCase()}
               </p>
             </div>
+            {skill === 'READING' && (
+              <div
+                className={`inline-flex rounded-full px-3 py-1 text-xs font-medium ${
+                  totalReadingQuestions === 40 ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'
+                }`}
+              >
+                Tổng câu Reading: {totalReadingQuestions ?? 0}/40
+              </div>
+            )}
 
             <div className="flex flex-wrap gap-2">
               {Array.from({ length: sectionCount }, (_, i) => i + 1).map((sec) => {
@@ -361,7 +378,13 @@ export default function AdminFullTestCreatePage() {
         <div className="flex items-center justify-end gap-2">
           <Button variant="outline" onClick={() => router.push('/admin/full-tests')}>Hủy</Button>
           <Button
-            disabled={!skill || !title.trim() || !allSectionsSelected || createMutation.isPending}
+            disabled={
+              !skill ||
+              !title.trim() ||
+              !allSectionsSelected ||
+              createMutation.isPending ||
+              (skill === 'READING' && totalReadingQuestions !== 40)
+            }
             onClick={handleCreate}
           >
             {createMutation.isPending ? 'Đang tạo...' : 'Tạo Full Test'}

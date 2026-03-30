@@ -5,14 +5,23 @@ export interface FullTestResponse {
   id: number;
   title: string;
   skill: string;
+  testType?: string;
   duration: number;
   status: string;
   createdAt: string;
-  stimuli: { id: number; section: number; title: string }[];
+  stimuli: {
+    id: number;
+    section: number;
+    title: string;
+    questionCount?: number;
+    testId?: number;
+    testTitle?: string;
+  }[];
 }
 
 export interface StimulusOption {
   stimulusId: number;
+  testId?: number;
   title: string;
   questionCount: number;
 }
@@ -47,6 +56,28 @@ export async function autoGenerateFullTest(data: {
 }): Promise<FullTestResponse> {
   const res = await apiClient.post<ApiResponse<FullTestResponse>>('/api/v1/admin/full-tests/auto', data, true);
   if (!res.result) throw new Error('Failed');
+  return res.result;
+}
+
+export async function getFullTestById(id: number): Promise<FullTestResponse> {
+  const res = await apiClient.get<ApiResponse<FullTestResponse>>(`/api/v1/admin/full-tests/${id}`, true);
+  if (!res.result) throw new Error('Failed to fetch full test');
+  return res.result;
+}
+
+export async function updateFullTest(
+  id: number,
+  data: {
+    title?: string;
+    testType?: string;
+    duration?: number;
+    status?: string;
+    skill?: string;
+    stimulusIds?: number[];
+  }
+): Promise<FullTestResponse> {
+  const res = await apiClient.put<ApiResponse<FullTestResponse>>(`/api/v1/admin/full-tests/${id}`, data, true);
+  if (!res.result) throw new Error('Failed to update full test');
   return res.result;
 }
 

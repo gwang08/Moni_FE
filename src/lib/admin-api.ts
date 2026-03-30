@@ -235,16 +235,19 @@ export async function getAdminCreditTransactions(params?: {
   toDate?: string;
 }): Promise<CreditTransactionResponse[]> {
   const searchParams = new URLSearchParams();
-  if (params?.userId) searchParams.set('userId', params.userId);
+  const normalizedUserId = params?.userId?.trim();
+  if (normalizedUserId) searchParams.set('userId', normalizedUserId);
   if (params?.paymentType && params.paymentType !== 'ALL') searchParams.set('paymentType', params.paymentType);
   if (params?.fromDate) searchParams.set('fromDate', params.fromDate);
   if (params?.toDate) searchParams.set('toDate', params.toDate);
 
   const query = searchParams.toString();
-  const response = await apiClient.get<ApiResponse<CreditTransactionResponse[]>>(
+  const response = await apiClient.get<ApiResponse<CreditTransactionResponse[]> | CreditTransactionResponse[]>(
     `/api/v1/admin/credit-transactions${query ? `?${query}` : ''}`,
     true
   );
-  if (!response.result) throw new Error('Failed to fetch admin credit transactions');
-  return response.result;
+
+  // Compatibility: accept both wrapped ApiResponse and bare array responses.
+  if (Array.isArray(response)) return response;
+  return response.result ?? [];
 }

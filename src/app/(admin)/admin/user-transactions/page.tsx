@@ -59,17 +59,17 @@ export default function AdminUserTransactionsPage() {
 
   return (
     <div>
-      <AdminHeader title="Giao dịch user" />
+      <AdminHeader title="Giao dịch" />
       <div className="space-y-6 p-6">
         <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
           <p className="mb-3 text-sm font-semibold text-gray-700">Loc giao dich phuc vu refund</p>
           <div className="flex flex-wrap items-end gap-3">
             <label className="flex min-w-64 flex-col gap-1">
-              <span className="text-xs text-gray-500">User ID</span>
+              <span className="text-xs text-gray-500">User ID / Email</span>
               <input
                 value={userId}
                 onChange={(event) => setUserId(event.target.value)}
-                placeholder="Nhap userId can tra cuu"
+                placeholder="Nhap userId hoac email"
                 className="h-10 rounded-md border border-gray-300 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </label>
@@ -125,7 +125,7 @@ export default function AdminUserTransactionsPage() {
         </div>
 
         {isLoading ? (
-          <SkeletonTable rows={7} cols={8} />
+          <SkeletonTable rows={7} cols={5} />
         ) : error ? (
           <p className="py-8 text-center text-red-500">Khong the tai danh sach giao dich</p>
         ) : (
@@ -137,15 +137,13 @@ export default function AdminUserTransactionsPage() {
                   <th className="px-4 py-3 text-left font-medium text-gray-600">Dich vu / Goi</th>
                   <th className="px-4 py-3 text-left font-medium text-gray-600">So credit</th>
                   <th className="px-4 py-3 text-left font-medium text-gray-600">Loai</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-600">So du sau</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-600">Payment ID</th>
                   <th className="px-4 py-3 text-left font-medium text-gray-600">Thoi gian</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {data.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="py-10 text-center text-gray-400">
+                    <td colSpan={5} className="py-10 text-center text-gray-400">
                       Khong co giao dich nao
                     </td>
                   </tr>
@@ -166,8 +164,6 @@ export default function AdminUserTransactionsPage() {
                         <td className="px-4 py-3">
                           <Badge className={cfg.color}>{cfg.label}</Badge>
                         </td>
-                        <td className="px-4 py-3 text-gray-600 tabular-nums">{tx.balanceAfter}</td>
-                        <td className="px-4 py-3 text-gray-600">{tx.paymentId ?? '-'}</td>
                         <td className="px-4 py-3 text-xs text-gray-500">{formatDate(tx.createdAt)}</td>
                       </tr>
                     );

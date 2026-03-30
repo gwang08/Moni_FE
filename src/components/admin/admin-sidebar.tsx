@@ -28,8 +28,8 @@ const navItems = [
   { href: '/admin/experts', label: 'Giảng viên', icon: GraduationCap },
   { href: '/admin/packages', label: 'Gói credits', icon: Package },
   { href: '/admin/services', label: 'Dịch vụ', icon: Cog },
-  { href: '/admin/scoring-sessions', label: 'Công việc expert', icon: Headphones },
-  { href: '/admin/user-transactions', label: 'Giao dịch user', icon: ReceiptText },
+  { href: '/admin/scoring-sessions', label: 'Công việc', icon: Headphones },
+  { href: '/admin/user-transactions', label: 'Giao dịch', icon: ReceiptText },
 ];
 
 export function AdminSidebar() {

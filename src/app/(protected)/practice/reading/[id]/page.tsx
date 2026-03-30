@@ -1,6 +1,6 @@
 'use client';
 
-import { use, useEffect, useRef, useState } from 'react';
+import { use, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { toast } from 'sonner';
@@ -56,6 +56,7 @@ export default function ReadingExercisePage({ params }: Props) {
   const [submitted, setSubmitted] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [exitOpen, setExitOpen] = useState(false);
+  const [activeStimulusIdx, setActiveStimulusIdx] = useState(0);
   // Ref to handleComplete so onTimeUp callback always calls the latest version
   const handleCompleteRef = useRef<(() => Promise<void>) | null>(null);
   const progressKey = `practice-progress-${id}`;
@@ -169,7 +170,7 @@ export default function ReadingExercisePage({ params }: Props) {
 
     // --- Practice mode: existing flow ---
     sessionStorage.removeItem(progressKey);
-    if (stimuli) {
+    if (currentStimulus) {
       const optionAnswers = Object.entries(answers).map(([qId, optId]) => ({
         questionId: Number(qId),
         selectedOptionId: optId,
@@ -181,7 +182,7 @@ export default function ReadingExercisePage({ params }: Props) {
       try {
         const res = await submitAttempt({
           testId: Number(id),
-          stimulusId: stimuli.id,
+          stimulusId: currentStimulus.id,
           elapsedSeconds: elapsed,
           answers: answerList,
         });
@@ -208,6 +209,28 @@ export default function ReadingExercisePage({ params }: Props) {
   // Keep ref in sync so onTimeUp always has the latest handleComplete
   handleCompleteRef.current = handleComplete;
 
+  const stimuli = useMemo(() => testDetail?.stimuli ?? [], [testDetail?.stimuli]);
+  const currentStimulus = stimuli[activeStimulusIdx];
+  const passage = currentStimulus?.content
+    ? { title: testDetail?.title ?? FALLBACK_PASSAGE.title, content: currentStimulus.content }
+    : FALLBACK_PASSAGE;
+  const currentQuestionCount = currentStimulus?.questionGroups?.reduce((sum, g) => sum + g.questions.length, 0) ?? 0;
+  const totalQuestionIds = useMemo(
+    () => stimuli.flatMap((s) => s.questionGroups?.flatMap((g) => g.questions.map((q) => q.id)) ?? []),
+    [stimuli]
+  );
+  const questionCount = totalQuestionIds.length;
+  const answeredCount = totalQuestionIds.filter((qId) => {
+    const hasOption = answers[qId] != null && answers[qId] !== 0;
+    const hasText = (textAnswers[qId] ?? '').trim() !== '';
+    return hasOption || hasText;
+  }).length;
+  const unansweredCount = questionCount - answeredCount;
+  const answeredQuestionIds = new Set<number>([
+    ...Object.keys(answers).map(Number),
+    ...Object.entries(textAnswers).filter(([, t]) => t.trim() !== '').map(([k]) => Number(k)),
+  ]);
+
   if (loading || (isExamMode && examSession.loading)) {
     return <SkeletonPractice />;
   }
@@ -220,20 +243,6 @@ export default function ReadingExercisePage({ params }: Props) {
       </div>
     );
   }
-
-  const stimuli = testDetail.stimuli[0];
-  const passage = stimuli?.content
-    ? { title: testDetail.title, content: stimuli.content }
-    : FALLBACK_PASSAGE;
-  const questionCount = stimuli?.questionGroups?.reduce((sum, g) => sum + g.questions.length, 0) ?? 0;
-
-  const answeredCount = Object.keys(answers).length + Object.values(textAnswers).filter(t => t.trim() !== '').length;
-  const unansweredCount = questionCount - answeredCount;
-
-  const answeredQuestionIds = new Set<number>([
-    ...Object.keys(answers).map(Number),
-    ...Object.entries(textAnswers).filter(([, t]) => t.trim() !== '').map(([k]) => Number(k)),
-  ]);
 
   return (
     <div className="h-[calc(100vh-56px)] flex flex-col">
@@ -261,7 +270,11 @@ export default function ReadingExercisePage({ params }: Props) {
               )}
             </div>
             <div className="flex items-center gap-3 text-sm text-muted-foreground">
-              {questionCount > 0 && <span>{questionCount} câu hỏi</span>}
+              {questionCount > 0 && (
+                <span>
+                  {stimuli.length > 1 ? `${currentQuestionCount}/${questionCount}` : questionCount} câu hỏi
+                </span>
+              )}
               <span className={`flex items-center gap-1 font-mono tabular-nums ${submitted ? 'text-green-600' : isCountingDown && countdownTimer.remaining < 60 ? 'text-red-600 animate-pulse' : isCountingDown ? 'text-orange-600' : ''}`}>
                 <Clock className="h-3.5 w-3.5" />
                 {displayTime}
@@ -279,12 +292,30 @@ export default function ReadingExercisePage({ params }: Props) {
 
       {!submitted && <ReadingToolbar />}
 
+      {stimuli.length > 1 && (
+        <div className="bg-white border-b px-4 py-2 flex items-center gap-2 overflow-x-auto">
+          {stimuli.map((s, index) => (
+            <button
+              key={s.id}
+              onClick={() => setActiveStimulusIdx(index)}
+              className={`px-3 py-1.5 text-xs rounded-full font-medium transition-colors whitespace-nowrap ${
+                index === activeStimulusIdx
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              Passage {s.section ?? index + 1}
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* Main content */}
       <div className="flex-1 flex overflow-hidden">
         <div className="w-1/2 overflow-y-auto p-6 border-r border-gray-200">
           <h2 className="text-2xl font-bold mb-6">{passage.title}</h2>
           {(() => {
-            const matchingGroup = stimuli?.questionGroups?.find(g => g.questionTypeCode === 'MATCHING_HEADINGS');
+            const matchingGroup = currentStimulus?.questionGroups?.find(g => g.questionTypeCode === 'MATCHING_HEADINGS');
             return matchingGroup ? (
               <ReadingPassageWithMatching
                 content={passage.content}
@@ -301,9 +332,9 @@ export default function ReadingExercisePage({ params }: Props) {
           })()}
         </div>
         <div className="w-1/2 overflow-y-auto p-6">
-          {stimuli && stimuli.questionGroups.length > 0 ? (
+          {currentStimulus && currentStimulus.questionGroups.length > 0 ? (
             <ReadingQuestionsPanel
-              stimulus={stimuli}
+              stimulus={currentStimulus}
               submitted={submitted}
               answers={answers}
               onAnswer={handleAnswer}
@@ -318,9 +349,9 @@ export default function ReadingExercisePage({ params }: Props) {
         </div>
       </div>
 
-      {stimuli && stimuli.questionGroups.length > 0 && (
+      {currentStimulus && currentStimulus.questionGroups.length > 0 && (
         <ReadingQuestionNav
-          questionGroups={stimuli.questionGroups}
+          questionGroups={currentStimulus.questionGroups}
           answeredQuestions={answeredQuestionIds}
           submitted={submitted}
           onSubmit={() => setConfirmOpen(true)}

@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { autoGenerateFullTest } from '@/lib/admin-full-test-api';
 
-const SKILLS = ['READING', 'LISTENING', 'SPEAKING'] as const;
+const SKILLS = ['READING', 'LISTENING', 'WRITING', 'SPEAKING'] as const;
 type Skill = (typeof SKILLS)[number];
 
 interface Props {

@@ -52,6 +52,7 @@ export default function ListeningExercisePage({ params }: Props) {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [exitOpen, setExitOpen] = useState(false);
   const [notesOpen, setNotesOpen] = useState(false);
+  const [activeStimulusIdx, setActiveStimulusIdx] = useState(0);
   // Ref to handleComplete so onTimeUp callback always calls the latest version
   const handleCompleteRef = useRef<(() => Promise<void>) | null>(null);
   const notes = useListeningStore((s) => s.notes);
@@ -125,12 +126,17 @@ export default function ListeningExercisePage({ params }: Props) {
     }
   }, [isExamMode, examSession.session?.status, id, router]);
 
-  const stimuli = testDetail?.stimuli[0];
+  const stimuli = useMemo(() => testDetail?.stimuli ?? [], [testDetail?.stimuli]);
+  const currentStimulus = stimuli[activeStimulusIdx];
   const questionIds = useMemo(() => {
-    if (!stimuli) return [];
-    return stimuli.questionGroups.flatMap((g) => g.questions.map((q) => q.id));
-  }, [stimuli]);
-  const questionCount = questionIds.length;
+    if (!currentStimulus) return [];
+    return currentStimulus.questionGroups.flatMap((g) => g.questions.map((q) => q.id));
+  }, [currentStimulus]);
+  const totalQuestionIds = useMemo(
+    () => stimuli.flatMap((s) => s.questionGroups.flatMap((g) => g.questions.map((q) => q.id))),
+    [stimuli]
+  );
+  const questionCount = totalQuestionIds.length;
   const answeredSet = useMemo(() => {
     const s = new Set<number>();
     for (const [k, v] of Object.entries(answers)) {
@@ -139,7 +145,11 @@ export default function ListeningExercisePage({ params }: Props) {
     return s;
   }, [answers]);
 
-  const totalAnsweredCount = answeredSet.size + Object.values(textAnswers).filter(t => t.trim() !== '').length;
+  const totalAnsweredCount = totalQuestionIds.filter((qId) => {
+    const hasOption = answers[qId] != null && answers[qId] !== 0;
+    const hasText = (textAnswers[qId] ?? '').trim() !== '';
+    return hasOption || hasText;
+  }).length;
   const unansweredCount = questionCount - totalAnsweredCount;
 
   const handleAnswer = (questionId: number, optionId: number) => {
@@ -180,7 +190,7 @@ export default function ListeningExercisePage({ params }: Props) {
 
     // --- Practice mode: existing flow ---
     sessionStorage.removeItem(progressKey);
-    if (stimuli) {
+    if (currentStimulus) {
       const optionAnswers = Object.entries(answers).map(([qId, optId]) => ({
         questionId: Number(qId), selectedOptionId: optId,
       }));
@@ -189,7 +199,7 @@ export default function ListeningExercisePage({ params }: Props) {
         .map(([qId, text]) => ({ questionId: Number(qId), answerText: text }));
       const answerList = [...optionAnswers, ...textAnswerList];
       try {
-        const res = await submitAttempt({ testId: Number(id), stimulusId: stimuli.id, elapsedSeconds: elapsed, answers: answerList });
+        const res = await submitAttempt({ testId: Number(id), stimulusId: currentStimulus.id, elapsedSeconds: elapsed, answers: answerList });
         sessionStorage.setItem(`practice-result-${id}`, JSON.stringify({ attemptId: res.attemptId, testId: id, answers, textAnswers, elapsedSeconds: elapsed }));
       } catch {
         sessionStorage.setItem(`practice-result-${id}`, JSON.stringify({ testId: id, answers, textAnswers, elapsedSeconds: elapsed }));
@@ -228,7 +238,7 @@ export default function ListeningExercisePage({ params }: Props) {
         questionCount={questionCount}
         elapsedTime={elapsedTime}
         submitted={submitted}
-        answeredCount={answeredSet.size}
+        answeredCount={totalAnsweredCount}
         totalQuestions={questionCount}
         isCountingDown={isExamMode && testDuration > 0}
         remainingSeconds={countdownTimer.remaining}
@@ -240,6 +250,24 @@ export default function ListeningExercisePage({ params }: Props) {
         <div className="flex gap-2 px-5 py-1 bg-white border-b border-gray-50">
           {examSession.isResuming && <Badge className="bg-blue-100 text-blue-700 border-blue-300">Đang tiếp tục...</Badge>}
           {examSession.saving && <Badge variant="outline" className="text-gray-400 border-gray-200 text-[10px]">Đang lưu...</Badge>}
+        </div>
+      )}
+
+      {stimuli.length > 1 && (
+        <div className="bg-white border-b px-4 py-2 flex items-center gap-2 overflow-x-auto">
+          {stimuli.map((s, index) => (
+            <button
+              key={s.id}
+              onClick={() => setActiveStimulusIdx(index)}
+              className={`px-3 py-1.5 text-xs rounded-full font-medium transition-colors whitespace-nowrap ${
+                index === activeStimulusIdx
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              Section {s.section ?? index + 1}
+            </button>
+          ))}
         </div>
       )}
 
@@ -257,9 +285,9 @@ export default function ListeningExercisePage({ params }: Props) {
 
       <div className="flex-1 overflow-y-auto">
         <div className="max-w-4xl mx-auto px-4 py-3">
-          {stimuli && stimuli.questionGroups.length > 0 ? (
+          {currentStimulus && currentStimulus.questionGroups.length > 0 ? (
             <ReadingQuestionsPanel
-              stimulus={stimuli}
+              stimulus={currentStimulus}
               submitted={submitted}
               answers={answers}
               onAnswer={handleAnswer}
@@ -272,8 +300,8 @@ export default function ListeningExercisePage({ params }: Props) {
         </div>
       </div>
 
-      {stimuli?.mediaUrl && (
-        <ListeningAudioPlayer audioUrl={stimuli.mediaUrl} />
+      {currentStimulus?.mediaUrl && (
+        <ListeningAudioPlayer audioUrl={currentStimulus.mediaUrl} />
       )}
 
       <ListeningQuestionNav

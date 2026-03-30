@@ -1,6 +1,6 @@
 ﻿'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, FileText, Search, X } from 'lucide-react';
@@ -13,7 +13,7 @@ import { toast } from 'sonner';
 import { createFullTest, getAvailableStimuli } from '@/lib/admin-full-test-api';
 import type { StimulusOption } from '@/lib/admin-full-test-api';
 
-const SKILLS = ['READING', 'LISTENING', 'SPEAKING'] as const;
+const SKILLS = ['READING', 'LISTENING', 'WRITING', 'SPEAKING'] as const;
 type Skill = (typeof SKILLS)[number];
 
 type SortKey = 'TITLE_ASC' | 'TITLE_DESC' | 'QUESTION_DESC' | 'QUESTION_ASC';
@@ -21,12 +21,14 @@ type SortKey = 'TITLE_ASC' | 'TITLE_DESC' | 'QUESTION_DESC' | 'QUESTION_ASC';
 const SKILL_LABELS: Record<Skill, string> = {
   READING: 'Reading',
   LISTENING: 'Listening',
+  WRITING: 'Writing',
   SPEAKING: 'Speaking',
 };
 
 const SECTION_COUNT: Record<Skill, number> = {
   READING: 3,
   LISTENING: 4,
+  WRITING: 2,
   SPEAKING: 3,
 };
 
@@ -53,7 +55,8 @@ export default function AdminFullTestCreatePage() {
   const [sortBySection, setSortBySection] = useState<Record<number, SortKey>>({});
 
   const sectionCount = skill ? SECTION_COUNT[skill] : 0;
-  const sectionLabel = skill === 'SPEAKING' ? 'Part' : 'Section';
+  const sectionLabel =
+    skill === 'SPEAKING' ? 'Part' : skill === 'WRITING' ? 'Task' : skill === 'READING' ? 'Passage' : 'Section';
 
   const handleSkillChange = (nextSkill: Skill) => {
     setSkill(nextSkill);
@@ -114,12 +117,16 @@ export default function AdminFullTestCreatePage() {
   const selectedCount = Object.keys(selected).length;
   const allSectionsSelected = sectionCount > 0 && selectedCount === sectionCount;
 
-  const applySearch = () => {
-    setSearchBySection((prev) => ({
-      ...prev,
-      [activeSection]: searchInputBySection[activeSection] ?? '',
-    }));
-  };
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSearchBySection((prev) => ({
+        ...prev,
+        [activeSection]: searchInputBySection[activeSection] ?? '',
+      }));
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [activeSection, searchInputBySection]);
 
   const handleCreate = () => {
     if (!skill || !title.trim() || !allSectionsSelected) return;
@@ -153,7 +160,7 @@ export default function AdminFullTestCreatePage() {
 
           <div className="space-y-2">
             <Label>Kỹ năng *</Label>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-4 gap-2">
               {SKILLS.map((s) => (
                 <button
                   key={s}
@@ -222,7 +229,7 @@ export default function AdminFullTestCreatePage() {
 
             <div className="grid grid-cols-1 xl:grid-cols-3 gap-3">
               <div className="xl:col-span-2 space-y-3">
-                <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_auto] gap-2">
+                <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-2">
                   <div className="relative">
                     <Search className="h-5 w-5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
                     <Input
@@ -230,14 +237,10 @@ export default function AdminFullTestCreatePage() {
                       onChange={(e) =>
                         setSearchInputBySection((prev) => ({ ...prev, [activeSection]: e.target.value }))
                       }
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') applySearch();
-                      }}
                       className="pl-10"
-                      placeholder={`Tìm stimulus ${sectionLabel} ${activeSection}`}
+                      placeholder={`Tìm ${sectionLabel.toLowerCase()} ${activeSection}...`}
                     />
                   </div>
-                  <Button variant="outline" onClick={applySearch}>Tìm kiếm</Button>
                   <select
                     value={sortBySection[activeSection] ?? 'TITLE_ASC'}
                     onChange={(e) =>
@@ -275,8 +278,7 @@ export default function AdminFullTestCreatePage() {
                           <div className="flex-1 min-w-0">
                             <p className="font-medium text-blue-600 truncate">{opt.title}</p>
                             <p className="text-xs text-gray-500 mt-1">
-                              ID: {opt.stimulusId}
-                              {skill === 'READING' ? ` • ${opt.questionCount} câu` : ''}
+                              {skill === 'READING' ? `${opt.questionCount} câu` : null}
                             </p>
                           </div>
 
@@ -332,7 +334,7 @@ export default function AdminFullTestCreatePage() {
                               {item.questionCount} câu
                             </Badge>
                           ) : (
-                            <span className="text-[11px] text-gray-400">Stimulus ID {item.stimulusId}</span>
+                            <span className="text-[11px] text-gray-400">{sectionLabel} đã chọn</span>
                           )}
                           <button
                             onClick={() =>

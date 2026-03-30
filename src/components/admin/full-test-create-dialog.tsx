@@ -10,18 +10,20 @@ import { toast } from 'sonner';
 import { getAvailableStimuli, createFullTest } from '@/lib/admin-full-test-api';
 import type { StimulusOption } from '@/lib/admin-full-test-api';
 
-const SKILLS = ['READING', 'LISTENING', 'SPEAKING'] as const;
+const SKILLS = ['READING', 'LISTENING', 'WRITING', 'SPEAKING'] as const;
 type Skill = (typeof SKILLS)[number];
 
 const SECTION_COUNT: Record<Skill, number> = {
   READING: 3,
   LISTENING: 4,
+  WRITING: 2,
   SPEAKING: 3,
 };
 
 const SKILL_LABELS: Record<Skill, string> = {
   READING: 'Reading',
   LISTENING: 'Listening',
+  WRITING: 'Writing',
   SPEAKING: 'Speaking',
 };
 
@@ -41,7 +43,7 @@ export function FullTestCreateDialog({ open, onClose }: Props) {
   const sectionCount = skill ? SECTION_COUNT[skill] : 0;
   const selectedCount = Object.keys(selected).length;
   const allSectionsSelected = sectionCount > 0 && selectedCount === sectionCount;
-  const sectionLabel = skill === 'SPEAKING' ? 'Part' : 'Section';
+  const sectionLabel = skill === 'SPEAKING' ? 'Part' : skill === 'WRITING' ? 'Task' : 'Section';
 
   const { data: stimuliMap, isLoading } = useQuery({
     queryKey: ['full-test-stimuli', skill],
@@ -107,7 +109,7 @@ export function FullTestCreateDialog({ open, onClose }: Props) {
           <div className="space-y-4 py-2">
             <div className="space-y-2">
               <Label>Kỹ năng *</Label>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-2">
                 {SKILLS.map((s) => (
                   <button
                     key={s}

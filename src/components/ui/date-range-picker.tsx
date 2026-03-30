@@ -130,6 +130,8 @@ export function DateRangePicker({ value, onChange, label }: DateRangePickerProps
     'Tháng 7', 'Tháng 8', 'Tháng 9', 'Tháng 10', 'Tháng 11', 'Tháng 12'
   ];
 
+  const weekDays = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
+
   const renderCalendarDays = () => {
     const days = [];
     
@@ -220,7 +222,7 @@ export function DateRangePicker({ value, onChange, label }: DateRangePickerProps
           </div>
 
           <div className="mb-2 grid grid-cols-7 gap-1 text-center">
-            {['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'].map((day) => (
+            {weekDays.map((day) => (
               <span key={day} className="text-xs font-medium text-gray-500">
                 {day}
               </span>

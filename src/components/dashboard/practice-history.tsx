@@ -10,6 +10,7 @@ import type { ScoringSession } from '@/types/expert.types';
 import type { SkillKey } from '@/types';
 import { SkeletonCard } from '@/components/ui/skeleton';
 import { useAttemptHistory } from '@/hooks/use-attempt-history';
+import { getListeningBand, getReadingBand } from '@/lib/ielts-band';
 
 const TABS: { key: SkillKey; label: string; icon: React.ReactNode; skill: string }[] = [
   { key: 'reading', label: 'Reading', icon: <BookOpen className="h-3.5 w-3.5" />, skill: 'READING' },
@@ -32,6 +33,8 @@ interface UnifiedEntry {
   reviewUrl: string;
   source: 'ai' | 'expert';
   status?: string;
+  testMode?: 'PRACTICE' | 'FULL_TEST';
+  bandScore?: number;
 }
 
 function formatTime(seconds: number): string {
@@ -77,6 +80,11 @@ function EntryCard({ entry }: { entry: UnifiedEntry }) {
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
           <p className="text-sm font-medium text-gray-800 truncate">{entry.title}</p>
+          {entry.testMode === 'FULL_TEST' && (
+            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-violet-100 text-violet-700">
+              Full Test
+            </span>
+          )}
           {isSpeakingExpert && (
             <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-green-100 text-green-700">
               <GraduationCap className="h-2.5 w-2.5" /> Giảng viên
@@ -118,10 +126,19 @@ function EntryCard({ entry }: { entry: UnifiedEntry }) {
       </div>
       {entry.total > 0 && (
         <div className="flex-shrink-0 text-right">
-          <p className={`text-sm font-bold ${entry.percentage >= 70 ? 'text-green-600' : entry.percentage >= 50 ? 'text-orange-500' : 'text-red-500'}`}>
-            {entry.score}/{entry.total}
-          </p>
-          <p className="text-xs text-gray-400">{entry.percentage}%</p>
+          {entry.testMode === 'FULL_TEST' && typeof entry.bandScore === 'number' ? (
+            <>
+              <p className="text-sm font-bold text-violet-700">Band {entry.bandScore.toFixed(1)}</p>
+              <p className="text-xs text-gray-400">{entry.percentage}%</p>
+            </>
+          ) : (
+            <>
+              <p className={`text-sm font-bold ${entry.percentage >= 70 ? 'text-green-600' : entry.percentage >= 50 ? 'text-orange-500' : 'text-red-500'}`}>
+                {entry.score}/{entry.total}
+              </p>
+              <p className="text-xs text-gray-400">{entry.percentage}%</p>
+            </>
+          )}
         </div>
       )}
     </Link>
@@ -132,9 +149,17 @@ function toUnifiedAttempt(a: AttemptHistory, skill: string): UnifiedEntry {
   const percentage = a.totalQuestions > 0 ? Math.round((a.score / a.totalQuestions) * 100) : 0;
   const skillPath = a.skill?.toLowerCase() ?? 'reading';
   const testOrStimulusId = a.testId ?? a.stimulusId;
-  const normalizedTitle = a.stimulusTitle
-    ? (a.skill === 'LISTENING' ? a.stimulusTitle.replace(/\bpassage\b/gi, 'Section') : a.stimulusTitle)
-    : 'Bài tập';
+  const normalizedTitle = (a.testTitle && a.testTitle.trim())
+    ? a.testTitle
+    : (a.stimulusTitle && a.stimulusTitle.trim())
+      ? (a.skill === 'LISTENING' ? a.stimulusTitle.replace(/\bpassage\b/gi, 'Section') : a.stimulusTitle)
+      : 'Bài tập';
+  let bandScore: number | undefined;
+  if (a.testMode === 'FULL_TEST') {
+    if (a.skill === 'READING') bandScore = getReadingBand(a.score, a.totalQuestions);
+    if (a.skill === 'LISTENING') bandScore = getListeningBand(a.score, a.totalQuestions);
+  }
+
   return {
     id: `${skill}-${a.attemptId}`,
     title: normalizedTitle,
@@ -145,6 +170,8 @@ function toUnifiedAttempt(a: AttemptHistory, skill: string): UnifiedEntry {
     elapsedSeconds: a.elapsedSeconds,
     reviewUrl: testOrStimulusId ? `/practice/${skillPath}/${testOrStimulusId}/review?attemptId=${a.attemptId}` : '#',
     source: 'ai',
+    testMode: a.testMode ?? 'PRACTICE',
+    bandScore,
   };
 }
 

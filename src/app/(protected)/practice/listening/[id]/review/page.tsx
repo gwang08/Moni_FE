@@ -30,6 +30,7 @@ export default function ListeningReviewPage({ params }: Props) {
   const attemptIdParam = searchParams.get('attemptId');
   const { testDetail, loading, error } = useTestDetail(id);
   const [resultData, setResultData] = useState<ResultData | null>(null);
+  const [activeStimulusIdx, setActiveStimulusIdx] = useState(0);
   const loadedRef = useRef(false);
   const audioRef = useRef<HTMLAudioElement>(null);
 
@@ -39,7 +40,13 @@ export default function ListeningReviewPage({ params }: Props) {
 
     const raw = sessionStorage.getItem(`practice-result-${id}`);
     if (raw) {
-      try { setResultData(JSON.parse(raw)); return; } catch { /* fall through */ }
+      try {
+        const parsed = JSON.parse(raw) as ResultData;
+        Promise.resolve().then(() => setResultData(parsed));
+        return;
+      } catch {
+        /* fall through */
+      }
     }
 
     if (attemptIdParam) {
@@ -68,7 +75,9 @@ export default function ListeningReviewPage({ params }: Props) {
   }, [id, router, attemptIdParam]);
 
   // Merge API explanation/evidence into stimulus questions (must be before early returns)
-  const rawStimulus = testDetail?.stimuli[0] ?? null;
+  const stimuli = testDetail?.stimuli ?? [];
+  const safeActiveStimulusIdx = activeStimulusIdx < stimuli.length ? activeStimulusIdx : 0;
+  const rawStimulus = stimuli[safeActiveStimulusIdx] ?? null;
   const explanationsJson = resultData?.explanations ? JSON.stringify(resultData.explanations) : '';
   const stimulus = useMemo(() => {
     if (!rawStimulus || !explanationsJson) return rawStimulus;
@@ -127,6 +136,24 @@ export default function ListeningReviewPage({ params }: Props) {
           <p className="text-xs text-muted-foreground">Xem giải thích chi tiết</p>
         </div>
       </div>
+
+      {stimuli.length > 1 && (
+        <div className="bg-white border-b px-4 py-2 flex items-center gap-2 overflow-x-auto">
+          {stimuli.map((s, index) => (
+            <button
+              key={s.id}
+              onClick={() => setActiveStimulusIdx(index)}
+              className={`px-3 py-1.5 text-xs rounded-full font-medium transition-colors whitespace-nowrap ${
+                index === safeActiveStimulusIdx
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              Section {s.section ?? index + 1}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Audio player + Transcript + Review panel */}
       <div className="flex-1 flex flex-col overflow-hidden">

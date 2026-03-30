@@ -1,6 +1,7 @@
 import { apiClient } from '@/lib/api-client';
 import type { ApiResponse } from '@/types/auth.types';
 import type { PagedResponse } from '@/types/test.types';
+import type { CreditTransactionResponse } from '@/types/payment.types';
 import type {
   TagResponse,
   TagRequest,
@@ -12,6 +13,7 @@ import type {
   QuestionUpdateRequest,
   QuestionGroupRequest,
   QuestionRequest,
+  AdminRevenueDashboardResponse,
 } from '@/types/admin.types';
 
 // Tags
@@ -207,4 +209,42 @@ export async function uploadMedia(file: File): Promise<string> {
 
 export async function deleteMedia(url: string): Promise<void> {
   await apiClient.delete(`/api/v1/admin/media?url=${encodeURIComponent(url)}`, true);
+}
+
+export async function getAdminRevenueDashboard(params?: {
+  fromDate?: string;
+  toDate?: string;
+}): Promise<AdminRevenueDashboardResponse> {
+  const searchParams = new URLSearchParams();
+  if (params?.fromDate) searchParams.set('fromDate', params.fromDate);
+  if (params?.toDate) searchParams.set('toDate', params.toDate);
+
+  const query = searchParams.toString();
+  const response = await apiClient.get<ApiResponse<AdminRevenueDashboardResponse>>(
+    `/api/v1/admin/dashboard/revenue${query ? `?${query}` : ''}`,
+    true
+  );
+  if (!response.result) throw new Error('Failed to fetch admin revenue dashboard');
+  return response.result;
+}
+
+export async function getAdminCreditTransactions(params?: {
+  userId?: string;
+  paymentType?: string;
+  fromDate?: string;
+  toDate?: string;
+}): Promise<CreditTransactionResponse[]> {
+  const searchParams = new URLSearchParams();
+  if (params?.userId) searchParams.set('userId', params.userId);
+  if (params?.paymentType && params.paymentType !== 'ALL') searchParams.set('paymentType', params.paymentType);
+  if (params?.fromDate) searchParams.set('fromDate', params.fromDate);
+  if (params?.toDate) searchParams.set('toDate', params.toDate);
+
+  const query = searchParams.toString();
+  const response = await apiClient.get<ApiResponse<CreditTransactionResponse[]>>(
+    `/api/v1/admin/credit-transactions${query ? `?${query}` : ''}`,
+    true
+  );
+  if (!response.result) throw new Error('Failed to fetch admin credit transactions');
+  return response.result;
 }

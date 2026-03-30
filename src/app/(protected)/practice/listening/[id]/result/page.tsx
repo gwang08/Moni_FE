@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { ReadingScoreDonut } from '@/components/reading/reading-score-donut';
 import { useTestDetail } from '@/hooks/use-test-detail';
 import type { QuestionGroupDetail } from '@/types/test.types';
+import { getListeningBand } from '@/lib/ielts-band';
 
 interface ResultData {
   attemptId?: number;
@@ -43,12 +44,15 @@ function calcGroupStats(groups: QuestionGroupDetail[], answers: Record<number, n
         const userText = (textAnswers[q.id] ?? '').trim();
         if (!userText) { skipped++; continue; }
         const correctAnswer = (q.options.find(o => o.isCorrect)?.content ?? '').trim();
-        correctAnswer.split('|').map(a => a.trim().toLowerCase()).includes(userText.toLowerCase()) ? correct++ : wrong++;
+        const acceptedAnswers = correctAnswer.split('|').map(a => a.trim().toLowerCase());
+        if (acceptedAnswers.includes(userText.toLowerCase())) correct++;
+        else wrong++;
       } else {
         const selectedId = answers[q.id];
         if (selectedId == null) { skipped++; continue; }
         const selected = q.options.find((o) => o.id === selectedId);
-        selected?.isCorrect ? correct++ : wrong++;
+        if (selected?.isCorrect) correct++;
+        else wrong++;
       }
     }
     return {
@@ -77,7 +81,12 @@ export default function ListeningResultPage({ params }: Props) {
     loadedRef.current = true;
     const raw = sessionStorage.getItem(`practice-result-${id}`);
     if (!raw) { router.replace(`/practice/listening/${id}`); return; }
-    try { setResultData(JSON.parse(raw)); } catch { router.replace(`/practice/listening/${id}`); }
+    try {
+      const parsed = JSON.parse(raw) as ResultData;
+      Promise.resolve().then(() => setResultData(parsed));
+    } catch {
+      router.replace(`/practice/listening/${id}`);
+    }
   }, [id, router]);
 
   if (loading || !resultData) {
@@ -99,6 +108,8 @@ export default function ListeningResultPage({ params }: Props) {
   const totalCorrect = groupStats.reduce((s, g) => s + g.correct, 0);
   const totalWrong = groupStats.reduce((s, g) => s + g.wrong, 0);
   const totalSkipped = groupStats.reduce((s, g) => s + g.skipped, 0);
+  const isFullTest = testDetail.testMode === 'FULL_TEST';
+  const listeningBand = getListeningBand(totalCorrect, totalQuestions);
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-8 space-y-8">
@@ -116,6 +127,12 @@ export default function ListeningResultPage({ params }: Props) {
       <div className="flex flex-col sm:flex-row items-center gap-8 bg-white border rounded-xl p-6">
         <ReadingScoreDonut correct={totalCorrect} wrong={totalWrong} total={totalQuestions} />
         <div className="space-y-2 text-sm">
+          {isFullTest && (
+            <p className="flex gap-3 items-center">
+              <span className="text-violet-600 font-semibold">IELTS Band:</span>
+              <span className="font-bold text-violet-700 text-base">{listeningBand.toFixed(1)}</span>
+            </p>
+          )}
           <p className="flex gap-3">
             <span className="text-green-600 font-semibold">Đúng:</span>
             <span className="font-bold text-green-700">{totalCorrect} câu</span>

@@ -71,8 +71,8 @@ export default function AdminScoringSessionsPage() {
           <Headphones className="h-6 w-6 text-primary" />
         </div>
         <div>
-          <h1 className="text-2xl font-bold">Quản lý Phiên Chấm Điểm</h1>
-          <p className="text-sm text-muted-foreground">Tất cả phiên chấm điểm trong hệ thống</p>
+          <h1 className="text-2xl font-bold">Công việc expert</h1>
+          <p className="text-sm text-muted-foreground">Toàn bộ công việc chấm điểm của expert trong hệ thống</p>
         </div>
       </div>
 

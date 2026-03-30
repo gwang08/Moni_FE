@@ -33,6 +33,8 @@ export interface CreditTransactionResponse {
   packageName: string | null;
   createdAt: string;
   userId: string;
+  userEmail: string | null;
+  userFullName: string | null;
   serviceId: number | null;
   paymentId: number | null;
 }

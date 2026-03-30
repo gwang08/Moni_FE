@@ -48,6 +48,7 @@ export default function ReadingReviewPage({ params }: Props) {
   const { testDetail, loading, error } = useTestDetail(id);
   const [resultData, setResultData] = useState<ResultData | null>(null);
   const [activeEvidence, setActiveEvidence] = useState<string | null>(null);
+  const [activeStimulusIdx, setActiveStimulusIdx] = useState(0);
   const loadedRef = useRef(false);
 
   useEffect(() => {
@@ -57,7 +58,13 @@ export default function ReadingReviewPage({ params }: Props) {
     // Try sessionStorage first (just-submitted flow)
     const raw = sessionStorage.getItem(`practice-result-${id}`);
     if (raw) {
-      try { setResultData(JSON.parse(raw)); return; } catch { /* fall through */ }
+      try {
+        const parsed = JSON.parse(raw) as ResultData;
+        Promise.resolve().then(() => setResultData(parsed));
+        return;
+      } catch {
+        /* fall through */
+      }
     }
 
     // If attemptId in URL, fetch from API (history review flow)
@@ -103,16 +110,18 @@ export default function ReadingReviewPage({ params }: Props) {
     }, 50);
   }, [activeEvidence]);
 
-  const stimuli = testDetail?.stimuli[0];
+  const stimuli = testDetail?.stimuli ?? [];
+  const safeActiveStimulusIdx = activeStimulusIdx < stimuli.length ? activeStimulusIdx : 0;
+  const rawStimulus = stimuli[safeActiveStimulusIdx] ?? null;
 
   // Merge API explanation/evidence into stimulus questions (for history review)
   const explanationsJson = resultData?.explanations ? JSON.stringify(resultData.explanations) : '';
   const enrichedStimulus = useMemo(() => {
-    if (!stimuli || !explanationsJson) return stimuli;
+    if (!rawStimulus || !explanationsJson) return rawStimulus;
     const explanations: Record<number, { text?: string; evidence?: string }> = JSON.parse(explanationsJson);
     return {
-      ...stimuli,
-      questionGroups: stimuli.questionGroups.map((g) => ({
+      ...rawStimulus,
+      questionGroups: rawStimulus.questionGroups.map((g) => ({
         ...g,
         questions: g.questions.map((q) => {
           const apiExpl = explanations[q.id];
@@ -128,18 +137,18 @@ export default function ReadingReviewPage({ params }: Props) {
         }),
       })),
     };
-  }, [stimuli, explanationsJson]);
+  }, [rawStimulus, explanationsJson]);
 
   const passageHtml = useMemo(() => {
-    const formatted = formatReadingPassage(stimuli?.content ?? '');
+    const formatted = formatReadingPassage(enrichedStimulus?.content ?? '');
     return injectEvidence(formatted, activeEvidence);
-  }, [stimuli?.content, activeEvidence]);
+  }, [enrichedStimulus?.content, activeEvidence]);
 
   if (loading || !resultData) {
     return <SkeletonPractice />;
   }
 
-  if (error || !testDetail || !stimuli) {
+  if (error || !testDetail || !enrichedStimulus) {
     return (
       <div className="flex flex-col items-center justify-center h-[calc(100vh-56px)] gap-4">
         <p className="text-red-500">{error || 'Không tìm thấy bài tập.'}</p>
@@ -161,11 +170,36 @@ export default function ReadingReviewPage({ params }: Props) {
         </div>
       </div>
 
+      {stimuli.length > 1 && (
+        <div className="bg-white border-b px-4 py-2 flex items-center gap-2 overflow-x-auto">
+          {stimuli.map((s, index) => (
+            <button
+              key={s.id}
+              onClick={() => {
+                setActiveStimulusIdx(index);
+                setActiveEvidence(null);
+              }}
+              className={`px-3 py-1.5 text-xs rounded-full font-medium transition-colors whitespace-nowrap ${
+                index === safeActiveStimulusIdx
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              Passage {s.section ?? index + 1}
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* Split layout */}
       <div className="flex-1 flex overflow-hidden">
         {/* Left: Passage with evidence highlight */}
         <div className="w-1/2 overflow-y-auto p-6 border-r border-gray-200">
-          <h2 className="text-xl font-bold mb-4">{testDetail.title}</h2>
+          <h2 className="text-xl font-bold mb-4">
+            {stimuli.length > 1
+              ? `${testDetail.title} - Passage ${enrichedStimulus.section ?? safeActiveStimulusIdx + 1}`
+              : testDetail.title}
+          </h2>
           <div
             className="prose max-w-none bg-white rounded-lg leading-relaxed text-base"
             dangerouslySetInnerHTML={{ __html: passageHtml }}
@@ -175,7 +209,7 @@ export default function ReadingReviewPage({ params }: Props) {
         {/* Right: Review panel */}
         <div className="w-1/2 flex flex-col overflow-hidden">
           <ReadingReviewPanel
-            stimulus={enrichedStimulus!}
+            stimulus={enrichedStimulus}
             answers={resultData.answers}
             textAnswers={resultData.textAnswers}
             onLocateEvidence={setActiveEvidence}

@@ -153,3 +153,16 @@ export interface QuestionUpdateRequest {
   explanation?: { text?: string; evidence?: string };
   tagIds?: string[];
 }
+
+export interface AdminRevenueDashboardResponse {
+  startDate: string;
+  endDate: string;
+  topupRevenue: number;
+  topupCount: number;
+  expertWritingCredits: number;
+  expertWritingJobs: number;
+  expertSpeakingCredits: number;
+  expertSpeakingJobs: number;
+  totalExpertCredits: number;
+  totalExpertJobs: number;
+}

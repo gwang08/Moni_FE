@@ -47,7 +47,7 @@ import {
   updateTest,
 } from '@/lib/admin-api';
 import type { TestDetailResponse, QuestionGroupDetail } from '@/types/test.types';
-import type { QuestionTypeCode } from '@/types/admin.types';
+import type { QuestionTypeCode, QuestionUpdateRequest } from '@/types/admin.types';
 
 function inferQuestionType(group: QuestionGroupDetail): QuestionTypeCode {
   const q = group.questions[0];
@@ -323,7 +323,7 @@ export function TestEditContentTab({ test }: Props) {
   const layoutRef = useRef<HTMLDivElement>(null);
   const rightScrollRef = useRef<HTMLDivElement>(null);
   const passageRef = useRef<HTMLDivElement>(null);
-  const groupRefs = useRef<Record<number, HTMLDivElement | null>>({});
+  const groupRefs = useRef<Record<number, HTMLElement | null>>({});
 
   const stimulus = test.stimuli[activeStimulus];
 
@@ -424,8 +424,11 @@ export function TestEditContentTab({ test }: Props) {
   const persistQuestionOrder = async (groupId: number, nextOrder: number[]) => {
     setQuestionOrders((prev) => ({ ...prev, [groupId]: nextOrder }));
     try {
+      const updates: Record<string, QuestionUpdateRequest> = Object.fromEntries(
+        nextOrder.map((questionId, index) => [String(questionId), { orderIndex: index + 1 }])
+      );
       await batchUpdateQuestions(
-        Object.fromEntries(nextOrder.map((questionId, index) => [String(questionId), { position: index + 1 }]))
+        updates
       );
       queryClient.invalidateQueries({ queryKey: ['admin', 'test', testId] });
     } catch {

@@ -1,16 +1,17 @@
 ﻿'use client';
 
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { useMemo, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Save, BookOpen, ExternalLink } from 'lucide-react';
+import { ArrowLeft, Save, BookOpen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { AdminHeader } from '@/components/admin/admin-header';
 import { getAvailableStimuli, getFullTestById, updateFullTest } from '@/lib/admin-full-test-api';
+import type { FullTestResponse } from '@/lib/admin-full-test-api';
 import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -42,23 +43,16 @@ const STATUS_OPTIONS = [
   { value: 'HIDDEN', label: 'Ẩn' },
 ] as const;
 
-const STATUS_LABEL: Record<string, string> = {
-  DRAFT: 'Nháp',
-  PUBLISHED: 'Sẵn sàng',
-  HIDDEN: 'Ẩn',
-};
-
-const STATUS_BADGE: Record<string, string> = {
-  DRAFT: 'bg-yellow-100 text-yellow-800 border-yellow-200',
-  PUBLISHED: 'bg-green-100 text-green-800 border-green-200',
-  HIDDEN: 'bg-gray-100 text-gray-600 border-gray-200',
-};
-
 const SECTION_LABEL_BY_SKILL: Record<string, string> = {
   READING: 'Passage',
   LISTENING: 'Section',
   WRITING: 'Task',
   SPEAKING: 'Part',
+};
+
+const toMinutes = (duration?: number | null) => {
+  if (!duration || duration <= 0) return 0;
+  return duration >= 300 ? Math.round(duration / 60) : duration;
 };
 
 export default function FullTestDetailPage() {
@@ -67,7 +61,6 @@ export default function FullTestDetailPage() {
   const testId = Number(params.id);
   const queryClient = useQueryClient();
 
-  const [isEditing, setIsEditing] = useState(false);
   const [editData, setEditData] = useState<{
     title: string;
     testType: string;
@@ -75,6 +68,7 @@ export default function FullTestDetailPage() {
     status: string;
   }>({ title: '', testType: 'PRACTICE', duration: 0, status: 'PUBLISHED' });
   const [selectedBySection, setSelectedBySection] = useState<Record<number, number>>({});
+  const [editingSection, setEditingSection] = useState<number | null>(null);
 
   const { data: fullTest, isLoading, error } = useQuery({
     queryKey: ['full-test', testId],
@@ -96,12 +90,12 @@ export default function FullTestDetailPage() {
 
   const sectionLabel = SECTION_LABEL_BY_SKILL[fullTest?.skill ?? ''] ?? 'Section';
 
-  const initializeEditingState = () => {
+  const initializeEditingState = useCallback(() => {
     if (!fullTest) return;
     setEditData({
       title: fullTest.title,
       testType: fullTest.testType || 'PRACTICE',
-      duration: fullTest.duration || 0,
+      duration: toMinutes(fullTest.duration),
       status: fullTest.status || 'PUBLISHED',
     });
     const initialSelected: Record<number, number> = {};
@@ -111,7 +105,7 @@ export default function FullTestDetailPage() {
       }
     }
     setSelectedBySection(initialSelected);
-  };
+  }, [fullTest]);
 
   const readingQuestionTotal = useMemo(() => {
     if (fullTest?.skill !== 'READING') return null;
@@ -125,22 +119,29 @@ export default function FullTestDetailPage() {
     }, 0);
   }, [availableStimuli, fullTest?.skill, selectedBySection, sortedStimuli]);
 
+  useEffect(() => {
+    if (!fullTest) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    initializeEditingState();
+  }, [fullTest, initializeEditingState]);
+
   const updateMutation = useMutation({
     mutationFn: ({ id, data }: { id: number; data: typeof editData }) => {
       const stimulusIds = sortedStimuli.map((stimulus) => selectedBySection[stimulus.section] ?? stimulus.id);
       return updateFullTest(id, {
         title: data.title,
         testType: data.testType,
-        duration: data.duration,
+        duration: data.duration * 60,
         status: data.status,
         stimulusIds,
       });
     },
-    onSuccess: () => {
+    onSuccess: (updatedTest) => {
       toast.success('Đã cập nhật Full Test');
-      queryClient.invalidateQueries({ queryKey: ['full-test', testId] });
-      queryClient.invalidateQueries({ queryKey: ['full-tests'] });
-      setIsEditing(false);
+      queryClient.setQueryData(['full-test', testId], updatedTest);
+      queryClient.setQueryData(['full-tests'], (current: FullTestResponse[] | undefined) =>
+        current?.map((item) => (item.id === updatedTest.id ? updatedTest : item))
+      );
     },
     onError: (err: Error) => {
       toast.error(err.message || 'Cập nhật thất bại');
@@ -164,7 +165,7 @@ export default function FullTestDetailPage() {
 
   const handleCancel = () => {
     initializeEditingState();
-    setIsEditing(false);
+    setEditingSection(null);
   };
 
   if (isLoading) {
@@ -210,26 +211,13 @@ export default function FullTestDetailPage() {
             Quay lại
           </Button>
           <div className="flex gap-2">
-            {isEditing ? (
-              <>
-                <Button variant="outline" onClick={handleCancel}>
-                  Hủy
-                </Button>
-                <Button onClick={handleSave} disabled={updateMutation.isPending}>
-                  <Save className="h-4 w-4 mr-2" />
-                  Lưu thay đổi
-                </Button>
-              </>
-            ) : (
-              <Button
-                onClick={() => {
-                  initializeEditingState();
-                  setIsEditing(true);
-                }}
-              >
-                Chỉnh sửa
-              </Button>
-            )}
+            <Button variant="outline" onClick={handleCancel}>
+              Hủy
+            </Button>
+            <Button onClick={handleSave} disabled={updateMutation.isPending}>
+              <Save className="h-4 w-4 mr-2" />
+              Lưu thay đổi
+            </Button>
           </div>
         </div>
 
@@ -238,15 +226,11 @@ export default function FullTestDetailPage() {
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="title">Tên đề</Label>
-              {isEditing ? (
-                <Input
-                  id="title"
-                  value={editData.title}
-                  onChange={(e) => setEditData({ ...editData, title: e.target.value })}
-                />
-              ) : (
-                <div className="rounded-md border bg-gray-50 px-3 py-2 text-sm">{fullTest.title}</div>
-              )}
+              <Input
+                id="title"
+                value={editData.title}
+                onChange={(e) => setEditData({ ...editData, title: e.target.value })}
+              />
             </div>
 
             <div className="space-y-2">
@@ -258,73 +242,51 @@ export default function FullTestDetailPage() {
 
             <div className="space-y-2">
               <Label htmlFor="testType">Loại bài thi</Label>
-              {isEditing ? (
-                <select
-                  id="testType"
-                  value={editData.testType}
-                  onChange={(e) => setEditData({ ...editData, testType: e.target.value })}
-                  className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  {TEST_TYPE_OPTIONS.map((opt) => (
-                    <option key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </option>
-                  ))}
-                </select>
-              ) : (
-                <Badge
-                  className={
-                    TEST_TYPE_OPTIONS.find((t) => t.value === fullTest.testType)?.className ?? 'bg-gray-100 text-gray-700'
-                  }
-                >
-                  {TEST_TYPE_OPTIONS.find((t) => t.value === fullTest.testType)?.label || fullTest.testType || 'Practice'}
-                </Badge>
-              )}
+              <select
+                id="testType"
+                value={editData.testType}
+                onChange={(e) => setEditData({ ...editData, testType: e.target.value })}
+                className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                {TEST_TYPE_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="duration">Thời gian (phút)</Label>
-              {isEditing ? (
-                <Input
-                  id="duration"
-                  type="number"
-                  value={editData.duration}
-                  onChange={(e) => setEditData({ ...editData, duration: Number(e.target.value) })}
-                />
-              ) : (
-                <div className="rounded-md border bg-gray-50 px-3 py-2 text-sm">
-                  {fullTest.duration ? `${Math.floor(fullTest.duration / 60)} phút` : 'Không giới hạn'}
-                </div>
-              )}
+              <Input
+                id="duration"
+                type="number"
+                value={editData.duration}
+                onChange={(e) => setEditData({ ...editData, duration: Number(e.target.value) })}
+              />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="status">Trạng thái</Label>
-              {isEditing ? (
-                <select
-                  id="status"
-                  value={editData.status}
-                  onChange={(e) => setEditData({ ...editData, status: e.target.value })}
-                  className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  {STATUS_OPTIONS.map((opt) => (
-                    <option key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </option>
-                  ))}
-                </select>
-              ) : (
-                <Badge className={STATUS_BADGE[fullTest.status] ?? 'bg-gray-100 text-gray-700'}>
-                  {STATUS_LABEL[fullTest.status] ?? fullTest.status}
-                </Badge>
-              )}
+              <select
+                id="status"
+                value={editData.status}
+                onChange={(e) => setEditData({ ...editData, status: e.target.value })}
+                className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                {STATUS_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
         </div>
 
         <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
           <div className="mb-4 flex items-start justify-between gap-3">
-            <h3 className="text-lg font-semibold text-gray-800">Các phần (Sections)</h3>
+            <h3 className="text-lg font-semibold text-gray-800">Phần thi</h3>
             {fullTest.skill === 'READING' && (
               <Badge className={readingQuestionTotal === 40 ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800'}>
                 Tổng câu Reading: {readingQuestionTotal ?? 0}/40
@@ -342,35 +304,12 @@ export default function FullTestDetailPage() {
                 const displayTitle = selectedOption?.title || stimulus.title || `${sectionLabel} ${section}`;
                 const displayQuestionCount = selectedOption?.questionCount ?? stimulus.questionCount;
                 const sourceTestId = selectedOption?.testId ?? stimulus.testId;
-
+                const isSectionEditing = editingSection === section;
                 return (
                   <div key={stimulus.id} className="rounded-lg border border-gray-200 bg-gray-50 p-4">
                     <div className="flex items-start justify-between gap-4">
-                      <div className="flex items-start gap-3 min-w-0">
-                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-600 text-sm font-bold text-white">
-                          {section}
-                        </div>
-                        <div className="space-y-1 min-w-0">
-                          <p className="font-medium text-gray-900 truncate">{displayTitle}</p>
-                          <p className="text-xs text-gray-500">Stimulus ID: {selectedId}</p>
-                          {fullTest.skill === 'READING' && typeof displayQuestionCount === 'number' && (
-                            <p className="text-xs text-blue-700">Số câu: {displayQuestionCount}</p>
-                          )}
-                          {sourceTestId ? (
-                            <Link
-                              href={`/admin/tests/${sourceTestId}`}
-                              className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700"
-                            >
-                              Xem test detail
-                              <ExternalLink className="h-3 w-3" />
-                            </Link>
-                          ) : null}
-                        </div>
-                      </div>
-
-                      {isEditing ? (
-                        <div className="w-full max-w-sm">
-                          <Label className="mb-1 block text-xs text-gray-600">Đổi stimulus cho phần này</Label>
+                      <div className="space-y-1 min-w-0">
+                        {isSectionEditing ? (
                           <select
                             value={selectedId}
                             onChange={(e) =>
@@ -392,8 +331,33 @@ export default function FullTestDetailPage() {
                               ))
                             )}
                           </select>
-                        </div>
-                      ) : null}
+                        ) : (
+                          <Link
+                            href={sourceTestId ? `/admin/tests/${sourceTestId}` : '#'}
+                            className={`block truncate font-medium text-gray-900 ${
+                              sourceTestId ? 'hover:text-blue-600 hover:underline' : 'cursor-default'
+                            }`}
+                            onClick={(event) => {
+                              if (!sourceTestId) event.preventDefault();
+                            }}
+                          >
+                            {displayTitle}
+                          </Link>
+                        )}
+                        {typeof displayQuestionCount === 'number' && (
+                          <p className="text-xs text-gray-500">Số câu: {displayQuestionCount}</p>
+                        )}
+                      </div>
+                      <div className="flex shrink-0 items-center gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setEditingSection(isSectionEditing ? null : section)}
+                        >
+                          {isSectionEditing ? 'Xong' : 'Thay đổi'}
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 );

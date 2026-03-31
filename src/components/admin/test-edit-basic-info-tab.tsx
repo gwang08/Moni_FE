@@ -40,6 +40,11 @@ const TEST_TYPE_LABELS: Record<string, string> = {
 };
 const SKILLS_WITH_TEST_TYPE = ['READING', 'LISTENING'];
 
+const toMinutes = (duration?: number | null) => {
+  if (!duration || duration <= 0) return '';
+  return String(duration >= 300 ? Math.round(duration / 60) : duration);
+};
+
 interface Props {
   test: TestDetailResponse;
 }
@@ -51,7 +56,7 @@ export function TestEditBasicInfoTab({ test }: Props) {
   const [title, setTitle] = useState(test.title);
   const [description, setDescription] = useState(test.description || '');
   const [status, setStatus] = useState(test.status || 'DRAFT');
-  const [duration, setDuration] = useState(test.duration ? String(test.duration) : '');
+  const [duration, setDuration] = useState(toMinutes(test.duration));
   const [thumbnailUrl, setThumbnailUrl] = useState(test.thumbnailUrl || '');
   const [skill, setSkill] = useState(test.skill || '');
   const [testMode, setTestMode] = useState(test.testMode || '');
@@ -94,7 +99,7 @@ export function TestEditBasicInfoTab({ test }: Props) {
         description: description || undefined,
         thumbnailUrl: finalThumbnailUrl,
         status,
-        duration: duration ? Number(duration) : undefined,
+        duration: duration ? Number(duration) * 60 : undefined,
         skill: skill || undefined,
         testMode: testMode || undefined,
         section: section ?? undefined,

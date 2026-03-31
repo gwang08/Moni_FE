@@ -377,11 +377,11 @@ export default function AdminTestsPage() {
                     <tr
                       key={test.id}
                       className="hover:bg-gray-50 cursor-pointer"
-                      onClick={() => router.push(`/admin/tests/${test.id}/edit`)}
+                      onClick={() => router.push(`/admin/tests/${test.id}`)}
                     >
                       <td className="px-4 py-3 font-medium max-w-xs truncate">
                         <Link
-                          href={`/admin/tests/${test.id}/edit`}
+                          href={`/admin/tests/${test.id}`}
                           className="text-blue-600 hover:underline"
                           onClick={e => e.stopPropagation()}
                         >

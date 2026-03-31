@@ -164,8 +164,16 @@ export async function updateQuestionGroupContent(groupId: number, groupContent: 
   await apiClient.patch<ApiResponse<void>>(`/api/v1/admin/question-groups/${groupId}/group-content`, { groupContent }, true);
 }
 
+export async function updateQuestionGroupInstruction(groupId: number, instruction: string): Promise<void> {
+  await apiClient.patch<ApiResponse<void>>(`/api/v1/admin/question-groups/${groupId}/instruction`, { instruction }, true);
+}
+
 export async function updateQuestionGroupTypeCode(groupId: number, questionTypeCode: string): Promise<void> {
   await apiClient.patch<ApiResponse<void>>(`/api/v1/admin/question-groups/${groupId}/question-type-code`, { questionTypeCode }, true);
+}
+
+export async function updateQuestionGroupOrderIndex(groupId: number, orderIndex: number): Promise<void> {
+  await apiClient.patch<ApiResponse<void>>(`/api/v1/admin/question-groups/${groupId}/order-index`, { orderIndex }, true);
 }
 
 export async function createQuestion(groupId: number, data: QuestionRequest): Promise<number> {

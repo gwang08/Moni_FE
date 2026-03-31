@@ -1,48 +1,12 @@
 'use client';
 
-import { useRef, useState, useCallback, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Plus, Trash2, ChevronDown, ChevronUp, MousePointerClick, Undo2 } from 'lucide-react';
-import { GapSentenceInput, extractAnswer } from '@/components/admin/gap-sentence-input';
+import { PenLine, Trash2, Plus } from 'lucide-react';
 import { EvidenceList } from '@/components/admin/evidence-list';
+import { formatReadingPassage } from '@/lib/format-reading-passage';
 import type { QuestionRequest } from '@/types/admin.types';
-
-function MultiAnswerInput({ answer, onChange }: { answer: string; onChange: (v: string) => void }) {
-  const [answers, setAnswers] = useState(() => answer ? answer.split('|').map(a => a.trim()) : ['']);
-
-  // Sync from parent when answer changes externally
-  useEffect(() => {
-    const parsed = answer ? answer.split('|').map(a => a.trim()) : [''];
-    const currentFiltered = answers.filter(a => a.trim()).join('|');
-    if (currentFiltered !== answer) setAnswers(parsed);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [answer]);
-
-  const commit = (arr: string[]) => {
-    setAnswers(arr);
-    onChange(arr.filter(a => a.trim()).join('|'));
-  };
-
-  return (
-    <div className="space-y-1">
-      {answers.map((a, i) => (
-        <div key={i} className="flex items-center gap-1">
-          <Input value={a} onChange={e => { const u = [...answers]; u[i] = e.target.value; commit(u); }}
-            placeholder={i === 0 ? 'Đáp án chính' : 'Đáp án thay thế'} className="text-sm h-7 flex-1" />
-          {answers.length > 1 && (
-            <button type="button" onClick={() => commit(answers.filter((_, j) => j !== i))}
-              className="text-gray-300 hover:text-red-500 p-0.5"><Trash2 className="h-3 w-3" /></button>
-          )}
-        </div>
-      ))}
-      <button type="button" onClick={() => setAnswers([...answers, ''])}
-        className="text-[10px] text-primary hover:underline flex items-center gap-0.5">
-        <Plus className="h-2.5 w-2.5" /> Thêm đáp án
-      </button>
-    </div>
-  );
-}
 
 interface Props {
   questions: QuestionRequest[];
@@ -52,257 +16,392 @@ interface Props {
   onAssignEvidence: (qi: number) => void;
   onGroupContentChange?: (content: string) => void;
   onChange: (questions: QuestionRequest[]) => void;
-  /** Atomically update both groupContent + questions in one parent state change */
   onBatchUpdate?: (groupContent: string, questions: QuestionRequest[]) => void;
 }
 
-/** Paragraph questions are tagged with metadata.gapMode = 'paragraph' */
-const isParagraphQ = (q: QuestionRequest) => q.metadata?.gapMode === 'paragraph';
-const isSentenceQ = (q: QuestionRequest) => !isParagraphQ(q);
+function extractAnswer(question: QuestionRequest): string {
+  const option = question.options.find((o) => o.isCorrect);
+  return option?.content ?? '';
+}
+
+function MultiAnswerInput({ answer, onChange }: { answer: string; onChange: (value: string) => void }) {
+  const [answers, setAnswers] = useState(() => (answer ? answer.split('|').map((item) => item.trim()) : ['']));
+
+  useEffect(() => {
+    const parsed = answer ? answer.split('|').map((item) => item.trim()) : [''];
+    const current = answers.filter((item) => item.trim()).join('|');
+    if (current !== answer) setAnswers(parsed);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [answer]);
+
+  const commit = (nextAnswers: string[]) => {
+    setAnswers(nextAnswers);
+    onChange(nextAnswers.filter((item) => item.trim()).join('|'));
+  };
+
+  return (
+    <div className="space-y-1">
+      {answers.map((item, index) => (
+        <div key={index} className="flex items-center gap-1">
+          <Input
+            value={item}
+            onChange={(e) => {
+              const next = [...answers];
+              next[index] = e.target.value;
+              commit(next);
+            }}
+            placeholder={index === 0 ? 'Đáp án đúng' : 'Đáp án thay thế'}
+            className="h-7 flex-1 text-sm"
+          />
+          {answers.length > 1 && (
+            <button
+              type="button"
+              onClick={() => commit(answers.filter((_, j) => j !== index))}
+              className="p-0.5 text-gray-300 hover:text-red-500"
+            >
+              <Trash2 className="h-3 w-3" />
+            </button>
+          )}
+        </div>
+      ))}
+      <button type="button" onClick={() => setAnswers([...answers, ''])} className="flex items-center gap-0.5 text-[10px] text-primary hover:underline">
+        <Plus className="h-2.5 w-2.5" />
+        Thêm đáp án
+      </button>
+    </div>
+  );
+}
+
+function buildGapQuestion(existing?: QuestionRequest): QuestionRequest {
+  return (
+    existing ?? {
+      content: '',
+      options: [{ label: '', content: '', isCorrect: true }],
+      metadata: { gapMode: 'paragraph' },
+    }
+  );
+}
+
+function splitParagraphs(text: string): string[] {
+  if (!text) return [''];
+  return text.split(/\n\s*\n/g);
+}
+
+function joinParagraphs(paragraphs: string[]): string {
+  return paragraphs.join('\n\n');
+}
+
+function countPlaceholders(text: string): number {
+  return (text.match(/__+/g) ?? []).length;
+}
+
+function escapeHtml(text: string): string {
+  return text.replace(/[&<>"']/g, (char) => {
+    switch (char) {
+      case '&':
+        return '&amp;';
+      case '<':
+        return '&lt;';
+      case '>':
+        return '&gt;';
+      case '"':
+        return '&quot;';
+      case "'":
+        return '&#39;';
+      default:
+        return char;
+    }
+  });
+}
+
+function buildParagraphQuestionGroups(paragraphs: string[], questions: QuestionRequest[]) {
+  let questionIndex = 0;
+
+  return paragraphs.map((paragraph) => {
+    const placeholderCount = countPlaceholders(paragraph);
+    const gaps = Array.from({ length: placeholderCount }, (_, localIndex) => {
+      const currentIndex = questionIndex;
+      questionIndex += 1;
+
+      return {
+        localIndex,
+        questionIndex: currentIndex,
+        question: buildGapQuestion(questions[currentIndex]),
+      };
+    });
+
+    return { paragraph, gaps };
+  });
+}
+
+function syncQuestions(existing: QuestionRequest[], count: number): QuestionRequest[] {
+  return Array.from({ length: count }, (_, index) => buildGapQuestion(existing[index]));
+}
+
+function replaceNthPlaceholder(text: string, targetIndex: number, replacement: string) {
+  let seen = 0;
+  return text.replace(/__+/g, (match) => {
+    if (seen === targetIndex) {
+      seen += 1;
+      return replacement;
+    }
+    seen += 1;
+    return match;
+  });
+}
+
+function removeNthPlaceholder(text: string, targetIndex: number) {
+  return replaceNthPlaceholder(text, targetIndex, '').replace(/\s{2,}/g, ' ').trim();
+}
+
+function appendGap(text: string) {
+  const trimmed = text.trim();
+  if (!trimmed) return '__';
+  return `${trimmed} __`;
+}
+
+function isQuestionIncomplete(question: QuestionRequest) {
+  return !extractAnswer(question).trim();
+}
+
+function renderParagraphPreview(paragraph: string, startIndex: number, answers: string[]) {
+  let gapOffset = 0;
+  return formatReadingPassage(paragraph).replace(/__+/g, () => {
+    const number = startIndex + gapOffset + 1;
+    const rawAnswer = answers[gapOffset]?.trim() ?? '';
+    const displayAnswer = rawAnswer ? rawAnswer.split('|').map((item) => item.trim()).filter(Boolean).join(' / ') : '';
+    gapOffset += 1;
+    if (displayAnswer) {
+      return `<span class="mx-1 inline-flex max-w-full items-center rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700">${escapeHtml(displayAnswer)}</span>`;
+    }
+    return `<span class="mx-1 inline-flex min-w-8 items-center justify-center rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-[11px] font-semibold text-blue-700">${number}</span>`;
+  });
+}
 
 export function GapFillingEditor({
-  questions, positionOffset, groupContent, pendingEvidence,
-  onAssignEvidence, onGroupContentChange, onChange, onBatchUpdate,
+  questions,
+  positionOffset,
+  groupContent,
+  pendingEvidence,
+  onAssignEvidence,
+  onGroupContentChange,
+  onChange,
+  onBatchUpdate,
 }: Props) {
-  const [collapsed, setCollapsed] = useState<Set<number>>(new Set());
-  const [gapMode, setGapMode] = useState(false);
-  const passageRef = useRef<HTMLDivElement>(null);
+  const content = groupContent ?? '';
+  const paragraphs = splitParagraphs(content);
+  const gapCount = countPlaceholders(content);
+  const incompleteCount = questions.filter(isQuestionIncomplete).length;
+  const paragraphGroups = buildParagraphQuestionGroups(paragraphs, questions);
+  const [editingParagraphs, setEditingParagraphs] = useState<Record<number, boolean>>({});
 
-  const toggleCollapsed = (idx: number) => {
-    setCollapsed(prev => { const n = new Set(prev); n.has(idx) ? n.delete(idx) : n.add(idx); return n; });
-  };
-
-  // Split questions by mode
-  const sentenceQs = questions.filter(isSentenceQ);
-  const paragraphQs = questions.filter(q => !isSentenceQ(q));
-
-  // Get real index in full questions array
-  const realIndex = (q: QuestionRequest) => questions.indexOf(q);
-
-  // --- Sentence mode ---
-  const addSentenceQuestion = () => {
-    // Add with a placeholder content so it's recognized as sentence
-    onChange([...questions, { content: '', options: [{ label: '', content: '', isCorrect: true }] }]);
-  };
-
-  const removeQuestion = (realIdx: number) => onChange(questions.filter((_, i) => i !== realIdx));
-
-  const updateContent = (realIdx: number, content: string) => {
-    const answer = extractAnswer(content);
-    onChange(questions.map((q, i) => (i === realIdx ? { ...q, content, options: [{ label: '', content: answer, isCorrect: true }] } : q)));
-  };
-
-  const updateExplanation = (realIdx: number, text: string) => {
-    onChange(questions.map((q, i) =>
-      i === realIdx ? { ...q, explanation: { ...q.explanation, text: text || undefined } } : q
-    ));
-  };
-
-  const handleEvidenceChange = (realIdx: number, ev: string | undefined) => {
-    onChange(questions.map((q, i) =>
-      i === realIdx ? { ...q, explanation: { ...q.explanation, evidence: ev } } : q
-    ));
-  };
-
-  const updateAnswer = (realIdx: number, answer: string) => {
-    onChange(questions.map((q, i) =>
-      i === realIdx ? { ...q, options: [{ label: '', content: answer, isCorrect: true }] } : q
-    ));
-  };
-
-  // --- Paragraph mode: click-to-gap ---
-  const handleCreateGap = useCallback(() => {
-    const sel = window.getSelection();
-    if (!sel || sel.isCollapsed || !passageRef.current) return;
-    const selectedText = sel.toString().trim();
-    if (!selectedText || !passageRef.current.contains(sel.anchorNode!)) return;
-
-    const currentText = groupContent ?? '';
-    const nextNum = positionOffset + questions.length + 1;
-
-    // Find selected text in raw groupContent
-    const range = sel.getRangeAt(0);
-    const preRange = document.createRange();
-    preRange.selectNodeContents(passageRef.current);
-    preRange.setEnd(range.startContainer, range.startOffset);
-    const startOffset = preRange.toString().length;
-
-    // Search in raw text (skip over existing [N]___ markers for offset)
-    let idx = currentText.indexOf(selectedText, Math.max(0, startOffset - 15));
-    if (idx === -1) idx = currentText.indexOf(selectedText);
-    if (idx === -1) { sel.removeAllRanges(); return; }
-
-    const newContent = currentText.slice(0, idx) + `[${nextNum}]___` + currentText.slice(idx + selectedText.length);
-    const newQ: QuestionRequest = { content: '', options: [{ label: '', content: selectedText, isCorrect: true }], metadata: { gapMode: 'paragraph' } };
-
-    // CRITICAL: update BOTH groupContent + questions atomically
+  useEffect(() => {
+    if (groupContent == null) return;
+    if (questions.length === gapCount) return;
+    const nextQuestions = syncQuestions(questions, gapCount);
     if (onBatchUpdate) {
-      onBatchUpdate(newContent, [...questions, newQ]);
+      onBatchUpdate(groupContent, nextQuestions);
     } else {
-      onGroupContentChange?.(newContent);
-      onChange([...questions, newQ]);
+      onChange(nextQuestions);
     }
-    sel.removeAllRanges();
-  }, [groupContent, questions, positionOffset, onGroupContentChange, onChange, onBatchUpdate]);
+  }, [gapCount, groupContent, onBatchUpdate, onChange, questions]);
 
-  const handleUndoLastGap = useCallback(() => {
-    if (paragraphQs.length === 0 || !groupContent) return;
-    const lastQ = paragraphQs[paragraphQs.length - 1];
-    const lastRealIdx = realIndex(lastQ);
-    const lastNum = positionOffset + lastRealIdx + 1;
-    const lastAnswer = lastQ.options.find(o => o.isCorrect)?.content ?? '';
-    const newContent = groupContent.replace(`[${lastNum}]___`, lastAnswer);
-    const newQuestions = questions.filter((_, i) => i !== lastRealIdx);
-
+  const commit = (nextContent: string, nextQuestions: QuestionRequest[]) => {
     if (onBatchUpdate) {
-      onBatchUpdate(newContent, newQuestions);
+      onBatchUpdate(nextContent, nextQuestions);
     } else {
-      onGroupContentChange?.(newContent);
-      onChange(newQuestions);
+      onGroupContentChange?.(nextContent);
+      onChange(nextQuestions);
     }
-  }, [groupContent, questions, paragraphQs, positionOffset, onGroupContentChange, onChange, onBatchUpdate]);
+  };
 
-  // --- Render passage HTML with gap markers ---
-  const renderPassageHtml = useCallback((text: string) => {
-    return text.replace(/\[(\d+)\]_{2,}/g, (_, num) => {
-      const gapNum = parseInt(num, 10);
-      const rIdx = gapNum - positionOffset - 1;
-      const answer = questions[rIdx]?.options.find(o => o.isCorrect)?.content ?? '';
-      return `<span style="display:inline-flex;align-items:baseline;gap:2px;margin:0 2px"><strong style="color:#2563eb;font-size:13px">${num}</strong><span style="display:inline-block;min-width:80px;border-bottom:2px solid #9ca3af;text-align:center;color:#16a34a;font-size:12px;padding:0 4px;font-weight:600">${answer || '___'}</span></span>`;
-    });
-  }, [questions, positionOffset]);
+  const updateParagraph = (paragraphIndex: number, value: string) => {
+    const nextParagraphs = paragraphs.map((paragraph, index) => (index === paragraphIndex ? value : paragraph));
+    const nextContent = joinParagraphs(nextParagraphs);
+    const nextQuestions = syncQuestions(questions, countPlaceholders(nextContent));
+    commit(nextContent, nextQuestions);
+  };
+
+  const addParagraph = () => {
+    const nextParagraphs = [...paragraphs, ''];
+    const nextContent = joinParagraphs(nextParagraphs);
+    const nextQuestions = syncQuestions(questions, countPlaceholders(nextContent));
+    commit(nextContent, nextQuestions);
+  };
+
+  const addGap = () => {
+    const nextParagraphs = [...paragraphs];
+    nextParagraphs[nextParagraphs.length - 1] = appendGap(nextParagraphs[nextParagraphs.length - 1]);
+    const nextContent = joinParagraphs(nextParagraphs);
+    const nextQuestions = syncQuestions(questions, countPlaceholders(nextContent));
+    commit(nextContent, nextQuestions);
+  };
+
+  const removeParagraph = (paragraphIndex: number) => {
+    const nextParagraphs = paragraphs.filter((_, index) => index !== paragraphIndex);
+    const nextContent = joinParagraphs(nextParagraphs);
+    const nextQuestions = syncQuestions(questions, countPlaceholders(nextContent));
+    commit(nextContent, nextQuestions);
+  };
+
+  const toggleParagraphEdit = (paragraphIndex: number) => {
+    setEditingParagraphs((current) => ({
+      ...current,
+      [paragraphIndex]: !current[paragraphIndex],
+    }));
+  };
+
+  const updateAnswer = (questionIndex: number, answer: string) => {
+    const next = questions.map((question, index) =>
+      index === questionIndex ? { ...question, options: [{ label: '', content: answer, isCorrect: true }] } : question
+    );
+    onChange(next);
+  };
+
+  const updateExplanation = (questionIndex: number, text: string) => {
+    const next = questions.map((question, index) =>
+      index === questionIndex ? { ...question, explanation: { ...question.explanation, text: text || undefined } } : question
+    );
+    onChange(next);
+  };
+
+  const updateEvidence = (questionIndex: number, evidence: string | undefined) => {
+    const next = questions.map((question, index) =>
+      index === questionIndex ? { ...question, explanation: { ...question.explanation, evidence } } : question
+    );
+    onChange(next);
+  };
+
+  const removeGap = (questionIndex: number) => {
+    const nextContent = removeNthPlaceholder(content, questionIndex);
+    const nextQuestions = questions.filter((_, index) => index !== questionIndex);
+    commit(nextContent, nextQuestions);
+  };
 
   return (
     <div className="space-y-3">
-      {/* === PARAGRAPH SECTION (always visible if groupContent exists) === */}
-      {groupContent != null && (
-        <div className="space-y-2">
-          <div className="flex items-center gap-2 flex-wrap">
-            <Button type="button" size="sm" variant={gapMode ? 'default' : 'outline'}
-              className={`text-xs h-7 gap-1 ${gapMode ? 'bg-violet-600 hover:bg-violet-700' : ''}`}
-              onClick={() => setGapMode(!gapMode)}>
-              <MousePointerClick className="h-3 w-3" />
-              {gapMode ? 'Đang đánh dấu...' : 'Đánh dấu gap'}
-            </Button>
-            {gapMode && <p className="text-[10px] text-violet-600 font-medium">Quét chọn từ → bấm &quot;Tạo gap&quot;</p>}
-            {paragraphQs.length > 0 && (
-              <Button type="button" size="sm" variant="ghost" className="text-xs h-7 gap-1 text-gray-400 ml-auto" onClick={handleUndoLastGap}>
-                <Undo2 className="h-3 w-3" /> Hoàn tác
-              </Button>
-            )}
-          </div>
+      <div className="sticky top-0 z-30 rounded-lg border border-gray-200 bg-white/95 p-2 shadow-sm backdrop-blur">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="inline-flex items-center rounded-full bg-violet-600 px-3 py-1 text-xs font-semibold text-white">Gap Filling</span>
+          <span className="inline-flex items-center rounded-full border border-violet-200 bg-violet-50 px-3 py-1 text-xs font-medium text-violet-700">
+            {paragraphs.length} đoạn
+          </span>
+          <span className="inline-flex items-center rounded-full border border-violet-200 bg-violet-50 px-3 py-1 text-xs font-medium text-violet-700">
+            {questions.length} gap
+          </span>
+          <span
+            className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${
+              incompleteCount > 0 ? 'border border-red-200 bg-red-50 text-red-600' : 'border border-green-200 bg-green-50 text-green-700'
+            }`}
+          >
+            {incompleteCount > 0 ? `${incompleteCount} thiếu` : 'Đã xong'}
+          </span>
+          <Button type="button" size="sm" variant="outline" className="ml-auto h-7 gap-1 border-dashed text-xs" onClick={addParagraph}>
+            <Plus className="h-3 w-3" />
+            Thêm đoạn
+          </Button>
+          <Button type="button" size="sm" variant="outline" className="h-7 gap-1 border-dashed text-xs" onClick={addGap}>
+            <Plus className="h-3 w-3" />
+            Thêm gap
+          </Button>
+        </div>
+      </div>
 
-          {(groupContent ?? '').trim() ? (
-            <div className="relative">
-              <div ref={passageRef}
-                className={`rounded-lg border px-4 py-3 text-sm leading-7 select-text ${gapMode ? 'border-violet-300 bg-violet-50/30 cursor-text' : 'border-gray-200 bg-gray-50'}`}
-                dangerouslySetInnerHTML={{ __html: renderPassageHtml(groupContent ?? '') }}
-              />
-              {gapMode && (
-                <div className="absolute -bottom-1 right-2">
-                  <Button type="button" size="sm" className="h-7 text-xs gap-1 bg-violet-600 hover:bg-violet-700 shadow-lg"
-                    onMouseDown={e => { e.preventDefault(); handleCreateGap(); }}>
-                    <MousePointerClick className="h-3 w-3" /> Tạo gap
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <label className="block text-[10px] font-medium uppercase tracking-wide text-gray-400">Đoạn văn</label>
+          <span className="text-[10px] text-gray-400">{paragraphs.length} đoạn</span>
+        </div>
+
+        <div className="space-y-3">
+          {paragraphGroups.map((group, index) => (
+            <div key={`paragraph-${index}`} className="rounded-lg border border-gray-200 bg-white p-3">
+              <div className="mb-2 flex items-center justify-between gap-2">
+                <span className="text-xs font-semibold text-gray-700">Đoạn {index + 1}</span>
+                <div className="flex items-center gap-1">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    className="h-7 gap-1 px-2 text-xs text-gray-600 hover:text-gray-900"
+                    onClick={() => toggleParagraphEdit(index)}
+                  >
+                    <PenLine className="h-3.5 w-3.5" />
+                    {editingParagraphs[index] ? 'Xem' : 'Sửa'}
                   </Button>
+                  <Button type="button" size="sm" variant="ghost" className="h-7 w-7 p-0 text-red-400 hover:text-red-600" onClick={() => removeParagraph(index)}>
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+              {editingParagraphs[index] && (
+                <textarea
+                  value={group.paragraph}
+                  onChange={(e) => updateParagraph(index, e.target.value)}
+                  placeholder="Nhập đoạn văn và dùng __ để đánh dấu gap."
+                  rows={5}
+                  className="w-full resize-y rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                />
+              )}
+              <div className="mt-3 rounded-lg border border-gray-200 bg-gray-50 p-3">
+                <div
+                  className="prose prose-sm max-w-none text-sm leading-7"
+                  dangerouslySetInnerHTML={{
+                    __html: renderParagraphPreview(
+                      group.paragraph,
+                      paragraphGroups.slice(0, index).reduce((sum, item) => sum + item.gaps.length, 0),
+                      group.gaps.map(({ question }) => extractAnswer(question))
+                    ),
+                  }}
+                />
+              </div>
+              {group.gaps.length > 0 && (
+                <div className="mt-3 space-y-2">
+                  {group.gaps.map(({ question, questionIndex: globalQuestionIndex }) => {
+                    const answer = extractAnswer(question);
+                    return (
+                      <div key={`paragraph-gap-${globalQuestionIndex}`} className="rounded-lg border border-dashed border-gray-200 p-3">
+                        <div className="mb-2 flex items-center justify-between gap-2">
+                          <div className="inline-flex items-center gap-2">
+                            <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-blue-600 px-2 text-xs font-semibold text-white">
+                              {positionOffset + globalQuestionIndex + 1}
+                            </span>
+                            <span className="text-xs font-semibold text-blue-700">Gap</span>
+                          </div>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="ghost"
+                            className="h-7 w-7 p-0 text-red-400 hover:text-red-600"
+                            onClick={() => removeGap(globalQuestionIndex)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                        <div className="space-y-2">
+                          <MultiAnswerInput answer={answer} onChange={(value) => updateAnswer(globalQuestionIndex, value)} />
+                          <textarea
+                            value={question.explanation?.text ?? ''}
+                            onChange={(e) => updateExplanation(globalQuestionIndex, e.target.value)}
+                            placeholder="Giải thích đáp án..."
+                            rows={2}
+                            className="w-full resize-none rounded-md border border-input bg-background px-2 py-1.5 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                          />
+                          <EvidenceList
+                            evidence={question.explanation?.evidence}
+                            pendingEvidence={pendingEvidence}
+                            onAssign={() => onAssignEvidence(globalQuestionIndex)}
+                            onChange={(evidence) => updateEvidence(globalQuestionIndex, evidence)}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>
-          ) : (
-            <textarea
-              value=""
-              onChange={e => onGroupContentChange?.(e.target.value)}
-              placeholder="Dán đoạn văn gốc đầy đủ vào đây. Sau đó bật 'Đánh dấu gap' và quét chọn từ muốn tạo chỗ trống."
-              rows={5}
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-y"
-            />
-          )}
-
-          {(groupContent ?? '').trim() && (
-            <details className="text-[10px]">
-              <summary className="text-gray-400 cursor-pointer hover:text-gray-600">Sửa text thô</summary>
-              <textarea value={groupContent ?? ''} onChange={e => onGroupContentChange?.(e.target.value)} rows={4}
-                className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-xs font-mono focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-y" />
-            </details>
-          )}
+          ))}
         </div>
-      )}
-
-      {/* === ALL QUESTIONS LIST === */}
-      {questions.length > 0 && (
-        <div className="rounded-lg border border-gray-200 overflow-hidden divide-y divide-gray-100">
-          {paragraphQs.length > 0 && (
-            <div className="bg-gray-50 px-3 py-1.5 text-[10px] font-medium text-gray-500 uppercase tracking-wide">
-              {sentenceQs.length > 0 ? `${questions.length} câu (${sentenceQs.length} câu lẻ + ${paragraphQs.length} gap)` : `${paragraphQs.length} gap`}
-            </div>
-          )}
-          {questions.map((q) => {
-            const rIdx = realIndex(q);
-            const isCollapsed = collapsed.has(rIdx);
-            const expl = q.explanation;
-            const answer = q.options.find(o => o.isCorrect)?.content ?? '';
-
-            return (
-              <div key={rIdx} className="bg-white">
-                <div className="px-3 py-2 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-semibold text-gray-700">Câu {positionOffset + rIdx + 1}</span>
-                    <div className="flex items-center gap-1">
-                      <button type="button" onClick={() => toggleCollapsed(rIdx)}
-                        className="flex items-center justify-center h-7 w-7 rounded hover:bg-gray-100 text-gray-400">
-                        {isCollapsed ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronUp className="h-3.5 w-3.5" />}
-                      </button>
-                      {isSentenceQ(q) && (
-                        <button type="button" onClick={() => removeQuestion(rIdx)} className="text-gray-300 hover:text-red-500 h-7 w-7 flex items-center justify-center">
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-
-                  {isSentenceQ(q) ? (
-                    <div className="space-y-2">
-                      <GapSentenceInput value={q.content} onChange={val => updateContent(rIdx, val)}
-                        placeholder="Nhập câu đầy đủ, quét từ cần trống → bấm Đánh dấu" />
-                      {answer && (
-                        <MultiAnswerInput answer={answer} onChange={val => updateAnswer(rIdx, val)} />
-                      )}
-                    </div>
-                  ) : (
-                    <MultiAnswerInput answer={answer} onChange={val => updateAnswer(rIdx, val)} />
-                  )}
-                </div>
-
-                {!isCollapsed && (
-                  <div className="px-3 pb-3 grid grid-cols-2 gap-2 border-t border-dashed border-gray-100">
-                    <div className="pt-2">
-                      <span className="text-[10px] font-medium text-gray-400 uppercase tracking-wide">Giải thích</span>
-                      <textarea value={expl?.text ?? ''} onChange={e => updateExplanation(rIdx, e.target.value)}
-                        placeholder="Tại sao đáp án này đúng?" rows={2}
-                        className="mt-1 w-full rounded-md border border-input bg-background px-2 py-1.5 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-none" />
-                    </div>
-                    <div className="pt-2">
-                      <EvidenceList evidence={expl?.evidence} pendingEvidence={pendingEvidence}
-                        onAssign={() => onAssignEvidence(rIdx)} onChange={ev => handleEvidenceChange(rIdx, ev)} />
-                    </div>
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      {/* Add question buttons */}
-      <div className="flex gap-2">
-        <Button type="button" size="sm" variant="outline" className="text-xs h-7 gap-1" onClick={addSentenceQuestion}>
-          <Plus className="h-3 w-3" /> Thêm câu lẻ
-        </Button>
-        {groupContent == null && (
-          <Button type="button" size="sm" variant="outline" className="text-xs h-7 gap-1"
-            onClick={() => onGroupContentChange?.('')}>
-            <Plus className="h-3 w-3" /> Thêm đoạn văn
-          </Button>
-        )}
       </div>
     </div>
   );

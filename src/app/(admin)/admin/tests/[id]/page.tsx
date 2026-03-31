@@ -1,132 +1,165 @@
 'use client';
 
+import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { Pencil, ArrowLeft, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, CheckCircle2 } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { AdminHeader } from '@/components/admin/admin-header';
-import { TestDetailWritingView } from '@/components/admin/test-detail-writing-view';
-import { TestDetailSpeakingView } from '@/components/admin/test-detail-speaking-view';
 import { getTestDetail } from '@/lib/tests-api';
 import { formatReadingPassage } from '@/lib/format-reading-passage';
-import { useQuery } from '@tanstack/react-query';
 import { SkeletonPage } from '@/components/ui/skeleton';
+import { TestEditBasicInfoTab } from '@/components/admin/test-edit-basic-info-tab';
+import { TestEditContentTab } from '@/components/admin/test-edit-content-tab';
+import { TestDetailWritingView } from '@/components/admin/test-detail-writing-view';
+import { TestDetailSpeakingView } from '@/components/admin/test-detail-speaking-view';
+
+const TABS = ['Thông tin cơ bản', 'Nội dung bài thi', 'Xem trước'];
 
 export default function TestDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
+  const [tabIndex, setTabIndex] = useState(0);
 
   const { data: test, isLoading, error } = useQuery({
     queryKey: ['admin', 'test', id],
     queryFn: () => getTestDetail(id),
     enabled: !!id,
+    staleTime: 30_000,
   });
 
   return (
-    <div>
+    <div className="flex h-screen flex-col overflow-hidden">
       <AdminHeader title="Chi tiết bài thi" />
-      <div className="p-6 max-w-4xl">
-        <div className="flex items-center gap-3 mb-6">
-          <Button variant="outline" size="sm" onClick={() => router.push('/admin/tests')}>
-            <ArrowLeft className="h-4 w-4" /> Quay lại
-          </Button>
-          {test && (
-            <Button size="sm" onClick={() => router.push(`/admin/tests/${id}/edit`)}>
-              <Pencil className="h-4 w-4" /> Chỉnh sửa
-            </Button>
-          )}
-        </div>
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden p-6">
+        <Button variant="outline" size="sm" className="mb-6" onClick={() => router.push('/admin/tests')}>
+          <ArrowLeft className="h-4 w-4" /> Quay lại
+        </Button>
 
-        {isLoading ? (
-          <SkeletonPage />
-        ) : error ? (
-          <p className="text-red-500 text-center py-12">Không thể tải thông tin bài thi</p>
-        ) : test && (
-          <div className="space-y-6">
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-              <h2 className="text-xl font-bold text-gray-800 mb-3">{test.title}</h2>
-              <p className="text-gray-600 text-sm mb-4">{test.description}</p>
-              <div className="flex flex-wrap gap-2">
-                <Badge variant="secondary">{test.skill}</Badge>
-                {test.status && <Badge variant="outline">{test.status}</Badge>}
-                {test.duration && <span className="text-xs text-gray-500 self-center">{test.duration} phút</span>}
-              </div>
+        <div className="min-h-0 flex-1 overflow-hidden">
+          {isLoading ? (
+            <SkeletonPage />
+          ) : error ? (
+            <p className="py-12 text-center text-red-500">Không thể tải thông tin bài thi</p>
+          ) : test && (
+            <div className="flex h-full min-h-0 flex-col overflow-hidden">
+            <div className="mb-6 flex items-center gap-2">
+              {TABS.map((label, index) => {
+                const active = index === tabIndex;
+                return (
+                  <div key={label} className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setTabIndex(index)}
+                      className="group flex items-center gap-2"
+                    >
+                      <div
+                        className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-semibold transition-colors ${
+                          active ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-500 group-hover:bg-gray-300'
+                        }`}
+                      >
+                        {index + 1}
+                      </div>
+                      <span className={`text-xs transition-colors ${active ? 'font-medium text-blue-600' : 'text-gray-500 group-hover:text-gray-700'}`}>
+                        {label}
+                      </span>
+                    </button>
+                    {index < TABS.length - 1 && <div className="h-px w-8 bg-gray-300" />}
+                  </div>
+                );
+              })}
             </div>
 
-            {/* Skill-specific content views */}
-            {test.skill === 'WRITING' && <TestDetailWritingView stimuli={test.stimuli} />}
-            {test.skill === 'SPEAKING' && <TestDetailSpeakingView stimuli={test.stimuli} />}
-
-            {/* Reading/Listening: passage + question groups */}
-            {(test.skill === 'READING' || test.skill === 'LISTENING') && test.stimuli.map((stimulus, si) => (
-              <div key={stimulus.id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                <h3 className="text-sm font-semibold text-gray-700 mb-3">
-                  {stimulus.title || `Passage ${si + 1}`}
-                </h3>
-                {/* Audio player for Listening */}
-                {test.skill === 'LISTENING' && stimulus.mediaUrl && (
-                  <div className="mb-4 bg-purple-50 border border-purple-200 rounded-lg p-3">
-                    <p className="text-xs font-medium text-purple-700 mb-1">Audio</p>
-                    <audio controls src={stimulus.mediaUrl} className="w-full h-8" />
+            {tabIndex === 0 && <TestEditBasicInfoTab test={test} />}
+            {tabIndex === 1 && (
+              <div className="min-h-0 flex-1 overflow-hidden">
+                <TestEditContentTab test={test} />
+              </div>
+            )}
+            {tabIndex === 2 && (
+              <div className="max-w-4xl space-y-6">
+                <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+                  <h2 className="mb-3 text-xl font-bold text-gray-800">{test.title}</h2>
+                  <p className="mb-4 text-sm text-gray-600">{test.description}</p>
+                  <div className="flex flex-wrap gap-2">
+                    <Badge variant="secondary">{test.skill}</Badge>
+                    {test.testMode && <Badge variant="outline">{test.testMode === 'PRACTICE' ? 'Bài lẻ' : 'Full đề'}</Badge>}
+                    {test.status && <Badge variant="outline">{test.status}</Badge>}
+                    {test.duration && <span className="self-center text-xs text-gray-500">{test.duration} phút</span>}
                   </div>
-                )}
-                <div
-                  className="text-sm text-gray-700 bg-gray-50 rounded-lg p-4 mb-4 prose prose-sm max-w-none"
-                  dangerouslySetInnerHTML={{ __html: formatReadingPassage(stimulus.content) }}
-                />
-                {stimulus.mediaUrl && test.skill !== 'LISTENING' && (
-                  <p className="text-xs text-blue-500 mb-4">
-                    Media: <a href={stimulus.mediaUrl} target="_blank" rel="noopener noreferrer">{stimulus.mediaUrl}</a>
-                  </p>
-                )}
+                </div>
 
-                {stimulus.questionGroups.map((group, gi) => (
-                  <div key={group.id} className="mt-4 space-y-3">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded">
-                        Nhóm {gi + 1}
-                      </span>
-                      <span className="text-xs text-gray-400">{group.questions.length} câu</span>
-                    </div>
-                    {group.instruction && (
-                      <p className="text-xs text-gray-500 italic">{group.instruction}</p>
+                {test.skill === 'WRITING' && <TestDetailWritingView stimuli={test.stimuli} />}
+                {test.skill === 'SPEAKING' && <TestDetailSpeakingView stimuli={test.stimuli} />}
+
+                {(test.skill === 'READING' || test.skill === 'LISTENING') && test.stimuli.map((stimulus, stimulusIndex) => (
+                  <div key={stimulus.id} className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+                    <h3 className="mb-3 text-sm font-semibold text-gray-700">
+                      {stimulus.title || `Passage ${stimulusIndex + 1}`}
+                    </h3>
+                    {test.skill === 'LISTENING' && stimulus.mediaUrl && (
+                      <div className="mb-4 rounded-lg border border-purple-200 bg-purple-50 p-3">
+                        <p className="mb-1 text-xs font-medium text-purple-700">Audio</p>
+                        <audio controls src={stimulus.mediaUrl} className="h-8 w-full" />
+                      </div>
                     )}
+                    <div
+                      className="prose prose-sm mb-4 max-w-none rounded-lg bg-gray-50 p-4 text-sm text-gray-700"
+                      dangerouslySetInnerHTML={{ __html: formatReadingPassage(stimulus.content) }}
+                    />
 
-                    {group.questions.map((question) => (
-                      <div key={question.id} className="border border-gray-100 rounded-lg p-4">
-                        <p className="text-sm font-medium text-gray-800 mb-3">
-                          Câu {question.position}: {question.content}
-                        </p>
-                        <div className="space-y-1.5">
-                          {question.options.map((option) => (
-                            <div key={option.id} className={`flex items-center gap-2 text-sm px-3 py-2 rounded-lg ${
-                              option.isCorrect ? 'bg-green-50 text-green-700 border border-green-200' : 'text-gray-600'
-                            }`}>
-                              {option.isCorrect ? <CheckCircle2 className="h-3.5 w-3.5" /> : <span className="w-3.5" />}
-                              <span>{option.label && `${option.label}. `}{option.content}</span>
-                            </div>
-                          ))}
+                    {stimulus.questionGroups.map((group, groupIndex) => (
+                      <div key={group.id} className="mt-4 space-y-3">
+                        <div className="flex items-center gap-2">
+                          <span className="rounded bg-blue-50 px-2 py-0.5 text-xs font-semibold text-blue-600">
+                            Nhóm {groupIndex + 1}
+                          </span>
+                          <span className="text-xs text-gray-400">{group.questions.length} câu</span>
                         </div>
-                        {(question.explanation?.text || question.explanation?.evidence) && (
-                          <div className="mt-2 pt-2 border-t border-gray-100 space-y-1">
-                            {question.explanation.text && (
-                              <p className="text-xs text-gray-500">Giải thích: {question.explanation.text}</p>
-                            )}
-                            {question.explanation.evidence && (
-                              <p className="text-xs text-amber-700 bg-amber-50 px-2 py-1 rounded">
-                                Dẫn chứng: &ldquo;{question.explanation.evidence}&rdquo;
-                              </p>
+                        {group.instruction && <p className="text-xs italic text-gray-500">{group.instruction}</p>}
+
+                        {group.questions.map((question) => (
+                          <div key={question.id} className="rounded-lg border border-gray-100 p-4">
+                            <p className="mb-3 text-sm font-medium text-gray-800">
+                              Câu {question.position}: {question.content}
+                            </p>
+                            <div className="space-y-1.5">
+                              {question.options.map((option) => (
+                                <div
+                                  key={option.id}
+                                  className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm ${
+                                    option.isCorrect ? 'border border-green-200 bg-green-50 text-green-700' : 'text-gray-600'
+                                  }`}
+                                >
+                                  {option.isCorrect ? <CheckCircle2 className="h-3.5 w-3.5" /> : <span className="w-3.5" />}
+                                  <span>{option.label && `${option.label}. `}{option.content}</span>
+                                </div>
+                              ))}
+                            </div>
+                            {(question.explanation?.text || question.explanation?.evidence) && (
+                              <div className="mt-2 space-y-1 border-t border-gray-100 pt-2">
+                                {question.explanation.text && (
+                                  <p className="text-xs text-gray-500">Giải thích: {question.explanation.text}</p>
+                                )}
+                                {question.explanation.evidence && (
+                                  <p className="rounded bg-amber-50 px-2 py-1 text-xs text-amber-700">
+                                    Dẫn chứng: “{question.explanation.evidence}”
+                                  </p>
+                                )}
+                              </div>
                             )}
                           </div>
-                        )}
+                        ))}
                       </div>
                     ))}
                   </div>
                 ))}
               </div>
-            ))}
-          </div>
-        )}
+            )}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

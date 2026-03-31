@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { StimulusCard } from '@/components/admin/test-import-stimulus-card';
 import { MediaUploadZone } from '@/components/admin/media-upload-zone';
-import { X, Music, Sparkles, Loader2 } from 'lucide-react';
+import { X, Music, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { transcribeByUrl } from '@/lib/admin-api';
 import type { StimulusRequest } from '@/types/admin.types';
@@ -47,11 +47,12 @@ export function TestImportStep2Listening({ stimuli, onChange, onNext, onBack }: 
   const updateStimulus = (updated: StimulusRequest) => onChange([updated]);
   const isValid = stimulus.content.trim().length > 0;
 
-  const handleAutoTranscribe = async () => {
-    if (!stimulus.mediaUrl) return;
+  const handleAutoTranscribe = async (audioUrl?: string) => {
+    const targetUrl = audioUrl || stimulus.mediaUrl;
+    if (!targetUrl) return;
     setTranscribing(true);
     try {
-      const segments = await transcribeByUrl(stimulus.mediaUrl);
+      const segments = await transcribeByUrl(targetUrl);
       const html = segmentsToHtml(segments);
       updateStimulus({ ...stimulus, content: html });
       toast.success('Đã tạo transcript tự động. Kiểm tra và chỉnh sửa nếu cần.');
@@ -81,31 +82,17 @@ export function TestImportStep2Listening({ stimuli, onChange, onNext, onBack }: 
           </div>
         ) : (
           <MediaUploadZone
-            onUploaded={(url) => updateStimulus({ ...stimulus, mediaUrl: url })}
+            onUploaded={async (url) => {
+              updateStimulus({ ...stimulus, mediaUrl: url });
+              await handleAutoTranscribe(url);
+            }}
           />
         )}
       </div>
 
       {/* Rich text content (passage/transcript) */}
       <div>
-        <div className="flex items-center justify-between mb-2">
-          <label className="text-sm font-medium text-gray-700">Nội dung bài nghe</label>
-          {stimulus.mediaUrl && (
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              className="h-7 text-xs gap-1"
-              disabled={transcribing}
-              onClick={handleAutoTranscribe}
-            >
-              {transcribing
-                ? <Loader2 className="h-3 w-3 animate-spin" />
-                : <Sparkles className="h-3 w-3" />}
-              {transcribing ? 'Đang tạo...' : 'Tự động tạo transcript'}
-            </Button>
-          )}
-        </div>
+        <label className="text-sm font-medium text-gray-700 mb-2 block">Nội dung bài nghe</label>
 
         {transcribing && (
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center mb-3">

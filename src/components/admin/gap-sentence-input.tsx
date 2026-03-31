@@ -11,19 +11,22 @@ interface Props {
 }
 
 /** Extract answer word from {{word}} marker */
-function extractAnswer(text: string): string {
+function extractAnswer(text: unknown): string {
+  if (typeof text !== 'string') return '';
   const match = text.match(/\{\{(.+?)\}\}/);
   return match ? match[1] : '';
 }
 
 /** Convert raw "hello {{world}} foo" → display "hello world foo" */
-function toDisplay(raw: string): string {
+function toDisplay(raw: unknown): string {
+  if (typeof raw !== 'string') return '';
   return raw.replace(/\{\{(.+?)\}\}/g, '$1');
 }
 
 /** Render content with highlighted gap word */
-function HighlightedPreview({ content, onClearGap }: { content: string; onClearGap: () => void }) {
-  const parts = content.split(/(\{\{.+?\}\})/);
+function HighlightedPreview({ content, onClearGap }: { content: unknown; onClearGap: () => void }) {
+  const safeContent = typeof content === 'string' ? content : '';
+  const parts = safeContent.split(/(\{\{.+?\}\})/);
   return (
     <span>
       {parts.map((part, i) => {

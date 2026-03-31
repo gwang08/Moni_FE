@@ -1,11 +1,10 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { Coins, FileText, Tag, Users } from 'lucide-react';
+import { Coins, FileText } from 'lucide-react';
 import { SkeletonCard } from '@/components/ui/skeleton';
 import { useQuery } from '@tanstack/react-query';
-import { getTests } from '@/lib/tests-api';
-import { getAdminRevenueDashboard, getTags, getUsers } from '@/lib/admin-api';
+import { getAdminRevenueDashboard } from '@/lib/admin-api';
 import { AdminHeader } from '@/components/admin/admin-header';
 import { DateRangePicker } from '@/components/ui/date-range-picker';
 import {
@@ -21,13 +20,6 @@ import {
   Bar,
 } from 'recharts';
 
-interface StatCard {
-  label: string;
-  value: string;
-  icon: React.ElementType;
-  color: string;
-}
-
 interface DateRange {
   startDate: string;
   endDate: string;
@@ -38,6 +30,27 @@ const vndFormatter = new Intl.NumberFormat('vi-VN', {
   currency: 'VND',
   maximumFractionDigits: 0,
 });
+
+const vndAxisFormatter = (value: number) => {
+  const abs = Math.abs(value);
+
+  if (abs >= 1_000_000_000) {
+    const formatted = new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 1 }).format(value / 1_000_000_000);
+    return `${formatted}B`;
+  }
+
+  if (abs >= 1_000_000) {
+    const formatted = new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 1 }).format(value / 1_000_000);
+    return `${formatted}M`;
+  }
+
+  if (abs >= 1_000) {
+    const formatted = new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 1 }).format(value / 1_000);
+    return `${formatted}K`;
+  }
+
+  return new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 0 }).format(value);
+};
 
 export default function AdminDashboardPage() {
   const today = useMemo(() => new Date(), []);
@@ -58,18 +71,6 @@ export default function AdminDashboardPage() {
   const [appliedRevenueRange, setAppliedRevenueRange] = useState<DateRange>({
     startDate: initialFrom,
     endDate: initialTo,
-  });
-
-  const { data: metaData, isLoading: isMetaLoading, error: metaError } = useQuery({
-    queryKey: ['admin', 'dashboard', 'meta'],
-    queryFn: async () => {
-      const [testsData, tagsData, usersData] = await Promise.all([getTests(1, 1), getTags(), getUsers()]);
-      return {
-        tests: testsData.totalElements,
-        tags: tagsData.length,
-        users: usersData.length,
-      };
-    },
   });
 
   const {
@@ -113,32 +114,8 @@ export default function AdminDashboardPage() {
     }));
   }, [currentData, appliedRevenueRange]);
 
-  const cards: StatCard[] = [
-    { label: 'Tổng bài thi', value: `${metaData?.tests ?? 0}`, icon: FileText, color: 'bg-blue-500' },
-    { label: 'Tổng tags', value: `${metaData?.tags ?? 0}`, icon: Tag, color: 'bg-green-500' },
-    { label: 'Tổng người dùng', value: `${metaData?.users ?? 0}`, icon: Users, color: 'bg-indigo-500' },
-    {
-      label: 'Doanh thu nạp (VND)',
-      value: vndFormatter.format(currentData?.topupRevenue ?? 0),
-      icon: Coins,
-      color: 'bg-emerald-600',
-    },
-    {
-      label: 'Expert Writing',
-      value: `${currentData?.expertWritingJobs ?? 0} job`,
-      icon: FileText,
-      color: 'bg-orange-500',
-    },
-    {
-      label: 'Expert Speaking',
-      value: `${currentData?.expertSpeakingJobs ?? 0} job`,
-      icon: FileText,
-      color: 'bg-pink-500',
-    },
-  ];
-
-  const isLoading = isMetaLoading || isCurrentLoading;
-  const hasError = metaError || currentError;
+  const isLoading = isCurrentLoading;
+  const hasError = Boolean(currentError);
 
   // Custom tooltip component
   const CustomTooltip = ({ active, payload, label }: any) => {
@@ -204,6 +181,8 @@ export default function AdminDashboardPage() {
           <div className="mt-6">
             {isLoading ? (
               <SkeletonCard className="h-80" />
+            ) : hasError ? (
+              <p className="py-12 text-center text-red-500">Không thể tải dữ liệu dashboard</p>
             ) : chartData.length === 0 ? (
               <p className="py-12 text-center text-gray-500">Không có dữ liệu doanh thu trong khoảng thời gian này</p>
             ) : (
@@ -230,7 +209,7 @@ export default function AdminDashboardPage() {
                       tickLine={false}
                       axisLine={false}
                       tickMargin={10}
-                      tickFormatter={(value) => `${(value / 1000000).toFixed(1)}M`}
+                      tickFormatter={vndAxisFormatter}
                     />
                     <Tooltip content={<CustomTooltip />} />
                     <Area
@@ -257,34 +236,6 @@ export default function AdminDashboardPage() {
           </div>
         </div>
 
-        {/* Stat Cards */}
-        {isLoading ? (
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
-            <SkeletonCard className="h-32" />
-            <SkeletonCard className="h-32" />
-            <SkeletonCard className="h-32" />
-            <SkeletonCard className="h-32" />
-            <SkeletonCard className="h-32" />
-            <SkeletonCard className="h-32" />
-          </div>
-        ) : hasError ? (
-          <p className="py-12 text-center text-red-500">Không thể tải dữ liệu dashboard</p>
-        ) : (
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
-            {cards.map(({ label, value, icon: Icon, color }) => (
-              <div key={label} className="flex items-center gap-4 rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-                <div className={`${color} rounded-lg p-3 text-white`}>
-                  <Icon className="h-6 w-6" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-gray-800">{value}</p>
-                  <p className="mt-1 text-sm text-gray-500">{label}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
         {/* Expert Work Detail Section */}
         <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
           <div className="mb-4 flex items-center gap-3">
@@ -294,6 +245,8 @@ export default function AdminDashboardPage() {
 
           {isLoading ? (
             <SkeletonCard className="h-40" />
+          ) : hasError ? (
+            <p className="py-12 text-center text-red-500">Không thể tải dữ liệu dashboard</p>
           ) : (
             <div className="space-y-4">
               {/* Summary Stats */}

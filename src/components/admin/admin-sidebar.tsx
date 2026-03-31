@@ -21,8 +21,8 @@ import { toast } from 'sonner';
 
 const navItems = [
   { href: '/admin', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/admin/tests', label: 'Bài thi', icon: FileText },
-  { href: '/admin/full-tests', label: 'Full Test', icon: ClipboardList },
+  { href: '/admin/tests', label: 'Phần thi', icon: FileText },
+  { href: '/admin/full-tests', label: 'Bài thi', icon: ClipboardList },
   { href: '/admin/tags', label: 'Tags', icon: Tag },
   { href: '/admin/users', label: 'Người dùng', icon: Users },
   { href: '/admin/experts', label: 'Giảng viên', icon: GraduationCap },

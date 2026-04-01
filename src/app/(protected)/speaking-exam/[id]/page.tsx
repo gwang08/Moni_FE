@@ -60,7 +60,7 @@ export default function SpeakingExamPage({ params }: Props) {
     // AI speaks introduction before recording starts
     if (typeof window !== 'undefined' && window.speechSynthesis) {
       const intro = new SpeechSynthesisUtterance(
-        'You are going to have two minutes to answer. Your speaking part 2 will start now.',
+        'Your speaking task 2 is going to start, now.',
       );
       intro.lang = 'en-US';
       intro.rate = 0.9;
@@ -79,7 +79,26 @@ export default function SpeakingExamPage({ params }: Props) {
     }
   }, []);
 
-  const timers = useSpeakingExamTimers(exam.examState, handlePrepEnd, handleStopPart2);
+  // ── Auto-start AI intro for Cue Card ──────────────────────
+  const isPrepActive = exam.examState === 'PART2_PREPARATION' && !showPart2Intro;
+  const isSpeakActive = exam.examState === 'PART2_SPEAKING';
+  
+  useEffect(() => {
+    if (isPrepActive) {
+      if (typeof window !== 'undefined' && window.speechSynthesis) {
+        const intro = new SpeechSynthesisUtterance(
+          'In this part, you will be given a topic card and you will have 1 to 2 minutes to talk about it. Before you talk, you will have exactly 1 minute to prepare, and you can make some notes on the paper provided if you wish.',
+        );
+        intro.lang = 'en-US';
+        intro.rate = 0.9;
+        
+        window.speechSynthesis.cancel();
+        window.speechSynthesis.speak(intro);
+      }
+    }
+  }, [isPrepActive]);
+
+  const timers = useSpeakingExamTimers(isPrepActive, isSpeakActive, handlePrepEnd, handleStopPart2);
 
   // ── Submit answer (Part 1 & 3) with double-submit guard ───
   const handleSubmitAnswer = useCallback(() => {
@@ -112,6 +131,14 @@ export default function SpeakingExamPage({ params }: Props) {
     !exam.isAudioPlaying;
 
   useSilenceDetector(stt.transcript, isSilenceActive, handleSubmitAnswer, 6000);
+
+  // ── Silence detection — auto-stop after 6s silence in Part 2 ──────
+  const isPart2SilenceActive =
+    exam.examState === 'PART2_SPEAKING' &&
+    stt.isListening &&
+    !exam.isAudioPlaying;
+
+  useSilenceDetector(stt.transcript, isPart2SilenceActive, handleStopPart2, 6000);
 
   // ── Connect WS when user starts test ──────────────────────
   const handleStartTest = useCallback(() => {
@@ -172,7 +199,12 @@ export default function SpeakingExamPage({ params }: Props) {
   }, [exam.examState]);
 
   // ── Skip prep handler ─────────────────────────────────────
+  // ── Skip prep handler ─────────────────────────────────────
   const handleSkipPrep = useCallback(() => {
+    // If they skip while AI is still reading the intro, stop the speech
+    if (typeof window !== 'undefined' && window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+    }
     handlePrepEnd();
   }, [handlePrepEnd]);
 

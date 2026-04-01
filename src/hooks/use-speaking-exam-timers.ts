@@ -5,7 +5,8 @@ import type { ExamState } from '@/types/speaking-exam.types';
  * Manages Part 2 timers: 60s preparation + 120s speaking.
  */
 export function useSpeakingExamTimers(
-  examState: ExamState,
+  isPrepActive: boolean,
+  isSpeakActive: boolean,
   onPrepEnd: () => void,
   onSpeakEnd: () => void,
 ) {
@@ -21,7 +22,7 @@ export function useSpeakingExamTimers(
 
   // Part 2 preparation countdown (60s)
   useEffect(() => {
-    if (examState !== 'PART2_PREPARATION') return;
+    if (!isPrepActive) return;
     setPrepTimer(60);
 
     const interval = setInterval(() => {
@@ -36,11 +37,11 @@ export function useSpeakingExamTimers(
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [examState]);
+  }, [isPrepActive]);
 
   // Part 2 speaking countdown (120s)
   useEffect(() => {
-    if (examState !== 'PART2_SPEAKING') return;
+    if (!isSpeakActive) return;
     setSpeakTimer(120);
 
     const interval = setInterval(() => {
@@ -55,7 +56,7 @@ export function useSpeakingExamTimers(
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [examState]);
+  }, [isSpeakActive]);
 
   return { prepTimer, speakTimer };
 }

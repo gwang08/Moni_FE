@@ -2,15 +2,18 @@
 export type ExamState =
   | 'IDLE'
   | 'CONNECTING'
-  | 'PART1_QUESTIONING'
-  | 'TRANSITIONING_TO_PART2'
-  | 'PART2_PREPARATION'
+  | 'EXAM_READY'
+  | 'PART_BRIDGE'
+  | 'AUDIO_PLAYING'
+  | 'RECORDING'
+  | 'PROCESSING'
+  | 'PART2_PREP'
   | 'PART2_SPEAKING'
-  | 'TRANSITIONING_TO_PART3'
-  | 'PART3_QUESTIONING'
   | 'EVALUATING'
   | 'COMPLETED'
-  | 'ERROR';
+  | 'CONN_ERROR'
+  | 'RECONNECTING'
+  | 'RESUME';
 
 // ── Server → Client Messages ───────────────────────────────
 export interface QuestionEvent {
@@ -58,7 +61,8 @@ export type ServerMessage =
   | { type: 'audio_end' }
   | { type: 'evaluating' }
   | EvaluationEvent
-  | { type: 'error'; message: string };
+  | { type: 'error'; message: string }
+  | { type: 'heartbeat' };
 
 // ── Client → Server Messages ───────────────────────────────
 export type ClientMessage =

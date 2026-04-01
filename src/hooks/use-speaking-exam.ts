@@ -82,8 +82,7 @@ export function useSpeakingExam() {
           audio.resetChunks();
           pendingTextRef.current = msg.text;
           hasReceivedChunksRef.current = false;
-          if (msg.partNumber === 1) setExamState('PART1_QUESTIONING');
-          if (msg.partNumber === 3) setExamState('PART3_QUESTIONING');
+          setExamState('AUDIO_PLAYING');
           break;
 
         case 'audio_chunk':
@@ -104,7 +103,12 @@ export function useSpeakingExam() {
 
         case 'show_cue_card':
           setCueCard(msg);
-          setExamState('PART2_PREPARATION');
+          setExamState('PART2_PREP');
+          break;
+
+        case 'heartbeat':
+          // Mutual heartbeat: reply to backend
+          wsRef.current?.send(JSON.stringify({ type: 'ack' }));
           break;
 
         case 'evaluating':
@@ -118,7 +122,7 @@ export function useSpeakingExam() {
 
         case 'error':
           setError(msg.message);
-          setExamState('ERROR');
+          setExamState('CONN_ERROR');
           break;
       }
     },
@@ -130,7 +134,7 @@ export function useSpeakingExam() {
     const token = getAuthToken();
     if (!token) {
       setError('Không tìm thấy token xác thực');
-      setExamState('ERROR');
+      setExamState('CONN_ERROR');
       return;
     }
 
@@ -160,11 +164,11 @@ export function useSpeakingExam() {
 
     ws.onerror = () => {
       console.error('[SpeakingExam] WS error');
-      // Don't set ERROR if we're evaluating — the backend might still be processing
+      // Don't set CONN_ERROR if we're evaluating — the backend might still be processing
       setExamState((prev) => {
         if (prev === 'EVALUATING') return prev; // keep EVALUATING state
         setError('WebSocket connection lost');
-        return 'ERROR';
+        return 'CONN_ERROR';
       });
     };
 
@@ -178,7 +182,7 @@ export function useSpeakingExam() {
           // WS died during evaluation — backend is still processing
           // Show a friendly message instead of infinite spinner
           setError('Evaluation is taking longer than expected. Your results will be available in your test history shortly.');
-          return 'ERROR';
+          return 'CONN_ERROR';
         }
         return prev;
       });
@@ -202,8 +206,10 @@ export function useSpeakingExam() {
   );
 
   const sendTranscript = useCallback(
-    (partNumber: number, questionId: number, text: string) =>
-      send({ type: 'transcript', partNumber, questionId, text }),
+    (partNumber: number, questionId: number, text: string) => {
+      send({ type: 'transcript', partNumber, questionId, text });
+      setExamState('PROCESSING');
+    },
     [send],
   );
 
@@ -235,6 +241,13 @@ export function useSpeakingExam() {
       wsRef.current?.close();
     };
   }, []);
+
+  // ── Auto-transition AUDIO_PLAYING -> RECORDING ────────────
+  useEffect(() => {
+    if (examState === 'AUDIO_PLAYING' && !audio.isAudioPlaying) {
+      setExamState('RECORDING');
+    }
+  }, [examState, audio.isAudioPlaying]);
 
   return {
     examState,

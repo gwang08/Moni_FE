@@ -80,7 +80,7 @@ export default function SpeakingExamPage({ params }: Props) {
   }, []);
 
   // ── Auto-start AI intro for Cue Card ──────────────────────
-  const isPrepActive = exam.examState === 'PART2_PREPARATION' && !showPart2Intro;
+  const isPrepActive = exam.examState === 'PART2_PREP' && !showPart2Intro;
   const isSpeakActive = exam.examState === 'PART2_SPEAKING';
   
   useEffect(() => {
@@ -124,21 +124,21 @@ export default function SpeakingExamPage({ params }: Props) {
     }
   }, [exam.currentQuestion?.questionId]);
 
-  // ── Silence detection — auto-submit after 6s silence ──────
-  const isSilenceActive =
-    (exam.examState === 'PART1_QUESTIONING' || exam.examState === 'PART3_QUESTIONING') &&
-    stt.isListening &&
-    !exam.isAudioPlaying;
+  // ── Silence detection — Dynamic threshold by Part ─────────
+  let part13SilenceThreshold = 6000;
+  if (exam.currentQuestion?.partNumber === 1) part13SilenceThreshold = 4000;
+  if (exam.currentQuestion?.partNumber === 3) part13SilenceThreshold = 6000;
 
-  useSilenceDetector(stt.transcript, isSilenceActive, handleSubmitAnswer, 6000);
+  const isSilenceActive = exam.examState === 'RECORDING';
+  useSilenceDetector(stt.transcript, isSilenceActive, handleSubmitAnswer, part13SilenceThreshold);
 
-  // ── Silence detection — auto-stop after 6s silence in Part 2 ──────
+  // ── Silence detection — auto-stop after 10s silence in Part 2 ──────
   const isPart2SilenceActive =
     exam.examState === 'PART2_SPEAKING' &&
     stt.isListening &&
     !exam.isAudioPlaying;
 
-  useSilenceDetector(stt.transcript, isPart2SilenceActive, handleStopPart2, 6000);
+  useSilenceDetector(stt.transcript, isPart2SilenceActive, handleStopPart2, 10000);
 
   // ── Connect WS when user starts test ──────────────────────
   const handleStartTest = useCallback(() => {
@@ -164,32 +164,21 @@ export default function SpeakingExamPage({ params }: Props) {
     }
   }, [uiStage, exam.isWsConnected, testId]);
 
-  // ── Auto-start mic when TTS finishes (Part 1 & 3) ─────────
+  // ── Auto-start mic when entering RECORDING state ──────────
   useEffect(() => {
     if (!exam.currentQuestion) {
       hasStartedMicForQuestionRef.current = null;
       return;
     }
 
-    // Defer if audio is actively playing
-    if (exam.isAudioPlaying) return;
-
-    const state = exam.examState;
-    if (state === 'PART1_QUESTIONING' || state === 'PART3_QUESTIONING') {
+    if (exam.examState === 'RECORDING') {
       const qId = exam.currentQuestion.questionId;
       if (hasStartedMicForQuestionRef.current !== qId && !sttRef.current.isListening) {
         hasStartedMicForQuestionRef.current = qId;
         sttRef.current.startListening();
       }
     }
-  }, [exam.currentQuestion, exam.isAudioPlaying, exam.examState]);
-
-  // ── Intercept Part 2 transition to show intro ─────────────
-  useEffect(() => {
-    if (exam.examState === 'TRANSITIONING_TO_PART2') {
-      setShowPart2Intro(true);
-    }
-  }, [exam.examState]);
+  }, [exam.currentQuestion, exam.examState]);
 
   // ── End exam when evaluating ──────────────────────────────
   useEffect(() => {
@@ -248,7 +237,7 @@ export default function SpeakingExamPage({ params }: Props) {
 
   // Part 1 / Part 3 questioning
   if (
-    (examState === 'PART1_QUESTIONING' || examState === 'PART3_QUESTIONING') &&
+    (examState === 'AUDIO_PLAYING' || examState === 'RECORDING' || examState === 'PROCESSING') &&
     exam.currentQuestion
   ) {
     return (
@@ -266,7 +255,7 @@ export default function SpeakingExamPage({ params }: Props) {
   }
 
   // Part 2: Show intro screen FIRST (before cue card)
-  if (showPart2Intro && (examState === 'TRANSITIONING_TO_PART2' || examState === 'PART2_PREPARATION')) {
+  if (showPart2Intro && examState === 'PART2_PREP') {
     return (
       <PageShell wide>
         <ExamPart2IntroScreen
@@ -277,7 +266,7 @@ export default function SpeakingExamPage({ params }: Props) {
   }
 
   // Part 2: Cue card with Note sidebar + thinking time
-  if (examState === 'PART2_PREPARATION' && exam.cueCard) {
+  if (examState === 'PART2_PREP' && exam.cueCard) {
     return (
       <PageShell wide>
         <ExamPart2CueCardWithNote
@@ -302,10 +291,10 @@ export default function SpeakingExamPage({ params }: Props) {
     );
   }
 
-  if (examState === 'TRANSITIONING_TO_PART3') {
+  if (examState === 'PART_BRIDGE') {
     return (
       <PageShell>
-        <ExamTransitionScreen message="Moving to Part 3..." />
+        <ExamTransitionScreen message="Moving to next part..." />
       </PageShell>
     );
   }
@@ -331,7 +320,7 @@ export default function SpeakingExamPage({ params }: Props) {
     );
   }
 
-  if (examState === 'ERROR') {
+  if (examState === 'CONN_ERROR') {
     return (
       <PageShell>
         <ExamErrorDisplay

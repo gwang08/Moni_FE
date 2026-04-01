@@ -15,8 +15,8 @@ import type { ServicePricingResponse, ServicePricingCreateRequest } from '@/type
 const SERVICE_OPTIONS = [
   { code: 'AI_WRITING_SCORE', name: 'Chấm Writing bằng AI', description: 'Chấm bài Writing Task 1/2 tự động bằng AI' },
   { code: 'AI_SPEAKING_SCORE', name: 'Chấm Speaking bằng AI', description: 'Chấm bài Speaking tự động bằng AI' },
-  { code: 'EXPERT_WRITING_SCORE', name: 'Chấm Writing với Giảng viên', description: 'Chấm bài Writing trực tiếp với giảng viên qua video call' },
-  { code: 'EXPERT_SPEAKING_SCORE', name: 'Chấm Speaking với Giảng viên', description: 'Chấm bài Speaking trực tiếp với giảng viên qua video call' },
+  { code: 'EXPERT_WRITING_SCORE', name: 'Chấm Writing với giám khảo', description: 'Chấm bài Writing trực tiếp với giám khảo qua video call' },
+  { code: 'EXPERT_SPEAKING_SCORE', name: 'Chấm Speaking với giám khảo', description: 'Chấm bài Speaking trực tiếp với giám khảo qua video call' },
 ] as const;
 
 interface Props {

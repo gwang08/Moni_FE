@@ -86,6 +86,12 @@ export default function TestImportPage() {
     sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ basicInfo, stimuli }));
   }, [basicInfo, stimuli]);
 
+  useEffect(() => {
+    if (step > 1 && !skill) {
+      setStep(1);
+    }
+  }, [step, skill, setStep]);
+
   const handleSubmit = async () => {
     setSubmitting(true);
     setError('');
@@ -157,7 +163,7 @@ export default function TestImportPage() {
           <StepIndicator step={step} skill={skill} />
         </div>
         <div className="min-h-0 flex-1 overflow-hidden px-4">
-          <TestImportStep3 stimuli={stimuli} onChange={setStimuli} onNext={handleStep2Next} onBack={() => setStep(1)} />
+          <TestImportStep3 skill={skill} stimuli={stimuli} onChange={setStimuli} onNext={handleStep2Next} onBack={() => setStep(1)} />
         </div>
       </div>
     );

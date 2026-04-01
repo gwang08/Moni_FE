@@ -1,16 +1,20 @@
 ﻿'use client';
 
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { GripVertical, Highlighter, PencilLine, Plus } from 'lucide-react';
+import { GripVertical, Highlighter, Loader2, Music, Plus, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { MediaUploadZone } from '@/components/admin/media-upload-zone';
+import { StimulusCard } from '@/components/admin/test-import-stimulus-card';
 import { QuestionGroupEditor } from '@/components/admin/test-import-question-group-editor';
 import { applyHighlights, type EvidenceEntry } from '@/components/admin/test-edit-highlight-evidence';
 import { ReadingQuestionsPanel } from '@/components/reading/reading-questions-panel';
 import { mapStimulusRequestToDetail } from '@/components/admin/test-import-preview-mapper';
 import { formatReadingPassage } from '@/lib/format-reading-passage';
-import type { QuestionGroupRequest, StimulusRequest } from '@/types/admin.types';
+import { transcribeByUrl } from '@/lib/admin-api';
+import type { OptionRequest, QuestionGroupRequest, QuestionRequest, StimulusRequest, QuestionTypeCode } from '@/types/admin.types';
 
 interface Props {
+  skill: string;
   stimuli: StimulusRequest[];
   onChange: (stimuli: StimulusRequest[]) => void;
   onNext: () => void;
@@ -21,6 +25,14 @@ const emptyGroup = (): QuestionGroupRequest => ({
   questionTypeCode: 'MCQ',
   instruction: 'Choose the correct letter A, B, C or D.',
   questions: [],
+});
+
+const emptyStimulus = (): StimulusRequest => ({
+  title: '',
+  content: '',
+  mediaUrl: undefined,
+  section: 1,
+  questionGroups: [emptyGroup()],
 });
 
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
@@ -67,7 +79,59 @@ function isGroupIncomplete(group: QuestionGroupRequest) {
   });
 }
 
-export function TestImportStep3({ stimuli, onChange, onNext, onBack }: Props) {
+function segmentsToHtml(segments: { text: string; speaker?: string }[]): string {
+  return segments
+    .map((seg) => {
+      const speaker = seg.speaker ? `<strong>${seg.speaker}:</strong> ` : '';
+      return `<p>${speaker}${seg.text}</p>`;
+    })
+    .join('');
+}
+
+function getListeningTranscriptStatus(skill: string, stimulus: StimulusRequest | undefined) {
+  if (skill !== 'LISTENING') return null;
+  if (stimulus?.mediaUrl) return 'Audio đã tải lên';
+  return 'Upload audio để tự tạo transcript';
+}
+
+function getDefaultQuestionOptions(typeCode: QuestionTypeCode): OptionRequest[] {
+  switch (typeCode) {
+    case 'MCQ':
+    case 'MCQ_MULTIPLE':
+      return [
+        { label: 'A', content: '', isCorrect: false },
+        { label: 'B', content: '', isCorrect: false },
+        { label: 'C', content: '', isCorrect: false },
+        { label: 'D', content: '', isCorrect: false },
+      ];
+    case 'TFNG':
+      return [
+        { label: 'True', content: 'True', isCorrect: false },
+        { label: 'False', content: 'False', isCorrect: false },
+        { label: 'Not Given', content: 'Not Given', isCorrect: false },
+      ];
+    case 'YNNG':
+      return [
+        { label: 'Yes', content: 'Yes', isCorrect: false },
+        { label: 'No', content: 'No', isCorrect: false },
+        { label: 'Not Given', content: 'Not Given', isCorrect: false },
+      ];
+    case 'GAP_FILLING':
+    case 'DIAGRAM_LABEL':
+      return [{ label: '', content: '', isCorrect: true }];
+    default:
+      return [];
+  }
+}
+
+function createDefaultQuestion(typeCode: QuestionTypeCode): QuestionRequest {
+  return {
+    content: '',
+    options: getDefaultQuestionOptions(typeCode),
+  };
+}
+
+export function TestImportStep3({ skill, stimuli, onChange, onNext, onBack }: Props) {
   const [activeStimulus, setActiveStimulus] = useState(0);
   const [isPreview, setIsPreview] = useState(false);
   const [showValidationDetails, setShowValidationDetails] = useState(false);
@@ -79,19 +143,83 @@ export function TestImportStep3({ stimuli, onChange, onNext, onBack }: Props) {
   const [groupDropIndex, setGroupDropIndex] = useState<number | null>(null);
   const [pendingEvidenceOffset, setPendingEvidenceOffset] = useState(-1);
   const [activeQuestionKey, setActiveQuestionKey] = useState<string | null>(null);
+  const [transcribing, setTranscribing] = useState(false);
 
   const passageRef = useRef<HTMLDivElement>(null);
   const layoutRef = useRef<HTMLDivElement>(null);
   const questionScrollRef = useRef<HTMLDivElement>(null);
   const groupRefs = useRef<Record<number, HTMLDivElement | null>>({});
-  const questionRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   const stimulus = stimuli[activeStimulus];
   const sectionLabel = stimulus?.title?.trim() || (stimulus?.section ? `Phần ${stimulus.section}` : `Phần ${activeStimulus + 1}`);
 
+  useEffect(() => {
+    if (stimuli.length === 0) {
+      onChange([emptyStimulus()]);
+    }
+  }, [onChange, stimuli.length]);
+
   const updateStimulus = useCallback(
     (fn: (s: StimulusRequest) => StimulusRequest) => {
       onChange(stimuli.map((item, index) => (index === activeStimulus ? fn(item) : item)));
+    },
+    [activeStimulus, onChange, stimuli]
+  );
+
+  const getQuestionRefKey = useCallback((groupIndex: number, questionIndex: number) => `${groupIndex}:${questionIndex}`, []);
+
+  const addQuestionToFocusedGroup = useCallback(() => {
+    const groupIndex = activeGroupIndex;
+    const questionIndex = stimuli[activeStimulus]?.questionGroups[groupIndex]?.questions.length ?? 0;
+
+    updateStimulus((s) => {
+      const questionGroups = [...s.questionGroups];
+      const group = questionGroups[groupIndex];
+      if (!group) return s;
+
+      questionGroups[groupIndex] = {
+        ...group,
+        questions: [...group.questions, createDefaultQuestion(group.questionTypeCode)],
+      };
+
+      return {
+        ...s,
+        questionGroups,
+      };
+    });
+
+    const nextKey = `${groupIndex}:${questionIndex}`;
+    setActiveQuestionKey(nextKey);
+    window.requestAnimationFrame(() => {
+      const container = questionScrollRef.current;
+      const target = container?.querySelector<HTMLElement>(`[data-question-key="${nextKey}"]`);
+      target?.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
+    });
+  }, [activeGroupIndex, activeStimulus, stimuli, updateStimulus]);
+
+  const handleListeningUpload = useCallback(
+    async (url: string) => {
+      setTranscribing(true);
+      try {
+        const segments = await transcribeByUrl(url);
+        onChange(
+          stimuli.map((item, index) =>
+            index === activeStimulus
+              ? { ...item, mediaUrl: url, content: segmentsToHtml(segments) }
+              : item
+          )
+        );
+      } catch {
+        onChange(
+          stimuli.map((item, index) =>
+            index === activeStimulus
+              ? { ...item, mediaUrl: url }
+              : item
+          )
+        );
+      } finally {
+        setTranscribing(false);
+      }
     },
     [activeStimulus, onChange, stimuli]
   );
@@ -126,8 +254,6 @@ export function TestImportStep3({ stimuli, onChange, onNext, onBack }: Props) {
     return offset;
   };
 
-  const getQuestionRefKey = useCallback((groupIndex: number, questionIndex: number) => `${groupIndex}:${questionIndex}`, []);
-
   const scrollToQuestionKey = useCallback((questionKey: string) => {
     const container = questionScrollRef.current;
     if (!container) return;
@@ -135,11 +261,7 @@ export function TestImportStep3({ stimuli, onChange, onNext, onBack }: Props) {
     const target = container.querySelector<HTMLElement>(`[data-question-key="${questionKey}"]`);
     if (!target) return;
 
-    const containerRect = container.getBoundingClientRect();
-    const targetRect = target.getBoundingClientRect();
-    const nextTop = container.scrollTop + (targetRect.top - containerRect.top) - 12;
-
-    container.scrollTo({ top: nextTop, behavior: 'smooth' });
+    target.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
   }, []);
 
   const captureSelection = useCallback(() => {
@@ -158,7 +280,6 @@ export function TestImportStep3({ stimuli, onChange, onNext, onBack }: Props) {
       setPendingEvidenceOffset(-1);
     }
 
-    setPendingEvidence(text);
     selection.removeAllRanges();
   }, []);
 
@@ -267,14 +388,13 @@ export function TestImportStep3({ stimuli, onChange, onNext, onBack }: Props) {
       },
       {
         root,
-        threshold: [0.2, 0.4, 0.6, 0.8],
-        rootMargin: '-10% 0px -65% 0px',
+        threshold: [0.15, 0.3, 0.5, 0.75],
+        rootMargin: '-8% 0px -55% 0px',
       }
     );
 
-    Object.values(questionRefs.current).forEach((el) => {
-      if (el) observer.observe(el);
-    });
+    const questionNodes = Array.from(root.querySelectorAll<HTMLElement>('[data-question-key]'));
+    questionNodes.forEach((el) => observer.observe(el));
 
     return () => observer.disconnect();
   }, [stimulus, isPreview, getQuestionRefKey]);
@@ -312,7 +432,13 @@ export function TestImportStep3({ stimuli, onChange, onNext, onBack }: Props) {
       )
   );
 
-  if (!stimulus) return null;
+  if (!stimulus) {
+    return (
+      <div className="flex h-[calc(100vh-220px)] min-h-0 items-center justify-center rounded-2xl border border-dashed border-gray-300 bg-white px-6 text-sm text-gray-500">
+        Đang khởi tạo phần thi đầu tiên...
+      </div>
+    );
+  }
 
   const previewDetail = mapStimulusRequestToDetail(stimulus, activeStimulus);
   const currentGroups = stimulus.questionGroups;
@@ -361,40 +487,66 @@ export function TestImportStep3({ stimuli, onChange, onNext, onBack }: Props) {
             <div className="flex items-center justify-between gap-3">
               <div>
                 <h4 className="text-sm font-semibold text-gray-800">{sectionLabel}</h4>
-                <p className="text-xs text-gray-500">{stimulus.mediaUrl ? 'Bản chép lời' : 'Bài đọc'}</p>
+                <p className="text-xs text-gray-500">
+                  {skill === 'LISTENING' ? getListeningTranscriptStatus(skill, stimulus) : 'Nhập passage'}
+                </p>
               </div>
-              <Button type="button" size="sm" variant="outline" className="h-8 gap-1 text-xs" onClick={captureSelection}>
-                <Highlighter className="h-3 w-3" />
-                Quét dẫn chứng
-              </Button>
+              {skill !== 'LISTENING' && (
+                <Button type="button" size="sm" variant="outline" className="h-8 gap-1 text-xs" onClick={captureSelection}>
+                  <Highlighter className="h-3 w-3" />
+                  Quét dẫn chứng
+                </Button>
+              )}
             </div>
           </div>
 
           <div className="min-h-0 flex-1 overflow-y-scroll px-4 py-4 [scrollbar-gutter:stable]">
             <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-              <div className="mb-3 flex items-center justify-between gap-3">
-                <h4 className="text-sm font-semibold text-gray-700">Nội dung phần thi</h4>
-                <span className="text-xs text-gray-400">{stimulus.questionGroups.length} nhÃ³m</span>
+              <div className="space-y-4">
+                {skill === 'LISTENING' && !stimulus.mediaUrl ? (
+                  <MediaUploadZone
+                    onUploaded={handleListeningUpload}
+                  />
+                ) : (
+                  <>
+                    {skill === 'LISTENING' && stimulus.mediaUrl && (
+                      <div className="flex items-center gap-3 rounded-lg border border-purple-200 bg-purple-50 p-3">
+                        <Music className="h-5 w-5 shrink-0 text-purple-600" />
+                        <audio controls src={stimulus.mediaUrl} className="h-8 flex-1" />
+                        <button
+                          type="button"
+                          onClick={() => updateStimulus((s) => ({ ...s, mediaUrl: undefined, content: '' }))}
+                          className="text-gray-400 hover:text-red-500"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+                    )}
+
+                    {skill === 'LISTENING' && transcribing && (
+                      <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 text-center">
+                        <Loader2 className="mx-auto mb-2 h-6 w-6 animate-spin text-blue-500" />
+                        <p className="text-sm font-medium text-blue-700">Đang tạo transcript tự động...</p>
+                      </div>
+                    )}
+
+                    <StimulusCard stimulus={stimulus} index={0} onChange={(updated) => updateStimulus(() => updated)} />
+                  </>
+                )}
+
+                {skill !== 'LISTENING' && (
+                  <>
+                    <div className="mb-3 flex items-center justify-between gap-3">
+                      <h4 className="text-sm font-semibold text-gray-700">Xem trước nội dung</h4>
+                      <span className="text-xs text-gray-400">{stimulus.questionGroups.length} nhóm</span>
+                    </div>
+                    <div
+                      ref={passageRef}
+                      className="min-h-[260px] overflow-y-scroll rounded-lg border border-gray-300 bg-white px-5 py-4 text-sm leading-relaxed select-text prose prose-sm max-w-none prose-p:my-3"
+                    />
+                  </>
+                )}
               </div>
-              <div
-                ref={passageRef}
-                className="overflow-y-scroll rounded-lg border border-gray-300 bg-white px-5 py-4 text-sm leading-relaxed select-text prose prose-sm max-w-none prose-p:my-3"
-              />
-              {pendingEvidence && (
-                <div className="mt-3 rounded-md border border-green-300 bg-green-50 px-3 py-2">
-                  <p className="mb-1 text-xs font-medium text-green-700">
-                    Đã chọn đoạn văn, dùng đoạn này để gán dẫn chứng:
-                  </p>
-                  <p className="line-clamp-3 text-xs text-green-800">&ldquo;{pendingEvidence}&rdquo;</p>
-                  <button
-                    type="button"
-                    onClick={() => setPendingEvidence(null)}
-                    className="mt-1 text-xs text-green-600 hover:text-green-800"
-                  >
-                    Hủy
-                  </button>
-                </div>
-              )}
             </div>
           </div>
         </section>
@@ -430,12 +582,13 @@ export function TestImportStep3({ stimuli, onChange, onNext, onBack }: Props) {
                 <Button
                   type="button"
                   size="sm"
-                  variant={isPreview ? 'default' : 'outline'}
+                  variant="outline"
                   className="h-8 gap-1 text-xs"
-                  onClick={() => setIsPreview((prev) => !prev)}
+                  onClick={addQuestionToFocusedGroup}
+                  disabled={!currentGroups[activeGroupIndex]}
                 >
-                  <PencilLine className="h-3.5 w-3.5" />
-                  {isPreview ? 'Đang xem trước' : 'Soạn câu hỏi'}
+                  <Plus className="h-3.5 w-3.5" />
+                  Thêm câu hỏi cho nhóm đang focus
                 </Button>
               </div>
             </div>
@@ -478,35 +631,38 @@ export function TestImportStep3({ stimuli, onChange, onNext, onBack }: Props) {
                 {currentGroups.map((group, groupIndex) => (
                   <Fragment key={`qmap-${groupIndex}`}>
                     {groupIndex > 0 && <span className="px-1 text-gray-300">🔹</span>}
-                    {group.questions.map((question, questionIndex) => {
-                      const questionKey = getQuestionRefKey(groupIndex, questionIndex);
-                      const globalNumber = getPositionOffset(groupIndex) + questionIndex + 1;
-                      const isActiveQuestion =
-                        activeQuestionKey === questionKey || (!activeQuestionKey && groupIndex === activeGroupIndex && questionIndex === 0);
-                      const invalid =
-                        !question.content.trim() || !question.options.some((option) => option.isCorrect && option.content.trim().length > 0);
+                    <div className="flex flex-wrap items-center gap-1">
+                      {group.questions.map((question, questionIndex) => {
+                        const questionKey = getQuestionRefKey(groupIndex, questionIndex);
+                        const globalNumber = getPositionOffset(groupIndex) + questionIndex + 1;
+                        const isActiveQuestion =
+                          activeQuestionKey === questionKey || (!activeQuestionKey && groupIndex === activeGroupIndex && questionIndex === 0);
+                        const invalid =
+                          !question.content.trim() || !question.options.some((option) => option.isCorrect && option.content.trim().length > 0);
 
-                      return (
-                        <button
-                          key={questionKey}
-                          type="button"
-                          onClick={() => {
-                            setActiveGroupIndex(groupIndex);
-                            setActiveQuestionKey(questionKey);
-                            scrollToQuestionKey(questionKey);
-                          }}
-                          className={`inline-flex items-center gap-1 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
-                            isActiveQuestion
-                              ? 'border-blue-600 bg-blue-600 text-white'
-                              : showValidationDetails && invalid
-                                ? 'border-red-200 bg-white text-gray-600 hover:border-red-300 hover:text-red-700'
-                                : 'border-gray-200 bg-white text-gray-600 hover:border-blue-300 hover:text-blue-700'
-                          }`}
-                        >
-                          <span>{globalNumber}</span>
-                        </button>
-                      );
-                    })}
+                        return (
+                          <button
+                            key={questionKey}
+                            type="button"
+                            onClick={() => {
+                              setActiveGroupIndex(groupIndex);
+                              setActiveQuestionKey(questionKey);
+                              scrollToQuestionKey(questionKey);
+                            }}
+                            className={`inline-flex h-7 min-w-7 items-center justify-center rounded-full border px-2 text-[11px] font-semibold transition-colors ${
+                              isActiveQuestion
+                                ? 'border-blue-600 bg-blue-600 text-white shadow-sm'
+                                : showValidationDetails && invalid
+                                  ? 'border-red-200 bg-white text-gray-600 hover:border-red-300 hover:text-red-700'
+                                  : 'border-gray-200 bg-white text-gray-600 hover:border-blue-300 hover:text-blue-700'
+                            }`}
+                            title={`Nhóm ${groupIndex + 1} - Câu ${globalNumber}`}
+                          >
+                            {globalNumber}
+                          </button>
+                        );
+                      })}
+                    </div>
                   </Fragment>
                 ))}
               </div>

@@ -135,7 +135,7 @@ export default function AdminDashboardPage() {
 
   return (
     <div>
-      <AdminHeader title="Dashboard" />
+      <AdminHeader title="Tổng quan" />
       <div className="space-y-6 p-6">
         {/* Revenue Section - Top */}
         <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
@@ -240,7 +240,7 @@ export default function AdminDashboardPage() {
         <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
           <div className="mb-4 flex items-center gap-3">
             <FileText className="h-5 w-5 text-orange-600" />
-            <h3 className="text-lg font-semibold text-gray-800">Chi tiết công việc Expert</h3>
+            <h3 className="text-lg font-semibold text-gray-800">Số bài chấm</h3>
           </div>
 
           {isLoading ? (
@@ -252,15 +252,15 @@ export default function AdminDashboardPage() {
               {/* Summary Stats */}
               <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
                 <div className="rounded-lg bg-orange-50 p-4">
-                  <p className="text-sm text-gray-600">Writing Jobs</p>
+                  <p className="text-sm text-gray-600">Writing</p>
                   <p className="text-2xl font-bold text-orange-600">{currentData?.expertWritingJobs ?? 0}</p>
                 </div>
                 <div className="rounded-lg bg-pink-50 p-4">
-                  <p className="text-sm text-gray-600">Speaking Jobs</p>
+                  <p className="text-sm text-gray-600">Speaking</p>
                   <p className="text-2xl font-bold text-pink-600">{currentData?.expertSpeakingJobs ?? 0}</p>
                 </div>
                 <div className="rounded-lg bg-blue-50 p-4">
-                  <p className="text-sm text-gray-600">Tổng Jobs</p>
+                  <p className="text-sm text-gray-600">Tổng bài chấm</p>
                   <p className="text-2xl font-bold text-blue-600">{currentData?.totalExpertJobs ?? 0}</p>
                 </div>
                 <div className="rounded-lg bg-purple-50 p-4">
@@ -273,7 +273,7 @@ export default function AdminDashboardPage() {
               {currentData?.dailyExpertJobs && currentData.dailyExpertJobs.length > 0 && (
                 <div className="mt-6">
                   <h4 className="mb-3 text-sm font-medium text-gray-700">
-                    Biểu đồ công việc Expert theo ngày
+                    Biểu đồ bài chấm theo ngày
                   </h4>
                   <div className="h-[300px]">
                     <ResponsiveContainer width="100%" height="100%">
@@ -296,21 +296,21 @@ export default function AdminDashboardPage() {
                           axisLine={false}
                           tickMargin={10}
                         />
-                        <Tooltip
-                          contentStyle={{
-                            backgroundColor: 'white',
-                            border: '1px solid #e5e7eb',
-                            borderRadius: '8px',
-                            boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
-                          }}
-                          formatter={(value: number, name: string) => {
-                            const label = name === 'writingJobs' ? 'Writing' : 'Speaking';
-                            return [`${value} job`, label];
-                          }}
-                          labelFormatter={(label) => `Ngày: ${label}`}
-                        />
-                        <Bar dataKey="writingJobs" name="Writing Jobs" fill="#f97316" radius={[4, 4, 0, 0]} />
-                        <Bar dataKey="speakingJobs" name="Speaking Jobs" fill="#ec4899" radius={[4, 4, 0, 0]} />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: 'white',
+                        border: '1px solid #e5e7eb',
+                        borderRadius: '8px',
+                        boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
+                      }}
+                      formatter={(value: number, name: string) => {
+                        const label = name === 'writingJobs' ? 'Writing' : 'Speaking';
+                        return [`${value} bài`, label];
+                      }}
+                      labelFormatter={(label) => `Ngày: ${label}`}
+                    />
+                        <Bar dataKey="writingJobs" name="Writing" fill="#f97316" radius={[4, 4, 0, 0]} />
+                        <Bar dataKey="speakingJobs" name="Speaking" fill="#ec4899" radius={[4, 4, 0, 0]} />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>

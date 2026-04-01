@@ -100,9 +100,9 @@ export function ExpertFormDialog({ open, onClose, onCreated }: Props) {
       onCreated(expert);
       handleReset();
       onClose();
-      toast.success('Tạo giảng viên thành công!');
+      toast.success('Tạo giám khảo thành công!');
     } catch {
-      toast.error('Tạo giảng viên thất bại');
+      toast.error('Tạo giám khảo thất bại');
     } finally {
       setLoading(false);
     }
@@ -122,7 +122,7 @@ export function ExpertFormDialog({ open, onClose, onCreated }: Props) {
     <Dialog open={open} onOpenChange={(v) => { if (!v) { handleReset(); onClose(); } }}>
       <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Tạo giảng viên mới</DialogTitle>
+          <DialogTitle>Tạo giám khảo mới</DialogTitle>
         </DialogHeader>
 
         <div className="grid grid-cols-2 gap-3 py-2">
@@ -201,7 +201,7 @@ export function ExpertFormDialog({ open, onClose, onCreated }: Props) {
             <textarea
               className="w-full rounded-md border bg-white px-3 py-2 text-sm min-h-[70px] resize-y focus:outline-none focus:ring-2 focus:ring-ring"
               value={form.bio} onChange={(e) => set('bio', e.target.value)}
-              placeholder="Giới thiệu ngắn về giảng viên..."
+              placeholder="Giới thiệu ngắn về giám khảo..."
             />
           </div>
 
@@ -252,7 +252,7 @@ export function ExpertFormDialog({ open, onClose, onCreated }: Props) {
         <DialogFooter className="gap-2">
           <Button variant="outline" onClick={() => { handleReset(); onClose(); }} disabled={loading}>Huỷ</Button>
           <Button onClick={handleSubmit} disabled={loading}>
-            {loading ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Đang tạo...</> : 'Tạo giảng viên'}
+            {loading ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Đang tạo...</> : 'Tạo giám khảo'}
           </Button>
         </DialogFooter>
       </DialogContent>

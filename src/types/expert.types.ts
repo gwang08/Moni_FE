@@ -21,6 +21,7 @@ export interface ScoringSession {
   id: number;
   expertId: number;
   expertDisplayName: string;
+  userDisplayName?: string | null;
   skill: string;
   status: 'QUEUED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
   roomUrl: string;
@@ -28,7 +29,11 @@ export interface ScoringSession {
   queuePosition: number;
   content?: string;
   createdAt?: string;
+  startedAt?: string;
+  endedAt?: string;
   testId?: number;
+  writingSubmissionId?: number;
+  submittedAt?: string;
   recordingUrl?: string;
   expertRecordingUrl?: string;
   userRating?: number;

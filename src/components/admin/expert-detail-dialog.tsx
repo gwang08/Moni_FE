@@ -143,7 +143,7 @@ export function ExpertDetailDialog({ expert, open, onClose, onUpdated }: Props) 
     <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
       <DialogContent className="sm:max-w-xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Chi tiết giảng viên</DialogTitle>
+          <DialogTitle>Chi tiết giám khảo</DialogTitle>
         </DialogHeader>
 
         {expert && (
@@ -237,7 +237,7 @@ export function ExpertDetailDialog({ expert, open, onClose, onUpdated }: Props) 
                     className="w-full rounded-md border bg-white px-3 py-2 text-sm min-h-[80px] resize-y focus:outline-none focus:ring-2 focus:ring-ring"
                     value={form.bio ?? ''}
                     onChange={(e) => set('bio', e.target.value)}
-                    placeholder="Giới thiệu ngắn về giảng viên..."
+                    placeholder="Giới thiệu ngắn về giám khảo..."
                   />
                 </div>
 

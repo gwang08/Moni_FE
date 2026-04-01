@@ -41,7 +41,7 @@ export default function AdminExpertsPage() {
     try {
       setExperts(await getAdminExperts());
     } catch {
-      toast.error('Không thể tải danh sách expert');
+      toast.error('Không thể tải danh sách giám khảo');
     } finally {
       setLoading(false);
     }
@@ -57,21 +57,21 @@ export default function AdminExpertsPage() {
       setExperts((prev) =>
         prev.map((e) => (e.id === expert.id ? { ...e, status: newStatus as ExpertProfile['status'] } : e))
       );
-      toast.success(isBanning ? 'Đã vô hiệu hoá giảng viên' : 'Đã kích hoạt giảng viên');
+      toast.success(isBanning ? 'Đã vô hiệu hoá giám khảo' : 'Đã kích hoạt giám khảo');
     } catch {
       toast.error('Không thể cập nhật');
     }
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm('Bạn có chắc chắn muốn xoá Expert này?')) return;
+    if (!confirm('Bạn có chắc chắn muốn xoá giám khảo này?')) return;
     setDeletingId(id);
     try {
       await deleteExpert(id);
       setExperts((prev) => prev.filter((e) => e.id !== id));
-      toast.success('Đã xoá Expert');
+      toast.success('Đã xoá giám khảo');
     } catch {
-      toast.error('Không thể xoá Expert');
+      toast.error('Không thể xoá giám khảo');
     } finally {
       setDeletingId(null);
     }
@@ -86,14 +86,14 @@ export default function AdminExpertsPage() {
     <div className="p-6 max-w-6xl mx-auto">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold">Quản lý Expert</h1>
+          <h1 className="text-2xl font-bold">Quản lý giám khảo</h1>
           <p className="text-muted-foreground text-sm mt-0.5">
-            Tổng: {experts.length} giảng viên
+            Tổng: {experts.length} giám khảo
           </p>
         </div>
         <Button onClick={() => setShowForm(true)}>
           <Plus className="h-4 w-4 mr-2" />
-          Tạo Expert mới
+          Tạo giám khảo mới
         </Button>
       </div>
 
@@ -103,7 +103,7 @@ export default function AdminExpertsPage() {
         <Input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Tìm giảng viên theo tên hoặc email..."
+          placeholder="Tìm giám khảo theo tên hoặc email..."
           className="pl-9"
         />
       </div>
@@ -117,7 +117,7 @@ export default function AdminExpertsPage() {
           <table className="w-full text-sm">
             <thead className="bg-gray-50 border-b">
               <tr>
-                {['Giảng viên', 'Band Score', 'Trạng thái', 'Phiên', 'Đánh giá', 'Hành động'].map((h) => (
+                {['Giám khảo', 'Band Score', 'Trạng thái', 'Phiên', 'Đánh giá', 'Hành động'].map((h) => (
                   <th key={h} className="px-4 py-3 text-left font-medium text-gray-600 text-xs uppercase tracking-wide">
                     {h}
                   </th>
@@ -133,7 +133,7 @@ export default function AdminExpertsPage() {
                 return filtered.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="text-center py-12 text-muted-foreground">
-                    {q ? 'Không tìm thấy giảng viên' : 'Chưa có Expert nào'}
+                    {q ? 'Không tìm thấy giám khảo' : 'Chưa có giám khảo nào'}
                   </td>
                 </tr>
               ) : (

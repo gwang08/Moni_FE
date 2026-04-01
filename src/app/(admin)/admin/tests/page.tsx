@@ -9,19 +9,15 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { AdminHeader } from '@/components/admin/admin-header';
+import {
+  ADMIN_TEST_SKILL_BADGES,
+  ADMIN_TEST_STATUS_BADGES,
+  ADMIN_TEST_STATUS_LABELS,
+  ADMIN_TEST_TYPE_BADGES,
+  ADMIN_TEST_TYPE_LABELS,
+} from '@/components/admin/admin-test-badges';
 import { getTests } from '@/lib/tests-api';
 import { SkeletonTable } from '@/components/ui/skeleton';
-
-const STATUS_COLORS: Record<string, string> = {
-  DRAFT: 'bg-yellow-100 text-yellow-800 border-yellow-200',
-  PUBLISHED: 'bg-green-100 text-green-800 border-green-200',
-  HIDDEN: 'bg-gray-100 text-gray-600 border-gray-200',
-};
-const STATUS_LABELS: Record<string, string> = {
-  DRAFT: 'Nháp',
-  PUBLISHED: 'Sẵn sàng',
-  HIDDEN: 'Ẩn',
-};
 
 const SKILLS = ['ALL', 'READING', 'LISTENING', 'WRITING', 'SPEAKING'] as const;
 const SKILL_LABELS: Record<string, string> = {
@@ -353,22 +349,26 @@ export default function AdminTestsPage() {
         )}
 
         {isLoading ? (
-          <SkeletonTable rows={5} cols={4} />
+          <SkeletonTable rows={5} cols={3} />
         ) : (
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-            <table className="w-full text-sm">
+            <table className="w-full text-sm table-fixed">
+              <colgroup>
+                <col className="w-[60%]" />
+                <col className="w-[20%]" />
+                <col className="w-[20%]" />
+              </colgroup>
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
                   <th className="px-4 py-3 text-left font-medium text-gray-600">Tiêu đề</th>
                   <th className="px-4 py-3 text-left font-medium text-gray-600">Kỹ năng</th>
                   <th className="px-4 py-3 text-left font-medium text-gray-600">Loại</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-600">Trạng thái</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {filteredTests.length === 0 ? (
                   <tr>
-                    <td colSpan={4} className="text-center py-8 text-gray-400">
+                    <td colSpan={3} className="text-center py-8 text-gray-400">
                       Chưa có bài thi nào
                     </td>
                   </tr>
@@ -379,27 +379,39 @@ export default function AdminTestsPage() {
                       className="hover:bg-gray-50 cursor-pointer"
                       onClick={() => router.push(`/admin/tests/${test.id}`)}
                     >
-                      <td className="px-4 py-3 font-medium max-w-xs truncate">
+                      <td className="px-4 py-3 font-medium text-gray-900">
                         <Link
                           href={`/admin/tests/${test.id}`}
-                          className="text-blue-600 hover:underline"
+                          className="flex w-full min-w-0 items-center gap-2 text-blue-600 hover:underline"
                           onClick={e => e.stopPropagation()}
                         >
-                          {test.title}
+                          <span className="min-w-0 flex-1 truncate" title={test.title}>
+                            {test.title}
+                          </span>
+                          {test.status === 'HIDDEN' && (
+                            <Badge
+                              className={ADMIN_TEST_STATUS_BADGES[test.status] || 'shrink-0 border bg-gray-100 text-gray-700 border-gray-200'}
+                            >
+                              {ADMIN_TEST_STATUS_LABELS[test.status] || test.status}
+                            </Badge>
+                          )}
                         </Link>
                       </td>
                       <td className="px-4 py-3">
-                        <Badge variant="secondary">{test.skill}</Badge>
-                      </td>
-                      <td className="px-4 py-3 text-gray-600">{test.testType}</td>
-                      <td className="px-4 py-3">
                         <Badge
-                          className={`text-xs font-medium border ${
-                            STATUS_COLORS[test.status] || 'bg-gray-100 text-gray-600 border-gray-200'
-                          }`}
+                          className={ADMIN_TEST_SKILL_BADGES[test.skill] || 'border bg-gray-100 text-gray-700 border-gray-200'}
                         >
-                          {STATUS_LABELS[test.status] || test.status}
+                          {test.skill}
                         </Badge>
+                      </td>
+                      <td className="px-4 py-3">
+                        {test.testType ? (
+                          <Badge
+                            className={ADMIN_TEST_TYPE_BADGES[test.testType] || 'border bg-gray-100 text-gray-700 border-gray-200'}
+                          >
+                            {ADMIN_TEST_TYPE_LABELS[test.testType] || test.testType}
+                          </Badge>
+                        ) : null}
                       </td>
                     </tr>
                   ))

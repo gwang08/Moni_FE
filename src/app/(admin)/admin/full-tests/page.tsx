@@ -8,38 +8,16 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { AdminHeader } from '@/components/admin/admin-header';
 import { FullTestAutoDialog } from '@/components/admin/full-test-auto-dialog';
+import {
+  ADMIN_TEST_SKILL_BADGES,
+  ADMIN_TEST_STATUS_BADGES,
+  ADMIN_TEST_STATUS_LABELS,
+  ADMIN_TEST_TYPE_BADGES,
+  ADMIN_TEST_TYPE_LABELS,
+} from '@/components/admin/admin-test-badges';
 import { getFullTests } from '@/lib/admin-full-test-api';
 import { SkeletonTable } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
-
-const SKILL_BADGE: Record<string, string> = {
-  READING: 'bg-blue-100 text-blue-800 border-blue-200',
-  LISTENING: 'bg-purple-100 text-purple-800 border-purple-200',
-  SPEAKING: 'bg-orange-100 text-orange-800 border-orange-200',
-  WRITING: 'bg-emerald-100 text-emerald-800 border-emerald-200',
-};
-
-const STATUS_BADGE: Record<string, string> = {
-  DRAFT: 'bg-yellow-100 text-yellow-800 border-yellow-200',
-  PUBLISHED: 'bg-green-100 text-green-800 border-green-200',
-  HIDDEN: 'bg-gray-100 text-gray-600 border-gray-200',
-};
-
-const TEST_TYPE_BADGE: Record<string, string> = {
-  ACADEMIC: 'bg-indigo-100 text-indigo-800 border-indigo-200',
-  GENERAL_TRAINING: 'bg-teal-100 text-teal-800 border-teal-200',
-  BOTH: 'bg-cyan-100 text-cyan-800 border-cyan-200',
-  FULL_TEST: 'bg-violet-100 text-violet-800 border-violet-200',
-  PRACTICE: 'bg-slate-100 text-slate-800 border-slate-200',
-};
-
-const TEST_TYPE_LABEL: Record<string, string> = {
-  ACADEMIC: 'Academic',
-  GENERAL_TRAINING: 'General',
-  BOTH: 'Both',
-  FULL_TEST: 'Full Test',
-  PRACTICE: 'Practice',
-};
 
 const SKILL_FILTERS = ['ALL', 'READING', 'LISTENING', 'WRITING', 'SPEAKING'] as const;
 const SKILL_LABELS: Record<string, string> = {
@@ -148,13 +126,17 @@ export default function AdminFullTestsPage() {
           </div>
         ) : (
           <div className="border rounded-lg overflow-hidden">
-            <table className="w-full text-sm">
+            <table className="w-full text-sm table-fixed">
+              <colgroup>
+                <col className="w-[60%]" />
+                <col className="w-[20%]" />
+                <col className="w-[20%]" />
+              </colgroup>
               <thead className="bg-gray-50 border-b">
                 <tr>
                   <th className="text-left px-4 py-3 font-medium text-gray-600">Tên đề</th>
                   <th className="text-left px-4 py-3 font-medium text-gray-600">Kỹ năng</th>
                   <th className="text-left px-4 py-3 font-medium text-gray-600">Loại</th>
-                  <th className="text-left px-4 py-3 font-medium text-gray-600">Trạng thái</th>
                 </tr>
               </thead>
               <tbody className="divide-y">
@@ -164,25 +146,31 @@ export default function AdminFullTestsPage() {
                     className="hover:bg-gray-50 transition-colors"
                     onClick={() => handleRowClick(test.id)}
                   >
-                    <td 
-                      className="px-4 py-3 font-medium text-gray-900 hover:text-blue-600 transition-colors cursor-pointer"
-                    >
-                      {test.title}
+                    <td className="px-4 py-3 font-medium text-gray-900 hover:text-blue-600 transition-colors cursor-pointer">
+                      <div className="flex items-center gap-2">
+                        <span className="flex-1 min-w-0 truncate" title={test.title}>
+                          {test.title}
+                        </span>
+                        {test.status === 'HIDDEN' && (
+                          <Badge
+                            className={ADMIN_TEST_STATUS_BADGES[test.status] ?? 'bg-gray-100 text-gray-700 border-gray-200'}
+                          >
+                            {ADMIN_TEST_STATUS_LABELS[test.status] ?? test.status}
+                          </Badge>
+                        )}
+                      </div>
                     </td>
                     <td className="px-4 py-3">
-                      <Badge className={SKILL_BADGE[test.skill] ?? 'bg-gray-100 text-gray-700'}>
+                      <Badge className={ADMIN_TEST_SKILL_BADGES[test.skill] ?? 'bg-gray-100 text-gray-700'}>
                         {test.skill}
                       </Badge>
                     </td>
                     <td className="px-4 py-3">
-                      <Badge className={TEST_TYPE_BADGE[test.testType ?? 'PRACTICE'] ?? 'bg-gray-100 text-gray-700'}>
-                        {TEST_TYPE_LABEL[test.testType ?? 'PRACTICE'] ?? test.testType}
-                      </Badge>
-                    </td>
-                    <td className="px-4 py-3">
-                      <Badge className={STATUS_BADGE[test.status] ?? 'bg-gray-100 text-gray-700'}>
-                        {test.status}
-                      </Badge>
+                      {test.testType ? (
+                        <Badge className={ADMIN_TEST_TYPE_BADGES[test.testType] ?? 'bg-gray-100 text-gray-700'}>
+                          {ADMIN_TEST_TYPE_LABELS[test.testType] ?? test.testType}
+                        </Badge>
+                      ) : null}
                     </td>
                   </tr>
                 ))}

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { Headphones, Loader2, Star } from 'lucide-react';
+import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { apiClient } from '@/lib/api-client';
@@ -32,6 +33,23 @@ function formatDateInput(date: Date): string {
   return `${year}-${month}-${day}`;
 }
 
+function formatDateTime(value?: string | null): string {
+  if (!value) return '-';
+  const normalized = value.includes('Z') || value.includes('+') ? value : `${value}Z`;
+  return new Date(normalized).toLocaleString('vi-VN', {
+    timeZone: 'Asia/Ho_Chi_Minh',
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+function getSessionMoment(session: ScoringSession): string {
+  return session.endedAt || session.submittedAt || session.createdAt || '';
+}
+
 function StarRating({ rating }: { rating?: number }) {
   if (!rating) return <span className="text-muted-foreground text-xs">-</span>;
   return (
@@ -54,13 +72,13 @@ export default function AdminScoringSessionsPage() {
     return date;
   }, [today]);
 
-  const [expertName, setExpertName] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
   const [skillFilter, setSkillFilter] = useState('ALL');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [fromDate, setFromDate] = useState(formatDateInput(defaultFromDate));
   const [toDate, setToDate] = useState(formatDateInput(today));
 
-  const [appliedExpertName, setAppliedExpertName] = useState('');
+  const [appliedSearchTerm, setAppliedSearchTerm] = useState('');
   const [appliedSkillFilter, setAppliedSkillFilter] = useState('ALL');
   const [appliedStatusFilter, setAppliedStatusFilter] = useState('ALL');
   const [appliedFromDate, setAppliedFromDate] = useState(formatDateInput(defaultFromDate));
@@ -70,7 +88,7 @@ export default function AdminScoringSessionsPage() {
     apiClient
       .get<ApiResponse<ScoringSession[]>>('/api/v1/scoring-sessions/admin/all', true)
       .then((res) => setSessions(res.result ?? []))
-      .catch(() => toast.error('Không thể tải danh sách công việc expert'))
+      .catch(() => toast.error('Không thể tải danh sách bài chấm của giám khảo'))
       .finally(() => setLoading(false));
   }, []);
 
@@ -87,22 +105,29 @@ export default function AdminScoringSessionsPage() {
     const end = appliedToDate ? new Date(`${appliedToDate}T23:59:59`).getTime() : null;
 
     return sessions.filter((session) => {
-      const matchExpert = appliedExpertName
-        ? (session.expertDisplayName || '').toLowerCase().includes(appliedExpertName.toLowerCase())
+      const needle = appliedSearchTerm.toLowerCase();
+      const matchSearch = appliedSearchTerm
+        ? [
+            session.userDisplayName || '',
+            session.expertDisplayName || '',
+            String(session.id),
+            session.skill || '',
+          ].some((value) => value.toLowerCase().includes(needle))
         : true;
       const matchSkill = appliedSkillFilter === 'ALL' ? true : session.skill === appliedSkillFilter;
       const matchStatus = appliedStatusFilter === 'ALL' ? true : session.status === appliedStatusFilter;
 
       let matchDate = true;
-      if (session.createdAt && (start !== null || end !== null)) {
-        const createdAt = new Date(session.createdAt).getTime();
-        if (start !== null && createdAt < start) matchDate = false;
-        if (end !== null && createdAt > end) matchDate = false;
+      const moment = getSessionMoment(session);
+      if (moment && (start !== null || end !== null)) {
+        const timestamp = new Date(moment).getTime();
+        if (start !== null && timestamp < start) matchDate = false;
+        if (end !== null && timestamp > end) matchDate = false;
       }
 
-      return matchExpert && matchSkill && matchStatus && matchDate;
+      return matchSearch && matchSkill && matchStatus && matchDate;
     });
-  }, [sessions, appliedExpertName, appliedSkillFilter, appliedStatusFilter, appliedFromDate, appliedToDate]);
+  }, [sessions, appliedSearchTerm, appliedSkillFilter, appliedStatusFilter, appliedFromDate, appliedToDate]);
 
   return (
     <div className="space-y-6 p-6">
@@ -111,17 +136,17 @@ export default function AdminScoringSessionsPage() {
           <Headphones className="h-6 w-6 text-primary" />
         </div>
         <div>
-          <h1 className="text-2xl font-bold">Công việc</h1>
-          <p className="text-sm text-muted-foreground">Toàn bộ công việc chấm điểm của expert trong hệ thống</p>
+          <h1 className="text-2xl font-bold">Bài chấm</h1>
+          <p className="text-sm text-muted-foreground">Toàn bộ bài chấm điểm của giám khảo trong hệ thống</p>
         </div>
       </div>
 
       <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
         <div className="flex flex-wrap items-end gap-3">
           <Input
-            placeholder="Tìm theo tên expert..."
-            value={expertName}
-            onChange={(event) => setExpertName(event.target.value)}
+            placeholder="Tìm theo thí sinh, giám khảo, ID..."
+            value={searchTerm}
+            onChange={(event) => setSearchTerm(event.target.value)}
             className="max-w-xs"
           />
           <select
@@ -168,7 +193,7 @@ export default function AdminScoringSessionsPage() {
           <button
             type="button"
             onClick={() => {
-              setAppliedExpertName(expertName.trim());
+              setAppliedSearchTerm(searchTerm.trim());
               setAppliedSkillFilter(skillFilter);
               setAppliedStatusFilter(statusFilter);
               setAppliedFromDate(fromDate);
@@ -189,7 +214,7 @@ export default function AdminScoringSessionsPage() {
       ) : filtered.length === 0 ? (
         <div className="py-16 text-center text-muted-foreground">
           <Headphones className="mx-auto mb-3 h-12 w-12 opacity-30" />
-          <p>Không có công việc nào.</p>
+          <p>Không có bài chấm nào.</p>
         </div>
       ) : (
         <div className="overflow-x-auto rounded-xl border">
@@ -198,46 +223,32 @@ export default function AdminScoringSessionsPage() {
               <tr>
                 <th className="px-4 py-3 text-left font-medium text-muted-foreground">ID</th>
                 <th className="px-4 py-3 text-left font-medium text-muted-foreground">Kỹ năng</th>
-                <th className="px-4 py-3 text-left font-medium text-muted-foreground">Expert</th>
+                <th className="px-4 py-3 text-left font-medium text-muted-foreground">Thí sinh</th>
+                <th className="px-4 py-3 text-left font-medium text-muted-foreground">Giám khảo</th>
                 <th className="px-4 py-3 text-left font-medium text-muted-foreground">Trạng thái</th>
-                <th className="px-4 py-3 text-left font-medium text-muted-foreground">Ngày tạo</th>
+                <th className="px-4 py-3 text-left font-medium text-muted-foreground">Thời gian nộp/chấm</th>
                 <th className="px-4 py-3 text-left font-medium text-muted-foreground">Đánh giá</th>
-                <th className="px-4 py-3 text-left font-medium text-muted-foreground">Bản ghi</th>
               </tr>
             </thead>
             <tbody className="divide-y">
               {filtered.map((session) => (
                 <tr key={session.id} className="transition-colors hover:bg-muted/30">
-                  <td className="px-4 py-3 font-mono text-xs text-muted-foreground">#{session.id}</td>
+                  <td className="px-4 py-3 font-mono text-xs text-muted-foreground">
+                    <Link href={`/admin/scoring-sessions/${session.id}`} className="font-medium text-blue-600 hover:underline">
+                      #{session.id}
+                    </Link>
+                  </td>
                   <td className="px-4 py-3 font-medium">{session.skill}</td>
+                  <td className="px-4 py-3 text-muted-foreground">{session.userDisplayName || '-'}</td>
                   <td className="px-4 py-3 text-muted-foreground">{session.expertDisplayName || '-'}</td>
                   <td className="px-4 py-3">
                     <Badge className={STATUS_CLASS[session.status]}>{STATUS_LABEL[session.status]}</Badge>
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">
-                    {session.createdAt ? new Date(session.createdAt).toLocaleDateString('vi-VN') : '-'}
+                    {formatDateTime(getSessionMoment(session))}
                   </td>
                   <td className="px-4 py-3">
                     <StarRating rating={session.userRating} />
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="space-y-1">
-                      {session.recordingUrl && (
-                        <div className="flex items-center gap-1">
-                          <span className="w-12 shrink-0 text-[10px] text-muted-foreground">User:</span>
-                          <audio controls src={session.recordingUrl} className="h-7 w-36" />
-                        </div>
-                      )}
-                      {session.expertRecordingUrl && (
-                        <div className="flex items-center gap-1">
-                          <span className="w-12 shrink-0 text-[10px] text-muted-foreground">Expert:</span>
-                          <audio controls src={session.expertRecordingUrl} className="h-7 w-36" />
-                        </div>
-                      )}
-                      {!session.recordingUrl && !session.expertRecordingUrl && (
-                        <span className="text-xs text-muted-foreground">-</span>
-                      )}
-                    </div>
                   </td>
                 </tr>
               ))}

@@ -2,6 +2,7 @@ import { apiClient } from '@/lib/api-client';
 import type { ApiResponse } from '@/types/auth.types';
 import type { PagedResponse } from '@/types/test.types';
 import type { CreditTransactionResponse } from '@/types/payment.types';
+import type { ScoringSession, ExpertEvaluation } from '@/types/expert.types';
 import type {
   TagResponse,
   TagRequest,
@@ -258,4 +259,16 @@ export async function getAdminCreditTransactions(params?: {
   // Compatibility: accept both wrapped ApiResponse and bare array responses.
   if (Array.isArray(response)) return response;
   return response.result ?? [];
+}
+
+export async function getScoringSessionById(id: number): Promise<ScoringSession> {
+  const response = await apiClient.get<ApiResponse<ScoringSession>>(`/api/v1/scoring-sessions/${id}`, true);
+  if (!response.result) throw new Error('Failed to fetch scoring session');
+  return response.result;
+}
+
+export async function getScoringSessionEvaluation(id: number): Promise<ExpertEvaluation> {
+  const response = await apiClient.get<ApiResponse<ExpertEvaluation>>(`/api/v1/scoring-sessions/${id}/evaluation`, true);
+  if (!response.result) throw new Error('Failed to fetch scoring session evaluation');
+  return response.result;
 }

@@ -128,7 +128,6 @@ export function QuestionGroupEditor({
 }: Props) {
   const isSharedType = SHARED_OPTION_TYPES.includes(group.questionTypeCode);
   const questionScrollRef = useRef<HTMLDivElement>(null);
-  const questionRefs = useRef<Record<number, HTMLDivElement | null>>({});
   const [dragQuestionIndex, setDragQuestionIndex] = useState<number | null>(null);
   const [questionDropIndex, setQuestionDropIndex] = useState<number | null>(null);
 
@@ -314,9 +313,6 @@ export function QuestionGroupEditor({
                       </div>
                     )}
                     <div
-                      ref={(el) => {
-                        questionRefs.current[questionIndex] = el;
-                      }}
                       data-question-key={`${groupIndex}:${questionIndex}`}
                       data-question-index={questionIndex}
                       onDragOver={(event) => {

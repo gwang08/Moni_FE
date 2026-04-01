@@ -10,9 +10,11 @@ interface Props {
   answeredQuestions: Set<number>;
   submitted?: boolean;
   onSubmit?: () => void;
+  partLabel?: string;
+  examMode?: boolean;
 }
 
-export function ReadingQuestionNav({ questionGroups, answeredQuestions, submitted, onSubmit }: Props) {
+export function ReadingQuestionNav({ questionGroups, answeredQuestions, submitted, onSubmit, partLabel = 'Part 1', examMode = false }: Props) {
   const handleClick = (questionId: number) => {
     const el = document.getElementById(`question-${questionId}`);
     if (el) {
@@ -21,9 +23,12 @@ export function ReadingQuestionNav({ questionGroups, answeredQuestions, submitte
   };
 
   return (
-    <div className="shrink-0 bg-white border-t border-gray-100 px-5 py-2 flex items-center justify-between gap-4">
+    <div className="shrink-0 bg-white border-t border-gray-300 px-4 py-2 flex items-center justify-between gap-4">
+      <div className="text-sm font-semibold text-gray-900 shrink-0">
+        {partLabel}
+      </div>
       {/* Question pills grouped with separators */}
-      <div className="flex items-center gap-1 overflow-x-auto scrollbar-hide rounded-full border border-emerald-300 px-3 py-1.5 min-w-0 flex-1">
+      <div className="flex items-center gap-1 overflow-x-auto scrollbar-hide px-2 py-1 min-w-0 flex-1">
         {(() => {
           let globalNum = 0;
           return questionGroups.map((group, gi) => (
@@ -36,10 +41,14 @@ export function ReadingQuestionNav({ questionGroups, answeredQuestions, submitte
                   <button
                     key={q.id}
                     onClick={() => handleClick(q.id)}
-                    className={`shrink-0 w-7 h-7 rounded-md text-xs font-semibold transition-all ${
+                    className={`shrink-0 w-7 h-7 rounded-md text-xs font-semibold transition-all border ${
                       isAnswered
-                        ? 'bg-emerald-500 text-white'
-                        : 'text-emerald-600 hover:bg-emerald-50'
+                        ? examMode
+                          ? 'bg-gray-900 text-white border-gray-900'
+                          : 'bg-emerald-500 text-white border-emerald-500'
+                        : examMode
+                          ? 'bg-white text-gray-900 border-gray-300 hover:bg-gray-50'
+                          : 'text-emerald-600 border-gray-300 hover:bg-emerald-50'
                     }`}
                   >
                     {globalNum}
@@ -56,15 +65,15 @@ export function ReadingQuestionNav({ questionGroups, answeredQuestions, submitte
         <Button
           onClick={onSubmit}
           variant="outline"
-          className="shrink-0 rounded-full border-gray-300 text-gray-600 hover:bg-gray-50 px-6 h-9 text-sm font-medium"
+          className="shrink-0 rounded-full border-gray-400 text-gray-800 hover:bg-gray-50 px-5 h-9 text-sm font-medium"
         >
-          Hoàn thành
+          ✓
         </Button>
       ) : (
         <Link href="/practice?skill=reading">
           <Button
             variant="outline"
-            className="shrink-0 rounded-full border-gray-300 text-gray-600 hover:bg-gray-50 px-6 h-9 text-sm font-medium"
+            className="shrink-0 rounded-full border-gray-400 text-gray-800 hover:bg-gray-50 px-5 h-9 text-sm font-medium"
           >
             Quay lại danh sách
           </Button>

@@ -13,6 +13,7 @@ interface Props {
   onTextAnswer: (questionId: number, text: string) => void;
   questionPositionById?: Record<number, number>;
   onLocateEvidence?: (evidence: string) => void;
+  examMode?: boolean;
 }
 
 function isAnswerCorrect(userAnswer: string, correctContent: string): boolean {
@@ -43,9 +44,9 @@ function GapInput({ questionId, userAnswer, submitted, correctAnswer, onTextAnsw
       placeholder="..."
       onChange={e => onTextAnswer(questionId, e.target.value)}
       className={`inline-block border-b-2 bg-transparent text-sm px-1 py-0.5 outline-none w-[140px] text-center mx-1 ${
-        submitted && correct ? 'border-green-500 text-green-700 font-medium'
-          : submitted && wrong ? 'border-red-400 text-red-600'
-          : 'border-gray-400 focus:border-blue-500'
+        submitted && correct ? 'border-gray-900 text-gray-900 font-medium'
+          : submitted && wrong ? 'border-gray-500 text-gray-700'
+          : 'border-gray-400 focus:border-gray-900'
       }`}
     />
   );
@@ -57,6 +58,7 @@ function GapQuestion({ question, displayPosition, userAnswer, submitted, onTextA
   displayPosition: number;
   onTextAnswer: (questionId: number, text: string) => void;
   onLocateEvidence?: (evidence: string) => void;
+  examMode?: boolean;
 }) {
   const correctAnswer = question.options.find(o => o.isCorrect)?.content ?? '';
   const primaryCorrect = correctAnswer.split('|')[0];
@@ -65,9 +67,9 @@ function GapQuestion({ question, displayPosition, userAnswer, submitted, onTextA
   const wrong = submitted && userAnswer.trim() !== '' && !correct;
 
   return (
-    <div id={`question-${question.id}`} className="border border-gray-200 rounded-lg p-4">
-      <div className="text-sm text-gray-800 leading-8">
-        <span className="text-blue-600 font-bold mr-1">{displayPosition}.</span>
+    <div id={`question-${question.id}`} className="border border-gray-300 rounded-lg p-4 bg-white">
+      <div className="text-sm text-gray-900 leading-8">
+        <span className="font-bold mr-1">{displayPosition}.</span>
         {parsed ? (
           <>
             {parsed.before}
@@ -88,26 +90,26 @@ function GapQuestion({ question, displayPosition, userAnswer, submitted, onTextA
       {submitted && (
         <div className="mt-2 ml-5 flex items-center gap-2 text-xs">
           {correct ? (
-            <><CheckCircle2 className="h-3.5 w-3.5 text-green-600" /><span className="text-green-700 font-semibold">Đúng</span></>
+            <><CheckCircle2 className="h-3.5 w-3.5 text-gray-900" /><span className="text-gray-900 font-semibold">Đúng</span></>
           ) : wrong ? (
-            <><XCircle className="h-3.5 w-3.5 text-red-500" /><span className="text-red-700">Đáp án: <strong>{primaryCorrect}</strong>
-              {correctAnswer.includes('|') && <span className="text-gray-400 font-normal"> (hoặc: {correctAnswer.split('|').slice(1).join(', ')})</span>}
+            <><XCircle className="h-3.5 w-3.5 text-gray-700" /><span className="text-gray-800">Đáp án: <strong>{primaryCorrect}</strong>
+              {correctAnswer.includes('|') && <span className="text-gray-500 font-normal"> (hoặc: {correctAnswer.split('|').slice(1).join(', ')})</span>}
             </span></>
           ) : (
-            <span className="text-gray-500 italic">Chưa trả lời — Đáp án: <strong className="text-green-700">{primaryCorrect}</strong>
-              {correctAnswer.includes('|') && <span className="text-gray-400 font-normal"> (hoặc: {correctAnswer.split('|').slice(1).join(', ')})</span>}
+            <span className="text-gray-500 italic">Chưa trả lời — Đáp án: <strong className="text-gray-900">{primaryCorrect}</strong>
+              {correctAnswer.includes('|') && <span className="text-gray-500 font-normal"> (hoặc: {correctAnswer.split('|').slice(1).join(', ')})</span>}
             </span>
           )}
         </div>
       )}
 
       {submitted && question.explanation?.text && (
-        <div className="mt-2 ml-5 pt-2 border-t border-gray-100">
+        <div className="mt-2 ml-5 pt-2 border-t border-gray-200">
           <p className="text-xs text-gray-600"><strong>Giải thích:</strong> {question.explanation.text}</p>
           {question.explanation.evidence && (
             <div className="space-y-1 mt-1">
               {question.explanation.evidence.split('\n---\n').filter((e: string) => e.trim()).map((chunk: string, i: number) => (
-                <p key={i} className={`text-xs text-amber-700 bg-amber-50 px-2 py-1 rounded ${onLocateEvidence ? 'cursor-pointer hover:bg-amber-100' : ''}`}
+                <p key={i} className={`text-xs text-gray-700 bg-gray-100 px-2 py-1 rounded ${onLocateEvidence ? 'cursor-pointer hover:bg-gray-200' : ''}`}
                   onClick={() => onLocateEvidence?.(chunk.trim())}>
                   Dẫn chứng {i + 1}: &ldquo;{chunk.trim()}&rdquo;
                 </p>
@@ -171,8 +173,8 @@ function ParagraphGapFilling({ groupContent, questions, submitted, textAnswers, 
   }
 
   return (
-    <div className="border border-gray-200 rounded-lg p-4 space-y-4">
-      <div className="text-sm text-gray-800 leading-8">{rendered}</div>
+    <div className="border border-gray-300 rounded-lg p-4 space-y-4 bg-white">
+      <div className="text-sm text-gray-900 leading-8">{rendered}</div>
 
       {/* Show results per question after submit */}
       {submitted && (
@@ -186,26 +188,26 @@ function ParagraphGapFilling({ groupContent, questions, submitted, textAnswers, 
             const primaryCorrect = correctAnswer.split('|')[0];
 
             return (
-              <div
-                key={question.id}
-                className={`rounded-lg border px-3 py-2 ${
-                  correct
-                    ? 'border-green-200 bg-green-50/40'
-                    : wrong
-                    ? 'border-red-200 bg-red-50/40'
-                    : 'border-gray-200 bg-gray-50'
-                }`}
-              >
-                <div className="flex items-center gap-2 text-xs">
-                  <span className="font-bold text-blue-600">{displayPosition}.</span>
+                <div
+                  key={question.id}
+                  className={`rounded-lg border px-3 py-2 ${
+                    correct
+                      ? 'border-gray-300 bg-gray-50'
+                      : wrong
+                      ? 'border-gray-300 bg-gray-50'
+                      : 'border-gray-200 bg-white'
+                  }`}
+                >
+                  <div className="flex items-center gap-2 text-xs">
+                  <span className="font-bold text-gray-900">{displayPosition}.</span>
                   {correct ? (
-                    <><CheckCircle2 className="h-3.5 w-3.5 text-green-600" /><span className="text-green-700 font-semibold">Đúng</span></>
+                    <><CheckCircle2 className="h-3.5 w-3.5 text-gray-900" /><span className="text-gray-900 font-semibold">Đúng</span></>
                   ) : wrong ? (
-                    <><XCircle className="h-3.5 w-3.5 text-red-500" /><span className="text-red-700">Đáp án: <strong>{primaryCorrect}</strong>
-                      {correctAnswer.includes('|') && <span className="text-gray-400 font-normal"> (hoặc: {correctAnswer.split('|').slice(1).join(', ')})</span>}
+                    <><XCircle className="h-3.5 w-3.5 text-gray-700" /><span className="text-gray-800">Đáp án: <strong>{primaryCorrect}</strong>
+                      {correctAnswer.includes('|') && <span className="text-gray-500 font-normal"> (hoặc: {correctAnswer.split('|').slice(1).join(', ')})</span>}
                     </span></>
                   ) : (
-                    <span className="text-gray-500 italic">Chưa trả lời — Đáp án: <strong className="text-green-700">{primaryCorrect}</strong></span>
+                    <span className="text-gray-500 italic">Chưa trả lời — Đáp án: <strong className="text-gray-900">{primaryCorrect}</strong></span>
                   )}
                 </div>
                 {question.explanation?.text && (
@@ -214,7 +216,7 @@ function ParagraphGapFilling({ groupContent, questions, submitted, textAnswers, 
                     {question.explanation.evidence && (
                       <div className="space-y-1 mt-1">
                         {question.explanation.evidence.split('\n---\n').filter((e: string) => e.trim()).map((chunk: string, ci: number) => (
-                          <p key={ci} className={`text-xs text-amber-700 bg-amber-50 px-2 py-1 rounded ${onLocateEvidence ? 'cursor-pointer hover:bg-amber-100' : ''}`}
+                          <p key={ci} className={`text-xs text-gray-700 bg-gray-100 px-2 py-1 rounded ${onLocateEvidence ? 'cursor-pointer hover:bg-gray-200' : ''}`}
                             onClick={() => onLocateEvidence?.(chunk.trim())}>
                             Dẫn chứng {ci + 1}: &ldquo;{chunk.trim()}&rdquo;
                           </p>

@@ -33,9 +33,10 @@ interface Props {
   onTextAnswer?: (questionId: number, text: string) => void;
   selectedPillId?: number | null;
   onPillSelect?: (id: number | null) => void;
+  examMode?: boolean;
 }
 
-export function ReadingQuestionsPanel({ stimulus, submitted = false, answers, onAnswer, textAnswers = {}, onTextAnswer, selectedPillId = null, onPillSelect }: Props) {
+export function ReadingQuestionsPanel({ stimulus, submitted = false, answers, onAnswer, textAnswers = {}, onTextAnswer, selectedPillId = null, onPillSelect, examMode = false }: Props) {
   const selectAnswer = (questionId: number, optionId: number) => {
     if (submitted) return;
     onAnswer(questionId, optionId);
@@ -60,9 +61,9 @@ export function ReadingQuestionsPanel({ stimulus, submitted = false, answers, on
   const answeredCount = answeredOptionCount + answeredTextCount;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 text-gray-900">
       {!submitted && (
-        <div className="text-sm text-gray-500">
+        <div className="text-sm text-gray-600">
           Đã trả lời: {answeredCount}/{totalQuestions}
         </div>
       )}
@@ -81,12 +82,12 @@ export function ReadingQuestionsPanel({ stimulus, submitted = false, answers, on
         return (
           <div key={group.id}>
             <div className="flex items-center gap-2 mb-3">
-              <span className="text-xs font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded">
+              <span className={`text-xs font-semibold px-2 py-0.5 rounded border ${examMode ? 'text-gray-900 bg-white border-gray-300' : 'text-blue-600 bg-blue-50 border-blue-100'}`}>
                 Nhóm {gi + 1}
               </span>
             </div>
             {group.instruction && (
-              <p className="text-sm text-gray-600 italic mb-4 bg-gray-50 rounded-lg px-3 py-2">
+              <p className={`text-sm italic mb-4 rounded-lg px-3 py-2 border ${examMode ? 'text-gray-800 bg-gray-50 border-gray-200' : 'text-gray-600 bg-gray-50 border-gray-200'}`}>
                 {group.instruction}
               </p>
             )}
@@ -128,6 +129,7 @@ export function ReadingQuestionsPanel({ stimulus, submitted = false, answers, on
                 submitted={submitted}
                 textAnswers={textAnswers}
                 onTextAnswer={onTextAnswer || (() => {})}
+                examMode={examMode}
               />
             ) : (
               <div className="space-y-4">
@@ -145,6 +147,7 @@ export function ReadingQuestionsPanel({ stimulus, submitted = false, answers, on
                       submitted={submitted}
                       explanation={question.explanation}
                       onAnswer={selectAnswer}
+                      examMode={examMode}
                     />
                   );
                 })}

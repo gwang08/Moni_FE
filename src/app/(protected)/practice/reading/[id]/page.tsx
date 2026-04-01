@@ -52,7 +52,7 @@ export default function ReadingExercisePage({ params }: Props) {
 
   const { testDetail, loading, error } = useTestDetail(id);
   const markCompleted = usePracticeStore((state) => state.markCompleted);
-  const { setMode, clearAll } = useReadingStore();
+  const { setMode, setActiveTool, clearAll } = useReadingStore();
   const [submitted, setSubmitted] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [exitOpen, setExitOpen] = useState(false);
@@ -101,8 +101,9 @@ export default function ReadingExercisePage({ params }: Props) {
 
   useEffect(() => {
     if (modeParam === 'exam' || modeParam === 'practice') setMode(modeParam);
+    setActiveTool(null);
     clearAll();
-  }, [modeParam, setMode, clearAll]);
+  }, [modeParam, setMode, setActiveTool, clearAll]);
 
   // Restore answers from server on resume (exam mode)
   useEffect(() => {
@@ -247,61 +248,60 @@ export default function ReadingExercisePage({ params }: Props) {
   return (
     <div className="h-[calc(100vh-56px)] flex flex-col">
       {/* Header */}
-      <div className="bg-white border-b p-4 flex items-center justify-between shrink-0">
-        <div className="flex items-center gap-4">
+      <div className="bg-white border-b border-gray-200 px-5 py-4 flex items-center justify-between shrink-0">
+        <div className="flex items-center gap-4 min-w-0">
           {submitted ? (
             <Link href="/practice?skill=reading">
-              <Button variant="ghost" size="icon"><ArrowLeft className="h-5 w-5" /></Button>
+              <Button variant="ghost" size="icon" className="text-gray-700 hover:bg-gray-100"><ArrowLeft className="h-5 w-5" /></Button>
             </Link>
           ) : (
-            <Button variant="ghost" size="icon" onClick={() => setExitOpen(true)}>
+            <Button variant="ghost" size="icon" onClick={() => setExitOpen(true)} className="text-gray-700 hover:bg-gray-100">
               <ArrowLeft className="h-5 w-5" />
             </Button>
           )}
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-xl font-bold">{testDetail.title}</h1>
-              {submitted && <Badge className="bg-green-100 text-green-700 border-green-300">Đã hoàn thành</Badge>}
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h1 className="text-base font-semibold text-gray-900 truncate">{testDetail.title}</h1>
+              {submitted && <Badge className="bg-gray-100 text-gray-700 border-gray-300">Đã hoàn thành</Badge>}
               {isExamMode && examSession.isResuming && !submitted && (
-                <Badge className="bg-blue-100 text-blue-700 border-blue-300">Đang tiếp tục...</Badge>
+                <Badge className="bg-gray-100 text-gray-700 border-gray-300">Đang tiếp tục...</Badge>
               )}
               {isExamMode && examSession.saving && !submitted && (
-                <Badge variant="outline" className="text-gray-400 border-gray-200 text-[10px]">Đang lưu...</Badge>
+                <Badge variant="outline" className="text-gray-500 border-gray-300 text-[10px]">Đang lưu...</Badge>
               )}
             </div>
-            <div className="flex items-center gap-3 text-sm text-muted-foreground">
+            <div className="mt-1 flex items-center gap-3 text-sm text-gray-600">
               {questionCount > 0 && (
-                <span>
+                <span className="font-medium">
                   {stimuli.length > 1 ? `${currentQuestionCount}/${questionCount}` : questionCount} câu hỏi
                 </span>
               )}
-              <span className={`flex items-center gap-1 font-mono tabular-nums ${submitted ? 'text-green-600' : isCountingDown && countdownTimer.remaining < 60 ? 'text-red-600 animate-pulse' : isCountingDown ? 'text-orange-600' : ''}`}>
+              <span className={`flex items-center gap-1 font-mono tabular-nums ${submitted ? 'text-gray-900' : 'text-gray-900'}`}>
                 <Clock className="h-3.5 w-3.5" />
                 {displayTime}
-                {isCountingDown && !submitted && <span className="text-[10px] font-normal ml-1">⏱</span>}
               </span>
             </div>
           </div>
         </div>
         {!submitted ? (
-          <Button onClick={() => setConfirmOpen(true)}>Hoàn thành</Button>
+          <Button onClick={() => setConfirmOpen(true)} className="bg-gray-900 text-white hover:bg-black">Hoàn thành</Button>
         ) : (
-          <Link href="/practice?skill=reading"><Button variant="outline">Quay lại danh sách</Button></Link>
+          <Link href="/practice?skill=reading"><Button variant="outline" className="border-gray-300 text-gray-700 hover:bg-gray-50">Quay lại danh sách</Button></Link>
         )}
       </div>
 
-      {!submitted && <ReadingToolbar />}
+      {!submitted && !isExamMode && <ReadingToolbar />}
 
       {stimuli.length > 1 && (
-        <div className="bg-white border-b px-4 py-2 flex items-center gap-2 overflow-x-auto">
+        <div className="bg-white border-b border-gray-200 px-4 py-2 flex items-center gap-2 overflow-x-auto">
           {stimuli.map((s, index) => (
             <button
               key={s.id}
               onClick={() => setActiveStimulusIdx(index)}
-              className={`px-3 py-1.5 text-xs rounded-full font-medium transition-colors whitespace-nowrap ${
+              className={`px-3 py-1.5 text-xs rounded-full font-medium transition-colors whitespace-nowrap border ${
                 index === activeStimulusIdx
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  ? 'bg-gray-900 text-white border-gray-900'
+                  : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
               }`}
             >
               Passage {s.section ?? index + 1}
@@ -311,9 +311,12 @@ export default function ReadingExercisePage({ params }: Props) {
       )}
 
       {/* Main content */}
-      <div className="flex-1 flex overflow-hidden">
-        <div className="w-1/2 overflow-y-auto p-6 border-r border-gray-200">
-          <h2 className="text-2xl font-bold mb-6">{passage.title}</h2>
+      <div className="flex-1 flex overflow-hidden bg-white">
+        <div className="w-1/2 overflow-y-auto p-6 border-r border-gray-300">
+          <div className="mb-6 rounded-md border border-gray-300 bg-gray-100 px-4 py-3">
+            <h2 className="text-2xl font-bold text-gray-900">Part {currentStimulus?.section ?? 1}</h2>
+            <p className="text-lg text-gray-900">Read the text and answer questions 1-{questionCount || currentQuestionCount}</p>
+          </div>
           {(() => {
             const matchingGroup = currentStimulus?.questionGroups?.find(g => g.questionTypeCode === 'MATCHING_HEADINGS');
             return matchingGroup ? (
@@ -327,11 +330,11 @@ export default function ReadingExercisePage({ params }: Props) {
                 onPillAssigned={() => setSelectedPillId(null)}
               />
             ) : (
-              <ReadingPassage content={passage.content} />
+              <ReadingPassage content={passage.content} interactive={!isExamMode} />
             );
           })()}
         </div>
-        <div className="w-1/2 overflow-y-auto p-6">
+        <div className="w-1/2 overflow-y-auto p-6 bg-white">
           {currentStimulus && currentStimulus.questionGroups.length > 0 ? (
             <ReadingQuestionsPanel
               stimulus={currentStimulus}
@@ -342,9 +345,10 @@ export default function ReadingExercisePage({ params }: Props) {
               onTextAnswer={handleTextAnswer}
               selectedPillId={selectedPillId}
               onPillSelect={setSelectedPillId}
+              examMode={isExamMode}
             />
           ) : (
-            <p className="text-gray-400 text-center py-8">Chưa có câu hỏi</p>
+            <p className="text-gray-500 text-center py-8">Chưa có câu hỏi</p>
           )}
         </div>
       </div>
@@ -355,6 +359,8 @@ export default function ReadingExercisePage({ params }: Props) {
           answeredQuestions={answeredQuestionIds}
           submitted={submitted}
           onSubmit={() => setConfirmOpen(true)}
+          partLabel={`Part ${currentStimulus.section ?? 1}`}
+          examMode={isExamMode}
         />
       )}
 

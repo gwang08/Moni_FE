@@ -9,9 +9,10 @@ interface Props {
   answers: Record<number, number>;
   submitted: boolean;
   onAnswer: (questionId: number, optionId: number) => void;
+  examMode?: boolean;
 }
 
-export function ReadingMatchingInformation({ questions, answers, submitted, onAnswer }: Props) {
+export function ReadingMatchingInformation({ questions, answers, submitted, onAnswer, examMode = false }: Props) {
   // Extract unique paragraph labels from options (A, B, C, D...)
   const paraLabels = useMemo(() => {
     const labels = new Set<string>();
@@ -25,17 +26,17 @@ export function ReadingMatchingInformation({ questions, answers, submitted, onAn
 
   return (
     <div className="space-y-3">
-      <p className="text-xs text-gray-500 italic">NB You may use any letter more than once.</p>
+      <p className={`text-xs italic ${examMode ? 'text-gray-600' : 'text-gray-500'}`}>NB You may use any letter more than once.</p>
 
       {/* Desktop: table layout */}
       <div className="hidden sm:block overflow-x-auto">
         <table className="w-full border-collapse text-sm">
           <thead>
-            <tr className="border-b-2 border-gray-200">
+            <tr className="border-b-2 border-gray-300">
               <th className="text-left py-2 px-2 w-8" />
               <th className="text-left py-2 px-2" />
               {paraLabels.map(label => (
-                <th key={label} className="text-center py-2 px-2 w-10 font-bold text-gray-700">
+                <th key={label} className="text-center py-2 px-2 w-10 font-bold text-gray-900">
                   {label}
                 </th>
               ))}
@@ -50,13 +51,13 @@ export function ReadingMatchingInformation({ questions, answers, submitted, onAn
               const isCorrect = selectedOpt?.isCorrect;
 
               return (
-                <tr key={q.id} id={`question-${q.id}`} className="border-b border-gray-100 hover:bg-gray-50/50">
+                <tr key={q.id} id={`question-${q.id}`} className="border-b border-gray-200 hover:bg-gray-50/50">
                   <td className="py-3 px-2">
-                    <span className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-green-50 text-green-700 text-xs font-bold">
+                    <span className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-gray-100 text-gray-900 text-xs font-bold">
                       {q.position}
                     </span>
                   </td>
-                  <td className="py-3 px-2 text-sm text-gray-800">{q.content}</td>
+                  <td className="py-3 px-2 text-sm text-gray-900">{q.content}</td>
                   {paraLabels.map(label => {
                     const opt = q.options.find(o => o.label === label);
                     if (!opt) return <td key={label} className="text-center py-3 px-2" />;
@@ -75,23 +76,21 @@ export function ReadingMatchingInformation({ questions, answers, submitted, onAn
                             inline-flex items-center justify-center h-5 w-5 rounded-full border-2 transition-all
                             ${submitted
                               ? isSelected && isThisCorrect
-                                ? 'border-green-500 bg-green-500'
+                                ? 'border-gray-900 bg-gray-900'
                                 : isSelected && !isThisCorrect
-                                  ? 'border-red-500 bg-red-500'
+                                  ? 'border-gray-700 bg-gray-700'
                                   : isThisCorrect
-                                    ? 'border-green-500 bg-green-100'
+                                    ? 'border-gray-900 bg-gray-100'
                                     : 'border-gray-200'
                               : isSelected
-                                ? 'border-blue-600 bg-blue-600'
-                                : 'border-gray-300 hover:border-blue-400'
+                                ? 'border-gray-900 bg-gray-900'
+                                : 'border-gray-300 hover:border-gray-500'
                             }
                           `}>
                             {(isSelected || (submitted && isThisCorrect)) && (
                               <span className={`h-2 w-2 rounded-full ${
                                 submitted
-                                  ? isSelected && isThisCorrect ? 'bg-white'
-                                    : isSelected ? 'bg-white'
-                                    : isThisCorrect ? 'bg-green-500' : ''
+                                  ? 'bg-white'
                                   : 'bg-white'
                               }`} />
                             )}
@@ -105,7 +104,7 @@ export function ReadingMatchingInformation({ questions, answers, submitted, onAn
                       {selectedOptId != null ? (
                         isCorrect
                           ? <CheckCircle2 className="h-4 w-4 text-green-600" />
-                          : <XCircle className="h-4 w-4 text-red-500" />
+                          : <XCircle className="h-4 w-4 text-gray-700" />
                       ) : (
                         <span className="text-xs text-gray-400">—</span>
                       )}
@@ -127,12 +126,12 @@ export function ReadingMatchingInformation({ questions, answers, submitted, onAn
           const isCorrect = selectedOpt?.isCorrect;
 
           return (
-            <div key={q.id} id={`question-${q.id}-mobile`} className="border border-gray-200 rounded-lg p-3 space-y-2">
+            <div key={q.id} id={`question-${q.id}-mobile`} className="border border-gray-300 rounded-lg p-3 space-y-2 bg-white">
               <div className="flex items-start gap-2">
-                <span className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-green-50 text-green-700 text-xs font-bold shrink-0">
+                <span className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-gray-100 text-gray-900 text-xs font-bold shrink-0">
                   {q.position}
                 </span>
-                <span className="text-sm text-gray-800">{q.content}</span>
+                <span className="text-sm text-gray-900">{q.content}</span>
               </div>
               <div className="flex flex-wrap gap-2 ml-8">
                 {paraLabels.map(label => {
@@ -150,12 +149,12 @@ export function ReadingMatchingInformation({ questions, answers, submitted, onAn
                       className={`
                         h-8 w-8 rounded-lg border-2 text-xs font-bold transition-all
                         ${submitted
-                          ? isSelected && isThisCorrect ? 'border-green-500 bg-green-500 text-white'
-                            : isSelected ? 'border-red-500 bg-red-500 text-white'
-                            : isThisCorrect ? 'border-green-500 bg-green-50 text-green-700'
+                          ? isSelected && isThisCorrect ? 'border-gray-900 bg-gray-900 text-white'
+                            : isSelected ? 'border-gray-700 bg-gray-700 text-white'
+                            : isThisCorrect ? 'border-gray-900 bg-gray-100 text-gray-900'
                             : 'border-gray-200 text-gray-400'
-                          : isSelected ? 'border-blue-600 bg-blue-600 text-white'
-                            : 'border-gray-300 text-gray-600 hover:border-blue-400'
+                          : isSelected ? 'border-gray-900 bg-gray-900 text-white'
+                            : 'border-gray-300 text-gray-700 hover:border-gray-500'
                         }
                       `}
                     >
@@ -190,15 +189,15 @@ export function ReadingMatchingInformation({ questions, answers, submitted, onAn
 
       {/* Explanation after submit — desktop */}
       {submitted && (
-        <div className="hidden sm:block space-y-2 pt-2 border-t border-gray-100">
+        <div className="hidden sm:block space-y-2 pt-2 border-t border-gray-200">
           {questions.map(q => {
             if (!q.explanation?.text && !q.explanation?.evidence) return null;
             return (
               <div key={q.id} className="text-xs">
-                <span className="font-medium text-gray-600">Q{q.position}:</span>
-                {q.explanation?.text && <span className="text-gray-500 ml-1">{q.explanation.text}</span>}
+                <span className="font-medium text-gray-700">Q{q.position}:</span>
+                {q.explanation?.text && <span className="text-gray-600 ml-1">{q.explanation.text}</span>}
                 {q.explanation?.evidence && (
-                  <span className="text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded ml-1">
+                  <span className="text-gray-700 bg-gray-100 px-1.5 py-0.5 rounded ml-1">
                     &ldquo;{q.explanation.evidence}&rdquo;
                   </span>
                 )}

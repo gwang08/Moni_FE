@@ -61,9 +61,10 @@ function injectHighlights(html: string, highlights: Highlight[]): string {
 
 interface Props {
   content: string;
+  interactive?: boolean;
 }
 
-export function ReadingPassage({ content }: Props) {
+export function ReadingPassage({ content, interactive = true }: Props) {
   const {
     activeTool,
     selectedColor,
@@ -99,6 +100,7 @@ export function ReadingPassage({ content }: Props) {
   }, []);
 
   const handleMouseUp = (e: React.MouseEvent) => {
+    if (!interactive) return;
     if (activeTool === 'vocab') return; // vocab uses click, not drag
     const selected = window.getSelection();
     if (!selected || selected.toString().trim() === '') {
@@ -165,6 +167,7 @@ export function ReadingPassage({ content }: Props) {
 
   // Vocab mode: underline word on hover
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
+    if (!interactive) return;
     if (activeTool !== 'vocab') return;
     clearHoveredWord();
     const result = getWordAtPoint(e.clientX, e.clientY);
@@ -181,9 +184,10 @@ export function ReadingPassage({ content }: Props) {
     } catch {
       // surroundContents can fail if range crosses element boundaries — ignore
     }
-  }, [activeTool, clearHoveredWord]);
+  }, [activeTool, clearHoveredWord, interactive]);
 
   const handleMouseOver = (e: React.MouseEvent) => {
+    if (!interactive) return;
     const target = e.target as HTMLElement;
     const noteIcon = target.closest('[data-note-id]') as HTMLElement;
     if (noteIcon) {
@@ -197,6 +201,7 @@ export function ReadingPassage({ content }: Props) {
   };
 
   const handleMouseOut = (e: React.MouseEvent) => {
+    if (!interactive) return;
     const target = e.relatedTarget as HTMLElement | null;
     if (!target?.closest?.('[data-note-id]')) {
       setNotePopup(null);
@@ -204,6 +209,7 @@ export function ReadingPassage({ content }: Props) {
   };
 
   const handleClick = (e: React.MouseEvent) => {
+    if (!interactive) return;
     // Dismiss sentence translation state on any click (unless it's the translate button itself)
     if (!activeTool) {
       const sel = window.getSelection();
@@ -276,13 +282,17 @@ export function ReadingPassage({ content }: Props) {
         onMouseMove={handleMouseMove}
         onMouseLeave={clearHoveredWord}
         className={`prose max-w-none p-6 bg-white rounded-lg leading-relaxed text-lg ${
-          activeTool === 'vocab' ? 'vocab-mode select-none' : 'select-text'
-        } ${activeTool && activeTool !== 'vocab' ? 'cursor-text' : ''}`}
+          !interactive
+            ? 'select-text'
+            : activeTool === 'vocab'
+              ? 'vocab-mode select-none'
+              : 'select-text'
+        } ${interactive && activeTool && activeTool !== 'vocab' ? 'cursor-text' : ''}`}
         dangerouslySetInnerHTML={{ __html: renderedHtml }}
       />
 
       {/* Vocab popup (toolbar vocab mode) */}
-      {vocabPopup && (
+      {interactive && vocabPopup && (
         <VocabPopup
           word={vocabPopup.word}
           sentence={vocabPopup.sentence}
@@ -292,7 +302,7 @@ export function ReadingPassage({ content }: Props) {
       )}
 
       {/* Inline word lookup popup (no-tool, single-word selection) */}
-      {selectedWord && wordSelPos && !activeTool && (
+      {interactive && selectedWord && wordSelPos && !activeTool && (
         <ReadingWordLookupPopup
           word={selectedWord}
           position={wordSelPos}
@@ -301,7 +311,7 @@ export function ReadingPassage({ content }: Props) {
       )}
 
       {/* Floating "Dịch câu" button after text selection (no tool active) */}
-      {translateButton && !translatePopup && (
+      {interactive && translateButton && !translatePopup && (
         <div
           style={{
             position: 'fixed',
@@ -328,7 +338,7 @@ export function ReadingPassage({ content }: Props) {
       )}
 
       {/* Sentence translation popup */}
-      {translatePopup && (
+      {interactive && translatePopup && (
         <SentenceTranslationPopup
           text={translatePopup.text}
           position={{ x: translatePopup.x - 200, y: translatePopup.y }}
@@ -337,7 +347,7 @@ export function ReadingPassage({ content }: Props) {
       )}
 
       {/* Note tooltip on hover icon */}
-      {notePopup && (
+      {interactive && notePopup && (
         <NoteInlineEditor
           mode="view"
           note={notePopup.note}
@@ -347,7 +357,7 @@ export function ReadingPassage({ content }: Props) {
       )}
 
       {/* Note inline editor */}
-      {editingHighlightId && (
+      {interactive && editingHighlightId && (
         <NoteInlineEditorFromDom
           highlightId={editingHighlightId}
           currentNote={editingHighlight?.note}
@@ -357,7 +367,7 @@ export function ReadingPassage({ content }: Props) {
       )}
 
       {/* Context menu for highlight/note */}
-      {contextMenu && (
+      {interactive && contextMenu && (
         <HighlightContextMenu
           type={contextMenu.type}
           position={{ x: contextMenu.x, y: contextMenu.y }}
@@ -369,7 +379,7 @@ export function ReadingPassage({ content }: Props) {
       )}
 
       {/* CSS for vocab mode: default cursor, no text selection */}
-      {activeTool === 'vocab' && (
+      {interactive && activeTool === 'vocab' && (
         <style dangerouslySetInnerHTML={{ __html: `
           .vocab-mode { cursor: default !important; user-select: none !important; }
         `}} />

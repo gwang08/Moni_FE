@@ -89,7 +89,7 @@ function partsToStimuli(parts: PartData[]): StimulusRequest[] {
       // Part 1 & 3: MAIN + FOLLOW_UP questions
       let mainPosition = 0;
       for (const q of part.questions) {
-        if (!q.content.trim()) continue;
+        // DO NOT filter out empty content here, otherwise the input box disappears immediately when clearing or adding a new blank question
         if (q.category === 'MAIN') {
           mainPosition++;
           questions.push({

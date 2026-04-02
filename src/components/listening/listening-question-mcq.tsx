@@ -33,6 +33,50 @@ export function ListeningQuestionMcq({
   const selected = multiple ? (selectedIds ?? []) : (selectedId != null ? [selectedId] : []);
   const hasAnswer = selected.length > 0;
 
+  if (examMode) {
+    return (
+      <div id={`question-${questionId}`} className="bg-white p-5 border border-gray-300 rounded-lg shadow-sm">
+        <div className="flex items-start gap-4 mb-4">
+          <span className="min-w-[20px] text-sm font-normal text-gray-900 mt-0.5">{position}</span>
+          <p className="flex-1 text-sm text-gray-800 font-normal leading-relaxed">{content}</p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 ml-9">
+          {options.map((option) => {
+            const isSelected = selected.includes(option.id);
+
+            return (
+              <label
+                key={option.id}
+                className={`flex items-center gap-3 p-3 rounded-md border-2 transition-all cursor-pointer ${
+                  isSelected
+                    ? 'border-gray-800 bg-gray-50 text-gray-900'
+                    : 'border-gray-100 hover:border-gray-200'
+                } ${submitted ? 'cursor-default opacity-80' : ''}`}
+              >
+                <input
+                  type={multiple ? 'checkbox' : 'radio'}
+                  name={`question-${questionId}`}
+                  value={option.id}
+                  checked={isSelected}
+                  disabled={submitted}
+                  onChange={() => !submitted && onAnswer(questionId, option.id)}
+                  className="h-4 w-4 text-gray-900 border-gray-400 focus:ring-gray-900"
+                />
+                <span className="text-sm font-normal leading-tight">{option.content}</span>
+              </label>
+            );
+          })}
+        </div>
+
+        {submitted && !hasAnswer && (
+          <p className="mt-3 text-xs text-gray-500 italic">Not answered</p>
+        )}
+      </div>
+    );
+  }
+
+  // Non-exam mode rendering
   return (
     <div id={`question-${questionId}`} className="mb-4">
       <div className="flex items-start gap-2 mb-3">

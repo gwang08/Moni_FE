@@ -58,6 +58,124 @@ function GapInput({ questionId, userAnswer, submitted, correctAnswer, onTextAnsw
   );
 }
 
+/** IELTS-style boxed gap input for exam mode */
+function IELTSBoxedGapInput({ questionId, userAnswer, submitted, correctAnswer, onTextAnswer, questionNumber }: {
+  questionId: number; userAnswer: string; submitted: boolean; correctAnswer: string;
+  onTextAnswer: (questionId: number, text: string) => void;
+  questionNumber: number;
+}) {
+  const correct = submitted && isAnswerCorrect(userAnswer, correctAnswer);
+  const wrong = submitted && userAnswer.trim() !== '' && !isAnswerCorrect(userAnswer, correctAnswer);
+
+  return (
+    <div className="relative inline-block">
+      <input
+        type="text"
+        value={userAnswer}
+        disabled={submitted}
+        onChange={e => onTextAnswer(questionId, e.target.value)}
+        className={`text-center text-sm font-normal border rounded-sm bg-white focus:outline-none focus:ring-2 px-2 py-1 transition-all ${
+          submitted && correct ? 'border-gray-900 text-gray-900 bg-gray-50 ring-0'
+            : submitted && wrong ? 'border-gray-500 text-gray-700 bg-red-50 ring-0'
+            : 'border-gray-400 focus:border-gray-900 focus:ring-gray-200'
+        }`}
+        style={{ width: '160px', minWidth: '150px', height: '28px' }}
+        placeholder=""
+      />
+      {!userAnswer && !submitted && (
+        <span className="absolute inset-0 flex items-center justify-center text-[11px] font-bold text-gray-400 pointer-events-none">
+          {questionNumber}
+        </span>
+      )}
+    </div>
+  );
+}
+
+/** IELTS-style boxed gap-filling for exam mode */
+function IELTSBoxedGapFilling({ questions, submitted, textAnswers, onTextAnswer, questionPositionById = {}, onLocateEvidence, examMode = false }: {
+  questions: QuestionDetail[];
+  submitted: boolean;
+  textAnswers: Record<number, string>;
+  onTextAnswer: (questionId: number, text: string) => void;
+  questionPositionById?: Record<number, number>;
+  onLocateEvidence?: (evidence: string) => void;
+  examMode?: boolean;
+}) {
+  const sortedQuestions = [...questions].sort((a, b) => a.position - b.position);
+
+  // Helper to replace {{answer}} with ________
+  const formatContent = (content: string) => {
+    return content.replace(/\{\{.*?\}\}/g, '__________');
+  };
+
+  return (
+    <div className="bg-white p-5 border border-gray-300 rounded-lg shadow-sm">
+      <div className="space-y-3">
+        {sortedQuestions.map((q) => {
+          const userAnswer = textAnswers[q.id] ?? '';
+          const displayPosition = questionPositionById[q.id] ?? q.position;
+          const correctAnswer = q.options.find(o => o.isCorrect)?.content ?? '';
+          const correct = submitted && isAnswerCorrect(userAnswer, correctAnswer);
+          const wrong = submitted && userAnswer.trim() !== '' && !correct;
+          const primaryCorrect = correctAnswer.split('|')[0];
+
+          return (
+            <div key={q.id} className="flex items-center justify-between gap-4 py-2 border-b border-gray-100 last:border-0">
+              <div className="flex items-start gap-4 flex-1">
+                <span className="min-w-[20px] text-sm font-normal text-gray-900 mt-0.5">
+                  {displayPosition}
+                </span>
+                <p className="flex-1 text-sm text-gray-800 font-normal leading-relaxed">
+                  {formatContent(q.content)}
+                </p>
+              </div>
+              <IELTSBoxedGapInput
+                questionId={q.id}
+                userAnswer={userAnswer}
+                submitted={submitted}
+                correctAnswer={correctAnswer}
+                onTextAnswer={onTextAnswer}
+                questionNumber={displayPosition}
+              />
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Show results after submit */}
+      {submitted && (
+        <div className="mt-4 pt-3 border-t border-gray-200 space-y-2">
+          {sortedQuestions.map((q) => {
+            const userAnswer = textAnswers[q.id] ?? '';
+            const correctAnswer = q.options.find(o => o.isCorrect)?.content ?? '';
+            const correct = isAnswerCorrect(userAnswer, correctAnswer);
+            const wrong = userAnswer.trim() !== '' && !correct;
+            const displayPosition = questionPositionById[q.id] ?? q.position;
+            const primaryCorrect = correctAnswer.split('|')[0];
+
+            return (
+              <div key={q.id} className={`flex items-center gap-2 text-xs px-2 py-1.5 rounded ${
+                correct ? 'bg-green-50' : wrong ? 'bg-red-50' : 'bg-gray-50'
+              }`}>
+                <span className="font-bold text-gray-900 min-w-[20px]">{displayPosition}.</span>
+                {correct ? (
+                  <><CheckCircle2 className="h-3.5 w-3.5 text-gray-900" /><span className="text-gray-900 font-semibold">Correct</span></>
+                ) : wrong ? (
+                  <><XCircle className="h-3.5 w-3.5 text-gray-700" /><span className="text-gray-800">Answer: <strong>{primaryCorrect}</strong>
+                    {correctAnswer.includes('|') && <span className="text-gray-500 font-normal"> (or: {correctAnswer.split('|').slice(1).join(', ')})</span>}
+                  </span></>
+                ) : (
+                  <span className="text-gray-500 italic">Not answered — Answer: <strong className="text-gray-900">{primaryCorrect}</strong></span>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 /** Renders a single gap-fill question as inline sentence with blank */
 function GapQuestion({ question, displayPosition, userAnswer, submitted, onTextAnswer, onLocateEvidence, examMode = false }: {
   question: QuestionDetail; userAnswer: string; submitted: boolean;
@@ -72,6 +190,68 @@ function GapQuestion({ question, displayPosition, userAnswer, submitted, onTextA
   const correct = submitted && isAnswerCorrect(userAnswer, correctAnswer);
   const wrong = submitted && userAnswer.trim() !== '' && !correct;
 
+  // Use boxed layout for exam mode
+  if (examMode) {
+    return (
+      <div id={`question-${question.id}`} className="bg-white p-5 border border-gray-300 rounded-lg shadow-sm">
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-start gap-4 flex-1">
+            <span className="min-w-[20px] text-sm font-normal text-gray-900 mt-0.5">
+              {displayPosition}
+            </span>
+            <p className="flex-1 text-sm text-gray-800 font-normal leading-relaxed">
+              {parsed ? formatContentWithBlanks(question.content) : question.content}
+            </p>
+          </div>
+          <IELTSBoxedGapInput
+            questionId={question.id}
+            userAnswer={userAnswer}
+            submitted={submitted}
+            correctAnswer={correctAnswer}
+            onTextAnswer={onTextAnswer}
+            questionNumber={displayPosition}
+          />
+        </div>
+
+        {/* Result feedback */}
+        {submitted && (
+          <div className="mt-3 pt-3 border-t border-gray-200">
+            <div className={`flex items-center gap-2 text-xs px-2 py-1.5 rounded inline-block ${
+              correct ? 'bg-green-50' : wrong ? 'bg-red-50' : 'bg-gray-50'
+            }`}>
+              <span className="font-bold text-gray-900">{displayPosition}.</span>
+              {correct ? (
+                <><CheckCircle2 className="h-3.5 w-3.5 text-gray-900" /><span className="text-gray-900 font-semibold">Correct</span></>
+              ) : wrong ? (
+                <><XCircle className="h-3.5 w-3.5 text-gray-700" /><span className="text-gray-800">Answer: <strong>{primaryCorrect}</strong>
+                  {correctAnswer.includes('|') && <span className="text-gray-500 font-normal"> (or: {correctAnswer.split('|').slice(1).join(', ')})</span>}
+                </span></>
+              ) : (
+                <span className="text-gray-500 italic">Not answered — Answer: <strong className="text-gray-900">{primaryCorrect}</strong></span>
+              )}
+            </div>
+            {question.explanation?.text && (
+              <div className="mt-2">
+                <p className="text-xs text-gray-600"><strong>Explanation:</strong> {question.explanation.text}</p>
+                {question.explanation.evidence && (
+                  <div className="space-y-1 mt-1">
+                    {question.explanation.evidence.split('\n---\n').filter((e: string) => e.trim()).map((chunk: string, i: number) => (
+                      <p key={i} className={`text-xs text-gray-700 bg-gray-100 px-2 py-1 rounded ${onLocateEvidence ? 'cursor-pointer hover:bg-gray-200' : ''}`}
+                        onClick={() => onLocateEvidence?.(chunk.trim())}>
+                        Evidence {i + 1}: &ldquo;{chunk.trim()}&rdquo;
+                      </p>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Non-exam mode: inline layout
   const compact = examMode ?? true;
 
   return (
@@ -140,6 +320,11 @@ function GapQuestion({ question, displayPosition, userAnswer, submitted, onTextA
       )}
     </div>
   );
+}
+
+/** Helper to format content with blanks */
+function formatContentWithBlanks(content: string): string {
+  return content.replace(/\{\{.*?\}\}/g, '__________');
 }
 
 /** Render groupContent paragraph with inline blanks replacing number patterns */
@@ -222,24 +407,24 @@ function ParagraphGapFilling({ groupContent, questions, submitted, textAnswers, 
                   <div className="flex items-center gap-2 text-xs">
                   <span className="font-bold text-gray-900">{displayPosition}.</span>
                   {correct ? (
-                    <><CheckCircle2 className="h-3.5 w-3.5 text-gray-900" /><span className="text-gray-900 font-semibold">Đúng</span></>
+                    <><CheckCircle2 className="h-3.5 w-3.5 text-gray-900" /><span className="text-gray-900 font-semibold">Correct</span></>
                   ) : wrong ? (
-                    <><XCircle className="h-3.5 w-3.5 text-gray-700" /><span className="text-gray-800">Đáp án: <strong>{primaryCorrect}</strong>
-                      {correctAnswer.includes('|') && <span className="text-gray-500 font-normal"> (hoặc: {correctAnswer.split('|').slice(1).join(', ')})</span>}
+                    <><XCircle className="h-3.5 w-3.5 text-gray-700" /><span className="text-gray-800">Answer: <strong>{primaryCorrect}</strong>
+                      {correctAnswer.includes('|') && <span className="text-gray-500 font-normal"> (or: {correctAnswer.split('|').slice(1).join(', ')})</span>}
                     </span></>
                   ) : (
-                    <span className="text-gray-500 italic">Chưa trả lời — Đáp án: <strong className="text-gray-900">{primaryCorrect}</strong></span>
+                    <span className="text-gray-500 italic">Not answered — Answer: <strong className="text-gray-900">{primaryCorrect}</strong></span>
                   )}
                 </div>
                 {question.explanation?.text && (
                   <div className="mt-2">
-                    <p className="text-xs text-gray-600"><strong>Giải thích:</strong> {question.explanation.text}</p>
+                    <p className="text-xs text-gray-600"><strong>Explanation:</strong> {question.explanation.text}</p>
                     {question.explanation.evidence && (
                       <div className="space-y-1 mt-1">
                         {question.explanation.evidence.split('\n---\n').filter((e: string) => e.trim()).map((chunk: string, ci: number) => (
                           <p key={ci} className={`text-xs text-gray-700 bg-gray-100 px-2 py-1 rounded ${onLocateEvidence ? 'cursor-pointer hover:bg-gray-200' : ''}`}
                             onClick={() => onLocateEvidence?.(chunk.trim())}>
-                            Dẫn chứng {ci + 1}: &ldquo;{chunk.trim()}&rdquo;
+                            Evidence {ci + 1}: &ldquo;{chunk.trim()}&rdquo;
                           </p>
                         ))}
                       </div>
@@ -270,6 +455,44 @@ export function ReadingGapFilling({
   // Paragraph questions: empty content OR tagged with gapMode='paragraph'
   const sentenceQs = questions.filter(q => q.content.trim());
   const paragraphQs = questions.filter(q => !q.content.trim());
+
+  // For exam mode with sentence questions, use boxed layout
+  if (examMode && sentenceQs.length > 0) {
+    return (
+      <div className="space-y-4">
+        {imageUrl && (
+          <div className="rounded-lg p-3 bg-white border border-gray-200">
+            <Image src={imageUrl} alt="Diagram" width={600} height={400}
+              className="max-w-full h-auto rounded" unoptimized />
+          </div>
+        )}
+
+        <IELTSBoxedGapFilling
+          questions={sentenceQs}
+          submitted={submitted}
+          textAnswers={textAnswers}
+          onTextAnswer={onTextAnswer}
+          questionPositionById={questionPositionById}
+          onLocateEvidence={onLocateEvidence}
+          examMode={examMode}
+        />
+
+        {/* Paragraph with inline gaps */}
+        {groupContent && paragraphQs.length > 0 && (
+          <ParagraphGapFilling
+            groupContent={groupContent}
+            questions={paragraphQs}
+            submitted={submitted}
+            textAnswers={textAnswers}
+            onTextAnswer={onTextAnswer}
+            questionPositionById={questionPositionById}
+            onLocateEvidence={onLocateEvidence}
+            examMode={examMode}
+          />
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">

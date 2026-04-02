@@ -19,7 +19,7 @@ interface Props {
 
 const GAP_TYPES = ['GAP_FILLING', 'DIAGRAM_LABEL'];
 
-/** IELTS-style gap input for boxed layout */
+/** IELTS-style boxed gap input for exam mode */
 function IELTSGapInput({
   questionId,
   userAnswer,
@@ -40,12 +40,12 @@ function IELTSGapInput({
         value={userAnswer}
         disabled={submitted}
         onChange={(e) => onTextAnswer(questionId, e.target.value)}
-        className="text-center text-sm font-normal border border-gray-400 rounded-sm bg-white focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 px-2 py-1 transition-all"
+        className="text-center text-sm font-normal border border-gray-400 rounded-sm bg-white focus:border-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-200 px-2 py-1 transition-all"
         style={{ width: '160px', minWidth: '150px', height: '28px' }}
         placeholder=""
       />
-      {!userAnswer && (
-        <span className="absolute inset-0 flex items-center justify-center text-[12px] font-bold text-gray-400 pointer-events-none">
+      {!userAnswer && !submitted && (
+        <span className="absolute inset-0 flex items-center justify-center text-[11px] font-bold text-gray-400 pointer-events-none">
           {questionNumber}
         </span>
       )}
@@ -53,7 +53,7 @@ function IELTSGapInput({
   );
 }
 
-/** IELTS-style boxed gap-filling questions */
+/** IELTS-style boxed gap-filling questions for exam mode */
 function IELTSGapFillingBox({
   questions,
   submitted,
@@ -73,12 +73,12 @@ function IELTSGapFillingBox({
   };
 
   return (
-    <div className="bg-white p-6 border border-gray-200 rounded-lg shadow-sm">
-      <div className="space-y-4">
+    <div className="bg-white p-5 border border-gray-300 rounded-lg shadow-sm">
+      <div className="space-y-3">
         {sortedQuestions.map((q) => {
           const userAnswer = textAnswers[q.id] ?? '';
           return (
-            <div key={q.id} className="flex items-center justify-between gap-4 py-3 border-b border-gray-50 last:border-0">
+            <div key={q.id} className="flex items-center justify-between gap-4 py-2 border-b border-gray-100 last:border-0">
               <div className="flex items-start gap-4 flex-1">
                 <span className="min-w-[20px] text-sm font-normal text-gray-900 mt-0.5">
                   {q.position}
@@ -102,7 +102,7 @@ function IELTSGapFillingBox({
   );
 }
 
-/** IELTS-style MCQ questions in boxed layout */
+/** IELTS-style MCQ questions in boxed layout for exam mode */
 function IELTSMCQBox({
   questions,
   answers,
@@ -115,12 +115,12 @@ function IELTSMCQBox({
   onAnswer: (questionId: number, optionId: number) => void;
 }) {
   return (
-    <div className="bg-white p-6 border border-gray-200 rounded-lg shadow-sm">
-      <div className="space-y-8">
+    <div className="bg-white p-5 border border-gray-300 rounded-lg shadow-sm">
+      <div className="space-y-6">
         {questions.map((q) => {
           const selectedId = answers[q.id];
           return (
-            <div key={q.id} className="space-y-4">
+            <div key={q.id} className="space-y-3">
               <div className="flex items-start gap-4">
                 <span className="min-w-[20px] text-sm font-normal text-gray-900 mt-0.5">
                   {q.position}
@@ -134,8 +134,8 @@ function IELTSMCQBox({
                     <label
                       key={opt.id}
                       className={`flex items-center gap-3 p-3 rounded-md border-2 transition-all ${
-                        isSelected 
-                          ? 'border-gray-800 bg-gray-50 text-gray-900' 
+                        isSelected
+                          ? 'border-gray-800 bg-gray-50 text-gray-900'
                           : 'border-gray-100 hover:border-gray-200'
                       } cursor-pointer ${submitted ? 'cursor-default opacity-80' : ''}`}
                     >
@@ -191,6 +191,7 @@ export function ReadingExamQuestionsPanel({
         const isMCQType = ['MCQ', 'MCQ_MULTIPLE', 'TFNG', 'YNNG'].includes(
           group.questionTypeCode || ''
         );
+        const isMatchingType = group.questionTypeCode === 'MATCHING_HEADINGS';
 
         return (
           <div key={group.id} className="space-y-4">
@@ -221,8 +222,18 @@ export function ReadingExamQuestionsPanel({
                 submitted={submitted}
                 onAnswer={onAnswer}
               />
+            ) : isMatchingType ? (
+              <div className="bg-white p-5 border border-gray-300 rounded-lg shadow-sm">
+                <ReadingMatchingPills
+                  questions={groupQuestions}
+                  answers={answers}
+                  submitted={submitted}
+                  selectedPillId={selectedPillId}
+                  onPillSelect={onPillSelect || (() => {})}
+                />
+              </div>
             ) : (
-              <div className="bg-white p-5 border border-gray-200 rounded-lg shadow-sm">
+              <div className="bg-white p-5 border border-gray-300 rounded-lg shadow-sm">
                 <ReadingQuestionMcq
                   questionId={groupQuestions[0]?.id}
                   position={groupQuestions[0]?.position}

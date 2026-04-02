@@ -29,9 +29,10 @@ function parseGapContent(content: string): { before: string; answer: string; aft
 }
 
 /** Inline gap input */
-function GapInput({ questionId, userAnswer, submitted, correctAnswer, onTextAnswer }: {
+function GapInput({ questionId, userAnswer, submitted, correctAnswer, onTextAnswer, compact = true }: {
   questionId: number; userAnswer: string; submitted: boolean; correctAnswer: string;
   onTextAnswer: (questionId: number, text: string) => void;
+  compact?: boolean;
 }) {
   const correct = submitted && isAnswerCorrect(userAnswer, correctAnswer);
   const wrong = submitted && userAnswer.trim() !== '' && !isAnswerCorrect(userAnswer, correctAnswer);
@@ -43,17 +44,17 @@ function GapInput({ questionId, userAnswer, submitted, correctAnswer, onTextAnsw
       disabled={submitted}
       placeholder="..."
       onChange={e => onTextAnswer(questionId, e.target.value)}
-      className={`inline-block border-b-2 bg-transparent text-sm px-1 py-0.5 outline-none w-[140px] text-center mx-1 ${
+      className={`inline-block bg-white px-2 py-1 outline-none text-center align-baseline ${
         submitted && correct ? 'border-gray-900 text-gray-900 font-medium'
           : submitted && wrong ? 'border-gray-500 text-gray-700'
           : 'border-gray-400 focus:border-gray-900'
-      }`}
+      } ${compact ? 'w-[76px]' : 'w-[120px]'} border rounded-sm border-b-2 shadow-sm`}
     />
   );
 }
 
 /** Renders a single gap-fill question as inline sentence with blank */
-function GapQuestion({ question, displayPosition, userAnswer, submitted, onTextAnswer, onLocateEvidence }: {
+function GapQuestion({ question, displayPosition, userAnswer, submitted, onTextAnswer, onLocateEvidence, examMode = false }: {
   question: QuestionDetail; userAnswer: string; submitted: boolean;
   displayPosition: number;
   onTextAnswer: (questionId: number, text: string) => void;
@@ -66,22 +67,36 @@ function GapQuestion({ question, displayPosition, userAnswer, submitted, onTextA
   const correct = submitted && isAnswerCorrect(userAnswer, correctAnswer);
   const wrong = submitted && userAnswer.trim() !== '' && !correct;
 
+  const compact = examMode ?? true;
+
   return (
-    <div id={`question-${question.id}`} className="border border-gray-300 rounded-lg p-4 bg-white">
-      <div className="text-sm text-gray-900 leading-8">
-        <span className="font-bold mr-1">{displayPosition}.</span>
+    <div id={`question-${question.id}`} className={`rounded-lg border border-gray-300 bg-white p-4 ${compact ? 'shadow-sm' : ''}`}>
+      <div className={`${compact ? 'text-[13px] leading-7' : 'text-sm leading-8'} text-gray-900`}>
+        <span className="mr-1 font-bold">{displayPosition}.</span>
         {parsed ? (
           <>
             {parsed.before}
-            <GapInput questionId={question.id} userAnswer={userAnswer} submitted={submitted}
-              correctAnswer={correctAnswer} onTextAnswer={onTextAnswer} />
+            <GapInput
+              questionId={question.id}
+              userAnswer={userAnswer}
+              submitted={submitted}
+              correctAnswer={correctAnswer}
+              onTextAnswer={onTextAnswer}
+              compact
+            />
             {parsed.after}
           </>
         ) : (
           <>
             {question.content}
-            <GapInput questionId={question.id} userAnswer={userAnswer} submitted={submitted}
-              correctAnswer={correctAnswer} onTextAnswer={onTextAnswer} />
+            <GapInput
+              questionId={question.id}
+              userAnswer={userAnswer}
+              submitted={submitted}
+              correctAnswer={correctAnswer}
+              onTextAnswer={onTextAnswer}
+              compact
+            />
           </>
         )}
       </div>
@@ -123,7 +138,7 @@ function GapQuestion({ question, displayPosition, userAnswer, submitted, onTextA
 }
 
 /** Render groupContent paragraph with inline blanks replacing number patterns */
-function ParagraphGapFilling({ groupContent, questions, submitted, textAnswers, onTextAnswer, questionPositionById = {}, onLocateEvidence }: {
+function ParagraphGapFilling({ groupContent, questions, submitted, textAnswers, onTextAnswer, questionPositionById = {}, onLocateEvidence, examMode = false }: {
   groupContent: string;
   questions: QuestionDetail[];
   submitted: boolean;
@@ -131,6 +146,7 @@ function ParagraphGapFilling({ groupContent, questions, submitted, textAnswers, 
   onTextAnswer: (questionId: number, text: string) => void;
   questionPositionById?: Record<number, number>;
   onLocateEvidence?: (evidence: string) => void;
+  examMode?: boolean;
 }) {
   // Sort questions by position to match gap order in content
   const sortedQuestions = [...questions].sort((a, b) => a.position - b.position);
@@ -173,8 +189,8 @@ function ParagraphGapFilling({ groupContent, questions, submitted, textAnswers, 
   }
 
   return (
-    <div className="border border-gray-300 rounded-lg p-4 space-y-4 bg-white">
-      <div className="text-sm text-gray-900 leading-8">{rendered}</div>
+    <div className={`rounded-lg border border-gray-300 bg-white p-4 space-y-4 shadow-sm ${examMode ? 'text-[13px]' : ''}`}>
+      <div className={`text-gray-900 ${examMode ? 'leading-7' : 'text-sm leading-8'}`}>{rendered}</div>
 
       {/* Show results per question after submit */}
       {submitted && (
@@ -243,6 +259,7 @@ export function ReadingGapFilling({
   onTextAnswer,
   questionPositionById = {},
   onLocateEvidence,
+  examMode,
 }: Props) {
   // Sentence questions: have content (with {{answer}} or text)
   // Paragraph questions: empty content OR tagged with gapMode='paragraph'
@@ -250,9 +267,9 @@ export function ReadingGapFilling({
   const paragraphQs = questions.filter(q => !q.content.trim());
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       {imageUrl && (
-        <div className="border border-gray-200 rounded-lg p-3">
+        <div className="rounded-lg border border-gray-200 p-3">
           <Image src={imageUrl} alt="Diagram" width={600} height={400}
             className="max-w-full h-auto rounded" unoptimized />
         </div>
@@ -268,6 +285,7 @@ export function ReadingGapFilling({
           submitted={submitted}
           onTextAnswer={onTextAnswer}
           onLocateEvidence={onLocateEvidence}
+          examMode={examMode}
         />
       ))}
 
@@ -281,6 +299,7 @@ export function ReadingGapFilling({
           onTextAnswer={onTextAnswer}
           questionPositionById={questionPositionById}
           onLocateEvidence={onLocateEvidence}
+          examMode={examMode}
         />
       )}
     </div>

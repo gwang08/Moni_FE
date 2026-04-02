@@ -62,9 +62,10 @@ function injectHighlights(html: string, highlights: Highlight[]): string {
 interface Props {
   content: string;
   interactive?: boolean;
+  examMode?: boolean;
 }
 
-export function ReadingPassage({ content, interactive = true }: Props) {
+export function ReadingPassage({ content, interactive = true, examMode = false }: Props) {
   const {
     activeTool,
     selectedColor,
@@ -281,7 +282,11 @@ export function ReadingPassage({ content, interactive = true }: Props) {
         onMouseOut={handleMouseOut}
         onMouseMove={handleMouseMove}
         onMouseLeave={clearHoveredWord}
-        className={`prose max-w-none p-6 bg-white rounded-lg leading-relaxed text-lg ${
+        className={`prose max-w-none leading-relaxed ${
+          examMode
+            ? 'p-0 bg-transparent rounded-none text-[13px] leading-6'
+            : 'p-6 bg-white rounded-lg text-lg'
+        } ${
           !interactive
             ? 'select-text'
             : activeTool === 'vocab'

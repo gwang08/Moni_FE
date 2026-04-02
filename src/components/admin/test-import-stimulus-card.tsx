@@ -20,7 +20,6 @@ import { useEffect } from 'react';
 
 interface Props {
   stimulus: StimulusRequest;
-  index: number;
   onChange: (updated: StimulusRequest) => void;
 }
 
@@ -40,14 +39,14 @@ const EDITOR_EXTENSIONS = [
   TableHeader,
 ];
 
-export function StimulusCard({ stimulus, index, onChange }: Props) {
+export function StimulusCard({ stimulus, onChange }: Props) {
   const editor = useEditor({
     extensions: EDITOR_EXTENSIONS,
     content: stimulus.content || '',
     immediatelyRender: false,
     editorProps: {
       attributes: {
-        class: 'prose prose-sm max-w-none min-h-[300px] focus:outline-none p-4',
+        class: 'prose prose-sm max-w-none h-full min-h-full flex-1 focus:outline-none',
       },
     },
     onUpdate: ({ editor: ed }) => {
@@ -70,10 +69,13 @@ export function StimulusCard({ stimulus, index, onChange }: Props) {
   }, [editor]);
 
   return (
-    <div className="space-y-3">
-      <div className="border border-input rounded-md bg-white overflow-hidden">
+    <div className="flex h-full min-h-0 flex-col">
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-md border border-input bg-white">
         <RichTextToolbar editor={editor} />
-        <EditorContent editor={editor} />
+        <EditorContent
+          editor={editor}
+          className="min-h-0 flex-1 overflow-y-auto [&_.ProseMirror]:h-full [&_.ProseMirror]:min-h-full [&_.ProseMirror]:px-4 [&_.ProseMirror]:py-4"
+        />
       </div>
     </div>
   );

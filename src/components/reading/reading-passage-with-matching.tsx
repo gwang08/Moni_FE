@@ -62,10 +62,11 @@ interface Props {
   onAnswer: (questionId: number, optionId: number) => void;
   selectedPillId: number | null;
   onPillAssigned: () => void;
+  examMode?: boolean;
 }
 
 export function ReadingPassageWithMatching({
-  content, questions, answers, submitted, onAnswer, selectedPillId, onPillAssigned,
+  content, questions, answers, submitted, onAnswer, selectedPillId, onPillAssigned, examMode = false,
 }: Props) {
   const segments = useMemo(() => splitPassageByParagraphs(content), [content]);
   const [dragOverId, setDragOverId] = useState<number | null>(null);
@@ -130,7 +131,7 @@ export function ReadingPassageWithMatching({
 
   return (
     <div
-      className="prose max-w-none leading-relaxed text-lg"
+      className={`prose max-w-none leading-relaxed ${examMode ? 'text-[13px]' : 'text-lg'}`}
       onDragOver={handleWrapperDragOver}
       onDrop={handleWrapperDrop}
       onDragLeave={handleWrapperDragLeave}
@@ -148,12 +149,14 @@ export function ReadingPassageWithMatching({
           <div key={i}>
             {question && (
               <div
-                className="mb-3 mt-5 not-prose"
+                className={`mb-3 mt-5 not-prose ${examMode ? 'text-[13px]' : ''}`}
                 data-question-id={question.id}
                 onClick={() => handleSlotClick(question.id)}
               >
                 {assignedOpt ? (
-                  <div className={`flex items-center gap-2 px-4 py-2.5 rounded-lg border-2 text-sm ${
+                  <div className={`flex items-center gap-2 px-4 py-2.5 rounded-lg border-2 ${
+                    examMode ? 'text-[13px]' : 'text-sm'
+                  } ${
                     submitted
                       ? isCorrect ? 'bg-green-50 border-green-300 text-green-700' : 'bg-red-50 border-red-300 text-red-700'
                       : 'bg-blue-50 border-blue-300 text-blue-700'
@@ -167,7 +170,9 @@ export function ReadingPassageWithMatching({
                     {submitted && !isCorrect && <XCircle className="h-4 w-4 text-red-500 shrink-0" />}
                   </div>
                 ) : (
-                  <div className={`flex items-center gap-2 px-4 py-2.5 rounded-lg border-2 border-dashed text-sm transition-colors cursor-pointer ${
+                  <div className={`flex items-center gap-2 px-4 py-2.5 rounded-lg border-2 border-dashed transition-colors cursor-pointer ${
+                    examMode ? 'text-[13px]' : 'text-sm'
+                  } ${
                     isDragOver
                       ? 'border-blue-500 bg-blue-100/50 text-blue-600'
                       : selectedPillId

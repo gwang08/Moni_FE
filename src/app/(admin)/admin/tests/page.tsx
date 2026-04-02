@@ -380,22 +380,23 @@ export default function AdminTestsPage() {
                       onClick={() => router.push(`/admin/tests/${test.id}`)}
                     >
                       <td className="px-4 py-3 font-medium text-gray-900">
-                        <Link
-                          href={`/admin/tests/${test.id}`}
-                          className="flex w-full min-w-0 items-center gap-2 text-blue-600 hover:underline"
-                          onClick={e => e.stopPropagation()}
-                        >
-                          <span className="min-w-0 flex-1 truncate" title={test.title}>
-                            {test.title}
-                          </span>
+                        <div className="flex items-center gap-1.5">
+                          <Link
+                            href={`/admin/tests/${test.id}`}
+                            className="min-w-0 text-blue-600 hover:underline overflow-hidden"
+                            title={test.title}
+                            onClick={e => e.stopPropagation()}
+                          >
+                            <span className="block truncate text-sm">{test.title}</span>
+                          </Link>
                           {test.status === 'HIDDEN' && (
                             <Badge
-                              className={ADMIN_TEST_STATUS_BADGES[test.status] || 'shrink-0 border bg-gray-100 text-gray-700 border-gray-200'}
+                              className="shrink-0 rounded-full border border-slate-300 bg-slate-100 px-2 py-0.5 text-[10px] font-semibold leading-none text-slate-600 transition-none hover:bg-slate-100 hover:text-slate-600 focus-visible:ring-0 focus-visible:border-slate-300"
                             >
                               {ADMIN_TEST_STATUS_LABELS[test.status] || test.status}
                             </Badge>
                           )}
-                        </Link>
+                        </div>
                       </td>
                       <td className="px-4 py-3">
                         <Badge

@@ -111,7 +111,7 @@ export function TestImportStep2Writing({ stimuli, onChange, onNext, onBack, sect
   const selectedTypeLabel = codeToLabel[currentTypeCode] || '';
 
   return (
-    <div className="space-y-5">
+    <div className="flex min-h-0 flex-1 flex-col gap-5">
       {/* Dạng đề — chỉ hiển thị khi là Task 1 hoặc Task 2 */}
       {(isTask1 || isTask2) && (
         <div>
@@ -152,16 +152,17 @@ export function TestImportStep2Writing({ stimuli, onChange, onNext, onBack, sect
       )}
 
       {/* Đề bài - Rich Text Editor giống Reading */}
-      <div>
+      <div className="flex min-h-0 flex-1 flex-col">
         <label className="text-sm font-medium text-gray-700 mb-2 block">
           Đề bài Writing
           <span className="text-xs text-gray-400 font-normal ml-2">Có thể chèn ảnh biểu đồ trực tiếp vào đề</span>
         </label>
-        <StimulusCard
-          stimulus={stimulus}
-          index={0}
-          onChange={(updated) => onChange([updated])}
-        />
+        <div className="flex min-h-0 flex-1">
+          <StimulusCard
+            stimulus={stimulus}
+            onChange={(updated) => onChange([updated])}
+          />
+        </div>
       </div>
 
       {/* Bài mẫu - 4 fields */}

@@ -1,15 +1,11 @@
 ﻿'use client';
 
-import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { GripVertical, Highlighter, Loader2, Music, Plus, X } from 'lucide-react';
+import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
+import { GripVertical, Loader2, Music, Plus, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { MediaUploadZone } from '@/components/admin/media-upload-zone';
 import { StimulusCard } from '@/components/admin/test-import-stimulus-card';
 import { QuestionGroupEditor } from '@/components/admin/test-import-question-group-editor';
-import { applyHighlights, type EvidenceEntry } from '@/components/admin/test-edit-highlight-evidence';
-import { ReadingQuestionsPanel } from '@/components/reading/reading-questions-panel';
-import { mapStimulusRequestToDetail } from '@/components/admin/test-import-preview-mapper';
-import { formatReadingPassage } from '@/lib/format-reading-passage';
 import { transcribeByUrl } from '@/lib/admin-api';
 import type { OptionRequest, QuestionGroupRequest, QuestionRequest, StimulusRequest, QuestionTypeCode } from '@/types/admin.types';
 
@@ -133,19 +129,14 @@ function createDefaultQuestion(typeCode: QuestionTypeCode): QuestionRequest {
 
 export function TestImportStep3({ skill, stimuli, onChange, onNext, onBack }: Props) {
   const [activeStimulus, setActiveStimulus] = useState(0);
-  const [isPreview, setIsPreview] = useState(false);
   const [showValidationDetails, setShowValidationDetails] = useState(false);
-  const [pendingEvidence, setPendingEvidence] = useState<string | null>(null);
   const [leftWidth, setLeftWidth] = useState(40);
   const [isResizing, setIsResizing] = useState(false);
   const [activeGroupIndex, setActiveGroupIndex] = useState(0);
   const [dragGroupIndex, setDragGroupIndex] = useState<number | null>(null);
   const [groupDropIndex, setGroupDropIndex] = useState<number | null>(null);
-  const [pendingEvidenceOffset, setPendingEvidenceOffset] = useState(-1);
-  const [activeQuestionKey, setActiveQuestionKey] = useState<string | null>(null);
   const [transcribing, setTranscribing] = useState(false);
 
-  const passageRef = useRef<HTMLDivElement>(null);
   const layoutRef = useRef<HTMLDivElement>(null);
   const questionScrollRef = useRef<HTMLDivElement>(null);
   const groupRefs = useRef<Record<number, HTMLDivElement | null>>({});
@@ -165,8 +156,6 @@ export function TestImportStep3({ skill, stimuli, onChange, onNext, onBack }: Pr
     },
     [activeStimulus, onChange, stimuli]
   );
-
-  const getQuestionRefKey = useCallback((groupIndex: number, questionIndex: number) => `${groupIndex}:${questionIndex}`, []);
 
   const addQuestionToFocusedGroup = useCallback(() => {
     const groupIndex = activeGroupIndex;
@@ -254,61 +243,6 @@ export function TestImportStep3({ skill, stimuli, onChange, onNext, onBack }: Pr
     return offset;
   };
 
-  const scrollToQuestionKey = useCallback((questionKey: string) => {
-    const container = questionScrollRef.current;
-    if (!container) return;
-
-    const target = container.querySelector<HTMLElement>(`[data-question-key="${questionKey}"]`);
-    if (!target) return;
-
-    target.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
-  }, []);
-
-  const captureSelection = useCallback(() => {
-    const selection = window.getSelection();
-    const text = selection?.toString().trim();
-    if (!text || !passageRef.current || !selection?.anchorNode) return;
-    if (!passageRef.current.contains(selection.anchorNode)) return;
-
-    try {
-      const range = selection.getRangeAt(0);
-      const preRange = document.createRange();
-      preRange.selectNodeContents(passageRef.current);
-      preRange.setEnd(range.startContainer, range.startOffset);
-      setPendingEvidenceOffset(preRange.toString().length);
-    } catch {
-      setPendingEvidenceOffset(-1);
-    }
-
-    selection.removeAllRanges();
-  }, []);
-
-  const allEvidences = useMemo((): EvidenceEntry[] => {
-    if (!stimulus) return [];
-
-    const entries: EvidenceEntry[] = [];
-    stimulus.questionGroups.forEach((group) => {
-      group.questions.forEach((question) => {
-        if (!question.explanation?.evidence) return;
-        entries.push({
-          text: question.explanation.evidence,
-          offset: pendingEvidenceOffset >= 0 ? pendingEvidenceOffset : -1,
-        });
-      });
-    });
-    return entries;
-  }, [pendingEvidenceOffset, stimulus]);
-
-  const passageContent = stimulus?.content || '<p class="text-gray-400 italic">Chưa có nội dung. Quay lại bước 2 để nhập.</p>';
-  const formattedPassageContent = useMemo(() => formatReadingPassage(passageContent), [passageContent]);
-
-  useEffect(() => {
-    const el = passageRef.current;
-    if (!el) return;
-    el.innerHTML = formattedPassageContent;
-    applyHighlights(el, allEvidences);
-  }, [allEvidences, formattedPassageContent]);
-
   useEffect(() => {
     if (!isResizing) return;
 
@@ -366,45 +300,12 @@ export function TestImportStep3({ skill, stimuli, onChange, onNext, onBack }: Pr
     });
 
     return () => observer.disconnect();
-  }, [stimulus, getQuestionRefKey]);
-
-  useEffect(() => {
-    const root = questionScrollRef.current;
-    if (!root || !stimulus || isPreview) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const active = entries
-          .filter((entry) => entry.isIntersecting)
-          .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
-        if (!active) return;
-
-        const groupIndex = Number((active.target as HTMLElement).dataset.groupIndex);
-        const questionIndex = Number((active.target as HTMLElement).dataset.questionIndex);
-        if (Number.isNaN(groupIndex) || Number.isNaN(questionIndex)) return;
-
-        setActiveGroupIndex(groupIndex);
-        setActiveQuestionKey(getQuestionRefKey(groupIndex, questionIndex));
-      },
-      {
-        root,
-        threshold: [0.15, 0.3, 0.5, 0.75],
-        rootMargin: '-8% 0px -55% 0px',
-      }
-    );
-
-    const questionNodes = Array.from(root.querySelectorAll<HTMLElement>('[data-question-key]'));
-    questionNodes.forEach((el) => observer.observe(el));
-
-    return () => observer.disconnect();
-  }, [stimulus, isPreview, getQuestionRefKey]);
+  }, [stimulus]);
 
   const handleGroupTabClick = (groupIndex: number) => {
     const el = groupRefs.current[groupIndex];
     if (!el) return;
     setActiveGroupIndex(groupIndex);
-    const firstQuestionKey = currentGroups[groupIndex]?.questions.length ? getQuestionRefKey(groupIndex, 0) : null;
-    setActiveQuestionKey(firstQuestionKey);
     el.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
@@ -440,7 +341,6 @@ export function TestImportStep3({ skill, stimuli, onChange, onNext, onBack }: Pr
     );
   }
 
-  const previewDetail = mapStimulusRequestToDetail(stimulus, activeStimulus);
   const currentGroups = stimulus.questionGroups;
   const handleContinue = () => {
     if (!isValid) {
@@ -461,8 +361,6 @@ export function TestImportStep3({ skill, stimuli, onChange, onNext, onBack }: Pr
               onClick={() => {
                 setActiveStimulus(index);
                 setShowValidationDetails(false);
-                setPendingEvidence(null);
-                setPendingEvidenceOffset(-1);
                 setActiveGroupIndex(0);
                 setActiveQuestionKey(null);
                 setDragGroupIndex(null);
@@ -491,62 +389,43 @@ export function TestImportStep3({ skill, stimuli, onChange, onNext, onBack }: Pr
                   {skill === 'LISTENING' ? getListeningTranscriptStatus(skill, stimulus) : 'Nhập passage'}
                 </p>
               </div>
-              {skill !== 'LISTENING' && (
-                <Button type="button" size="sm" variant="outline" className="h-8 gap-1 text-xs" onClick={captureSelection}>
-                  <Highlighter className="h-3 w-3" />
-                  Quét dẫn chứng
-                </Button>
-              )}
             </div>
           </div>
 
-          <div className="min-h-0 flex-1 overflow-y-scroll px-4 py-4 [scrollbar-gutter:stable]">
-            <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-              <div className="space-y-4">
-                {skill === 'LISTENING' && !stimulus.mediaUrl ? (
-                  <MediaUploadZone
-                    onUploaded={handleListeningUpload}
-                  />
-                ) : (
-                  <>
-                    {skill === 'LISTENING' && stimulus.mediaUrl && (
-                      <div className="flex items-center gap-3 rounded-lg border border-purple-200 bg-purple-50 p-3">
-                        <Music className="h-5 w-5 shrink-0 text-purple-600" />
-                        <audio controls src={stimulus.mediaUrl} className="h-8 flex-1" />
-                        <button
-                          type="button"
-                          onClick={() => updateStimulus((s) => ({ ...s, mediaUrl: undefined, content: '' }))}
-                          className="text-gray-400 hover:text-red-500"
-                        >
-                          <X className="h-4 w-4" />
-                        </button>
-                      </div>
-                    )}
-
-                    {skill === 'LISTENING' && transcribing && (
-                      <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 text-center">
-                        <Loader2 className="mx-auto mb-2 h-6 w-6 animate-spin text-blue-500" />
-                        <p className="text-sm font-medium text-blue-700">Đang tạo transcript tự động...</p>
-                      </div>
-                    )}
-
-                    <StimulusCard stimulus={stimulus} index={0} onChange={(updated) => updateStimulus(() => updated)} />
-                  </>
-                )}
-
-                {skill !== 'LISTENING' && (
-                  <>
-                    <div className="mb-3 flex items-center justify-between gap-3">
-                      <h4 className="text-sm font-semibold text-gray-700">Xem trước nội dung</h4>
-                      <span className="text-xs text-gray-400">{stimulus.questionGroups.length} nhóm</span>
+          <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 [scrollbar-gutter:stable]">
+            <div className="flex min-h-full flex-col rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+              {skill === 'LISTENING' && !stimulus.mediaUrl ? (
+                <div className="flex min-h-[420px] flex-1 items-stretch">
+                  <MediaUploadZone onUploaded={handleListeningUpload} />
+                </div>
+              ) : (
+                <>
+                  {skill === 'LISTENING' && stimulus.mediaUrl && (
+                    <div className="mb-4 flex items-center gap-3 rounded-lg border border-purple-200 bg-purple-50 p-3">
+                      <Music className="h-5 w-5 shrink-0 text-purple-600" />
+                      <audio controls src={stimulus.mediaUrl} className="h-8 flex-1" />
+                      <button
+                        type="button"
+                        onClick={() => updateStimulus((s) => ({ ...s, mediaUrl: undefined, content: '' }))}
+                        className="text-gray-400 hover:text-red-500"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
                     </div>
-                    <div
-                      ref={passageRef}
-                      className="min-h-[260px] overflow-y-scroll rounded-lg border border-gray-300 bg-white px-5 py-4 text-sm leading-relaxed select-text prose prose-sm max-w-none prose-p:my-3"
-                    />
-                  </>
-                )}
-              </div>
+                  )}
+
+                  {skill === 'LISTENING' && transcribing && (
+                    <div className="mb-4 rounded-lg border border-blue-200 bg-blue-50 p-4 text-center">
+                      <Loader2 className="mx-auto mb-2 h-6 w-6 animate-spin text-blue-500" />
+                      <p className="text-sm font-medium text-blue-700">Đang tạo transcript tự động...</p>
+                    </div>
+                  )}
+
+                  <div className="flex min-h-0 flex-1 flex-col">
+                    <StimulusCard stimulus={stimulus} onChange={(updated) => updateStimulus(() => updated)} />
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </section>
@@ -624,129 +503,71 @@ export function TestImportStep3({ skill, stimuli, onChange, onNext, onBack }: Pr
             </div>
           </div>
 
-          {!isPreview && currentGroups.length > 0 && (
-            <div className="shrink-0 border-b border-gray-200 bg-slate-50 px-4 py-2">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="text-xs font-medium text-gray-500">Câu hỏi</span>
-                {currentGroups.map((group, groupIndex) => (
-                  <Fragment key={`qmap-${groupIndex}`}>
-                    {groupIndex > 0 && <span className="px-1 text-gray-300">🔹</span>}
-                    <div className="flex flex-wrap items-center gap-1">
-                      {group.questions.map((question, questionIndex) => {
-                        const questionKey = getQuestionRefKey(groupIndex, questionIndex);
-                        const globalNumber = getPositionOffset(groupIndex) + questionIndex + 1;
-                        const isActiveQuestion =
-                          activeQuestionKey === questionKey || (!activeQuestionKey && groupIndex === activeGroupIndex && questionIndex === 0);
-                        const invalid =
-                          !question.content.trim() || !question.options.some((option) => option.isCorrect && option.content.trim().length > 0);
+          <div ref={questionScrollRef} className="min-h-0 flex-1 overflow-y-scroll px-4 py-4 [scrollbar-gutter:stable]">
+            <div className="space-y-4">
+              {currentGroups.map((group, groupIndex) => {
+                const groupPositionOffset = getPositionOffset(groupIndex);
+                const isActive = activeGroupIndex === groupIndex;
 
-                        return (
-                          <button
-                            key={questionKey}
-                            type="button"
-                            onClick={() => {
-                              setActiveGroupIndex(groupIndex);
-                              setActiveQuestionKey(questionKey);
-                              scrollToQuestionKey(questionKey);
-                            }}
-                            className={`inline-flex h-7 min-w-7 items-center justify-center rounded-full border px-2 text-[11px] font-semibold transition-colors ${
-                              isActiveQuestion
-                                ? 'border-blue-600 bg-blue-600 text-white shadow-sm'
-                                : showValidationDetails && invalid
-                                  ? 'border-red-200 bg-white text-gray-600 hover:border-red-300 hover:text-red-700'
-                                  : 'border-gray-200 bg-white text-gray-600 hover:border-blue-300 hover:text-blue-700'
-                            }`}
-                            title={`Nhóm ${groupIndex + 1} - Câu ${globalNumber}`}
-                          >
-                            {globalNumber}
-                          </button>
-                        );
-                      })}
+                return (
+                  <Fragment key={`${groupIndex}-${group.questionTypeCode}-${group.questions.length}`}>
+                    {dragGroupIndex !== null && groupDropIndex === groupIndex && dragGroupIndex !== groupIndex && (
+                      <div className="rounded-2xl border-2 border-dashed border-blue-300 bg-blue-50/60 px-4 py-10 text-center text-sm font-medium text-blue-500">
+                        Thả nhóm vào đây
+                      </div>
+                    )}
+                    <div
+                      ref={(el) => {
+                        groupRefs.current[groupIndex] = el;
+                      }}
+                      data-group-index={groupIndex}
+                      onDragOver={(event) => {
+                        if (dragGroupIndex === null) return;
+                        event.preventDefault();
+                        setGroupDropIndex(groupIndex);
+                      }}
+                      onDrop={(event) => {
+                        event.preventDefault();
+                        if (dragGroupIndex === null) return;
+                        const from = dragGroupIndex;
+                        const to = groupDropIndex ?? groupIndex;
+                        if (from !== to) reorderGroups(from, to);
+                        finishGroupDrag();
+                      }}
+                      onDragEnd={finishGroupDrag}
+                      className={`group rounded-2xl border bg-white shadow-sm transition-shadow ${
+                        isActive ? 'border-blue-300 shadow-blue-100' : 'border-gray-200'
+                      } ${dragGroupIndex === groupIndex ? 'ring-2 ring-blue-400' : ''}`}
+                    >
+                      <QuestionGroupEditor
+                        group={group}
+                        groupIndex={groupIndex}
+                        positionOffset={groupPositionOffset}
+                        stimulusContent={stimulus.content}
+                        onChange={(updated) => updateGroup(groupIndex, updated)}
+                        onRemove={() => removeGroup(groupIndex)}
+                        dragHandleProps={{
+                          onDragStart: () => beginGroupDrag(groupIndex),
+                          onDragEnd: finishGroupDrag,
+                        }}
+                      />
                     </div>
                   </Fragment>
-                ))}
-              </div>
+                );
+              })}
+
+              {dragGroupIndex !== null && groupDropIndex === currentGroups.length && (
+                <div className="rounded-2xl border-2 border-dashed border-blue-300 bg-blue-50/60 px-4 py-10 text-center text-sm font-medium text-blue-500">
+                  Thả nhóm vào cuối danh sách
+                </div>
+              )}
+
+              {stimulus.questionGroups.length === 0 ? (
+                <div className="rounded-lg border-2 border-dashed border-gray-200 p-8 text-center text-sm text-gray-400">
+                  Nhấn &quot;Thêm nhóm câu hỏi&quot; để bắt đầu tạo câu hỏi.
+                </div>
+              ) : null}
             </div>
-          )}
-
-          <div ref={questionScrollRef} className="min-h-0 flex-1 overflow-y-scroll px-4 py-4 [scrollbar-gutter:stable]">
-            {isPreview ? (
-              <ReadingQuestionsPanel
-                stimulus={previewDetail}
-                submitted={false}
-                answers={{}}
-                onAnswer={() => {}}
-                textAnswers={{}}
-                onTextAnswer={() => {}}
-              />
-            ) : (
-              <div className="space-y-4">
-                {currentGroups.map((group, groupIndex) => {
-                  const groupPositionOffset = getPositionOffset(groupIndex);
-                  const isActive = activeGroupIndex === groupIndex;
-
-                  return (
-                    <Fragment key={`${groupIndex}-${group.questionTypeCode}-${group.questions.length}`}>
-                      {dragGroupIndex !== null && groupDropIndex === groupIndex && dragGroupIndex !== groupIndex && (
-                        <div className="rounded-2xl border-2 border-dashed border-blue-300 bg-blue-50/60 px-4 py-10 text-center text-sm font-medium text-blue-500">
-                          Thả nhóm vào đây
-                        </div>
-                      )}
-                      <div
-                        ref={(el) => {
-                          groupRefs.current[groupIndex] = el;
-                        }}
-                        data-group-index={groupIndex}
-                        onDragOver={(event) => {
-                          if (dragGroupIndex === null) return;
-                          event.preventDefault();
-                          setGroupDropIndex(groupIndex);
-                        }}
-                        onDrop={(event) => {
-                          event.preventDefault();
-                          if (dragGroupIndex === null) return;
-                          const from = dragGroupIndex;
-                          const to = groupDropIndex ?? groupIndex;
-                          if (from !== to) reorderGroups(from, to);
-                          finishGroupDrag();
-                        }}
-                        onDragEnd={finishGroupDrag}
-                        className={`group rounded-2xl border bg-white shadow-sm transition-shadow ${
-                          isActive ? 'border-blue-300 shadow-blue-100' : 'border-gray-200'
-                        } ${dragGroupIndex === groupIndex ? 'ring-2 ring-blue-400' : ''}`}
-                      >
-                        <QuestionGroupEditor
-                          group={group}
-                          groupIndex={groupIndex}
-                          positionOffset={groupPositionOffset}
-                          stimulusContent={stimulus.content}
-                          pendingEvidence={pendingEvidence}
-                          onAssignEvidence={() => setPendingEvidence(null)}
-                          onChange={(updated) => updateGroup(groupIndex, updated)}
-                          onRemove={() => removeGroup(groupIndex)}
-                          dragHandleProps={{
-                            onDragStart: () => beginGroupDrag(groupIndex),
-                            onDragEnd: finishGroupDrag,
-                          }}
-                        />
-                      </div>
-                    </Fragment>
-                  );
-                })}
-
-                {dragGroupIndex !== null && groupDropIndex === currentGroups.length && (
-                  <div className="rounded-2xl border-2 border-dashed border-blue-300 bg-blue-50/60 px-4 py-10 text-center text-sm font-medium text-blue-500">
-                    Thả nhóm vào cuối danh sách
-                  </div>
-                )}
-
-                {stimulus.questionGroups.length === 0 ? (
-                  <div className="rounded-lg border-2 border-dashed border-gray-200 p-8 text-center text-sm text-gray-400">
-                    Nhấn &quot;Thêm nhóm câu hỏi&quot; để bắt đầu tạo câu hỏi.
-                  </div>
-                ) : null}
-              </div>
-            )}
           </div>
         </section>
       </div>

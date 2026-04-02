@@ -97,8 +97,6 @@ export default function ReadingExercisePage({ params }: Props) {
 
   const elapsed = isExamMode ? countdownTimer.elapsed : elapsedTimer.elapsed;
   const displayTime = isExamMode ? countdownTimer.formatted : elapsedTimer.formatted;
-  const isCountingDown = isExamMode && testDuration > 0;
-
   useEffect(() => {
     if (modeParam === 'exam' || modeParam === 'practice') setMode(modeParam);
     setActiveTool(null);
@@ -311,57 +309,130 @@ export default function ReadingExercisePage({ params }: Props) {
       )}
 
       {/* Main content */}
-      <div className="flex-1 flex overflow-hidden bg-white">
-        <div className="w-1/2 overflow-y-auto p-6 border-r border-gray-300">
-          <div className="mb-6 rounded-md border border-gray-300 bg-gray-100 px-4 py-3">
-            <h2 className="text-2xl font-bold text-gray-900">Part {currentStimulus?.section ?? 1}</h2>
-            <p className="text-lg text-gray-900">Read the text and answer questions 1-{questionCount || currentQuestionCount}</p>
+      {isExamMode ? (
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-[#f5f6f8]">
+          <div className="shrink-0 border-b border-gray-200 bg-[#f1f2ea] px-4 py-2">
+            <div className="flex items-center gap-3">
+              <div className="rounded bg-[#f3f4f6] px-2 py-1 text-xs font-semibold text-gray-900">
+                Part {currentStimulus?.section ?? 1}
+              </div>
+              <p className="text-sm text-gray-900">
+                Read the text and answer questions 1-{questionCount || currentQuestionCount}.
+              </p>
+            </div>
           </div>
-          {(() => {
-            const matchingGroup = currentStimulus?.questionGroups?.find(g => g.questionTypeCode === 'MATCHING_HEADINGS');
-            return matchingGroup ? (
-              <ReadingPassageWithMatching
-                content={passage.content}
-                questions={matchingGroup.questions}
-                answers={answers}
-                submitted={submitted}
-                onAnswer={handleAnswer}
-                selectedPillId={selectedPillId}
-                onPillAssigned={() => setSelectedPillId(null)}
-              />
-            ) : (
-              <ReadingPassage content={passage.content} interactive={!isExamMode} />
-            );
-          })()}
-        </div>
-        <div className="w-1/2 overflow-y-auto p-6 bg-white">
-          {currentStimulus && currentStimulus.questionGroups.length > 0 ? (
-            <ReadingQuestionsPanel
-              stimulus={currentStimulus}
+
+          <div className="min-h-0 flex-1 overflow-hidden">
+            <div className="flex h-full min-h-0 overflow-hidden bg-white">
+              <div className="min-h-0 w-[54%] border-r border-gray-300 bg-white">
+                <div className="h-full overflow-y-auto px-6 py-6">
+                  {(() => {
+                    const matchingGroup = currentStimulus?.questionGroups?.find(g => g.questionTypeCode === 'MATCHING_HEADINGS');
+                    return matchingGroup ? (
+                      <ReadingPassageWithMatching
+                        content={passage.content}
+                        questions={matchingGroup.questions}
+                        answers={answers}
+                        submitted={submitted}
+                        onAnswer={handleAnswer}
+                        selectedPillId={selectedPillId}
+                        onPillAssigned={() => setSelectedPillId(null)}
+                        examMode
+                      />
+                    ) : (
+                      <ReadingPassage content={passage.content} interactive={!isExamMode} examMode />
+                    );
+                  })()}
+                </div>
+              </div>
+              <div className="min-h-0 flex-1 bg-white">
+                <div className="h-full overflow-y-auto px-5 py-6">
+                  {currentStimulus && currentStimulus.questionGroups.length > 0 ? (
+                    <ReadingQuestionsPanel
+                      stimulus={currentStimulus}
+                      submitted={submitted}
+                      answers={answers}
+                      onAnswer={handleAnswer}
+                      textAnswers={textAnswers}
+                      onTextAnswer={handleTextAnswer}
+                      selectedPillId={selectedPillId}
+                      onPillSelect={setSelectedPillId}
+                      examMode
+                    />
+                  ) : (
+                    <p className="py-8 text-center text-gray-500">Chưa có câu hỏi</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {currentStimulus && currentStimulus.questionGroups.length > 0 && (
+            <ReadingQuestionNav
+              questionGroups={currentStimulus.questionGroups}
+              answeredQuestions={answeredQuestionIds}
               submitted={submitted}
-              answers={answers}
-              onAnswer={handleAnswer}
-              textAnswers={textAnswers}
-              onTextAnswer={handleTextAnswer}
-              selectedPillId={selectedPillId}
-              onPillSelect={setSelectedPillId}
-              examMode={isExamMode}
+              onSubmit={() => setConfirmOpen(true)}
+              partLabel={`Part ${currentStimulus.section ?? 1}`}
+              examMode
             />
-          ) : (
-            <p className="text-gray-500 text-center py-8">Chưa có câu hỏi</p>
           )}
         </div>
-      </div>
+      ) : (
+        <>
+          <div className="flex-1 flex overflow-hidden bg-white">
+            <div className="w-1/2 overflow-y-auto p-6 border-r border-gray-300">
+              <div className="mb-6 rounded-md border border-gray-300 bg-gray-100 px-4 py-3">
+                <h2 className="text-2xl font-bold text-gray-900">Part {currentStimulus?.section ?? 1}</h2>
+                <p className="text-lg text-gray-900">Read the text and answer questions 1-{questionCount || currentQuestionCount}</p>
+              </div>
+              {(() => {
+                const matchingGroup = currentStimulus?.questionGroups?.find(g => g.questionTypeCode === 'MATCHING_HEADINGS');
+                return matchingGroup ? (
+                  <ReadingPassageWithMatching
+                    content={passage.content}
+                    questions={matchingGroup.questions}
+                    answers={answers}
+                    submitted={submitted}
+                    onAnswer={handleAnswer}
+                    selectedPillId={selectedPillId}
+                    onPillAssigned={() => setSelectedPillId(null)}
+                  />
+                ) : (
+                  <ReadingPassage content={passage.content} interactive={!isExamMode} />
+                );
+              })()}
+            </div>
+            <div className="w-1/2 overflow-y-auto p-6 bg-white">
+              {currentStimulus && currentStimulus.questionGroups.length > 0 ? (
+                <ReadingQuestionsPanel
+                  stimulus={currentStimulus}
+                  submitted={submitted}
+                  answers={answers}
+                  onAnswer={handleAnswer}
+                  textAnswers={textAnswers}
+                  onTextAnswer={handleTextAnswer}
+                  selectedPillId={selectedPillId}
+                  onPillSelect={setSelectedPillId}
+                  examMode={isExamMode}
+                />
+              ) : (
+                <p className="text-gray-500 text-center py-8">Chưa có câu hỏi</p>
+              )}
+            </div>
+          </div>
 
-      {currentStimulus && currentStimulus.questionGroups.length > 0 && (
-        <ReadingQuestionNav
-          questionGroups={currentStimulus.questionGroups}
-          answeredQuestions={answeredQuestionIds}
-          submitted={submitted}
-          onSubmit={() => setConfirmOpen(true)}
-          partLabel={`Part ${currentStimulus.section ?? 1}`}
-          examMode={isExamMode}
-        />
+          {currentStimulus && currentStimulus.questionGroups.length > 0 && (
+            <ReadingQuestionNav
+              questionGroups={currentStimulus.questionGroups}
+              answeredQuestions={answeredQuestionIds}
+              submitted={submitted}
+              onSubmit={() => setConfirmOpen(true)}
+              partLabel={`Part ${currentStimulus.section ?? 1}`}
+              examMode={isExamMode}
+            />
+          )}
+        </>
       )}
 
       <ConfirmDialog

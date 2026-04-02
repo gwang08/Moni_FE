@@ -64,7 +64,7 @@ export function TestImportStep2Listening({ stimuli, onChange, onNext, onBack }: 
   };
 
   return (
-    <div className="space-y-5">
+    <div className="flex min-h-0 flex-1 flex-col gap-5">
       {/* Audio Upload */}
       <div>
         <label className="text-sm font-medium text-gray-700 mb-2 block">File audio</label>
@@ -91,7 +91,7 @@ export function TestImportStep2Listening({ stimuli, onChange, onNext, onBack }: 
       </div>
 
       {/* Rich text content (passage/transcript) */}
-      <div>
+      <div className="flex min-h-0 flex-1 flex-col">
         <label className="text-sm font-medium text-gray-700 mb-2 block">Nội dung bài nghe</label>
 
         {transcribing && (
@@ -102,7 +102,9 @@ export function TestImportStep2Listening({ stimuli, onChange, onNext, onBack }: 
           </div>
         )}
 
-        <StimulusCard stimulus={stimulus} index={0} onChange={updateStimulus} />
+        <div className="flex min-h-0 flex-1">
+          <StimulusCard stimulus={stimulus} onChange={updateStimulus} />
+        </div>
       </div>
 
       <div className="flex justify-between pt-2">

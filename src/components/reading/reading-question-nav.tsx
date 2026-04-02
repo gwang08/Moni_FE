@@ -24,11 +24,11 @@ export function ReadingQuestionNav({ questionGroups, answeredQuestions, submitte
 
   return (
     <div className="shrink-0 bg-white border-t border-gray-300 px-4 py-2 flex items-center justify-between gap-4">
-      <div className="text-sm font-semibold text-gray-900 shrink-0">
+      <div className={`shrink-0 ${examMode ? 'text-xs font-semibold text-gray-700' : 'text-sm font-semibold text-gray-900'}`}>
         {partLabel}
       </div>
       {/* Question pills grouped with separators */}
-      <div className="flex items-center gap-1 overflow-x-auto scrollbar-hide px-2 py-1 min-w-0 flex-1">
+      <div className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto px-2 py-1">
         {(() => {
           let globalNum = 0;
           return questionGroups.map((group, gi) => (
@@ -41,7 +41,7 @@ export function ReadingQuestionNav({ questionGroups, answeredQuestions, submitte
                   <button
                     key={q.id}
                     onClick={() => handleClick(q.id)}
-                    className={`shrink-0 w-7 h-7 rounded-md text-xs font-semibold transition-all border ${
+                    className={`shrink-0 h-7 w-7 rounded-md text-xs font-semibold transition-all border ${
                       isAnswered
                         ? examMode
                           ? 'bg-gray-900 text-white border-gray-900'
@@ -65,7 +65,11 @@ export function ReadingQuestionNav({ questionGroups, answeredQuestions, submitte
         <Button
           onClick={onSubmit}
           variant="outline"
-          className="shrink-0 rounded-full border-gray-400 text-gray-800 hover:bg-gray-50 px-5 h-9 text-sm font-medium"
+          className={`shrink-0 rounded-full px-5 h-9 text-sm font-medium ${
+            examMode
+              ? 'border-gray-900 bg-gray-900 text-white hover:bg-black'
+              : 'border-gray-400 text-gray-800 hover:bg-gray-50'
+          }`}
         >
           ✓
         </Button>
@@ -73,7 +77,11 @@ export function ReadingQuestionNav({ questionGroups, answeredQuestions, submitte
         <Link href="/practice?skill=reading">
           <Button
             variant="outline"
-            className="shrink-0 rounded-full border-gray-400 text-gray-800 hover:bg-gray-50 px-5 h-9 text-sm font-medium"
+            className={`shrink-0 rounded-full px-5 h-9 text-sm font-medium ${
+              examMode
+                ? 'border-gray-900 bg-gray-900 text-white hover:bg-black'
+                : 'border-gray-400 text-gray-800 hover:bg-gray-50'
+            }`}
           >
             Quay lại danh sách
           </Button>

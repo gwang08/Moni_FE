@@ -33,12 +33,13 @@ export function TestImportStep2({ stimuli, onChange, onNext, onBack }: Props) {
   const isValid = stimulus.content.trim().length > 0;
 
   return (
-    <div className="space-y-5">
-      <StimulusCard
-        stimulus={stimulus}
-        index={0}
-        onChange={updateStimulus}
-      />
+    <div className="flex min-h-0 flex-1 flex-col gap-5">
+      <div className="flex min-h-0 flex-1 flex-col">
+        <StimulusCard
+          stimulus={stimulus}
+          onChange={updateStimulus}
+        />
+      </div>
 
       <div className="flex justify-between pt-2">
         <Button variant="outline" onClick={onBack}>Quay lại</Button>

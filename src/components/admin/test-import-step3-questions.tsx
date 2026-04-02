@@ -133,9 +133,12 @@ export function TestImportStep3({ skill, stimuli, onChange, onNext, onBack }: Pr
   const [leftWidth, setLeftWidth] = useState(40);
   const [isResizing, setIsResizing] = useState(false);
   const [activeGroupIndex, setActiveGroupIndex] = useState(0);
+  const [, setActiveQuestionKey] = useState<string | null>(null);
   const [dragGroupIndex, setDragGroupIndex] = useState<number | null>(null);
   const [groupDropIndex, setGroupDropIndex] = useState<number | null>(null);
   const [transcribing, setTranscribing] = useState(false);
+  const [pendingEvidence, setPendingEvidence] = useState<string | null>(null);
+  const [pendingEvidenceTarget, setPendingEvidenceTarget] = useState<{ groupIndex: number; questionIndex: number } | null>(null);
 
   const layoutRef = useRef<HTMLDivElement>(null);
   const questionScrollRef = useRef<HTMLDivElement>(null);
@@ -233,6 +236,34 @@ export function TestImportStep3({ skill, stimuli, onChange, onNext, onBack }: Pr
 
   const reorderGroups = (from: number, to: number) => {
     updateStimulus((s) => ({ ...s, questionGroups: moveItem(s.questionGroups, from, to) }));
+  };
+
+  const beginAssignEvidence = (groupIndex: number, questionIndex: number) => {
+    setPendingEvidenceTarget({ groupIndex, questionIndex });
+    setPendingEvidence('');
+  };
+
+  const commitAssignEvidence = () => {
+    if (pendingEvidenceTarget === null || pendingEvidence === null) return;
+    const { groupIndex, questionIndex } = pendingEvidenceTarget;
+    updateStimulus((s) => {
+      const questionGroups = [...s.questionGroups];
+      const group = questionGroups[groupIndex];
+      const questions = [...group.questions];
+      const question = { ...questions[questionIndex] };
+      question.explanation = { ...question.explanation, evidence: pendingEvidence ?? '' };
+      questions[questionIndex] = question;
+      group.questions = questions;
+      questionGroups[groupIndex] = group;
+      return { ...s, questionGroups };
+    });
+    setPendingEvidence(null);
+    setPendingEvidenceTarget(null);
+  };
+
+  const cancelAssignEvidence = () => {
+    setPendingEvidence(null);
+    setPendingEvidenceTarget(null);
   };
 
   const getPositionOffset = (groupIndex: number): number => {
@@ -544,6 +575,8 @@ export function TestImportStep3({ skill, stimuli, onChange, onNext, onBack }: Pr
                         groupIndex={groupIndex}
                         positionOffset={groupPositionOffset}
                         stimulusContent={stimulus.content}
+                        pendingEvidence={pendingEvidence}
+                        onAssignEvidence={(questionIndex) => beginAssignEvidence(groupIndex, questionIndex)}
                         onChange={(updated) => updateGroup(groupIndex, updated)}
                         onRemove={() => removeGroup(groupIndex)}
                         dragHandleProps={{

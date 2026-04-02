@@ -76,7 +76,7 @@ export function ListeningTestStep({ testDetail, answers, textAnswers, onAnswer, 
 
       {/* Audio player pinned at bottom */}
       {currentStimulus.mediaUrl && (
-        <ListeningAudioPlayer audioUrl={currentStimulus.mediaUrl} />
+        <ListeningAudioPlayer key={currentStimulus.mediaUrl} audioUrl={currentStimulus.mediaUrl} />
       )}
     </div>
   );

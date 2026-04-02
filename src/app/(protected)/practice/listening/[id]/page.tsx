@@ -301,7 +301,7 @@ export default function ListeningExercisePage({ params }: Props) {
       </div>
 
       {currentStimulus?.mediaUrl && (
-        <ListeningAudioPlayer audioUrl={currentStimulus.mediaUrl} />
+        <ListeningAudioPlayer key={currentStimulus.mediaUrl} audioUrl={currentStimulus.mediaUrl} />
       )}
 
       <ListeningQuestionNav

@@ -39,11 +39,7 @@ export const SKILL_SECTIONS: Record<string, { value: number; label: string }[]> 
     { value: 2, label: 'Task 2' },
     { value: 3, label: 'Task 1 Builder' },
   ],
-  SPEAKING: [
-    { value: 1, label: 'Part 1' },
-    { value: 2, label: 'Part 2' },
-    { value: 3, label: 'Part 3' },
-  ],
+  SPEAKING: [], // Đề Speaking FSM luôn tạo full 3 Part cùng lúc
 };
 
 export function TestImportStep1({ data, onChange, onNext, onThumbnailFileSelected }: Props) {

@@ -37,6 +37,10 @@ function GapInput({ questionId, userAnswer, submitted, correctAnswer, onTextAnsw
   const correct = submitted && isAnswerCorrect(userAnswer, correctAnswer);
   const wrong = submitted && userAnswer.trim() !== '' && !isAnswerCorrect(userAnswer, correctAnswer);
 
+  const minLength = compact ? 30 : 50;
+  const charWidth = 7;
+  const inputWidth = Math.max(minLength, userAnswer.length * charWidth + 16);
+
   return (
     <input
       type="text"
@@ -44,11 +48,12 @@ function GapInput({ questionId, userAnswer, submitted, correctAnswer, onTextAnsw
       disabled={submitted}
       placeholder="..."
       onChange={e => onTextAnswer(questionId, e.target.value)}
-      className={`inline-block bg-white px-2 py-1 outline-none text-center align-baseline ${
+      className={`inline-block bg-transparent px-1 py-0.5 outline-none text-center align-baseline border-b-2 ${
         submitted && correct ? 'border-gray-900 text-gray-900 font-medium'
           : submitted && wrong ? 'border-gray-500 text-gray-700'
           : 'border-gray-400 focus:border-gray-900'
-      } ${compact ? 'w-[76px]' : 'w-[120px]'} border rounded-sm border-b-2 shadow-sm`}
+      } ${compact ? 'text-sm' : 'text-base'}`}
+      style={{ width: `${inputWidth}px`, minWidth: `${minLength}px` }}
     />
   );
 }
@@ -70,7 +75,7 @@ function GapQuestion({ question, displayPosition, userAnswer, submitted, onTextA
   const compact = examMode ?? true;
 
   return (
-    <div id={`question-${question.id}`} className={`rounded-lg border border-gray-300 bg-white p-4 ${compact ? 'shadow-sm' : ''}`}>
+    <div id={`question-${question.id}`} className={`rounded-lg bg-white p-4 ${compact ? 'shadow-sm' : ''}`}>
       <div className={`${compact ? 'text-[13px] leading-7' : 'text-sm leading-8'} text-gray-900`}>
         <span className="mr-1 font-bold">{displayPosition}.</span>
         {parsed ? (
@@ -189,7 +194,7 @@ function ParagraphGapFilling({ groupContent, questions, submitted, textAnswers, 
   }
 
   return (
-    <div className={`rounded-lg border border-gray-300 bg-white p-4 space-y-4 shadow-sm ${examMode ? 'text-[13px]' : ''}`}>
+    <div className={`rounded-lg bg-white p-4 space-y-4 shadow-sm ${examMode ? 'text-[13px]' : ''}`}>
       <div className={`text-gray-900 ${examMode ? 'leading-7' : 'text-sm leading-8'}`}>{rendered}</div>
 
       {/* Show results per question after submit */}
@@ -206,12 +211,12 @@ function ParagraphGapFilling({ groupContent, questions, submitted, textAnswers, 
             return (
                 <div
                   key={question.id}
-                  className={`rounded-lg border px-3 py-2 ${
+                  className={`rounded-lg px-3 py-2 ${
                     correct
-                      ? 'border-gray-300 bg-gray-50'
+                      ? 'bg-gray-50'
                       : wrong
-                      ? 'border-gray-300 bg-gray-50'
-                      : 'border-gray-200 bg-white'
+                      ? 'bg-gray-50'
+                      : 'bg-white'
                   }`}
                 >
                   <div className="flex items-center gap-2 text-xs">
@@ -227,7 +232,7 @@ function ParagraphGapFilling({ groupContent, questions, submitted, textAnswers, 
                   )}
                 </div>
                 {question.explanation?.text && (
-                  <div className="ml-5 mt-2">
+                  <div className="mt-2">
                     <p className="text-xs text-gray-600"><strong>Giải thích:</strong> {question.explanation.text}</p>
                     {question.explanation.evidence && (
                       <div className="space-y-1 mt-1">
@@ -269,7 +274,7 @@ export function ReadingGapFilling({
   return (
     <div className="space-y-4">
       {imageUrl && (
-        <div className="rounded-lg border border-gray-200 p-3">
+        <div className="rounded-lg p-3">
           <Image src={imageUrl} alt="Diagram" width={600} height={400}
             className="max-w-full h-auto rounded" unoptimized />
         </div>

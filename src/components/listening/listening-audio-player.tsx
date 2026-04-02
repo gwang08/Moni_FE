@@ -100,21 +100,21 @@ export function ListeningAudioPlayer({ audioUrl }: Props) {
       <audio ref={audioRef} src={audioUrl} preload="metadata" className="hidden" />
 
       {!hasStarted && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-[2px] px-4">
-          <div className="w-full max-w-[540px] rounded-3xl border border-white/10 bg-[#3b3b3b]/95 px-8 py-10 text-center shadow-2xl shadow-black/30">
-            <div className="mx-auto mb-6 flex h-24 w-24 items-center justify-center rounded-full bg-white/10">
-              <Headphones className="h-12 w-12 text-white" />
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-[1px] px-4">
+          <div className="w-full max-w-[500px] rounded-2xl border border-white/15 bg-[#2a2a2a]/98 px-10 py-12 text-center shadow-2xl">
+            <div className="mx-auto mb-5 flex h-20 w-20 items-center justify-center">
+              <Headphones className="h-14 w-14 text-white" />
             </div>
-            <p className="mx-auto max-w-md text-[15px] leading-7 text-white/90">
+            <p className="mx-auto max-w-md text-sm leading-7 text-white/95">
               You will be listening to an audio clip during this test. You will not be permitted to pause or rewind the audio while answering the questions.
             </p>
-            <p className="mt-6 text-sm text-white/75">
+            <p className="mt-5 text-sm text-white/80">
               To continue, click Play.
             </p>
             <button
               type="button"
               onClick={startAudio}
-              className="mt-6 inline-flex h-14 min-w-[118px] items-center justify-center gap-3 rounded-xl bg-black px-6 text-base font-medium text-white shadow-lg shadow-black/30 transition-transform hover:scale-[1.02] disabled:opacity-60"
+              className="mt-6 inline-flex h-12 min-w-[140px] items-center justify-center gap-2.5 rounded-lg bg-black px-7 text-sm font-medium text-white shadow-lg transition-all hover:scale-[1.02] hover:bg-gray-900 disabled:opacity-60"
             >
               <Play className="h-5 w-5 fill-white" />
               <span>Play</span>

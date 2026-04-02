@@ -12,6 +12,7 @@ import { ListeningPracticeHeader } from '@/components/listening/listening-practi
 import { ListeningAudioPlayer } from '@/components/listening/listening-audio-player';
 import { ListeningQuestionNav } from '@/components/listening/listening-question-nav';
 import { ListeningNotesSidebar } from '@/components/listening/listening-notes-sidebar';
+import { ListeningExamView } from '@/components/listening/listening-exam-view';
 import { ReadingQuestionsPanel } from '@/components/reading/reading-questions-panel';
 import { useListeningStore } from '@/store/listening-store';
 import { usePracticeStore } from '@/store/practice-store';
@@ -56,6 +57,7 @@ export default function ListeningExercisePage({ params }: Props) {
   // Ref to handleComplete so onTimeUp callback always calls the latest version
   const handleCompleteRef = useRef<(() => Promise<void>) | null>(null);
   const notes = useListeningStore((s) => s.notes);
+  const isPlaying = useListeningStore((s) => s.isPlaying);
   const progressKey = `practice-progress-${id}`;
   const modeParam = searchParams.get('mode');
   const isExamMode = modeParam === 'exam';
@@ -232,115 +234,76 @@ export default function ListeningExercisePage({ params }: Props) {
   }
 
   return (
-    <div className="h-[calc(100vh-56px)] flex flex-col bg-white">
-      <ListeningPracticeHeader
-        title={testDetail.title}
-        questionCount={questionCount}
+    <>
+      <ListeningExamView
+        stimuli={stimuli}
+        answers={answers}
+        textAnswers={textAnswers}
+        onAnswer={handleAnswer}
+        onTextAnswer={handleTextAnswer}
+        onSubmit={() => setConfirmOpen(true)}
+        submitted={submitted}
+        isPlaying={isPlaying}
         elapsedTime={elapsedTime}
-        submitted={submitted}
-        answeredCount={totalAnsweredCount}
-        totalQuestions={questionCount}
-        isCountingDown={isExamMode && testDuration > 0}
-        remainingSeconds={countdownTimer.remaining}
-        onSubmit={() => setConfirmOpen(true)}
-        onExit={() => setExitOpen(true)}
       />
-      {/* Exam mode badges */}
-      {isExamMode && (examSession.isResuming || examSession.saving) && !submitted && (
-        <div className="flex gap-2 px-5 py-1 bg-white border-b border-gray-50">
-          {examSession.isResuming && <Badge className="bg-blue-100 text-blue-700 border-blue-300">Đang tiếp tục...</Badge>}
-          {examSession.saving && <Badge variant="outline" className="text-gray-400 border-gray-200 text-[10px]">Đang lưu...</Badge>}
-        </div>
+
+      {/* Shared Confirm Dialogs (only for practice mode) */}
+      {!isExamMode && (
+        <>
+          <ConfirmDialog
+            open={confirmOpen}
+            onOpenChange={setConfirmOpen}
+            title="Hoàn thành bài tập?"
+            description={
+              unansweredCount > 0
+                ? `Bạn còn ${unansweredCount} câu chưa trả lời. Bạn có chắc muốn nộp bài?`
+                : 'Sau khi hoàn thành, bạn sẽ xem được đáp án đúng và giải thích cho từng câu hỏi.'
+            }
+            variant={unansweredCount > 0 ? 'destructive' : 'default'}
+            confirmText="Hoàn thành"
+            onConfirm={handleComplete}
+          />
+          <ConfirmDialog
+            open={exitOpen}
+            onOpenChange={setExitOpen}
+            title="Thoát khỏi bài làm?"
+            description="Bạn đang thoát khỏi phần làm bài, bạn có chắc chắn muốn thoát không?"
+            cancelText="Quay lại làm bài"
+            confirmText="Thoát"
+            variant="destructive"
+            onConfirm={() => router.push('/practice?skill=listening')}
+          />
+        </>
       )}
 
-      {stimuli.length > 1 && (
-        <div className="bg-white border-b px-4 py-2 flex items-center gap-2 overflow-x-auto">
-          {stimuli.map((s, index) => (
-            <button
-              key={s.id}
-              onClick={() => setActiveStimulusIdx(index)}
-              className={`px-3 py-1.5 text-xs rounded-full font-medium transition-colors whitespace-nowrap ${
-                index === activeStimulusIdx
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
-            >
-              Section {s.section ?? index + 1}
-            </button>
-          ))}
-        </div>
+      {/* Exam mode confirm dialogs */}
+      {isExamMode && (
+        <>
+          <ConfirmDialog
+            open={confirmOpen}
+            onOpenChange={setConfirmOpen}
+            title="Nộp bài?"
+            description={
+              unansweredCount > 0
+                ? `Bạn còn ${unansweredCount} câu chưa trả lời. Bạn có chắc muốn nộp bài?`
+                : 'Bạn có chắc chắn muốn nộp bài?'
+            }
+            variant={unansweredCount > 0 ? 'destructive' : 'default'}
+            confirmText="Nộp bài"
+            onConfirm={handleComplete}
+          />
+          <ConfirmDialog
+            open={exitOpen}
+            onOpenChange={setExitOpen}
+            title="Tạm thời thoát?"
+            description="Bài làm của bạn đã được lưu tự động. Bạn có thể quay lại tiếp tục bất cứ lúc nào trước khi hết giờ."
+            cancelText="Quay lại làm bài"
+            confirmText="Thoát"
+            variant="default"
+            onConfirm={() => router.push('/practice?skill=listening')}
+          />
+        </>
       )}
-
-      <div className="flex justify-end px-4 py-1 border-b bg-gray-50/50">
-        <Button
-          variant="outline"
-          size="sm"
-          className="gap-1.5 text-xs"
-          onClick={() => setNotesOpen((v) => !v)}
-        >
-          <StickyNote className="h-3.5 w-3.5" />
-          Ghi chú ({notes.length})
-        </Button>
-      </div>
-
-      <div className="flex-1 overflow-y-auto">
-        <div className="max-w-4xl mx-auto px-4 py-3">
-          {currentStimulus && currentStimulus.questionGroups.length > 0 ? (
-            <ReadingQuestionsPanel
-              stimulus={currentStimulus}
-              submitted={submitted}
-              answers={answers}
-              onAnswer={handleAnswer}
-              textAnswers={textAnswers}
-              onTextAnswer={handleTextAnswer}
-            />
-          ) : (
-            <p className="text-gray-400 text-center py-8">Chưa có câu hỏi</p>
-          )}
-        </div>
-      </div>
-
-      {currentStimulus?.mediaUrl && (
-        <ListeningAudioPlayer key={currentStimulus.mediaUrl} audioUrl={currentStimulus.mediaUrl} />
-      )}
-
-      <ListeningQuestionNav
-        totalQuestions={questionCount}
-        answeredQuestions={answeredSet}
-        questionIds={questionIds}
-        submitted={submitted}
-        onSubmit={() => setConfirmOpen(true)}
-      />
-
-      <ListeningNotesSidebar open={notesOpen} onOpenChange={setNotesOpen} />
-
-      <ConfirmDialog
-        open={confirmOpen}
-        onOpenChange={setConfirmOpen}
-        title="Hoàn thành bài tập?"
-        description={
-          unansweredCount > 0
-            ? `Bạn còn ${unansweredCount} câu chưa trả lời. Bạn có chắc muốn nộp bài?`
-            : 'Sau khi hoàn thành, bạn sẽ xem được đáp án đúng và giải thích cho từng câu hỏi.'
-        }
-        variant={unansweredCount > 0 ? 'destructive' : 'default'}
-        confirmText="Hoàn thành"
-        onConfirm={handleComplete}
-      />
-      <ConfirmDialog
-        open={exitOpen}
-        onOpenChange={setExitOpen}
-        title={isExamMode ? 'Tạm thời thoát?' : 'Thoát khỏi bài làm?'}
-        description={
-          isExamMode
-            ? 'Bài làm của bạn đã được lưu tự động. Bạn có thể quay lại tiếp tục bất cứ lúc nào trước khi hết giờ.'
-            : 'Bạn đang thoát khỏi phần làm bài, bạn có chắc chắn muốn thoát không?'
-        }
-        cancelText="Quay lại làm bài"
-        confirmText="Thoát"
-        variant={isExamMode ? 'default' : 'destructive'}
-        onConfirm={() => router.push('/practice?skill=listening')}
-      />
-    </div>
+    </>
   );
 }

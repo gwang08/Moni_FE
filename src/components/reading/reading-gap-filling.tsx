@@ -36,6 +36,7 @@ function GapInput({ questionId, userAnswer, submitted, correctAnswer, onTextAnsw
 }) {
   const correct = submitted && isAnswerCorrect(userAnswer, correctAnswer);
   const wrong = submitted && userAnswer.trim() !== '' && !isAnswerCorrect(userAnswer, correctAnswer);
+  const hasAnswer = userAnswer.trim().length > 0;
 
   const minLength = compact ? 30 : 50;
   const charWidth = 7;
@@ -49,50 +50,60 @@ function GapInput({ questionId, userAnswer, submitted, correctAnswer, onTextAnsw
       placeholder="..."
       onChange={e => onTextAnswer(questionId, e.target.value)}
       className={`inline-block bg-transparent px-1 py-0.5 outline-none text-center align-baseline border-b-2 ${
-        submitted && correct ? 'border-gray-900 text-gray-900 font-medium'
-          : submitted && wrong ? 'border-gray-500 text-gray-700'
-          : 'border-gray-400 focus:border-gray-900'
+        submitted && correct ? 'border-blue-600 text-gray-900 font-medium'
+          : submitted && wrong ? 'border-red-500 text-red-700'
+          : hasAnswer ? 'border-blue-600 text-gray-900 font-medium'
+          : 'border-gray-300 focus:border-blue-600'
       } ${compact ? 'text-sm' : 'text-base'}`}
       style={{ width: `${inputWidth}px`, minWidth: `${minLength}px` }}
     />
   );
 }
 
-/** IELTS-style boxed gap input for exam mode */
-function IELTSBoxedGapInput({ questionId, userAnswer, submitted, correctAnswer, onTextAnswer, questionNumber }: {
-  questionId: number; userAnswer: string; submitted: boolean; correctAnswer: string;
+/** IELTS-style inline gap input for exam mode */
+function ExamInlineGapInput({ questionId, userAnswer, submitted, correctAnswer, displayNumber, onTextAnswer }: {
+  questionId: number; userAnswer: string; submitted: boolean; correctAnswer: string; displayNumber?: number;
   onTextAnswer: (questionId: number, text: string) => void;
-  questionNumber: number;
 }) {
   const correct = submitted && isAnswerCorrect(userAnswer, correctAnswer);
   const wrong = submitted && userAnswer.trim() !== '' && !isAnswerCorrect(userAnswer, correctAnswer);
+  const hasAnswer = userAnswer.trim().length > 0;
+
+  // Calculate input width based on content
+  const minLength = 80;
+  const charWidth = 8;
+  const inputWidth = Math.max(minLength, userAnswer.length * charWidth + 32);
+  const isBlank = userAnswer.trim().length === 0;
 
   return (
-    <div className="relative inline-block">
+    <span
+      className="relative inline-flex align-baseline justify-center"
+      style={{ minWidth: `${minLength}px`, width: `${inputWidth}px`, maxWidth: '400px', height: '32px' }}
+    >
       <input
         type="text"
         value={userAnswer}
         disabled={submitted}
         onChange={e => onTextAnswer(questionId, e.target.value)}
-        className={`text-center text-sm font-normal border rounded-sm bg-white focus:outline-none focus:ring-2 px-2 py-1 transition-all ${
-          submitted && correct ? 'border-gray-900 text-gray-900 bg-gray-50 ring-0'
-            : submitted && wrong ? 'border-gray-500 text-gray-700 bg-red-50 ring-0'
-            : 'border-gray-400 focus:border-gray-900 focus:ring-gray-200'
+        className={`absolute inset-0 h-full w-full rounded-sm border bg-white px-3 py-1 text-center text-sm font-normal focus:outline-none focus:ring-2 transition-all ${
+          submitted && correct ? 'border-blue-600 text-gray-900 bg-blue-50 ring-0'
+            : submitted && wrong ? 'border-red-500 text-red-700 bg-red-50 ring-0'
+            : hasAnswer ? 'border-blue-600 text-gray-900 bg-white ring-0'
+            : 'border-gray-300 focus:border-blue-600 focus:ring-blue-200'
         }`}
-        style={{ width: '160px', minWidth: '150px', height: '28px' }}
         placeholder=""
       />
-      {!userAnswer && !submitted && (
-        <span className="absolute inset-0 flex items-center justify-center text-[11px] font-bold text-gray-400 pointer-events-none">
-          {questionNumber}
+      {!submitted && isBlank && displayNumber != null && (
+        <span className="pointer-events-none absolute inset-0 flex items-center justify-center text-sm font-medium text-gray-400">
+          {displayNumber}
         </span>
       )}
-    </div>
+    </span>
   );
 }
 
-/** IELTS-style boxed gap-filling for exam mode */
-function IELTSBoxedGapFilling({ questions, submitted, textAnswers, onTextAnswer, questionPositionById = {}, onLocateEvidence, examMode = false }: {
+/** IELTS-style sentence gap-filling for exam mode */
+function IELTSBoxedGapFilling({ questions, submitted, textAnswers, onTextAnswer, questionPositionById = {} }: {
   questions: QuestionDetail[];
   submitted: boolean;
   textAnswers: Record<number, string>;
@@ -109,34 +120,38 @@ function IELTSBoxedGapFilling({ questions, submitted, textAnswers, onTextAnswer,
   };
 
   return (
-    <div className="bg-white p-5 border border-gray-300 rounded-lg shadow-sm">
+    <div className="bg-white p-5">
       <div className="space-y-3">
         {sortedQuestions.map((q) => {
           const userAnswer = textAnswers[q.id] ?? '';
-          const displayPosition = questionPositionById[q.id] ?? q.position;
-          const correctAnswer = q.options.find(o => o.isCorrect)?.content ?? '';
-          const correct = submitted && isAnswerCorrect(userAnswer, correctAnswer);
-          const wrong = submitted && userAnswer.trim() !== '' && !correct;
-          const primaryCorrect = correctAnswer.split('|')[0];
 
           return (
-            <div key={q.id} className="flex items-center justify-between gap-4 py-2 border-b border-gray-100 last:border-0">
-              <div className="flex items-start gap-4 flex-1">
-                <span className="min-w-[20px] text-sm font-normal text-gray-900 mt-0.5">
-                  {displayPosition}
-                </span>
-                <p className="flex-1 text-sm text-gray-800 font-normal leading-relaxed">
-                  {formatContent(q.content)}
-                </p>
-              </div>
-              <IELTSBoxedGapInput
-                questionId={q.id}
-                userAnswer={userAnswer}
-                submitted={submitted}
-                correctAnswer={correctAnswer}
-                onTextAnswer={onTextAnswer}
-                questionNumber={displayPosition}
-              />
+            <div key={q.id} className="py-2 border-b border-gray-100 last:border-0">
+              <p className="text-sm text-gray-800 font-normal leading-8">
+                {(() => {
+                  const parsed = parseGapContent(q.content);
+                  if (!parsed) {
+                    return formatContent(q.content);
+                  }
+
+                  const correctAnswer = q.options.find(o => o.isCorrect)?.content ?? '';
+
+                  return (
+                    <>
+                      {parsed.before}
+                      <ExamInlineGapInput
+                        questionId={q.id}
+                        userAnswer={userAnswer}
+                        submitted={submitted}
+                        correctAnswer={correctAnswer}
+                        displayNumber={questionPositionById[q.id] ?? q.position}
+                        onTextAnswer={onTextAnswer}
+                      />
+                      {parsed.after}
+                    </>
+                  );
+                })()}
+              </p>
             </div>
           );
         })}
@@ -190,28 +205,28 @@ function GapQuestion({ question, displayPosition, userAnswer, submitted, onTextA
   const correct = submitted && isAnswerCorrect(userAnswer, correctAnswer);
   const wrong = submitted && userAnswer.trim() !== '' && !correct;
 
-  // Use boxed layout for exam mode
+  // Use inline sentence gaps for exam mode
   if (examMode) {
     return (
-      <div id={`question-${question.id}`} className="bg-white p-5 border border-gray-300 rounded-lg shadow-sm">
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex items-start gap-4 flex-1">
-            <span className="min-w-[20px] text-sm font-normal text-gray-900 mt-0.5">
-              {displayPosition}
-            </span>
-            <p className="flex-1 text-sm text-gray-800 font-normal leading-relaxed">
-              {parsed ? formatContentWithBlanks(question.content) : question.content}
-            </p>
-          </div>
-          <IELTSBoxedGapInput
-            questionId={question.id}
-            userAnswer={userAnswer}
-            submitted={submitted}
-            correctAnswer={correctAnswer}
-            onTextAnswer={onTextAnswer}
-            questionNumber={displayPosition}
-          />
-        </div>
+      <div id={`question-${question.id}`} className="bg-white p-5">
+        <p className="text-sm text-gray-800 font-normal leading-8">
+          {parsed ? (
+            <>
+              {parsed.before}
+              <ExamInlineGapInput
+                questionId={question.id}
+                userAnswer={userAnswer}
+                submitted={submitted}
+                correctAnswer={correctAnswer}
+                displayNumber={displayPosition}
+                onTextAnswer={onTextAnswer}
+              />
+              {parsed.after}
+            </>
+          ) : (
+            question.content
+          )}
+        </p>
 
         {/* Result feedback */}
         {submitted && (
@@ -322,11 +337,6 @@ function GapQuestion({ question, displayPosition, userAnswer, submitted, onTextA
   );
 }
 
-/** Helper to format content with blanks */
-function formatContentWithBlanks(content: string): string {
-  return content.replace(/\{\{.*?\}\}/g, '__________');
-}
-
 /** Render groupContent paragraph with inline blanks replacing number patterns */
 function ParagraphGapFilling({ groupContent, questions, submitted, textAnswers, onTextAnswer, questionPositionById = {}, onLocateEvidence, examMode = false }: {
   groupContent: string;
@@ -379,7 +389,7 @@ function ParagraphGapFilling({ groupContent, questions, submitted, textAnswers, 
   }
 
   return (
-    <div className={`rounded-lg bg-white p-4 space-y-4 shadow-sm ${examMode ? 'text-[13px]' : ''}`}>
+    <div className={`bg-white p-4 space-y-4 ${examMode ? 'text-[13px]' : ''}`}>
       <div className={`text-gray-900 ${examMode ? 'leading-7' : 'text-sm leading-8'}`}>{rendered}</div>
 
       {/* Show results per question after submit */}
@@ -456,7 +466,7 @@ export function ReadingGapFilling({
   const sentenceQs = questions.filter(q => q.content.trim());
   const paragraphQs = questions.filter(q => !q.content.trim());
 
-  // For exam mode with sentence questions, use boxed layout
+  // For exam mode with sentence questions, use inline sentence gaps
   if (examMode && sentenceQs.length > 0) {
     return (
       <div className="space-y-4">
@@ -473,8 +483,6 @@ export function ReadingGapFilling({
           textAnswers={textAnswers}
           onTextAnswer={onTextAnswer}
           questionPositionById={questionPositionById}
-          onLocateEvidence={onLocateEvidence}
-          examMode={examMode}
         />
 
         {/* Paragraph with inline gaps */}

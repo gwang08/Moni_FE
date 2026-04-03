@@ -9,10 +9,12 @@ interface Props {
   submitted?: boolean;
   onPrev?: () => void;
   onNext?: () => void;
+  onSubmit?: () => void;
+  onNavigate?: (questionId: number) => void;
   canGoPrev?: boolean;
   canGoNext?: boolean;
   partLabel?: string;
-  currentGroupIndex?: number;
+  activeQuestionId?: number | null;
 }
 
 export function ReadingExamQuestionNav({
@@ -21,78 +23,115 @@ export function ReadingExamQuestionNav({
   submitted,
   onPrev,
   onNext,
+  onSubmit,
+  onNavigate,
   canGoPrev = true,
   canGoNext = true,
   partLabel,
-  currentGroupIndex = 0,
+  activeQuestionId = null,
 }: Props) {
   const questionIds = questionGroups.flatMap((g) => g.questions.map((q) => q.id));
-  const currentQuestionId = questionIds[currentGroupIndex] || questionIds[0];
+  const isPartCompleted = questionIds.length > 0 && questionIds.every((qId) => answeredQuestions.has(qId));
+
+  const partColWidth = 56;
+  const cellWidth = 32;
+  const cellGap = 2;
+  const gridStyle = {
+    gridTemplateColumns: `${partColWidth}px repeat(${questionIds.length}, ${cellWidth}px)`,
+    columnGap: `${cellGap}px`,
+  } as const;
 
   return (
-    <div className="shrink-0 bg-white border-t border-gray-300 px-4 py-3 flex items-center justify-between">
-      {/* Part label and question numbers */}
-      <div className="flex items-center gap-2">
-        {partLabel && (
-          <span className="text-sm font-bold text-gray-900 mr-1">{partLabel}</span>
-        )}
-        <div className="flex items-center gap-0.5">
-          {questionIds.map((qId, idx) => {
-            const isAnswered = answeredQuestions.has(qId);
-            const isCurrent = qId === currentQuestionId;
-            return (
-              <button
-                key={qId}
-                disabled={submitted}
-                className={`w-8 h-8 flex items-center justify-center text-xs font-normal transition-all border border-transparent hover:bg-gray-100 ${
-                  isCurrent 
-                    ? 'text-blue-600 underline underline-offset-2' 
-                    : isAnswered
-                      ? 'text-gray-900'
-                      : 'text-gray-600'
-                } ${submitted ? 'cursor-default' : 'cursor-pointer'}`}
-              >
-                {idx + 1}
-              </button>
-            );
-          })}
-        </div>
-      </div>
+    <div className="shrink-0 bg-white border-t border-gray-300 px-4 py-1">
+      <div className="flex items-end justify-between gap-4">
+        <div className="min-w-0 flex-1 overflow-x-auto">
+          <div className="grid w-max items-center" style={gridStyle}>
+            <div className="flex items-center">
+              <span className={`block h-[2px] w-12 rounded-full ${isPartCompleted ? 'bg-emerald-500' : 'bg-gray-200'}`} />
+            </div>
+            {questionIds.map((qId) => {
+              const isAnswered = answeredQuestions.has(qId);
+              return (
+                <div key={`bar-${qId}`} className="flex items-center">
+                  <span className={`block h-[2px] w-full rounded-full ${isAnswered ? 'bg-emerald-500' : 'bg-gray-200'}`} />
+                </div>
+              );
+            })}
+          </div>
 
-      {/* Navigation arrows + Submit */}
-      <div className="flex items-center gap-2">
-        <button
-          onClick={onPrev}
-          disabled={!canGoPrev || submitted}
-          className={`w-10 h-10 flex items-center justify-center rounded transition-colors ${
-            canGoPrev && !submitted
-              ? 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-              : 'bg-gray-100 text-gray-400 cursor-not-allowed'
-          }`}
-        >
-          <ChevronLeft className="h-5 w-5" />
-        </button>
-        <button
-          onClick={onNext}
-          disabled={!canGoNext || submitted}
-          className={`w-10 h-10 flex items-center justify-center rounded transition-colors ${
-            canGoNext && !submitted
-              ? 'bg-gray-900 text-white hover:bg-black'
-              : 'bg-gray-200 text-gray-400 cursor-not-allowed'
-          }`}
-        >
-          <ChevronRight className="h-5 w-5" />
-        </button>
-        <button
-          disabled={submitted}
-          className={`w-10 h-10 flex items-center justify-center rounded transition-colors ${
-            submitted
-              ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-              : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-          }`}
-        >
-          <Check className="h-5 w-5" />
-        </button>
+          <div className="mt-1 grid w-max items-center" style={gridStyle}>
+            {partLabel && (
+              <span className={`text-sm font-bold ${isPartCompleted ? 'text-emerald-600' : 'text-gray-900'}`}>
+                {partLabel}
+              </span>
+            )}
+            {questionIds.map((qId, idx) => {
+              const isAnswered = answeredQuestions.has(qId);
+              const isCurrent = qId === (activeQuestionId ?? questionIds[0]);
+
+              return (
+                <button
+                  key={qId}
+                  type="button"
+                  onClick={() => {
+                    onNavigate?.(qId);
+                    const el = document.getElementById(`question-${qId}`);
+                    if (el) {
+                      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                  }}
+                  disabled={submitted}
+                  className={`w-full h-[34px] flex items-center justify-center text-[13px] font-normal transition-all bg-white ${
+                    isCurrent
+                      ? 'border-2 border-blue-600 text-gray-900'
+                      : isAnswered
+                        ? 'border border-transparent text-gray-700 hover:bg-gray-50'
+                        : 'border border-transparent text-gray-700 hover:bg-gray-50'
+                  } ${submitted ? 'cursor-default' : 'cursor-pointer'}`}
+                >
+                  {idx + 1}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 shrink-0 pb-1">
+          <button
+            onClick={onPrev}
+            disabled={!canGoPrev || submitted}
+            className={`w-[34px] h-[34px] flex items-center justify-center rounded transition-colors ${
+              canGoPrev && !submitted
+                ? 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+            }`}
+          >
+            <ChevronLeft className="h-[18px] w-[18px]" />
+          </button>
+          <button
+            onClick={onNext}
+            disabled={!canGoNext || submitted}
+            className={`w-[34px] h-[34px] flex items-center justify-center rounded transition-colors ${
+              canGoNext && !submitted
+                ? 'bg-gray-900 text-white hover:bg-black'
+                : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+            }`}
+          >
+            <ChevronRight className="h-[18px] w-[18px]" />
+          </button>
+          <button
+            onClick={onSubmit}
+            disabled={submitted}
+            className={`w-[34px] h-[34px] flex items-center justify-center rounded transition-colors ${
+              submitted
+                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                : 'bg-green-600 text-white hover:bg-green-700'
+            }`}
+            title="Nộp bài"
+          >
+            <Check className="h-[18px] w-[18px]" />
+          </button>
+        </div>
       </div>
     </div>
   );

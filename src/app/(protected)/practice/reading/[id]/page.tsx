@@ -4,10 +4,8 @@ import { use, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { toast } from 'sonner';
-import { ArrowLeft, Clock } from 'lucide-react';
 import { SkeletonPractice } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { ReadingToolbar } from '@/components/reading/reading-toolbar';
 import { ReadingPassage } from '@/components/reading/reading-passage';
 import { ReadingPassageWithMatching } from '@/components/reading/reading-passage-with-matching';
@@ -57,7 +55,7 @@ export default function ReadingExercisePage({ params }: Props) {
   const [submitted, setSubmitted] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [exitOpen, setExitOpen] = useState(false);
-  const [activeStimulusIdx, setActiveStimulusIdx] = useState(0);
+  const [activeStimulusIdx] = useState(0);
   // Ref to handleComplete so onTimeUp callback always calls the latest version
   const handleCompleteRef = useRef<(() => Promise<void>) | null>(null);
   const progressKey = `practice-progress-${id}`;
@@ -211,10 +209,6 @@ export default function ReadingExercisePage({ params }: Props) {
 
   const stimuli = useMemo(() => testDetail?.stimuli ?? [], [testDetail?.stimuli]);
   const currentStimulus = stimuli[activeStimulusIdx];
-  const passage = currentStimulus?.content
-    ? { title: testDetail?.title ?? FALLBACK_PASSAGE.title, content: currentStimulus.content }
-    : FALLBACK_PASSAGE;
-  const currentQuestionCount = currentStimulus?.questionGroups?.reduce((sum, g) => sum + g.questions.length, 0) ?? 0;
   const totalQuestionIds = useMemo(
     () => stimuli.flatMap((s) => s.questionGroups?.flatMap((g) => g.questions.map((q) => q.id)) ?? []),
     [stimuli]
@@ -246,16 +240,79 @@ export default function ReadingExercisePage({ params }: Props) {
 
   return (
     <div className="h-[calc(100vh-56px)] flex flex-col">
-      {/* Main content */}
-      <ReadingExamView
-        stimuli={stimuli}
-        answers={answers}
-        textAnswers={textAnswers}
-        onAnswer={handleAnswer}
-        onTextAnswer={handleTextAnswer}
-        submitted={submitted}
-        elapsedTime={displayTime}
-      />
+      {isExamMode ? (
+        <ReadingExamView
+          stimuli={stimuli}
+          answers={answers}
+          textAnswers={textAnswers}
+          onAnswer={handleAnswer}
+          onTextAnswer={handleTextAnswer}
+          onSubmit={() => setConfirmOpen(true)}
+          submitted={submitted}
+          elapsedTime={displayTime}
+        />
+      ) : (
+        <>
+          <ReadingToolbar />
+
+          <div className="flex-1 min-h-0 flex overflow-hidden bg-[#f5f6f8]">
+            <div className="w-[54%] border-r border-gray-300 bg-white">
+              <div className="h-full overflow-y-auto px-6 py-6">
+                {(() => {
+                  const matchingGroup = currentStimulus?.questionGroups.find(
+                    (group) => group.questionTypeCode === 'MATCHING_HEADINGS'
+                  );
+
+                  return matchingGroup ? (
+                    <ReadingPassageWithMatching
+                      content={currentStimulus?.content ?? FALLBACK_PASSAGE.content}
+                      questions={matchingGroup.questions}
+                      answers={answers}
+                      submitted={submitted}
+                      onAnswer={handleAnswer}
+                      selectedPillId={selectedPillId}
+                      onPillAssigned={() => setSelectedPillId(null)}
+                    />
+                  ) : (
+                    <ReadingPassage
+                      content={currentStimulus?.content ?? FALLBACK_PASSAGE.content}
+                      interactive
+                    />
+                  );
+                })()}
+              </div>
+            </div>
+
+            <div className="flex-1 bg-white">
+              <div className="h-full overflow-y-auto px-6 py-6">
+                {currentStimulus && (
+                  <ReadingQuestionsPanel
+                    stimulus={currentStimulus}
+                    submitted={submitted}
+                    answers={answers}
+                    onAnswer={handleAnswer}
+                    textAnswers={textAnswers}
+                    onTextAnswer={handleTextAnswer}
+                    selectedPillId={selectedPillId}
+                    onPillSelect={setSelectedPillId}
+                  />
+                )}
+              </div>
+            </div>
+          </div>
+
+          {currentStimulus?.questionGroups.length > 0 && (
+            <ReadingQuestionNav
+              questionGroups={currentStimulus.questionGroups}
+              answeredQuestions={answeredQuestionIds}
+              submitted={submitted}
+              onSubmit={() => setConfirmOpen(true)}
+              partLabel={`Part ${currentStimulus.section ?? activeStimulusIdx + 1}`}
+              examMode={false}
+            />
+          )}
+        </>
+      )}
 
       {!isExamMode && (
         <ConfirmDialog

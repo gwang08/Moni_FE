@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useMemo } from 'react';
-import { Volume2, Wifi, Bell, Menu, Clock } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { Wifi, Bell, Menu, Clock } from 'lucide-react';
 import { ReadingExamQuestionsPanel } from '@/components/reading/reading-exam-questions-panel';
 import { ReadingExamQuestionNav } from '@/components/reading/reading-exam-question-nav';
 import { ReadingPassage } from '@/components/reading/reading-passage';
@@ -14,6 +14,7 @@ interface Props {
   textAnswers: Record<number, string>;
   onAnswer: (questionId: number, optionId: number) => void;
   onTextAnswer: (questionId: number, text: string) => void;
+  onSubmit?: () => void;
   submitted: boolean;
   elapsedTime?: string;
 }
@@ -56,7 +57,7 @@ function ReadingPartInfo({ section, questionCount }: { section: number; question
   return (
     <div className="shrink-0 border-b border-gray-200 bg-[#f1f2ea] px-4 py-2">
       <div className="flex items-center gap-3">
-        <div className="rounded bg-[#f3f4f6] px-2 py-1 text-xs font-semibold text-gray-900">
+        <div className="text-xs font-semibold text-gray-900">
           Part {section}
         </div>
         <p className="text-sm text-gray-900">
@@ -73,14 +74,20 @@ export function ReadingExamView({
   textAnswers,
   onAnswer,
   onTextAnswer,
+  onSubmit,
   submitted,
   elapsedTime,
 }: Props) {
   const [activeStimulusIdx, setActiveStimulusIdx] = useState(0);
-  const [activeGroupIdx, setActiveGroupIdx] = useState(0);
+  const [activeQuestionId, setActiveQuestionId] = useState<number | null>(null);
 
   const currentStimulus = stimuli[activeStimulusIdx];
-  const currentGroup = currentStimulus?.questionGroups[activeGroupIdx];
+  const currentQuestionIds = useMemo(
+    () => currentStimulus?.questionGroups.flatMap((group) => group.questions.map((question) => question.id)) ?? [],
+    [currentStimulus]
+  );
+  const currentQuestionId = activeQuestionId ?? currentQuestionIds[0] ?? null;
+  const currentQuestionIndex = currentQuestionIds.indexOf(currentQuestionId ?? -1);
 
   // Calculate total questions for current stimulus
   const totalQuestions = useMemo(() => {
@@ -88,42 +95,74 @@ export function ReadingExamView({
     return currentStimulus.questionGroups.reduce((sum, g) => sum + g.questions.length, 0);
   }, [currentStimulus]);
 
-  // Get answered count
-  const answeredCount = useMemo(() => {
-    let count = 0;
-    currentStimulus?.questionGroups.forEach((g) => {
-      g.questions.forEach((q) => {
-        if (answers[q.id] != null && answers[q.id] !== 0) count++;
-        if ((textAnswers[q.id] ?? '').trim() !== '') count++;
-      });
-    });
-    return count;
-  }, [currentStimulus, answers, textAnswers]);
+  const scrollToQuestion = (questionId: number) => {
+    const el = document.getElementById(`question-${questionId}`);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  };
 
-  // Navigation handlers
+  const moveToQuestion = (questionId: number) => {
+    setActiveQuestionId(questionId);
+    scrollToQuestion(questionId);
+  };
+
+  // Prev/Next move by question within the current stimulus, then across stimuli at boundaries.
   const handlePrev = () => {
-    if (activeGroupIdx > 0) {
-      setActiveGroupIdx(activeGroupIdx - 1);
+    if (!currentQuestionIds.length) return;
+    const currentIndex = currentQuestionIds.indexOf(currentQuestionId ?? currentQuestionIds[0]);
+
+    if (currentIndex > 0) {
+      moveToQuestion(currentQuestionIds[currentIndex - 1]);
+      return;
+    }
+
+    if (activeStimulusIdx > 0) {
+      const nextIdx = activeStimulusIdx - 1;
+      const nextQuestionId = stimuli[nextIdx]?.questionGroups.flatMap((group) => group.questions.map((question) => question.id))[0] ?? null;
+      setActiveStimulusIdx(nextIdx);
+      setActiveQuestionId(nextQuestionId);
+      if (nextQuestionId != null) {
+        window.requestAnimationFrame(() => scrollToQuestion(nextQuestionId));
+      }
     }
   };
 
   const handleNext = () => {
-    if (currentStimulus && activeGroupIdx < currentStimulus.questionGroups.length - 1) {
-      setActiveGroupIdx(activeGroupIdx + 1);
+    if (!currentQuestionIds.length) return;
+    const currentIndex = currentQuestionIds.indexOf(currentQuestionId ?? currentQuestionIds[0]);
+
+    if (currentIndex >= 0 && currentIndex < currentQuestionIds.length - 1) {
+      moveToQuestion(currentQuestionIds[currentIndex + 1]);
+      return;
+    }
+
+    if (activeStimulusIdx < stimuli.length - 1) {
+      const nextIdx = activeStimulusIdx + 1;
+      const nextQuestionId = stimuli[nextIdx]?.questionGroups.flatMap((group) => group.questions.map((question) => question.id))[0] ?? null;
+      setActiveStimulusIdx(nextIdx);
+      setActiveQuestionId(nextQuestionId);
+      if (nextQuestionId != null) {
+        window.requestAnimationFrame(() => scrollToQuestion(nextQuestionId));
+      }
     }
   };
 
-  const canGoPrev = activeGroupIdx > 0;
-  const canGoNext = currentStimulus ? activeGroupIdx < currentStimulus.questionGroups.length - 1 : false;
+  const canGoPrev = currentQuestionIndex > 0 || activeStimulusIdx > 0;
+  const canGoNext = currentQuestionIndex >= 0
+    ? currentQuestionIndex < currentQuestionIds.length - 1 || activeStimulusIdx < stimuli.length - 1
+    : activeStimulusIdx < stimuli.length - 1;
 
-  // Flatten all question IDs for nav
-  const answeredQuestionIds = new Set<number>();
-  currentStimulus?.questionGroups.forEach((g) => {
-    g.questions.forEach((q) => {
-      if (answers[q.id] != null && answers[q.id] !== 0) answeredQuestionIds.add(q.id);
-      if ((textAnswers[q.id] ?? '').trim() !== '') answeredQuestionIds.add(q.id);
+  const answeredQuestionIds = useMemo(() => {
+    const ids = new Set<number>();
+    currentStimulus?.questionGroups.forEach((group) => {
+      group.questions.forEach((question) => {
+        if (answers[question.id] != null && answers[question.id] !== 0) ids.add(question.id);
+        if ((textAnswers[question.id] ?? '').trim() !== '') ids.add(question.id);
+      });
     });
-  });
+    return ids;
+  }, [currentStimulus, answers, textAnswers]);
 
   if (!currentStimulus) {
     return <div className="p-8 text-center text-gray-500">No questions available</div>;
@@ -167,19 +206,14 @@ export function ReadingExamView({
         {/* Questions (right side) */}
         <div className="flex-1 bg-white">
           <div className="h-full overflow-y-auto px-6 py-6">
-            {currentGroup && (
-              <ReadingExamQuestionsPanel
-                stimulus={{
-                  ...currentStimulus,
-                  questionGroups: [currentGroup],
-                }}
-                submitted={submitted}
-                answers={answers}
-                onAnswer={onAnswer}
-                textAnswers={textAnswers}
-                onTextAnswer={onTextAnswer}
-              />
-            )}
+            <ReadingExamQuestionsPanel
+              stimulus={currentStimulus}
+              submitted={submitted}
+              answers={answers}
+              onAnswer={onAnswer}
+              textAnswers={textAnswers}
+              onTextAnswer={onTextAnswer}
+            />
           </div>
         </div>
       </div>
@@ -192,9 +226,12 @@ export function ReadingExamView({
           submitted={submitted}
           onPrev={handlePrev}
           onNext={handleNext}
+          onSubmit={onSubmit}
           canGoPrev={canGoPrev}
           canGoNext={canGoNext}
           partLabel={`Part ${currentStimulus.section ?? activeStimulusIdx + 1}`}
+          activeQuestionId={currentQuestionId}
+          onNavigate={setActiveQuestionId}
         />
       )}
     </div>

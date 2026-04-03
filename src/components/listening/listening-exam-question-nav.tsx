@@ -106,12 +106,14 @@ export function ListeningExamQuestionNav({
           )}
         </button>
         <button
+          onClick={onSubmit}
           disabled={submitted}
           className={`w-10 h-10 flex items-center justify-center rounded transition-colors ${
             submitted
               ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-              : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+              : 'bg-green-600 text-white hover:bg-green-700'
           }`}
+          title="Nộp bài"
         >
           <Check className="h-5 w-5" />
         </button>

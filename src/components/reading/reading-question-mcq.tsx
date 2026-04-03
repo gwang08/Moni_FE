@@ -28,26 +28,23 @@ export function ReadingQuestionMcq({ questionId, position, content, options, sel
   // Exam mode: boxed layout with grid options
   if (examMode) {
     return (
-      <div id={`question-${questionId}`} className="bg-white p-5 border border-gray-300 rounded-lg shadow-sm">
-        <div className="flex items-start gap-4 mb-4">
-          <span className="min-w-[20px] text-sm font-normal text-gray-900 mt-0.5">{position}</span>
-          <p className="flex-1 text-sm text-gray-800 font-normal leading-relaxed">{content}</p>
+      <div id={`question-${questionId}`} className="bg-white px-5 py-4">
+        <div className="flex items-start gap-3 mb-4">
+          <span className="inline-flex h-10 min-w-10 items-center justify-center rounded-sm border border-blue-600 bg-white px-2 text-lg font-normal text-gray-900">
+            {position}
+          </span>
+          <p className="flex-1 pt-1 text-[15px] text-gray-900 font-normal leading-relaxed">{content}</p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 ml-9">
+        <div className="space-y-0.5">
           {options.map((option) => {
             const isSelected = selected.includes(option.id);
-            const isCorrect = option.isCorrect;
-            const isSelectedCorrect = showResult && isCorrect && isSelected;
-            const isUnselectedCorrect = showResult && isCorrect && !isSelected;
 
-            let className = 'flex items-center gap-3 p-3 rounded-md border-2 transition-all text-left ';
-            if (isSelected) {
-              className += 'border-gray-800 bg-gray-50 text-gray-900';
-            } else {
-              className += 'border-gray-100 hover:border-gray-200 bg-white';
-            }
-            className += submitted ? ' cursor-default opacity-80' : ' cursor-pointer';
+            const className = `w-full flex items-center gap-3 px-3 py-4 text-left transition-colors ${
+              isSelected
+                ? 'bg-[#cfe0f4] text-gray-900'
+                : 'bg-white text-gray-900 hover:bg-gray-50'
+            } ${submitted ? 'cursor-default opacity-90' : 'cursor-pointer'}`;
 
             return (
               <label key={option.id} className={className}>
@@ -58,9 +55,9 @@ export function ReadingQuestionMcq({ questionId, position, content, options, sel
                   checked={isSelected}
                   disabled={submitted}
                   onChange={() => !submitted && onAnswer(questionId, option.id)}
-                  className="h-4 w-4 text-gray-900 border-gray-400 focus:ring-gray-900"
+                  className="h-4 w-4 accent-blue-600 text-blue-600 border-gray-400 focus:ring-blue-600"
                 />
-                <span className="text-sm font-normal leading-tight">
+                <span className={`text-sm font-normal leading-tight ${isSelected ? 'font-medium' : ''}`}>
                   {option.label && <strong className="mr-1">{option.label}.</strong>}
                   {option.content}
                 </span>
@@ -138,7 +135,7 @@ export function ReadingQuestionMcq({ questionId, position, content, options, sel
               onClick={() => !submitted && onAnswer(questionId, option.id)}
               className={className}
             >
-              {isSelectedCorrect ? (
+              {showResult && option.isCorrect && isSelected ? (
                 <CheckCircle2 className="h-4 w-4 shrink-0" />
               ) : multiple ? (
                 isSelected

@@ -1,6 +1,4 @@
 'use client';
-
-import Image from 'next/image';
 import { CheckCircle2, XCircle } from 'lucide-react';
 import type { QuestionDetail } from '@/types/test.types';
 
@@ -472,8 +470,14 @@ export function ReadingGapFilling({
       <div className="space-y-4">
         {imageUrl && (
           <div className="rounded-lg p-3 bg-white border border-gray-200">
-            <Image src={imageUrl} alt="Diagram" width={600} height={400}
-              className="max-w-full h-auto rounded" unoptimized />
+            {/* Use plain <img> so remote diagram URLs work without Next image host config. */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={imageUrl}
+              alt="Diagram"
+              className="max-w-full h-auto rounded"
+              loading="lazy"
+            />
           </div>
         )}
 
@@ -506,8 +510,14 @@ export function ReadingGapFilling({
     <div className="space-y-4">
       {imageUrl && (
         <div className="rounded-lg p-3">
-          <Image src={imageUrl} alt="Diagram" width={600} height={400}
-            className="max-w-full h-auto rounded" unoptimized />
+          {/* Use plain <img> so remote diagram URLs work without Next image host config. */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={imageUrl}
+            alt="Diagram"
+            className="max-w-full h-auto rounded"
+            loading="lazy"
+          />
         </div>
       )}
 

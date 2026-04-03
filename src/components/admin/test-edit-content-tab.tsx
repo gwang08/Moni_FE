@@ -16,26 +16,24 @@ import { Table as TableExtension } from '@tiptap/extension-table';
 import TableRow from '@tiptap/extension-table-row';
 import TableCell from '@tiptap/extension-table-cell';
 import TableHeader from '@tiptap/extension-table-header';
-import { AlertTriangle, Eye, EyeOff, GripVertical, Highlighter, Loader2, Pencil, Plus, Save, Trash2 } from 'lucide-react';
+import { AlertTriangle, GripVertical, Highlighter, Loader2, Pencil, Plus, Save, Trash2 } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { RichTextToolbar } from '@/components/admin/rich-text-toolbar';
-import { ReadingQuestionsPanel } from '@/components/reading/reading-questions-panel';
 import { TestEditQuestionCard } from '@/components/admin/test-edit-question-card';
+import { TestEditAddQuestionForm } from '@/components/admin/test-edit-add-question-form';
 import { TestEditMatchingHeadings } from '@/components/admin/test-edit-matching-headings';
 import { TestEditMatchingInformation } from '@/components/admin/test-edit-matching-information';
 import { TestEditMatchingFeature } from '@/components/admin/test-edit-matching-feature';
 import { TestEditGapFilling } from '@/components/admin/test-edit-gap-filling';
 import { TestEditAddQuestionGroupForm } from '@/components/admin/test-edit-add-question-group-form';
-import { TestEditAddQuestionForm } from '@/components/admin/test-edit-add-question-form';
 import { useTestEditMutations } from '@/components/admin/use-test-edit-mutations';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { applyHighlights, type EvidenceEntry } from '@/components/admin/test-edit-highlight-evidence';
 import { TestEditWritingContent } from '@/components/admin/test-edit-writing-content';
 import { TestEditSpeakingContent } from '@/components/admin/test-edit-speaking-content';
 import { MediaUploadZone } from '@/components/admin/media-upload-zone';
-import { TranscriptEditor } from '@/components/admin/transcript-editor';
 import {
   batchUpdateQuestions,
   updateQuestionGroupContent,
@@ -44,7 +42,6 @@ import {
   updateQuestionGroupInstruction,
   updateQuestionGroupTypeCode,
   updateStimulus,
-  updateTest,
 } from '@/lib/admin-api';
 import type { TestDetailResponse, QuestionGroupDetail } from '@/types/test.types';
 import type { QuestionTypeCode, QuestionUpdateRequest } from '@/types/admin.types';
@@ -225,16 +222,16 @@ function GroupEditForm({
           </select>
         </div>
         <div className="space-y-1 md:col-span-2">
-          <label className="text-xs font-medium text-gray-600">Instruction</label>
+          <label className="text-xs font-medium text-gray-600">Hướng dẫn</label>
           <input
             value={instruction}
             onChange={(event) => onChange({ typeCode, instruction: event.target.value, groupContent })}
             className="h-9 w-full rounded-md border border-gray-300 bg-white px-3 text-sm"
-            placeholder="Ex: Choose the correct letter..."
+            placeholder="VD: Chọn đáp án đúng..."
           />
         </div>
         <div className="space-y-1 md:col-span-3">
-          <label className="text-xs font-medium text-gray-600">Group content</label>
+          <label className="text-xs font-medium text-gray-600">Nội dung nhóm</label>
           <textarea
             value={groupContent}
             onChange={(event) => onChange({ typeCode, instruction, groupContent: event.target.value })}
@@ -262,20 +259,18 @@ interface Props {
 
 export function TestEditContentTab({ test }: Props) {
   const testId = String(test.id);
-  const { handleDeleteGroup, handleDeleteQuestion, pendingDelete, confirmDelete, cancelDelete } = useTestEditMutations(testId);
+  const { handleDeleteQuestion, pendingDelete, confirmDelete, cancelDelete } = useTestEditMutations(testId);
   const queryClient = useQueryClient();
 
   const [activeStimulus, setActiveStimulus] = useState(0);
   const [leftPaneWidth, setLeftPaneWidth] = useState(40);
   const [isResizing, setIsResizing] = useState(false);
-  const [previewMode, setPreviewMode] = useState(false);
   const [pendingEvidence, setPendingEvidence] = useState<string | null>(null);
   const [addingGroup, setAddingGroup] = useState(false);
   const [addingQuestionForGroup, setAddingQuestionForGroup] = useState<number | null>(null);
   const [activeGroupId, setActiveGroupId] = useState<number | null>(null);
   const [editingGroupId, setEditingGroupId] = useState<number | null>(null);
   const [savingPassage, setSavingPassage] = useState(false);
-  const [savingStatus, setSavingStatus] = useState<null | 'DRAFT' | 'PUBLISHED'>(null);
 
   const [evidenceMap, setEvidenceMap] = useState<Record<number, string>>(() => {
     const map: Record<number, string> = {};
@@ -318,6 +313,7 @@ export function TestEditContentTab({ test }: Props) {
   const [editingPassage, setEditingPassage] = useState(false);
   const [passageEdit, setPassageEdit] = useState('');
   const [audioUrlEdit, setAudioUrlEdit] = useState('');
+  const [activeQuestionId, setActiveQuestionId] = useState<number | null>(null);
 
   const pendingOffsetRef = useRef(-1);
   const layoutRef = useRef<HTMLDivElement>(null);
@@ -395,19 +391,6 @@ export function TestEditContentTab({ test }: Props) {
       toast.error('Luu noi dung that bai');
     } finally {
       setSavingPassage(false);
-    }
-  };
-
-  const handleUpdateStatus = async (status: 'DRAFT' | 'PUBLISHED') => {
-    setSavingStatus(status);
-    try {
-      await updateTest(testId, { status });
-      toast.success(status === 'PUBLISHED' ? 'Da publish bai thi' : 'Da luu draft bai thi');
-      queryClient.invalidateQueries({ queryKey: ['admin', 'test', testId] });
-    } catch {
-      toast.error('Khong the cap nhat trang thai bai thi');
-    } finally {
-      setSavingStatus(null);
     }
   };
 
@@ -529,6 +512,39 @@ export function TestEditContentTab({ test }: Props) {
     });
   }, [orderedGroups]);
 
+  const questionMiniMap = useMemo(
+    () =>
+      groupMeta.flatMap((meta, groupIndex) => {
+        const questionPositionOffset = groupMeta
+          .slice(0, groupIndex)
+          .reduce((sum, item) => sum + item.questionCount, 0);
+        const questionOrder = questionOrders[meta.group.id] ?? meta.group.questions
+          .slice()
+          .sort((a, b) => a.position - b.position)
+          .map((question) => question.id);
+        return questionOrder.map((questionId, questionIndex) => ({
+          questionId,
+          groupId: meta.group.id,
+          number: questionPositionOffset + questionIndex + 1,
+        }));
+      }),
+    [groupMeta, questionOrders]
+  );
+
+  const questionDisplayPositions = useMemo(() => {
+    return new Map(questionMiniMap.map(({ questionId, number }) => [questionId, number]));
+  }, [questionMiniMap]);
+
+  const questionToGroupId = useMemo(() => {
+    const map = new Map<number, number>();
+    for (const meta of groupMeta) {
+      for (const question of meta.group.questions) {
+        map.set(question.id, meta.group.id);
+      }
+    }
+    return map;
+  }, [groupMeta]);
+
   useEffect(() => {
     const root = rightScrollRef.current;
     if (!root || !stimulus) return;
@@ -556,6 +572,37 @@ export function TestEditContentTab({ test }: Props) {
 
     return () => observer.disconnect();
   }, [groupMeta, stimulus]);
+
+  useEffect(() => {
+    const root = rightScrollRef.current;
+    if (!root || !stimulus) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const active = entries
+          .filter((entry) => entry.isIntersecting)
+          .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+        if (!active) return;
+
+        const questionId = Number((active.target as HTMLElement).dataset.questionId);
+        if (!Number.isNaN(questionId)) {
+          setActiveQuestionId(questionId);
+          const groupId = questionToGroupId.get(questionId);
+          if (groupId != null) setActiveGroupId(groupId);
+        }
+      },
+      {
+        root,
+        threshold: [0.2, 0.35, 0.5, 0.7],
+        rootMargin: '-10% 0px -60% 0px',
+      }
+    );
+
+    const targets = root.querySelectorAll<HTMLElement>('[data-question-id]');
+    targets.forEach((el) => observer.observe(el));
+
+    return () => observer.disconnect();
+  }, [questionToGroupId, stimulus]);
 
   useEffect(() => {
     if (!isResizing) return;
@@ -588,7 +635,30 @@ export function TestEditContentTab({ test }: Props) {
     const el = groupRefs.current[groupId];
     if (!el) return;
     setActiveGroupId(groupId);
-    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    el.scrollIntoView({ behavior: 'auto', block: 'start' });
+  };
+
+  const scrollToQuestion = (questionId: number) => {
+    const el = document.getElementById(`question-${questionId}`);
+    const root = rightScrollRef.current;
+    if (!el || !root) return;
+    setActiveQuestionId(questionId);
+    const groupId = questionToGroupId.get(questionId);
+    if (groupId != null) setActiveGroupId(groupId);
+
+    const rootRect = root.getBoundingClientRect();
+    const targetRect = el.getBoundingClientRect();
+    const nextTop = root.scrollTop + (targetRect.top - rootRect.top) - root.clientHeight / 2 + targetRect.height / 2;
+    const maxTop = root.scrollHeight - root.clientHeight;
+    root.scrollTo({
+      top: clamp(nextTop, 0, maxTop),
+      behavior: 'auto',
+    });
+  };
+
+  const openQuestionForActiveGroup = () => {
+    if (activeGroupId == null) return;
+    setAddingQuestionForGroup(activeGroupId);
   };
 
   if (test.skill === 'WRITING') return <TestEditWritingContent test={test} />;
@@ -598,7 +668,7 @@ export function TestEditContentTab({ test }: Props) {
   const totalQuestions = stimulus.questionGroups.reduce((sum, group) => sum + group.questions.length, 0);
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-3 overflow-hidden">
+    <div className="flex h-[calc(100vh-220px)] min-h-0 flex-col gap-3 overflow-hidden pb-4">
       {test.stimuli.length > 1 && (
         <div className="flex shrink-0 flex-wrap gap-1">
           {test.stimuli.map((item, index) => (
@@ -609,7 +679,6 @@ export function TestEditContentTab({ test }: Props) {
                 setActiveStimulus(index);
                 setPendingEvidence(null);
                 setAddingGroup(false);
-                setAddingQuestionForGroup(null);
               }}
               className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
                 index === activeStimulus ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
@@ -630,7 +699,7 @@ export function TestEditContentTab({ test }: Props) {
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <h4 className="text-sm font-semibold text-gray-800">{stimulus.title || (test.skill === 'LISTENING' ? 'Bai nghe' : 'Bai doc')}</h4>
-                <p className="text-xs text-gray-500">{test.skill === 'LISTENING' ? 'Transcript / audio' : 'Passage for comparison'}</p>
+                <p className="text-xs text-gray-500">{test.skill === 'LISTENING' ? 'Transcript / âm thanh' : 'Đoạn văn đối chiếu'}</p>
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 {editingPassage ? (
@@ -660,11 +729,11 @@ export function TestEditContentTab({ test }: Props) {
                       size="sm"
                       variant="outline"
                       className="h-8 gap-1 text-xs"
-                      onClick={() => {
-                        setPassageEdit(stimulus.content || '');
-                        setAudioUrlEdit(stimulus.mediaUrl || '');
-                        setEditingPassage(true);
-                      }}
+                              onClick={() => {
+                                setPassageEdit(stimulus.content || '');
+                                setAudioUrlEdit(stimulus.mediaUrl || '');
+                                setEditingPassage(true);
+                              }}
                     >
                       <Pencil className="h-3 w-3" /> Sua de
                     </Button>
@@ -673,14 +742,11 @@ export function TestEditContentTab({ test }: Props) {
                     </Button>
                   </>
                 )}
-                <Button type="button" size="sm" variant={previewMode ? 'default' : 'outline'} className="h-8 gap-1 text-xs" onClick={() => setPreviewMode((prev) => !prev)}>
-                  {previewMode ? <><EyeOff className="h-3 w-3" /> Soan cau hoi</> : <><Eye className="h-3 w-3" /> Xem truoc</>}
-                </Button>
               </div>
             </div>
           </div>
 
-          <div className="min-h-0 flex-1 overflow-y-scroll px-4 py-4 [scrollbar-gutter:stable]">
+          <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 [scrollbar-gutter:stable]">
             {test.skill === 'LISTENING' && editingPassage ? (
               <div className="mb-3 space-y-2">
                 <label className="text-xs font-medium text-gray-600">Audio URL</label>
@@ -703,15 +769,9 @@ export function TestEditContentTab({ test }: Props) {
               </div>
             ) : null}
 
-            {test.skill === 'LISTENING' && !editingPassage && (
-              <div className="mb-3">
-                <TranscriptEditor stimulusId={stimulus.id} testId={testId} mediaUrl={stimulus.mediaUrl} initialTranscript={stimulus.transcript} />
-              </div>
-            )}
-
             <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
               <div className="mb-3 flex items-center justify-between">
-                <h4 className="text-sm font-semibold text-gray-700">{previewMode ? 'Preview' : 'Passage / Transcript'}</h4>
+                <h4 className="text-sm font-semibold text-gray-700">Passage / Transcript</h4>
                 {!editingPassage && <div className="text-xs text-gray-400">{totalQuestions} cau</div>}
               </div>
 
@@ -755,20 +815,22 @@ export function TestEditContentTab({ test }: Props) {
           <div className="shrink-0 border-b border-gray-200 bg-white/95 px-4 py-3 backdrop-blur">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <h3 className="text-sm font-semibold text-gray-800">Question flow</h3>
-                <p className="text-xs text-gray-500">{totalQuestions} questions across {groupMeta.length} groups</p>
+                <h3 className="text-sm font-semibold text-gray-800">Luồng câu hỏi</h3>
+                <p className="text-xs text-gray-500">{totalQuestions} câu hỏi trong {groupMeta.length} nhóm</p>
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 <Button type="button" size="sm" variant="outline" className="h-8 gap-1 border-dashed text-xs" onClick={() => setAddingGroup(true)}>
-                  <Plus className="h-3.5 w-3.5" /> Add New Question Group
+                  <Plus className="h-3.5 w-3.5" /> Thêm mới nhóm câu hỏi
                 </Button>
-                <Button type="button" size="sm" variant="outline" className="h-8 gap-1 text-xs" onClick={() => handleUpdateStatus('DRAFT')} disabled={savingStatus === 'DRAFT'}>
-                  {savingStatus === 'DRAFT' ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
-                  Save Draft
-                </Button>
-                <Button type="button" size="sm" className="h-8 gap-1 text-xs" onClick={() => handleUpdateStatus('PUBLISHED')} disabled={savingStatus === 'PUBLISHED'}>
-                  {savingStatus === 'PUBLISHED' ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
-                  Publish
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="h-8 gap-1 border-dashed text-xs"
+                  onClick={openQuestionForActiveGroup}
+                  disabled={activeGroupId == null}
+                >
+                  <Plus className="h-3.5 w-3.5" /> Thêm câu hỏi cho nhóm đang focus
                 </Button>
               </div>
             </div>
@@ -787,7 +849,7 @@ export function TestEditContentTab({ test }: Props) {
                       active ? 'border-blue-600 bg-blue-600 text-white' : 'border-gray-200 bg-white text-gray-600 hover:border-blue-300 hover:text-blue-700'
                     }`}
                   >
-                    <span>{`Group ${index + 1}`}</span>
+                    <span>{`Nhóm ${index + 1}`}</span>
                     <span className={`rounded-full px-1.5 py-0.5 text-[10px] ${active ? 'bg-white/20' : 'bg-gray-100 text-gray-500'}`}>
                       {questionCount}
                     </span>
@@ -799,19 +861,35 @@ export function TestEditContentTab({ test }: Props) {
             </div>
           </div>
 
+          <div className="shrink-0 border-b border-gray-200 bg-white px-4 py-3">
+            <div className="flex items-center gap-2 overflow-x-auto pb-1 [scrollbar-gutter:stable]">
+              {questionMiniMap.map(({ questionId, groupId, number }, index) => {
+                const isActive = activeQuestionId === questionId;
+                const prev = questionMiniMap[index - 1];
+                const showSeparator = index > 0 && prev?.groupId !== groupId;
+                return (
+                  <span key={questionId} className="flex items-center gap-2 shrink-0">
+                    {showSeparator && <span className="text-gray-300 text-[10px] select-none">•</span>}
+                    <button
+                      type="button"
+                      onClick={() => scrollToQuestion(questionId)}
+                      className={`flex h-8 min-w-8 items-center justify-center rounded-md border px-2 text-xs font-medium transition-colors ${
+                        isActive
+                          ? 'border-blue-600 bg-blue-600 text-white'
+                          : 'border-gray-200 bg-white text-gray-700 hover:border-blue-300 hover:text-blue-700'
+                      }`}
+                    >
+                      {number}
+                    </button>
+                  </span>
+                );
+              })}
+            </div>
+          </div>
+
           <div ref={rightScrollRef} className="min-h-0 flex-1 overflow-y-scroll px-4 py-4 [scrollbar-gutter:stable]">
-            {previewMode ? (
-              <ReadingQuestionsPanel
-                stimulus={stimulus}
-                submitted={false}
-                answers={{}}
-                onAnswer={() => {}}
-                textAnswers={{}}
-                onTextAnswer={() => {}}
-              />
-            ) : (
-              <div className="space-y-4">
-                {groupMeta.map(({ group, typeCode, invalid }, index) => {
+            <div className="space-y-4">
+              {groupMeta.map(({ group, typeCode, invalid }, index) => {
                   const isMatchingHeadings = typeCode === 'MATCHING_HEADINGS';
                   const isActive = activeGroupId === group.id;
                   const questionOrder = questionOrders[group.id] ?? group.questions
@@ -864,12 +942,12 @@ export function TestEditContentTab({ test }: Props) {
                           >
                             <GripVertical className="h-3.5 w-3.5" />
                           </button>
-                          <span className="rounded-full bg-blue-600 px-2.5 py-0.5 text-xs font-semibold text-white">Group {index + 1}</span>
+                          <span className="rounded-full bg-blue-600 px-2.5 py-0.5 text-xs font-semibold text-white">Nhóm {index + 1}</span>
                           <span className="text-xs font-medium text-gray-700">{getQuestionRangeLabel(group, index)}</span>
                           <span className="text-xs text-gray-400">{TYPE_LABELS[typeCode] || typeCode}</span>
                           {invalid && (
                             <span className="inline-flex items-center gap-1 rounded-full bg-red-50 px-2 py-0.5 text-[11px] font-medium text-red-600">
-                              <AlertTriangle className="h-3 w-3" /> Incomplete
+                              <AlertTriangle className="h-3 w-3" /> Chưa hoàn chỉnh
                             </span>
                           )}
                         </div>
@@ -937,7 +1015,11 @@ export function TestEditContentTab({ test }: Props) {
                             {orderedQuestions.map((question) => (
                               <div
                                 key={question.id}
-                                className={`group/q relative ${canDragQuestions ? 'cursor-grab' : ''} ${dropHint?.kind === 'question' && dropHint.itemId === question.id ? 'ring-2 ring-blue-400 rounded-lg' : ''}`}
+                                id={`question-${question.id}`}
+                                data-question-id={question.id}
+                                className={`group/q relative ${canDragQuestions ? 'cursor-grab' : ''} ${
+                                  activeQuestionId === question.id ? 'ring-2 ring-blue-400 rounded-lg' : ''
+                                } ${dropHint?.kind === 'question' && dropHint.itemId === question.id ? 'ring-2 ring-blue-400 rounded-lg' : ''}`}
                                 draggable={canDragQuestions}
                                 onDragStart={() => canDragQuestions && setDragState({ kind: 'question', groupId: group.id, itemId: question.id })}
                                 onDragOver={(event) => {
@@ -968,6 +1050,7 @@ export function TestEditContentTab({ test }: Props) {
                                 <TestEditQuestionCard
                                   question={question}
                                   questionTypeCode={typeCode}
+                                  displayPosition={questionDisplayPositions.get(question.id)}
                                   testId={testId}
                                   pendingEvidence={pendingEvidence}
                                   onAssignEvidence={() => setPendingEvidence(null)}
@@ -986,26 +1069,8 @@ export function TestEditContentTab({ test }: Props) {
                           </div>
                         )}
 
-                        <div className="flex flex-wrap items-center gap-2 pt-1">
-                          <Button type="button" size="sm" variant="outline" className="h-8 gap-1 text-xs" onClick={() => setEditingGroupId(group.id)}>
-                            <Pencil className="h-3.5 w-3.5" /> Edit Group
-                          </Button>
-                          <Button type="button" size="sm" variant="outline" className="h-8 gap-1 text-xs" onClick={() => handleDeleteGroup(group.id)}>
-                            <Trash2 className="h-3.5 w-3.5" /> Delete Group
-                          </Button>
-                          {addingQuestionForGroup === group.id ? (
-                            <Button type="button" size="sm" className="h-8 gap-1 text-xs" onClick={() => setAddingQuestionForGroup(null)}>
-                              Close Add Question
-                            </Button>
-                          ) : (
-                            <Button type="button" size="sm" variant="outline" className="h-8 gap-1 border-dashed text-xs" onClick={() => setAddingQuestionForGroup(group.id)}>
-                              <Plus className="h-3.5 w-3.5" /> Add Question
-                            </Button>
-                          )}
-                        </div>
-
                         {addingQuestionForGroup === group.id && (
-                          <div>
+                          <div className="pt-1">
                             <TestEditAddQuestionForm
                               groupId={group.id}
                               questionTypeCode={typeCode}
@@ -1015,12 +1080,13 @@ export function TestEditContentTab({ test }: Props) {
                             />
                           </div>
                         )}
+
                       </div>
                     </section>
                   );
                 })}
 
-                {addingGroup ? (
+                        {addingGroup ? (
                   <TestEditAddQuestionGroupForm
                     stimulusId={stimulus.id}
                     testId={testId}
@@ -1032,11 +1098,10 @@ export function TestEditContentTab({ test }: Props) {
                   />
                 ) : (
                   <Button type="button" size="sm" variant="outline" className="h-10 w-full gap-1 border-dashed text-xs" onClick={() => setAddingGroup(true)}>
-                    <Plus className="h-3.5 w-3.5" /> Add New Question Group
+                    <Plus className="h-3.5 w-3.5" /> Thêm mới nhóm câu hỏi
                   </Button>
                 )}
               </div>
-            )}
           </div>
         </section>
       </div>

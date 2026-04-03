@@ -11,7 +11,6 @@ import { Input } from '@/components/ui/input';
 import { AdminHeader } from '@/components/admin/admin-header';
 import {
   ADMIN_TEST_SKILL_BADGES,
-  ADMIN_TEST_STATUS_BADGES,
   ADMIN_TEST_STATUS_LABELS,
   ADMIN_TEST_TYPE_BADGES,
   ADMIN_TEST_TYPE_LABELS,
@@ -27,6 +26,15 @@ const SKILL_LABELS: Record<string, string> = {
   WRITING: 'Writing',
   SPEAKING: 'Speaking',
 };
+
+function getTestSectionLabel(test: { skill: string; section?: number | null }) {
+  if (test.section == null) return '-';
+  if (test.skill === 'READING') return `Passage ${test.section}`;
+  if (test.skill === 'LISTENING') return `Section ${test.section}`;
+  if (test.skill === 'WRITING') return `Task ${test.section}`;
+  if (test.skill === 'SPEAKING') return `Part ${test.section}`;
+  return String(test.section);
+}
 
 export default function AdminTestsPage() {
   const router = useRouter();
@@ -354,13 +362,15 @@ export default function AdminTestsPage() {
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
             <table className="w-full text-sm table-fixed">
               <colgroup>
-                <col className="w-[60%]" />
+                <col className="w-[40%]" />
+                <col className="w-[15%]" />
                 <col className="w-[20%]" />
-                <col className="w-[20%]" />
+                <col className="w-[25%]" />
               </colgroup>
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
                   <th className="px-4 py-3 text-left font-medium text-gray-600">Tiêu đề</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-600">Phần</th>
                   <th className="px-4 py-3 text-left font-medium text-gray-600">Kỹ năng</th>
                   <th className="px-4 py-3 text-left font-medium text-gray-600">Loại</th>
                 </tr>
@@ -368,17 +378,17 @@ export default function AdminTestsPage() {
               <tbody className="divide-y divide-gray-100">
                 {filteredTests.length === 0 ? (
                   <tr>
-                    <td colSpan={3} className="text-center py-8 text-gray-400">
+                    <td colSpan={4} className="text-center py-8 text-gray-400">
                       Chưa có bài thi nào
                     </td>
                   </tr>
                 ) : (
                   filteredTests.map(test => (
-                    <tr
-                      key={test.id}
-                      className="hover:bg-gray-50 cursor-pointer"
-                      onClick={() => router.push(`/admin/tests/${test.id}`)}
-                    >
+                      <tr
+                        key={test.id}
+                        className="cursor-pointer"
+                        onClick={() => router.push(`/admin/tests/${test.id}`)}
+                      >
                       <td className="px-4 py-3 font-medium text-gray-900">
                         <div className="flex items-center gap-1.5">
                           <Link
@@ -397,6 +407,11 @@ export default function AdminTestsPage() {
                             </Badge>
                           )}
                         </div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <Badge className="border border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-50 hover:text-slate-600">
+                          {getTestSectionLabel(test)}
+                        </Badge>
                       </td>
                       <td className="px-4 py-3">
                         <Badge

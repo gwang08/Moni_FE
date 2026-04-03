@@ -17,15 +17,15 @@ import { defaultOptions } from '@/lib/question-defaults';
 import type { QuestionTypeCode, OptionRequest } from '@/types/admin.types';
 
 const QUESTION_TYPES: { value: QuestionTypeCode; label: string }[] = [
-  { value: 'MCQ', label: 'Multiple Choice (One Answer)' },
-  { value: 'MCQ_MULTIPLE', label: 'Multiple Choice (Many Answers)' },
-  { value: 'TFNG', label: 'True / False / Not Given' },
-  { value: 'YNNG', label: 'Yes / No / Not Given' },
-  { value: 'GAP_FILLING', label: 'Gap Filling' },
-  { value: 'MATCHING_HEADINGS', label: 'Matching Headings' },
-  { value: 'MATCHING_INFORMATION', label: 'Matching Information' },
-  { value: 'MATCHING_FEATURE', label: 'Matching Features' },
-  { value: 'DIAGRAM_LABEL', label: 'Map, Diagram Label' },
+  { value: 'MCQ', label: 'Trắc nghiệm 1 đáp án' },
+  { value: 'MCQ_MULTIPLE', label: 'Trắc nghiệm nhiều đáp án' },
+  { value: 'TFNG', label: 'Đúng / Sai / Không có thông tin' },
+  { value: 'YNNG', label: 'Có / Không / Không có thông tin' },
+  { value: 'GAP_FILLING', label: 'Điền từ' },
+  { value: 'MATCHING_HEADINGS', label: 'Nối tiêu đề' },
+  { value: 'MATCHING_INFORMATION', label: 'Nối thông tin' },
+  { value: 'MATCHING_FEATURE', label: 'Nối đặc điểm' },
+  { value: 'DIAGRAM_LABEL', label: 'Nhãn bản đồ / sơ đồ' },
 ];
 
 export interface QuestionDraft {

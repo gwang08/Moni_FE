@@ -68,11 +68,19 @@ function WritingReview({ stimuli }: { stimuli: StimulusRequest[] }) {
 function SpeakingReview({ stimuli }: { stimuli: StimulusRequest[] }) {
   if (stimuli.length === 0) return null;
 
-  const partColors = [
-    { border: 'border-blue-200', bg: 'bg-blue-50', text: 'text-blue-700' },
-    { border: 'border-amber-200', bg: 'bg-amber-50', text: 'text-amber-700' },
-    { border: 'border-emerald-200', bg: 'bg-emerald-50', text: 'text-emerald-700' },
-  ];
+  const getPartNumber = (stimulus: StimulusRequest, fallback: number) => {
+    const code = stimulus.questionGroups[0]?.questionTypeCode;
+    if (code === 'SPEAKING_PART_2' || stimulus.section === 2) return 2;
+    if (code === 'SPEAKING_PART_3' || stimulus.section === 3) return 3;
+    if (code === 'SPEAKING_PART_1' || stimulus.section === 1) return 1;
+    return fallback;
+  };
+
+  const partColors: Record<number, { border: string; bg: string; text: string }> = {
+    1: { border: 'border-blue-200', bg: 'bg-blue-50', text: 'text-blue-700' },
+    2: { border: 'border-amber-200', bg: 'bg-amber-50', text: 'text-amber-700' },
+    3: { border: 'border-emerald-200', bg: 'bg-emerald-50', text: 'text-emerald-700' },
+  };
 
   return (
     <div className="space-y-4">
@@ -80,12 +88,13 @@ function SpeakingReview({ stimuli }: { stimuli: StimulusRequest[] }) {
         const questions = s.questionGroups[0]?.questions || [];
         const transition = questions.find(q => q.position === 0);
         const mainQuestions = questions.filter(q => (q.position ?? 0) > 0);
-        const color = partColors[si] || partColors[0];
+        const partNumber = getPartNumber(s, si + 1);
+        const color = partColors[partNumber] || partColors[1];
 
         return (
           <div key={si} className={`border ${color.border} rounded-lg overflow-hidden`}>
             <div className={`${color.bg} px-4 py-2.5 border-b ${color.border} flex items-center justify-between`}>
-              <span className={`text-sm font-semibold ${color.text}`}>{s.title || `Part ${si + 1}`}</span>
+              <span className={`text-sm font-semibold ${color.text}`}>{s.title || `Part ${partNumber}`}</span>
               <span className="text-xs text-gray-400">{mainQuestions.length} câu</span>
             </div>
             <div className="p-4 space-y-3">

@@ -71,9 +71,42 @@ function getPartQuestions(stimuli: StimulusRequest[], partIdx: number) {
   return qs.filter(q => (q.position ?? 0) > 0);
 }
 
+function getStimulusPartNumber(stimulus: StimulusRequest | undefined, fallback: number): 1 | 2 | 3 {
+  const code = stimulus?.questionGroups[0]?.questionTypeCode;
+  if (code === 'SPEAKING_PART_2' || stimulus?.section === 2) return 2;
+  if (code === 'SPEAKING_PART_3' || stimulus?.section === 3) return 3;
+  if (code === 'SPEAKING_PART_1' || stimulus?.section === 1) return 1;
+  return fallback as 1 | 2 | 3;
+}
+
 function buildScreens(stimuli: StimulusRequest[]): PreviewScreen[] {
   const screens: PreviewScreen[] = [];
-  if (stimuli.length < 3) return screens;
+  if (stimuli.length === 0) return screens;
+
+  if (stimuli.length === 1) {
+    const stimulus = stimuli[0];
+    const part = getStimulusPartNumber(stimulus, 1);
+    const questions = getPartQuestions(stimuli, 0);
+
+    if (part === 1) {
+      questions.forEach((_, i) => screens.push({ type: 'part1', questionIdx: i }));
+      return screens;
+    }
+
+    if (part === 2) {
+      const transition = stimulus.questionGroups[0]?.questions.find(q => q.position === 0);
+      if (transition) screens.push({ type: 'transition', part: 2, text: transition.content });
+      const cueCard = stimulus.questionGroups[0]?.questions.find(q => q.position === 1);
+      if (cueCard) screens.push({ type: 'cuecard', topic: cueCard.content });
+      screens.push({ type: 'part2speaking' });
+      return screens;
+    }
+
+    const transition = stimulus.questionGroups[0]?.questions.find(q => q.position === 0);
+    if (transition) screens.push({ type: 'transition', part: 3, text: transition.content });
+    questions.forEach((_, i) => screens.push({ type: 'part3', questionIdx: i }));
+    return screens;
+  }
 
   // Part 1 questions
   const p1Qs = getPartQuestions(stimuli, 0);

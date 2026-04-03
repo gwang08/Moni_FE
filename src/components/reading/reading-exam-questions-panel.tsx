@@ -246,13 +246,27 @@ export function ReadingExamQuestionsPanel({
 
             {/* Question content in boxed layout */}
             {isGapType ? (
-              <IELTSGapFillingBox
-                questions={groupQuestions}
-                submitted={submitted}
-                textAnswers={textAnswers}
-                onTextAnswer={onTextAnswer || (() => {})}
-                questionPositionById={questionMeta.questionPositionById}
-              />
+              <div className="space-y-4">
+                {group.imageUrl && (
+                  <div className="rounded-lg border border-gray-200 bg-white p-3">
+                    {/* Use plain <img> so remote diagram URLs work without Next image host config. */}
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={group.imageUrl}
+                      alt="Diagram"
+                      className="max-w-full h-auto rounded"
+                      loading="lazy"
+                    />
+                  </div>
+                )}
+                <IELTSGapFillingBox
+                  questions={groupQuestions}
+                  submitted={submitted}
+                  textAnswers={textAnswers}
+                  onTextAnswer={onTextAnswer || (() => {})}
+                  questionPositionById={questionMeta.questionPositionById}
+                />
+              </div>
             ) : isMatchingHeadings ? (
               <div className="bg-white p-5">
                 <ReadingMatchingPills

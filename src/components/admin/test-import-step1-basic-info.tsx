@@ -39,7 +39,11 @@ export const SKILL_SECTIONS: Record<string, { value: number; label: string }[]> 
     { value: 2, label: 'Task 2' },
     { value: 3, label: 'Task 1 Builder' },
   ],
-  SPEAKING: [], // Đề Speaking FSM luôn tạo full 3 Part cùng lúc
+  SPEAKING: [
+    { value: 1, label: 'Part 1' },
+    { value: 2, label: 'Part 2' },
+    { value: 3, label: 'Part 3' },
+  ],
 };
 
 export function TestImportStep1({ data, onChange, onNext, onThumbnailFileSelected }: Props) {
@@ -93,6 +97,7 @@ export function TestImportStep1({ data, onChange, onNext, onThumbnailFileSelecte
         <Label className="mb-1.5 block text-sm font-medium">Ảnh bìa</Label>
         {data.thumbnailUrl ? (
           <div className="relative w-fit">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={data.thumbnailUrl} alt="Thumbnail" className="h-32 rounded-lg object-cover border" />
             <button type="button" onClick={() => { onChange({ ...data, thumbnailUrl: '' }); onThumbnailFileSelected?.(null); }}
               className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-0.5 hover:bg-red-600">

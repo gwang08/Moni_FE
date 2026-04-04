@@ -1,12 +1,7 @@
 'use client';
 
-import { useState } from 'react';
 import { BookOpen, Pencil, Headphones, Mic } from 'lucide-react';
 import type { Skill, TestMode } from '@/types/practice.types';
-import { WritingFiltersPanel } from './writing-filters-panel';
-import type { WritingFilters } from './writing-filters-panel';
-
-export type { WritingFilters };
 
 const SKILLS = [
   {
@@ -30,8 +25,8 @@ const SKILLS = [
     label: 'Writing',
     icon: Pencil,
     color: 'text-red-500',
-    modes: ['PRACTICE'] as TestMode[],
-    subItems: [],
+    modes: ['PRACTICE', 'FULL_TEST'] as TestMode[],
+    subItems: ['Task 1', 'Task 2'],
   },
   {
     key: 'speaking' as Skill,
@@ -44,8 +39,8 @@ const SKILLS = [
 ];
 
 const MODE_LABELS: Record<TestMode, string> = {
-  PRACTICE: 'Bài lẻ',
-  FULL_TEST: 'Full đề',
+  PRACTICE: 'Phần thi',
+  FULL_TEST: 'Bài thi',
 };
 
 interface Props {
@@ -55,32 +50,22 @@ interface Props {
   onSkillChange: (skill: Skill) => void;
   onModeChange: (mode: TestMode) => void;
   onPassageChange: (passage: number | null) => void;
-  onWritingFiltersChange?: (filters: WritingFilters) => void;
 }
 
 export function PracticeSidebar({
   activeSkill, activeMode, activePassage,
   onSkillChange, onModeChange, onPassageChange,
-  onWritingFiltersChange,
 }: Props) {
-  const [writingFilters, setWritingFilters] = useState<WritingFilters>({
-    task: null, types: [], topics: [],
-  });
-
-  const handleWritingFiltersChange = (filters: WritingFilters) => {
-    setWritingFilters(filters);
-    onWritingFiltersChange?.(filters);
-  };
 
   const handleSelect = (skill: Skill, mode: TestMode) => {
     if (activeSkill !== skill) onSkillChange(skill);
     onModeChange(mode);
-    onPassageChange(null);
+    // Don't call onPassageChange here - onModeChange already handles it
   };
 
   const handlePassage = (skill: Skill, passage: number) => {
     if (activeSkill !== skill) onSkillChange(skill);
-    onModeChange('PRACTICE');
+    // Just update passage - mode stays as-is (already PRACTICE when passages are visible)
     onPassageChange(activePassage === passage ? null : passage);
   };
 
@@ -126,7 +111,7 @@ export function PracticeSidebar({
                         </span>
                       </button>
 
-                      {/* Sub-items for Reading/Listening/Speaking bài lẻ */}
+                      {/* Sub-items for Reading/Listening/Speaking phần thi */}
                       {isSelected && mode === 'PRACTICE' && skill.subItems.length > 0 && (
                         <div className="ml-7 pl-3 border-l-2 border-gray-300 space-y-0.5 mt-0.5 mb-1">
                           {skill.subItems.map((item, idx) => {
@@ -149,16 +134,6 @@ export function PracticeSidebar({
                               </button>
                             );
                           })}
-                        </div>
-                      )}
-
-                      {/* Writing filters */}
-                      {isSelected && skill.key === 'writing' && (
-                        <div className="ml-7 pl-3 border-l-2 border-gray-300 mt-1 mb-1">
-                          <WritingFiltersPanel
-                            filters={writingFilters}
-                            onChange={handleWritingFiltersChange}
-                          />
                         </div>
                       )}
                     </div>

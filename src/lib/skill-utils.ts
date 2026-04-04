@@ -1,4 +1,4 @@
-import type { Exercise, Skill, Difficulty, TestMode } from '@/types/practice.types';
+import type { Exercise, Skill, Difficulty, TestMode, TestType } from '@/types/practice.types';
 import type { TestResponse } from '@/types/test.types';
 
 const SKILL_MAP: Record<string, Skill> = {
@@ -28,5 +28,9 @@ export function testResponseToExercise(test: TestResponse): Exercise {
     attemptCount: test.attemptCount ?? 0,
     questionTypes: test.questionTypes ?? [],
     testMode: (test.testMode as TestMode) || 'PRACTICE',
+    testType: (test.testType as TestType) || 'BOTH',
+    section: test.section ?? undefined,
+    status: test.status,
+    tagIds: test.tagIds ?? [],
   };
 }

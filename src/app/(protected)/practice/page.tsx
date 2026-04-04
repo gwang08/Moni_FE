@@ -3,12 +3,11 @@
 import { Suspense, useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { usePracticeStore } from '@/store/practice-store';
+import { useAuthStore } from '@/store/auth-store';
 import { usePracticeExercises } from '@/hooks/use-practice-exercises';
 import { ModeSelectionModal } from '@/components/practice/mode-selection-modal';
 import { SpeakingModeDialog } from '@/components/speaking/speaking-mode-dialog';
 import { getServices } from '@/lib/payment-api';
-import type { WritingFilters } from '@/components/practice/writing-filters-panel';
-import { WRITING_TASK1_TYPE_CODES, WRITING_TASK2_TYPE_CODES } from '@/components/practice/writing-filter-constants';
 import { PracticeSidebar } from '@/components/practice/practice-sidebar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -35,6 +34,15 @@ const DEFAULT_IMAGES: Record<string, string> = {
   speaking: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=200&fit=crop',
 };
 
+function getTestSectionLabel(skill: string, section?: number | null) {
+  if (section == null) return null;
+  if (skill === 'reading') return `Passage ${section}`;
+  if (skill === 'listening') return `Section ${section}`;
+  if (skill === 'writing') return `Task ${section}`;
+  if (skill === 'speaking') return `Part ${section}`;
+  return String(section);
+}
+
 export default function PracticePageWrapper() {
   return (
     <Suspense fallback={<div className="flex min-h-[calc(100vh-56px)]"><div className="w-64 bg-gray-50" /><main className="flex-1 p-6"><div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">{Array.from({ length: 8 }).map((_, i) => (<SkeletonCard key={i} className="h-56" />))}</div></main></div>}
@@ -48,20 +56,18 @@ function PracticePage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const initialSkill = (searchParams.get('skill') as Skill) || 'reading';
+  // URL uses 'q' param: 'test' for Phần thi (PRACTICE), 'full-test' for Bài thi (FULL_TEST)
+  const qParam = searchParams.get('q');
+  const initialMode: TestMode = qParam === 'full-test' ? 'FULL_TEST' : 'PRACTICE';
+  const initialPassage = searchParams.get('part') ? parseInt(searchParams.get('part')!) : null;
+  const initialTestType = (searchParams.get('type') as TestType) || null;
+  const initialQuestionType = searchParams.get('question-type') || null;
   const [activeSkill, setActiveSkill] = useState<Skill>(initialSkill);
-  const [activeMode, setActiveMode] = useState<TestMode>('PRACTICE');
-
-  const handleSkillChange = useCallback((skill: Skill) => {
-    setActiveSkill(skill);
-    setActiveTestType(null);
-    const params = new URLSearchParams(searchParams.toString());
-    params.set('skill', skill);
-    router.replace(`/practice?${params.toString()}`, { scroll: false });
-  }, [router, searchParams]);
-  const [activePassage, setActivePassage] = useState<number | null>(null);
+  const [activeMode, setActiveMode] = useState<TestMode>(initialMode);
+  const [activePassage, setActivePassage] = useState<number | null>(initialPassage);
   const [showCompleted, setShowCompleted] = useState(false);
-  const [activeQuestionType, setActiveQuestionType] = useState<string | null>(null);
-  const [activeTestType, setActiveTestType] = useState<TestType | null>(null);
+  const [activeQuestionType, setActiveQuestionType] = useState<string | null>(initialQuestionType);
+  const [activeTestType, setActiveTestType] = useState<TestType | null>(initialTestType);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
@@ -69,9 +75,63 @@ function PracticePage() {
   const [speakingTestId, setSpeakingTestId] = useState<string>('');
   const [aiCost, setAiCost] = useState<number | null>(null);
   const [expertCost, setExpertCost] = useState<number | null>(null);
-  const [writingFilters, setWritingFilters] = useState<WritingFilters>({ task: null, types: [], topics: [] });
   const servicesFetched = useRef(false);
   const [activeSessions, setActiveSessions] = useState<Map<number, ExamSession>>(new Map());
+
+  // Update URL when filters change
+  // q = 'test' (Phần thi) or 'full-test' (Bài thi)
+  // part = passage/section/part/task number
+  // type = academic or general
+  // question-type = question type filter
+  const updateUrl = useCallback((params: {
+    skill?: Skill;
+    mode?: TestMode;
+    passage?: number | null;
+    testType?: TestType | null;
+    questionType?: string | null;
+  }) => {
+    const newParams = new URLSearchParams();
+    newParams.set('skill', params.skill ?? activeSkill);
+    const currentMode = params.mode !== undefined ? params.mode : activeMode;
+    // q = 'test' for PRACTICE (Phần thi), 'full-test' for FULL_TEST (Bài thi)
+    newParams.set('q', currentMode === 'FULL_TEST' ? 'full-test' : 'test');
+    if (params.passage != null) newParams.set('part', String(params.passage));
+    if (params.testType) newParams.set('type', params.testType.toLowerCase());
+    if (params.questionType) newParams.set('question-type', params.questionType);
+    router.replace(`/practice?${newParams.toString()}`, { scroll: false });
+  }, [router, activeSkill]);
+
+  const handleSkillChange = useCallback((skill: Skill) => {
+    setActiveSkill(skill);
+    setActiveMode('PRACTICE');
+    setActivePassage(null);
+    setShowCompleted(false);
+    setActiveTestType(null);
+    setActiveQuestionType(null);
+    setSearchQuery('');
+    updateUrl({ skill, mode: 'PRACTICE', passage: null, testType: null, questionType: null });
+  }, [updateUrl]);
+
+  const handleModeChange = useCallback((mode: TestMode) => {
+    setActiveMode(mode);
+    setActivePassage(null);
+    updateUrl({ mode, passage: null });
+  }, [updateUrl]);
+
+  const handlePassageChange = useCallback((passage: number | null) => {
+    setActivePassage(passage);
+    updateUrl({ passage, mode: activeMode }); // Pass current mode to prevent stale closure issue
+  }, [updateUrl, activeMode]);
+
+  const handleTestTypeChange = useCallback((testType: TestType | null) => {
+    setActiveTestType(testType);
+    updateUrl({ testType });
+  }, [updateUrl]);
+
+  const handleQuestionTypeChange = useCallback((questionType: string | null) => {
+    setActiveQuestionType(questionType);
+    updateUrl({ questionType });
+  }, [updateUrl]);
 
   useEffect(() => {
     if (servicesFetched.current) return;
@@ -116,20 +176,24 @@ function PracticePage() {
   const { showPrompt, setShowPrompt, requireAuth } = useLoginPrompt();
 
   const completedExercises = usePracticeStore((state) => state.completedExercises);
-  const { exercises, loading, error, page, totalPages, setPage, retry } = usePracticeExercises(activeSkill, activePassage);
+  const { exercises, loading, error, page, totalPages, setPage, retry } = usePracticeExercises(activeSkill, activePassage, activeMode);
+  const isAdminPreview = useAuthStore((state) => state.user?.role) === 'ADMIN';
 
   // Collect all unique question types from current exercises (for filter chips)
   const availableQuestionTypes = useMemo(() => {
-    const modeFiltered = exercises.filter((e) => (e.testMode || 'PRACTICE') === activeMode);
     const types = new Set<string>();
-    modeFiltered.forEach((e) => e.questionTypes?.forEach((qt) => types.add(qt)));
+    exercises.forEach((e) => e.questionTypes?.forEach((qt) => types.add(qt)));
     return Array.from(types).sort();
-  }, [exercises, activeMode]);
+  }, [exercises]);
 
   const filteredExercises = useMemo(() => {
     let list = exercises;
-    // Filter by testMode
-    list = list.filter((e) => (e.testMode || 'PRACTICE') === activeMode);
+    // Filter by testMode on frontend (backend returns all PUBLISHED tests)
+    // "Bài thi" = FULL_TEST only, "Phần thi" = PRACTICE or null
+    list = list.filter((e) => {
+      if (activeMode === 'FULL_TEST') return e.testMode === 'FULL_TEST';
+      return !e.testMode || e.testMode === 'PRACTICE';
+    });
     // Filter by testType (Academic / General Training)
     if (activeTestType) {
       list = list.filter((e) => !e.testType || e.testType === activeTestType || e.testType === 'BOTH');
@@ -138,24 +202,20 @@ function PracticePage() {
     if (activeQuestionType) {
       list = list.filter((e) => e.questionTypes?.includes(activeQuestionType));
     }
-    // Filter by writing type (dạng đề)
-    if (activeSkill === 'writing' && writingFilters.types.length > 0) {
-      const allCodes = { ...WRITING_TASK1_TYPE_CODES, ...WRITING_TASK2_TYPE_CODES };
-      const selectedCodes = writingFilters.types.map(t => allCodes[t]).filter(Boolean);
-      list = list.filter((e) => e.questionTypes?.some(qt => selectedCodes.includes(qt)));
-    }
     // Filter completed/not
-    if (showCompleted) {
-      list = list.filter((e) => completedExercises.includes(e.id));
-    } else {
-      list = list.filter((e) => !completedExercises.includes(e.id));
+    if (!isAdminPreview) {
+      if (showCompleted) {
+        list = list.filter((e) => completedExercises.includes(e.id));
+      } else {
+        list = list.filter((e) => !completedExercises.includes(e.id));
+      }
     }
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
       list = list.filter((e) => e.title.toLowerCase().includes(q) || e.description.toLowerCase().includes(q));
     }
     return list;
-  }, [exercises, activeMode, activeTestType, activeQuestionType, activeSkill, writingFilters, showCompleted, searchQuery, completedExercises]);
+  }, [exercises, activeMode, activeTestType, activeQuestionType, activeSkill, showCompleted, searchQuery, completedExercises, isAdminPreview]);
 
   const handleStartExercise = (exercise: Exercise) => {
     requireAuth(() => {
@@ -175,7 +235,7 @@ function PracticePage() {
     });
   };
 
-  const modeLabel = activeMode === 'FULL_TEST' ? 'Full đề' : 'Bài lẻ';
+  const modeLabel = activeMode === 'FULL_TEST' ? 'Bài thi' : 'Phần thi';
 
   return (
     <div className="flex min-h-[calc(100vh-56px)]">
@@ -184,12 +244,8 @@ function PracticePage() {
         activeMode={activeMode}
         activePassage={activePassage}
         onSkillChange={handleSkillChange}
-        onModeChange={setActiveMode}
-        onPassageChange={setActivePassage}
-        onWritingFiltersChange={(f) => {
-          setWritingFilters(f);
-          setActivePassage(f.task); // task 1/2 = section 1/2
-        }}
+        onModeChange={handleModeChange}
+        onPassageChange={handlePassageChange}
       />
 
       {/* Main Content */}
@@ -244,7 +300,7 @@ function PracticePage() {
               return (
                 <button
                   key={type ?? 'all'}
-                  onClick={() => setActiveTestType(type)}
+                  onClick={() => handleTestTypeChange(type)}
                   className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
                     isActive ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                   }`}
@@ -261,7 +317,7 @@ function PracticePage() {
           <QuestionTypeFilter
             availableTypes={availableQuestionTypes}
             activeType={activeQuestionType}
-            onTypeChange={setActiveQuestionType}
+            onTypeChange={handleQuestionTypeChange}
           />
         )}
 
@@ -299,6 +355,11 @@ function PracticePage() {
                         <Users className="h-3 w-3" />{exercise.attemptCount ?? 0} lượt làm bài
                       </div>
                       <Badge className={`absolute bottom-2 left-2 ${config.bgColor} ${config.color} border-0`}>{config.label}</Badge>
+                      {exercise.section && (
+                        <Badge className="absolute bottom-2 right-2 bg-white/90 text-gray-700 border border-gray-200 text-xs" style={{ marginRight: (isCompleted || activeExam) ? '2.5rem' : '0.5rem' }}>
+                          {getTestSectionLabel(exercise.skill, exercise.section)}
+                        </Badge>
+                      )}
                       {activeExam && (
                         <div className="absolute top-2 right-2 bg-orange-500 text-white text-[10px] font-bold px-2 py-1 rounded-full flex items-center gap-1 animate-pulse">
                           <Clock className="h-3 w-3" />

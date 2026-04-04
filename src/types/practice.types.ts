@@ -18,6 +18,9 @@ export interface Exercise {
   questionTypes?: string[];
   testMode?: TestMode;
   testType?: TestType;
+  section?: number;
+  status?: string;
+  tagIds?: number[];
 }
 
 export interface ExerciseProgress {

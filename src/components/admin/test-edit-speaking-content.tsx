@@ -11,6 +11,7 @@ import type { TestDetailResponse } from '@/types/test.types';
 
 interface Props {
   test: TestDetailResponse;
+  onBeforeSaveBasicInfo?: () => Promise<boolean> | boolean;
 }
 
 type QuestionEdit = {
@@ -30,7 +31,7 @@ function getPartTone(index: number): 'blue' | 'amber' | 'emerald' {
   return 'emerald';
 }
 
-export function TestEditSpeakingContent({ test }: Props) {
+export function TestEditSpeakingContent({ test, onBeforeSaveBasicInfo }: Props) {
   const queryClient = useQueryClient();
   const testId = String(test.id);
   const [saving, setSaving] = useState(false);
@@ -87,6 +88,11 @@ export function TestEditSpeakingContent({ test }: Props) {
   const handleSaveAll = async () => {
     setSaving(true);
     try {
+      if (onBeforeSaveBasicInfo) {
+        const canContinue = await onBeforeSaveBasicInfo();
+        if (canContinue === false) return;
+      }
+
       const updates: Promise<void>[] = [];
 
       for (const stimulus of test.stimuli) {

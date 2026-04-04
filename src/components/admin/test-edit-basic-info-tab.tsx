@@ -1,10 +1,9 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { forwardRef, useImperativeHandle, useRef, useState } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { Loader2, X } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { updateTest, uploadMedia } from '@/lib/admin-api';
@@ -47,10 +46,16 @@ interface Props {
   onSaved?: () => void;
 }
 
-export function TestEditBasicInfoTab({ test, onSaved }: Props) {
+export interface TestEditBasicInfoHandle {
+  save: () => Promise<boolean>;
+}
+
+export const TestEditBasicInfoTab = forwardRef<TestEditBasicInfoHandle, Props>(function TestEditBasicInfoTab(
+  { test, onSaved }: Props,
+  ref
+) {
   const router = useRouter();
   const queryClient = useQueryClient();
-  const [submitting, setSubmitting] = useState(false);
   const [title, setTitle] = useState(test.title);
   const [status, setStatus] = useState(normalizeStatus(test.status));
   const [duration, setDuration] = useState(toMinutes(test.duration));
@@ -63,18 +68,16 @@ export function TestEditBasicInfoTab({ test, onSaved }: Props) {
   const sections = skill ? (SKILL_SECTIONS[skill] || []) : [];
   const needsSection = sections.length > 0;
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSave = async () => {
     if (!title.trim()) {
       toast.error('Vui lòng nhập tiêu đề');
-      return;
+      return false;
     }
     if (!duration || Number(duration) <= 0) {
       toast.error('Vui lòng nhập thời gian làm bài');
-      return;
+      return false;
     }
 
-    setSubmitting(true);
     try {
       let finalThumbnailUrl = thumbnailUrl || undefined;
       if (thumbnailFileRef.current) {
@@ -96,25 +99,26 @@ export function TestEditBasicInfoTab({ test, onSaved }: Props) {
       queryClient.invalidateQueries({ queryKey: ['admin', 'test', String(test.id)] });
       if (onSaved) onSaved();
       else router.push(`/admin/tests/${test.id}`);
+      return true;
     } catch {
       toast.error('Cập nhật thất bại');
-    } finally {
-      setSubmitting(false);
+      return false;
     }
   };
 
+  useImperativeHandle(ref, () => ({
+    save: handleSave,
+  }));
+
   return (
     <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="flex items-center justify-end gap-3">
-          <Button type="button" variant="outline" onClick={() => router.push(`/admin/tests/${test.id}`)}>
-            Hủy
-          </Button>
-          <Button type="submit" disabled={submitting}>
-            {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Lưu thay đổi'}
-          </Button>
-        </div>
-
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          void handleSave();
+        }}
+        className="space-y-6"
+      >
         <div className="grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
           <div className="space-y-5">
             <div>
@@ -219,8 +223,7 @@ export function TestEditBasicInfoTab({ test, onSaved }: Props) {
             </div>
           </div>
         </div>
-
       </form>
     </div>
   );
-}
+});

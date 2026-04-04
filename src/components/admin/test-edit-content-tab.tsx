@@ -255,9 +255,10 @@ function GroupEditForm({
 
 interface Props {
   test: TestDetailResponse;
+  onBeforeSaveBasicInfo?: () => Promise<boolean> | boolean;
 }
 
-export function TestEditContentTab({ test }: Props) {
+export function TestEditContentTab({ test, onBeforeSaveBasicInfo }: Props) {
   const testId = String(test.id);
   const { handleDeleteQuestion, pendingDelete, confirmDelete, cancelDelete } = useTestEditMutations(testId);
   const queryClient = useQueryClient();
@@ -662,7 +663,7 @@ export function TestEditContentTab({ test }: Props) {
   };
 
   if (test.skill === 'WRITING') return <TestEditWritingContent test={test} />;
-  if (test.skill === 'SPEAKING') return <TestEditSpeakingContent test={test} />;
+  if (test.skill === 'SPEAKING') return <TestEditSpeakingContent test={test} onBeforeSaveBasicInfo={onBeforeSaveBasicInfo} />;
 
   if (!stimulus) return <p className="py-8 text-center text-gray-400">Bai thi chua co noi dung</p>;
   const totalQuestions = stimulus.questionGroups.reduce((sum, group) => sum + group.questions.length, 0);

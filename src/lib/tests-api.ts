@@ -6,11 +6,13 @@ export async function getTests(
   page = 1,
   size = 20,
   skill?: string,
-  keyword?: string
+  keyword?: string,
+  section?: number | null
 ): Promise<PagedResponse<TestResponse>> {
   let endpoint = `/api/v1/admin/tests?page=${page - 1}&size=${size}`;
   if (skill) endpoint += `&skill=${skill.toUpperCase()}`;
   if (keyword) endpoint += `&keyword=${encodeURIComponent(keyword)}`;
+  if (section != null) endpoint += `&section=${section}`;
 
   const response = await apiClient.get<ApiResponse<PagedResponse<TestResponse>>>(
     endpoint,

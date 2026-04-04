@@ -243,11 +243,20 @@ export function useSpeakingExam() {
   }, []);
 
   // ── Auto-transition AUDIO_PLAYING -> RECORDING ────────────
+  const [audioHasStarted, setAudioHasStarted] = useState(false);
+
   useEffect(() => {
-    if (examState === 'AUDIO_PLAYING' && !audio.isAudioPlaying) {
-      setExamState('RECORDING');
+    if (examState === 'AUDIO_PLAYING') {
+      if (audio.isAudioPlaying) {
+        setAudioHasStarted(true);
+      } else if (audioHasStarted) {
+        setExamState('RECORDING');
+        setAudioHasStarted(false);
+      }
+    } else {
+      setAudioHasStarted(false);
     }
-  }, [examState, audio.isAudioPlaying]);
+  }, [examState, audio.isAudioPlaying, audioHasStarted]);
 
   return {
     examState,

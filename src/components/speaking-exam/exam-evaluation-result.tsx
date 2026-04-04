@@ -1,9 +1,11 @@
 'use client';
 
 import type { EvaluationEvent } from '@/types/speaking-exam.types';
+import type { RecordedAnswer } from '@/hooks/use-session-recorder';
 
 interface Props {
   evaluation: EvaluationEvent;
+  recordings?: RecordedAnswer[];
 }
 
 const CRITERIA = [
@@ -20,7 +22,7 @@ function bandColor(score: number): string {
   return 'text-red-600 bg-red-50';
 }
 
-export function ExamEvaluationResult({ evaluation }: Props) {
+export function ExamEvaluationResult({ evaluation, recordings }: Props) {
   const { feedback } = evaluation;
 
   return (
@@ -87,6 +89,34 @@ export function ExamEvaluationResult({ evaluation }: Props) {
               </ul>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Recordings Review */}
+      {recordings && recordings.length > 0 && (
+        <div className="space-y-4 rounded-xl border bg-blue-50 p-6">
+          <h3 className="text-xl font-bold text-blue-900">Audio Recording (Phần thi của bạn)</h3>
+          <div className="space-y-6">
+            {recordings.map((rec, i) => (
+              <div key={i} className="rounded-lg bg-white p-5 shadow-sm">
+                <div className="mb-3 flex items-center justify-between">
+                  <span className="rounded bg-blue-100 px-2 py-1 text-xs font-bold text-blue-700">
+                    Part {rec.part}
+                  </span>
+                </div>
+                <p className="mb-4 text-sm font-medium text-gray-900">
+                  <span className="text-gray-500">Q:</span> {rec.questionText}
+                </p>
+                
+                <audio src={rec.audioUrl} controls className="mb-4 h-10 w-full" />
+                
+                <div className="rounded bg-gray-50 p-3 text-sm text-gray-600">
+                  <span className="font-semibold text-gray-700">Transcript: </span> 
+                  {rec.transcript}
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>

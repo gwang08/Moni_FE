@@ -16,6 +16,7 @@ import { ExamEvaluationResult } from '@/components/speaking-exam/exam-evaluation
 import { ExamPart2IntroScreen, ExamPart2CueCardWithNote } from '@/components/speaking-exam/exam-part2-intro-screen';
 import { ExamTransitionScreen } from '@/components/speaking-exam/exam-transition-screen';
 import { ExamErrorDisplay } from '@/components/speaking-exam/exam-error-display';
+import { useSessionRecorder } from '@/hooks/use-session-recorder';
 
 // Local UI stages (before/between exam states)
 type UIStage = 'GUIDE' | 'MIC_TEST' | 'EXAM';
@@ -139,6 +140,14 @@ export default function SpeakingPracticePage({ params }: Props) {
     !exam.isAudioPlaying;
 
   useSilenceDetector(stt.transcript, isPart2SilenceActive, handleStopPart2, 10000);
+
+  // ── Session Recording for UI review ─────────────────────────
+  const recordedAnswers = useSessionRecorder(
+    exam.examState,
+    exam.currentQuestion,
+    exam.cueCard,
+    stt.transcript
+  );
 
   // ── Connect WS when user starts test ──────────────────────
   const handleStartTest = useCallback(() => {
@@ -310,7 +319,7 @@ export default function SpeakingPracticePage({ params }: Props) {
   if (examState === 'COMPLETED' && exam.evaluation) {
     return (
       <PageShell>
-        <ExamEvaluationResult evaluation={exam.evaluation} />
+        <ExamEvaluationResult evaluation={exam.evaluation} recordings={recordedAnswers} />
         <div className="mt-8 flex justify-center">
           <Button onClick={() => router.push('/practice?skill=speaking')} variant="outline">
             Back to practice list

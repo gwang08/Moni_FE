@@ -16,6 +16,8 @@ import { BookOpen, Pencil, Headphones, Mic, Search, CheckCircle, Users, Play, Cl
 import { getAllActiveSessions, type ExamSession } from '@/lib/exam-api';
 import { SkeletonCard } from '@/components/ui/skeleton';
 import { QuestionTypeFilter, QUESTION_TYPE_LABELS } from '@/components/practice/question-type-filter';
+import { WritingFiltersPanel, type WritingFilters } from '@/components/practice/writing-filters-panel';
+import { WRITING_TASK1_TYPE_CODES, WRITING_TASK2_TYPE_CODES } from '@/components/practice/writing-filter-constants';
 import type { Exercise, Skill, TestMode, TestType } from '@/types/practice.types';
 import { useLoginPrompt } from '@/hooks/use-login-prompt';
 import { LoginPromptDialog } from '@/components/auth/login-prompt-dialog';
@@ -62,6 +64,8 @@ function PracticePage() {
   const initialPassage = searchParams.get('part') ? parseInt(searchParams.get('part')!) : null;
   const initialTestType = (searchParams.get('type') as TestType) || null;
   const initialQuestionType = searchParams.get('question-type') || null;
+  const initialWritingType = searchParams.get('writing-type') || null;
+  const initialWritingTopic = searchParams.get('writing-topic') || null;
   const [activeSkill, setActiveSkill] = useState<Skill>(initialSkill);
   const [activeMode, setActiveMode] = useState<TestMode>(initialMode);
   const [activePassage, setActivePassage] = useState<number | null>(initialPassage);
@@ -78,30 +82,41 @@ function PracticePage() {
   const servicesFetched = useRef(false);
   const [activeSessions, setActiveSessions] = useState<Map<number, ExamSession>>(new Map());
 
-  // Update URL when filters change
-  // q = 'test' (Phần thi) or 'full-test' (Bài thi)
-  // part = passage/section/part/task number
-  // type = academic or general
-  // question-type = question type filter
-  const updateUrl = useCallback((params: {
-    skill?: Skill;
-    mode?: TestMode;
-    passage?: number | null;
-    testType?: TestType | null;
-    questionType?: string | null;
-  }) => {
+  // Writing filters state
+  const [writingFilters, setWritingFilters] = useState<WritingFilters>({
+    task: null,
+    type: initialWritingType,
+    topic: initialWritingTopic,
+  });
+
+  // Refs to track latest filter values synchronously (avoid stale closure issues)
+  const filterRef = useRef({
+    skill: initialSkill,
+    mode: initialMode,
+    passage: initialPassage,
+    testType: initialTestType as TestType | null,
+    questionType: initialQuestionType as string | null,
+    writingType: initialWritingType,
+    writingTopic: initialWritingTopic,
+  });
+
+  // Helper to build and update URL synchronously
+  const updateUrlSync = useCallback((overrides?: Partial<typeof filterRef.current>) => {
+    const current = { ...filterRef.current, ...overrides };
     const newParams = new URLSearchParams();
-    newParams.set('skill', params.skill ?? activeSkill);
-    const currentMode = params.mode !== undefined ? params.mode : activeMode;
-    // q = 'test' for PRACTICE (Phần thi), 'full-test' for FULL_TEST (Bài thi)
-    newParams.set('q', currentMode === 'FULL_TEST' ? 'full-test' : 'test');
-    if (params.passage != null) newParams.set('part', String(params.passage));
-    if (params.testType) newParams.set('type', params.testType.toLowerCase());
-    if (params.questionType) newParams.set('question-type', params.questionType);
+    newParams.set('skill', current.skill);
+    newParams.set('q', current.mode === 'FULL_TEST' ? 'full-test' : 'test');
+    if (current.passage != null) newParams.set('part', String(current.passage));
+    if (current.testType) newParams.set('type', current.testType.toLowerCase());
+    if (current.questionType) newParams.set('question-type', current.questionType);
+    if (current.writingType) newParams.set('writing-type', current.writingType);
+    if (current.writingTopic) newParams.set('writing-topic', current.writingTopic);
     router.replace(`/practice?${newParams.toString()}`, { scroll: false });
-  }, [router, activeSkill]);
+  }, [router]);
 
   const handleSkillChange = useCallback((skill: Skill) => {
+    // Update ref immediately for synchronous URL update
+    filterRef.current = { skill, mode: 'PRACTICE', passage: null, testType: null, questionType: null, writingType: null, writingTopic: null };
     setActiveSkill(skill);
     setActiveMode('PRACTICE');
     setActivePassage(null);
@@ -109,29 +124,40 @@ function PracticePage() {
     setActiveTestType(null);
     setActiveQuestionType(null);
     setSearchQuery('');
-    updateUrl({ skill, mode: 'PRACTICE', passage: null, testType: null, questionType: null });
-  }, [updateUrl]);
+    setWritingFilters({ task: null, type: null, topic: null });
+    updateUrlSync({ skill, mode: 'PRACTICE', passage: null, testType: null, questionType: null, writingType: null, writingTopic: null });
+  }, [updateUrlSync]);
 
   const handleModeChange = useCallback((mode: TestMode) => {
+    filterRef.current = { ...filterRef.current, mode, passage: null };
     setActiveMode(mode);
     setActivePassage(null);
-    updateUrl({ mode, passage: null });
-  }, [updateUrl]);
+    updateUrlSync({ mode, passage: null });
+  }, [updateUrlSync]);
 
   const handlePassageChange = useCallback((passage: number | null) => {
+    filterRef.current = { ...filterRef.current, passage };
     setActivePassage(passage);
-    updateUrl({ passage, mode: activeMode }); // Pass current mode to prevent stale closure issue
-  }, [updateUrl, activeMode]);
+    updateUrlSync({ passage });
+  }, [updateUrlSync]);
 
   const handleTestTypeChange = useCallback((testType: TestType | null) => {
+    filterRef.current = { ...filterRef.current, testType };
     setActiveTestType(testType);
-    updateUrl({ testType });
-  }, [updateUrl]);
+    updateUrlSync({ testType });
+  }, [updateUrlSync]);
 
   const handleQuestionTypeChange = useCallback((questionType: string | null) => {
+    filterRef.current = { ...filterRef.current, questionType };
     setActiveQuestionType(questionType);
-    updateUrl({ questionType });
-  }, [updateUrl]);
+    updateUrlSync({ questionType });
+  }, [updateUrlSync]);
+
+  const handleWritingFiltersChange = useCallback((filters: WritingFilters) => {
+    setWritingFilters(filters);
+    filterRef.current = { ...filterRef.current, writingType: filters.type, writingTopic: filters.topic };
+    updateUrlSync({ writingType: filters.type, writingTopic: filters.topic });
+  }, [updateUrlSync]);
 
   useEffect(() => {
     if (servicesFetched.current) return;
@@ -198,9 +224,25 @@ function PracticePage() {
     if (activeTestType) {
       list = list.filter((e) => !e.testType || e.testType === activeTestType || e.testType === 'BOTH');
     }
-    // Filter by question type
+    // Filter by question type (for reading/listening)
     if (activeQuestionType) {
       list = list.filter((e) => e.questionTypes?.includes(activeQuestionType));
+    }
+    // Writing-specific filters
+    if (activeSkill === 'writing') {
+      // Filter by task (section) - use activePassage from sidebar
+      if (activePassage != null) {
+        list = list.filter((e) => e.section === activePassage);
+      }
+      // Filter by writing type (question type) - single select
+      if (writingFilters.type) {
+        const typeCode = WRITING_TASK1_TYPE_CODES[writingFilters.type] || WRITING_TASK2_TYPE_CODES[writingFilters.type];
+        if (typeCode) {
+          list = list.filter((e) => e.questionTypes?.includes(typeCode));
+        }
+      }
+      // Filter by topic - skip for now as we need tag name mapping
+      // TODO: Implement topic filtering when tag mapping is available
     }
     // Filter completed/not
     if (!isAdminPreview) {
@@ -215,7 +257,7 @@ function PracticePage() {
       list = list.filter((e) => e.title.toLowerCase().includes(q) || e.description.toLowerCase().includes(q));
     }
     return list;
-  }, [exercises, activeMode, activeTestType, activeQuestionType, activeSkill, showCompleted, searchQuery, completedExercises, isAdminPreview]);
+  }, [exercises, activeMode, activeTestType, activeQuestionType, activeSkill, activePassage, writingFilters.type, showCompleted, searchQuery, completedExercises, isAdminPreview]);
 
   const handleStartExercise = (exercise: Exercise) => {
     requireAuth(() => {
@@ -246,6 +288,12 @@ function PracticePage() {
         onSkillChange={handleSkillChange}
         onModeChange={handleModeChange}
         onPassageChange={handlePassageChange}
+        onWritingTaskChange={(task) => {
+          const passage = task !== null ? task : null;
+          setActivePassage(passage);
+          filterRef.current = { ...filterRef.current, passage };
+          updateUrlSync({ passage });
+        }}
       />
 
       {/* Main Content */}
@@ -274,7 +322,9 @@ function PracticePage() {
             {SKILL_CONFIG[activeSkill].label} — {modeLabel}
           </h1>
           {activePassage && (
-            <p className="text-sm text-gray-500 mt-1">Passage {activePassage}</p>
+            <p className="text-sm text-gray-500 mt-1">
+              {activeSkill === 'writing' ? `Task ${activePassage}` : `Passage ${activePassage}`}
+            </p>
           )}
         </div>
 
@@ -290,8 +340,8 @@ function PracticePage() {
           </div>
         </div>
 
-        {/* Test Type Filter (Academic / General Training) — only for Reading & Listening */}
-        {(activeSkill === 'reading' || activeSkill === 'listening') && (
+        {/* Test Type Filter (Academic / General Training) — for Reading & Writing */}
+        {(activeSkill === 'reading' || activeSkill === 'writing') && (
           <div className="flex items-center gap-2 mb-4">
             <span className="text-sm text-gray-500 mr-1">Dạng đề:</span>
             {([null, 'ACADEMIC', 'GENERAL_TRAINING'] as (TestType | null)[]).map((type) => {
@@ -312,13 +362,24 @@ function PracticePage() {
           </div>
         )}
 
-        {/* Question Type Filter — only for reading/listening */}
+        {/* Question Type Filter — for reading/listening */}
         {(activeSkill === 'reading' || activeSkill === 'listening') && (
           <QuestionTypeFilter
             availableTypes={availableQuestionTypes}
             activeType={activeQuestionType}
             onTypeChange={handleQuestionTypeChange}
           />
+        )}
+
+        {/* Writing Filters Panel — for writing */}
+        {activeSkill === 'writing' && (
+          <div className="mb-6">
+            <WritingFiltersPanel
+              filters={writingFilters}
+              onChange={handleWritingFiltersChange}
+              activePassage={activePassage}
+            />
+          </div>
         )}
 
         {/* Content Area */}
@@ -392,11 +453,11 @@ function PracticePage() {
                         </ul>
                       )}
                       {activeExam ? (
-                        <Button className="w-full mt-auto bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white rounded-full flex items-center gap-2">
+                        <Button className="w-full mt-auto bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white rounded-full flex items-center gap-2">
                           <Play className="h-4 w-4" /> Làm tiếp ({remainingMin}:{String(remainingSec).padStart(2, '0')})
                         </Button>
                       ) : (
-                        <Button className="w-full mt-auto bg-orange-500 hover:bg-orange-600 text-white rounded-full">
+                        <Button className="w-full mt-auto bg-green-500 hover:bg-green-600 text-white rounded-full">
                           Làm bài
                         </Button>
                       )}

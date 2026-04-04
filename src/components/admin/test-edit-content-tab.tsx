@@ -669,7 +669,7 @@ export function TestEditContentTab({ test, onBeforeSaveBasicInfo }: Props) {
   const totalQuestions = stimulus.questionGroups.reduce((sum, group) => sum + group.questions.length, 0);
 
   return (
-    <div className="flex h-[calc(100vh-220px)] min-h-0 flex-col gap-3 overflow-hidden pb-4">
+    <div className="flex h-[calc(100vh-100px)] min-h-0 flex-col gap-3 overflow-hidden pb-4">
       {test.stimuli.length > 1 && (
         <div className="flex shrink-0 flex-wrap gap-1">
           {test.stimuli.map((item, index) => (

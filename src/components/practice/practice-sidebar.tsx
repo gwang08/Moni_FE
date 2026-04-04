@@ -50,11 +50,12 @@ interface Props {
   onSkillChange: (skill: Skill) => void;
   onModeChange: (mode: TestMode) => void;
   onPassageChange: (passage: number | null) => void;
+  onWritingTaskChange?: (task: 1 | 2 | null) => void;
 }
 
 export function PracticeSidebar({
   activeSkill, activeMode, activePassage,
-  onSkillChange, onModeChange, onPassageChange,
+  onSkillChange, onModeChange, onPassageChange, onWritingTaskChange,
 }: Props) {
 
   const handleSelect = (skill: Skill, mode: TestMode) => {
@@ -65,8 +66,12 @@ export function PracticeSidebar({
 
   const handlePassage = (skill: Skill, passage: number) => {
     if (activeSkill !== skill) onSkillChange(skill);
-    // Just update passage - mode stays as-is (already PRACTICE when passages are visible)
-    onPassageChange(activePassage === passage ? null : passage);
+    // For writing, use onWritingTaskChange instead of onPassageChange
+    if (skill === 'writing' && onWritingTaskChange) {
+      onWritingTaskChange(activePassage === passage ? null : (passage as 1 | 2));
+    } else {
+      onPassageChange(activePassage === passage ? null : passage);
+    }
   };
 
   return (

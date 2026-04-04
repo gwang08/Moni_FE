@@ -17,6 +17,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const router = useRouter();
   const { isAuthenticated, user } = useAuthStore();
   const [isHydrated, setIsHydrated] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const persistApi = (useAuthStore as typeof useAuthStore & { persist?: PersistApi }).persist;
 
   useEffect(() => {
@@ -64,8 +65,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <AdminSidebar />
-      <main className="ml-64 min-h-screen">{children}</main>
+      <AdminSidebar onCollapseChange={setSidebarCollapsed} />
+      <main className={`min-h-screen transition-all duration-300 ${sidebarCollapsed ? 'ml-16' : 'ml-64'}`}>{children}</main>
       <SessionExpiredDialog />
     </div>
   );

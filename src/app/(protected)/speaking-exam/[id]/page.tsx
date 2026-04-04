@@ -312,7 +312,7 @@ export default function SpeakingExamPage({ params }: Props) {
       <PageShell>
         <ExamEvaluationResult evaluation={exam.evaluation} />
         <div className="mt-8 flex justify-center">
-          <Button onClick={() => router.push('/speaking-exam')} variant="outline">
+          <Button onClick={() => router.push('/practice?skill=speaking')} variant="outline">
             Back to practice list
           </Button>
         </div>

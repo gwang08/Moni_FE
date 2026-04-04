@@ -29,6 +29,7 @@ function getBrowserSpeechRecognition(): any | null {
  */
 export function useAssemblyAISTT() {
   const [transcript, setTranscript] = useState('');
+  const [interimTranscript, setInterimTranscript] = useState('');
   const [isListening, setIsListening] = useState(false);
   
   // AssemblyAI refs
@@ -92,19 +93,24 @@ export function useAssemblyAISTT() {
 
     const recognition = new SpeechRecognitionClass();
     recognition.continuous = true;
-    recognition.interimResults = false;
+    recognition.interimResults = true;
     recognition.lang = 'en-US';
 
     recognition.onresult = (event: any) => {
       let finalText = '';
+      let interim = '';
       for (let i = event.resultIndex; i < event.results.length; i++) {
         if (event.results[i].isFinal) {
           finalText += event.results[i][0].transcript;
+        } else {
+          interim += event.results[i][0].transcript;
         }
       }
+      
       if (finalText) {
         setTranscript((prev) => (prev ? prev + ' ' + finalText : finalText));
       }
+      setInterimTranscript(interim);
     };
 
     recognition.onerror = (event: any) => {
@@ -137,6 +143,7 @@ export function useAssemblyAISTT() {
   const startListening = useCallback(async () => {
     stopListening();
     setTranscript('');
+    setInterimTranscript('');
     usingFallbackRef.current = false;
 
     try {
@@ -173,6 +180,9 @@ export function useAssemblyAISTT() {
           const msg = JSON.parse(event.data);
           if (msg.message_type === 'FinalTranscript' && msg.text) {
             setTranscript((prev) => (prev ? prev + ' ' + msg.text : msg.text));
+            setInterimTranscript('');
+          } else if (msg.message_type === 'PartialTranscript') {
+            setInterimTranscript(msg.text || '');
           }
         } catch {
           // ignore
@@ -234,5 +244,7 @@ export function useAssemblyAISTT() {
     };
   }, [stopListening]);
 
-  return { transcript, isListening, startListening, stopListening };
+  const combinedTranscript = (transcript + (transcript && interimTranscript ? ' ' : '') + interimTranscript).trim();
+
+  return { transcript: combinedTranscript, isListening, startListening, stopListening };
 }

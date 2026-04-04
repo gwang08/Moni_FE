@@ -16,6 +16,7 @@ import { ExamEvaluationResult } from '@/components/speaking-exam/exam-evaluation
 import { ExamPart2IntroScreen, ExamPart2CueCardWithNote } from '@/components/speaking-exam/exam-part2-intro-screen';
 import { ExamTransitionScreen } from '@/components/speaking-exam/exam-transition-screen';
 import { ExamErrorDisplay } from '@/components/speaking-exam/exam-error-display';
+import { ExamProgressBar } from '@/components/speaking-exam/exam-progress-bar';
 
 // Local UI stages (before/between exam states)
 type UIStage = 'GUIDE' | 'MIC_TEST' | 'EXAM';
@@ -33,9 +34,34 @@ export default function SpeakingExamPage({ params }: Props) {
   const [showQuestionAlways, setShowQuestionAlways] = useState(false);
   const [showPart2Intro, setShowPart2Intro] = useState(false);
 
+  // Track current part and question index for progress bar
+  const [currentPart, setCurrentPart] = useState(0);
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+
   const exam = useSpeakingExam();
   const stt = useAssemblyAISTT();
   const startedRef = useRef(false);
+
+  // Update progress bar when current question changes
+  useEffect(() => {
+    if (exam.currentQuestion) {
+      const part = exam.currentQuestion.partNumber;
+      const qId = exam.currentQuestion.questionId;
+
+      if (part === 1) {
+        setCurrentPart(1);
+        // Question IDs in Part 1 are typically 1-12
+        setCurrentQuestionIndex(qId - 1);
+      } else if (part === 2) {
+        setCurrentPart(2);
+        setCurrentQuestionIndex(0);
+      } else if (part === 3) {
+        setCurrentPart(3);
+        // Question IDs in Part 3 are typically 1-6
+        setCurrentQuestionIndex(qId - 1);
+      }
+    }
+  }, [exam.currentQuestion]);
 
   // Guard: prevent double-submit for the same question
   const submittedQuestionRef = useRef<number | null>(null);
@@ -202,7 +228,7 @@ export default function SpeakingExamPage({ params }: Props) {
   // Stage 1: Guide screen
   if (uiStage === 'GUIDE') {
     return (
-      <PageShell>
+      <PageShell currentPart={0} currentQuestionIndex={0}>
         <ExamGuideScreen
           onNext={() => setUIStage('MIC_TEST')}
           showQuestion={showQuestionAlways}
@@ -215,7 +241,7 @@ export default function SpeakingExamPage({ params }: Props) {
   // Stage 2: Mic test
   if (uiStage === 'MIC_TEST') {
     return (
-      <PageShell>
+      <PageShell currentPart={0} currentQuestionIndex={0}>
         <ExamMicTestScreen onStartTest={handleStartTest} onSkip={handleStartTest} />
       </PageShell>
     );
@@ -226,7 +252,7 @@ export default function SpeakingExamPage({ params }: Props) {
 
   if (examState === 'IDLE' || examState === 'CONNECTING') {
     return (
-      <PageShell>
+      <PageShell currentPart={currentPart} currentQuestionIndex={currentQuestionIndex}>
         <div className="flex flex-col items-center gap-4 py-20">
           <Loader2 className="h-10 w-10 animate-spin text-blue-500" />
           <p className="text-gray-600">Connecting to exam server...</p>
@@ -241,7 +267,7 @@ export default function SpeakingExamPage({ params }: Props) {
     exam.currentQuestion
   ) {
     return (
-      <PageShell wide>
+      <PageShell wide currentPart={currentPart} currentQuestionIndex={currentQuestionIndex}>
         <ExamQuestionDisplay
           question={exam.currentQuestion}
           isAudioPlaying={exam.isAudioPlaying}
@@ -257,7 +283,7 @@ export default function SpeakingExamPage({ params }: Props) {
   // Part 2: Show intro screen FIRST (before cue card)
   if (showPart2Intro && examState === 'PART2_PREP') {
     return (
-      <PageShell wide>
+      <PageShell wide currentPart={currentPart} currentQuestionIndex={currentQuestionIndex}>
         <ExamPart2IntroScreen
           onStartNow={() => setShowPart2Intro(false)}
         />
@@ -268,7 +294,7 @@ export default function SpeakingExamPage({ params }: Props) {
   // Part 2: Cue card with Note sidebar + thinking time
   if (examState === 'PART2_PREP' && exam.cueCard) {
     return (
-      <PageShell wide>
+      <PageShell wide currentPart={currentPart} currentQuestionIndex={currentQuestionIndex}>
         <ExamPart2CueCardWithNote
           topic={exam.cueCard.topic}
           prepTimer={timers.prepTimer}
@@ -280,7 +306,7 @@ export default function SpeakingExamPage({ params }: Props) {
 
   if (examState === 'PART2_SPEAKING') {
     return (
-      <PageShell>
+      <PageShell currentPart={currentPart} currentQuestionIndex={currentQuestionIndex}>
         <ExamSpeakingTimer
           speakTimer={timers.speakTimer}
           transcript={stt.transcript}
@@ -293,7 +319,7 @@ export default function SpeakingExamPage({ params }: Props) {
 
   if (examState === 'PART_BRIDGE') {
     return (
-      <PageShell>
+      <PageShell currentPart={currentPart} currentQuestionIndex={currentQuestionIndex}>
         <ExamTransitionScreen message="Moving to next part..." />
       </PageShell>
     );
@@ -301,7 +327,7 @@ export default function SpeakingExamPage({ params }: Props) {
 
   if (examState === 'EVALUATING') {
     return (
-      <PageShell>
+      <PageShell currentPart={currentPart} currentQuestionIndex={currentQuestionIndex}>
         <ExamTransitionScreen message="Evaluating your responses... Please wait." />
       </PageShell>
     );
@@ -309,7 +335,7 @@ export default function SpeakingExamPage({ params }: Props) {
 
   if (examState === 'COMPLETED' && exam.evaluation) {
     return (
-      <PageShell>
+      <PageShell currentPart={currentPart} currentQuestionIndex={currentQuestionIndex}>
         <ExamEvaluationResult evaluation={exam.evaluation} />
         <div className="mt-8 flex justify-center">
           <Button onClick={() => router.push('/practice?skill=speaking')} variant="outline">
@@ -322,7 +348,7 @@ export default function SpeakingExamPage({ params }: Props) {
 
   if (examState === 'CONN_ERROR') {
     return (
-      <PageShell>
+      <PageShell currentPart={currentPart} currentQuestionIndex={currentQuestionIndex}>
         <ExamErrorDisplay
           error={exam.error || 'An unexpected error occurred'}
           onRetry={() => {
@@ -334,16 +360,24 @@ export default function SpeakingExamPage({ params }: Props) {
     );
   }
 
-  return <PageShell><ExamTransitionScreen message="Loading..." /></PageShell>;
+  return <PageShell currentPart={currentPart} currentQuestionIndex={currentQuestionIndex}><ExamTransitionScreen message="Loading..." /></PageShell>;
 }
 
-function PageShell({ children, wide }: { children: React.ReactNode; wide?: boolean }) {
+function PageShell({ children, wide, currentPart, currentQuestionIndex }: { 
+  children: React.ReactNode; 
+  wide?: boolean;
+  currentPart?: number;
+  currentQuestionIndex?: number;
+}) {
   return (
-    <div className="min-h-screen bg-gray-50 p-4 md:p-8">
+    <div className="min-h-screen bg-gray-50 p-4 pb-24 md:p-8">
       <div className={`mx-auto ${wide ? 'max-w-4xl' : 'max-w-2xl'}`}>
         <h1 className="mb-6 text-2xl font-bold text-gray-900">IELTS Speaking Exam</h1>
         {children}
       </div>
+      {currentPart !== undefined && currentQuestionIndex !== undefined && (
+        <ExamProgressBar currentPart={currentPart} currentQuestionIndex={currentQuestionIndex} />
+      )}
     </div>
   );
 }

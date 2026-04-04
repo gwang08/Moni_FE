@@ -50,12 +50,12 @@ export function useSpeakingExam() {
 
   const speakWithBrowserTTS = useCallback((text: string) => {
     if (typeof window === 'undefined' || !window.speechSynthesis) return;
-    
+
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = 'en-US';
     utterance.rate = 0.9;
     utterance.pitch = 1.0;
-    
+
     // Try to find an English voice
     const voices = window.speechSynthesis.getVoices();
     const englishVoice = voices.find(v => v.lang.startsWith('en') && v.name.includes('Female'))

@@ -1,9 +1,9 @@
 'use client';
 
-import { useRef, useState, useEffect } from 'react';
+import { useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
-import { Save } from 'lucide-react';
+import { ArrowLeft, Save } from 'lucide-react';
 import { AdminHeader } from '@/components/admin/admin-header';
 import { SkeletonPage } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
@@ -18,7 +18,6 @@ export default function TestDetailPage() {
   const basicInfoRef = useRef<TestEditBasicInfoHandle>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const [saving, setSaving] = useState(false);
-  const [basicInfoCollapsed, setBasicInfoCollapsed] = useState(false);
 
   const { data: test, isLoading, error } = useQuery({
     queryKey: ['admin', 'test', id],
@@ -45,53 +44,32 @@ export default function TestDetailPage() {
     }
   };
 
-  // Auto-collapse basic info when content section is visible
-  useEffect(() => {
-    if (!contentRef.current) return;
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        setBasicInfoCollapsed(entry.isIntersecting);
-      },
-      { threshold: 0, rootMargin: '-80px 0px 0px 0px' }
-    );
-    observer.observe(contentRef.current);
-    return () => observer.disconnect();
-  }, []);
-
   return (
     <div className="flex min-h-screen flex-col bg-gray-50">
       <AdminHeader title="Chi tiết bài thi" />
-      <div className="flex-1 p-4">
+      <div className="flex-1 p-4 overflow-y-auto">
         {isLoading ? (
           <SkeletonPage />
         ) : error ? (
           <p className="py-12 text-center text-red-500">Không thể tải thông tin bài thi</p>
         ) : test ? (
-          <div className="space-y-4">
+          <div className="space-y-4 max-w-7xl mx-auto">
             <div className="flex items-center justify-between gap-4">
-              <div>
-                <h2 className="text-lg font-semibold text-gray-900">{test.title}</h2>
-                <p className="text-xs text-gray-500">
-                  {test.skill} {test.section ? `— Phần ${test.section}` : ''}
-                </p>
-              </div>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  onClick={() => router.push(`/admin/tests`)}
-                  size="sm"
-                >
-                  Hủy
-                </Button>
-                <Button onClick={handleSaveAll} disabled={saving} size="sm">
-                  <Save className="h-3.5 w-3.5" />
-                  {saving ? 'Đang lưu...' : 'Lưu'}
-                </Button>
-              </div>
+              <button
+                type="button"
+                onClick={() => router.push('/admin/tests')}
+                className="inline-flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-gray-900"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Quay lại
+              </button>
+              <Button onClick={handleSaveAll} disabled={saving} size="sm" className="bg-green-600 hover:bg-green-700">
+                {saving ? 'Đang cập nhật...' : 'Cập nhật'}
+              </Button>
             </div>
 
-            {/* Basic Info - auto collapses when content is visible */}
-            <div className={`transition-all duration-300 ${basicInfoCollapsed ? 'max-h-0 overflow-hidden opacity-0' : 'max-h-[2000px] opacity-100'}`}>
+            {/* Basic Info */}
+            <div>
               <TestEditBasicInfoTab ref={basicInfoRef} test={test} />
             </div>
 

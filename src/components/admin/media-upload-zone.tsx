@@ -9,9 +9,15 @@ interface Props {
   onUploaded: (url: string) => void;
   /** When provided, file is NOT uploaded immediately. Parent receives file + preview URL. */
   onFileSelected?: (file: File, previewUrl: string) => void;
+  /** Custom button text (default: "Kéo thả file hoặc nhấn để chọn") */
+  label?: string;
+  /** Custom subtext (default: "Hỗ trợ ảnh, video, audio và tài liệu") */
+  sublabel?: string;
+  /** Hide the upload icon (default: false) */
+  hideIcon?: boolean;
 }
 
-export function MediaUploadZone({ onUploaded, onFileSelected }: Props) {
+export function MediaUploadZone({ onUploaded, onFileSelected, label, sublabel, hideIcon }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
@@ -80,9 +86,10 @@ export function MediaUploadZone({ onUploaded, onFileSelected }: Props) {
         </div>
       ) : (
         <div className="flex flex-col items-center gap-2">
-          <Upload className="h-8 w-8 text-gray-400" />
-          <p className="text-sm font-medium text-gray-600">Kéo thả file hoặc nhấn để chọn</p>
-          <p className="text-xs text-gray-400">Hỗ trợ ảnh, video, audio và tài liệu</p>
+          {!hideIcon && <Upload className="h-8 w-8 text-gray-400" />}
+          <p className={`text-sm font-medium ${label ? 'text-blue-600' : 'text-gray-600'}`}>{label || 'Kéo thả file hoặc nhấn để chọn'}</p>
+          {sublabel && <p className="text-xs text-gray-400">{sublabel}</p>}
+          {!sublabel && <p className="text-xs text-gray-400">Hỗ trợ ảnh, video, audio và tài liệu</p>}
         </div>
       )}
       {error && <p className="text-red-500 text-sm mt-2">{error}</p>}

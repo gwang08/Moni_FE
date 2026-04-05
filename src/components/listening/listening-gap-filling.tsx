@@ -27,12 +27,13 @@ function parseGapContent(content: string): { before: string; answer: string; aft
 }
 
 /** IELTS-style inline gap input for exam mode */
-function ExamInlineGapInput({ questionId, userAnswer, submitted, correctAnswer, onTextAnswer }: {
-  questionId: number; userAnswer: string; submitted: boolean; correctAnswer: string;
+function ExamInlineGapInput({ questionId, userAnswer, submitted, correctAnswer, displayNumber, onTextAnswer }: {
+  questionId: number; userAnswer: string; submitted: boolean; correctAnswer: string; displayNumber?: number;
   onTextAnswer: (questionId: number, text: string) => void;
 }) {
   const correct = submitted && isAnswerCorrect(userAnswer, correctAnswer);
   const wrong = submitted && userAnswer.trim() !== '' && !isAnswerCorrect(userAnswer, correctAnswer);
+  const isBlank = userAnswer.trim().length === 0;
 
   // Calculate input width based on content
   const minLength = 80;
@@ -40,19 +41,26 @@ function ExamInlineGapInput({ questionId, userAnswer, submitted, correctAnswer, 
   const inputWidth = Math.max(minLength, userAnswer.length * charWidth + 32);
 
   return (
-    <input
-      type="text"
-      value={userAnswer}
-      disabled={submitted}
-      onChange={e => onTextAnswer(questionId, e.target.value)}
-      className={`inline-flex align-baseline text-center text-sm font-normal border rounded-sm bg-white focus:outline-none focus:ring-2 px-3 py-1 transition-all ${
-        submitted && correct ? 'border-gray-900 text-gray-900 bg-gray-50 ring-0'
-          : submitted && wrong ? 'border-gray-500 text-gray-700 bg-red-50 ring-0'
-          : 'border-gray-400 focus:border-gray-900 focus:ring-gray-200'
-      }`}
-      style={{ minWidth: `${minLength}px`, width: `${inputWidth}px`, maxWidth: '400px', height: '32px' }}
-      placeholder=""
-    />
+    <span className="relative inline-block align-middle" style={{ minWidth: `${minLength}px`, width: isBlank ? `${minLength}px` : `${inputWidth}px`, maxWidth: '400px' }}>
+      <input
+        type="text"
+        value={userAnswer}
+        disabled={submitted}
+        onChange={e => onTextAnswer(questionId, e.target.value)}
+        className={`w-full rounded-sm border bg-white px-2 text-center text-sm font-normal text-gray-900 focus:outline-none focus:ring-2 transition-all ${
+          submitted && correct ? 'border-gray-900 bg-gray-50'
+            : submitted && wrong ? 'border-gray-500 bg-red-50'
+            : 'border-gray-400 focus:border-gray-900 focus:ring-gray-200'
+        }`}
+        style={{ height: '20px', lineHeight: '20px' }}
+        placeholder=""
+      />
+      {!submitted && isBlank && displayNumber != null && (
+        <span className="pointer-events-none absolute inset-0 flex items-center justify-center text-sm font-bold text-gray-900" style={{ lineHeight: '20px' }}>
+          {displayNumber}
+        </span>
+      )}
+    </span>
   );
 }
 
@@ -63,25 +71,28 @@ function InlineGapInput({ questionId, userAnswer, submitted, correctAnswer, onTe
 }) {
   const correct = submitted && isAnswerCorrect(userAnswer, correctAnswer);
   const wrong = submitted && userAnswer.trim() !== '' && !isAnswerCorrect(userAnswer, correctAnswer);
+  const isBlank = userAnswer.trim().length === 0;
 
-  const minLength = 40;
+  const minLength = 60;
   const charWidth = 8;
-  const inputWidth = Math.max(minLength, userAnswer.length * charWidth + 20);
+  const inputWidth = Math.max(minLength, userAnswer.length * charWidth + 32);
 
   return (
-    <input
-      type="text"
-      value={userAnswer}
-      disabled={submitted}
-      placeholder=""
-      onChange={e => onTextAnswer(questionId, e.target.value)}
-      className={`inline-block px-1 py-0.5 outline-none text-center align-baseline text-sm font-medium border-b-2 bg-transparent ${
-        submitted && correct ? 'border-gray-900 text-gray-900 bg-gray-50'
-          : submitted && wrong ? 'border-gray-500 text-gray-700 bg-red-50'
-          : 'border-gray-400 focus:border-gray-900'
-      }`}
-      style={{ width: `${inputWidth}px`, minWidth: '40px' }}
-    />
+    <span className="relative inline-block align-middle" style={{ minWidth: `${minLength}px`, width: isBlank ? `${minLength}px` : `${inputWidth}px`, maxWidth: '400px' }}>
+      <input
+        type="text"
+        value={userAnswer}
+        disabled={submitted}
+        placeholder=""
+        onChange={e => onTextAnswer(questionId, e.target.value)}
+        className={`w-full outline-none px-2 text-center text-sm font-medium bg-transparent border-b-2 transition-all ${
+          submitted && correct ? 'border-gray-900 text-gray-900 bg-gray-50'
+            : submitted && wrong ? 'border-gray-500 text-gray-700 bg-red-50'
+            : 'border-gray-400 focus:border-gray-900'
+        }`}
+        style={{ height: '20px', lineHeight: '20px' }}
+      />
+    </span>
   );
 }
 
@@ -116,6 +127,7 @@ function IELTSBoxedGapFilling({ questions, submitted, textAnswers, onTextAnswer,
                   }
 
                   const correctAnswer = q.options.find(o => o.isCorrect)?.content ?? '';
+                  const displayNumber = questionPositionById[q.id] ?? q.position;
                   return (
                     <>
                       {parsed.before}
@@ -124,6 +136,7 @@ function IELTSBoxedGapFilling({ questions, submitted, textAnswers, onTextAnswer,
                         userAnswer={userAnswer}
                         submitted={submitted}
                         correctAnswer={correctAnswer}
+                        displayNumber={displayNumber}
                         onTextAnswer={onTextAnswer}
                       />
                       {parsed.after}

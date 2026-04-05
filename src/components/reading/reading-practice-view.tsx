@@ -1,11 +1,13 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { Wifi, Bell, Menu, Clock } from 'lucide-react';
+import { Clock, Wifi, Bell, Menu } from 'lucide-react';
 import { ReadingExamQuestionsPanel } from '@/components/reading/reading-exam-questions-panel';
 import { ReadingExamQuestionNav } from '@/components/reading/reading-exam-question-nav';
 import { ReadingPassage } from '@/components/reading/reading-passage';
 import { ReadingPassageWithMatching } from '@/components/reading/reading-passage-with-matching';
+import { ReadingToolbar } from '@/components/reading/reading-toolbar';
+import { ResizableSplitPane } from '@/components/reading/resizable-split-pane';
 import type { StimulusDetail } from '@/types/test.types';
 
 interface Props {
@@ -17,13 +19,15 @@ interface Props {
   onSubmit?: () => void;
   submitted: boolean;
   elapsedTime?: string;
+  selectedPillId: number | null;
+  onPillSelect: (id: number | null) => void;
 }
 
-/** IELTS-style header for reading exam */
-function ReadingExamHeader({ 
+/** IELTS-style header for practice mode */
+function ReadingPracticeHeader({
   elapsedTime,
-}: { 
-  elapsedTime?: string; 
+}: {
+  elapsedTime?: string;
 }) {
   return (
     <header className="shrink-0 flex items-center justify-between px-4 py-2 bg-white border-b border-gray-300">
@@ -68,7 +72,7 @@ function ReadingPartInfo({ section, questionCount }: { section: number; question
   );
 }
 
-export function ReadingExamView({
+export function ReadingPracticeView({
   stimuli,
   answers,
   textAnswers,
@@ -77,6 +81,8 @@ export function ReadingExamView({
   onSubmit,
   submitted,
   elapsedTime,
+  selectedPillId,
+  onPillSelect,
 }: Props) {
   const [activeStimulusIdx, setActiveStimulusIdx] = useState(0);
   const [activeQuestionId, setActiveQuestionId] = useState<number | null>(null);
@@ -171,51 +177,55 @@ export function ReadingExamView({
   return (
     <div className="h-[calc(100vh-56px)] flex flex-col bg-[#f5f6f8]">
       {/* Header */}
-      <ReadingExamHeader elapsedTime={elapsedTime} />
+      <ReadingPracticeHeader elapsedTime={elapsedTime} />
+
+      {/* Toolbar for practice mode */}
+      <ReadingToolbar />
 
       {/* Part info */}
       <ReadingPartInfo section={currentStimulus.section ?? activeStimulusIdx + 1} questionCount={totalQuestions} />
 
       {/* Main content */}
-      <div className="flex-1 min-h-0 flex overflow-hidden">
-        {/* Passage (left side) */}
-        <div className="w-[54%] border-r border-gray-300 bg-white">
-          <div className="h-full overflow-y-auto reading-scrollbar px-6 py-6">
-            {(() => {
-              const matchingGroup = currentStimulus.questionGroups.find(
-                (g) => g.questionTypeCode === 'MATCHING_HEADINGS'
-              );
-              return matchingGroup ? (
-                <ReadingPassageWithMatching
-                  content={currentStimulus.content}
-                  questions={matchingGroup.questions}
-                  answers={answers}
-                  submitted={submitted}
-                  onAnswer={onAnswer}
-                  selectedPillId={null}
-                  onPillAssigned={() => {}}
-                  examMode
-                />
-              ) : (
-                <ReadingPassage content={currentStimulus.content} interactive={false} examMode />
-              );
-            })()}
-          </div>
-        </div>
-
-        {/* Questions (right side) */}
-        <div className="flex-1 bg-white">
-          <div className="h-full overflow-y-auto reading-scrollbar px-6 py-6">
-            <ReadingExamQuestionsPanel
-              stimulus={currentStimulus}
-              submitted={submitted}
-              answers={answers}
-              onAnswer={onAnswer}
-              textAnswers={textAnswers}
-              onTextAnswer={onTextAnswer}
-            />
-          </div>
-        </div>
+      <div className="flex-1 min-h-0 flex flex-col bg-[#f5f6f8]">
+        <ResizableSplitPane
+          leftPane={
+            <>
+              {(() => {
+                const matchingGroup = currentStimulus.questionGroups.find(
+                  (g) => g.questionTypeCode === 'MATCHING_HEADINGS'
+                );
+                return matchingGroup ? (
+                  <ReadingPassageWithMatching
+                    content={currentStimulus.content}
+                    questions={matchingGroup.questions}
+                    answers={answers}
+                    submitted={submitted}
+                    onAnswer={onAnswer}
+                    selectedPillId={selectedPillId}
+                    onPillAssigned={() => onPillSelect(null)}
+                  />
+                ) : (
+                  <ReadingPassage content={currentStimulus.content} interactive />
+                );
+              })()}
+            </>
+          }
+          rightPane={
+            <>
+              <ReadingExamQuestionsPanel
+                stimulus={currentStimulus}
+                submitted={submitted}
+                answers={answers}
+                onAnswer={onAnswer}
+                textAnswers={textAnswers}
+                onTextAnswer={onTextAnswer}
+                selectedPillId={selectedPillId}
+                onPillSelect={onPillSelect}
+              />
+            </>
+          }
+          storageKey="reading-practice-passage-width"
+        />
       </div>
 
       {/* Navigation */}

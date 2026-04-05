@@ -169,47 +169,6 @@ export function TestEditWritingContent({ test }: Props) {
 
   return (
     <div className="space-y-5 max-w-3xl">
-      {/* Dạng đề — chỉ hiện cho Task 1 hoặc Task 2 */}
-      {(isTask1 || isTask2) && (
-        <div>
-          <label className="text-sm font-medium text-gray-700 mb-1.5 block">
-            Dạng đề
-            {questionTypeCode && (
-              <span className="ml-2 text-xs text-blue-600 font-normal">
-                {WRITING_TYPE_CODE_LABELS[questionTypeCode] || questionTypeCode}
-              </span>
-            )}
-          </label>
-          <select
-            value={selectedTypeLabel}
-            onChange={(e) => handleTypeChange(e.target.value)}
-            className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="">-- Chọn dạng đề --</option>
-            {typeOptions.map((label) => (
-              <option key={label} value={label}>{label}</option>
-            ))}
-          </select>
-        </div>
-      )}
-
-      {/* Chủ đề — chỉ hiện cho Task 2 */}
-      {isTask2 && (
-        <div>
-          <label className="text-sm font-medium text-gray-700 mb-1.5 block">Chủ đề</label>
-          <select
-            value={topic}
-            onChange={(e) => setTopic(e.target.value)}
-            className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="">-- Chọn chủ đề --</option>
-            {WRITING_TOPICS.map((t) => (
-              <option key={t} value={t}>{t}</option>
-            ))}
-          </select>
-        </div>
-      )}
-
       {/* Đề bài - Rich Text Editor */}
       <div>
         <label className="text-sm font-medium text-gray-700 mb-2 block">

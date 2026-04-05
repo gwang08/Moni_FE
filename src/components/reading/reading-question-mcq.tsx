@@ -30,7 +30,7 @@ export function ReadingQuestionMcq({ questionId, position, content, options, sel
     return (
       <div id={`question-${questionId}`} className="bg-white px-5 py-4">
         <div className="flex items-start gap-3 mb-4">
-          <span className="inline-flex h-10 min-w-10 items-center justify-center rounded-sm border border-blue-600 bg-white px-2 text-lg font-normal text-gray-900">
+          <span className="inline-flex h-10 min-w-10 items-center justify-center rounded-sm border border-blue-600 bg-white px-2 text-lg font-bold text-gray-900">
             {position}
           </span>
           <p className="flex-1 pt-1 text-[15px] text-gray-900 font-normal leading-relaxed">{content}</p>

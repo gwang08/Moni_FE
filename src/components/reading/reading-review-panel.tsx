@@ -207,7 +207,7 @@ export function ReadingReviewPanel({ stimulus, answers, textAnswers = {}, onLoca
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex-1 overflow-y-auto p-6 space-y-6">
+      <div className="flex-1 overflow-y-auto custom-scrollbar-thick p-6 space-y-6">
         {stimulus.questionGroups.map((group, gi) => (
           <div key={group.id}>
             <div className="flex items-center gap-2 mb-3">

@@ -194,7 +194,7 @@ export default function ReadingReviewPage({ params }: Props) {
       {/* Split layout */}
       <div className="flex-1 flex overflow-hidden">
         {/* Left: Passage with evidence highlight */}
-        <div className="w-1/2 overflow-y-auto p-6 border-r border-gray-200">
+        <div className="w-1/2 overflow-y-auto custom-scrollbar-thick p-6 border-r border-gray-200">
           <h2 className="text-xl font-bold mb-4">
             {stimuli.length > 1
               ? `${testDetail.title} - Passage ${enrichedStimulus.section ?? safeActiveStimulusIdx + 1}`

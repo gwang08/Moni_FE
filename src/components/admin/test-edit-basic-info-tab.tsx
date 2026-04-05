@@ -9,6 +9,13 @@ import { Label } from '@/components/ui/label';
 import { updateTest, uploadMedia } from '@/lib/admin-api';
 import { MediaUploadZone } from '@/components/admin/media-upload-zone';
 import { SKILL_SECTIONS } from '@/components/admin/test-import-step1-basic-info';
+import {
+  WRITING_TASK1_TYPES,
+  WRITING_TASK1_TYPE_CODES,
+  WRITING_TASK2_TYPES,
+  WRITING_TASK2_TYPE_CODES,
+  WRITING_TOPICS,
+} from '@/components/practice/writing-filter-constants';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
 import type { TestDetailResponse } from '@/types/test.types';
@@ -23,7 +30,7 @@ const TEST_TYPE_LABELS: Record<string, string> = {
   ACADEMIC: 'Academic',
   GENERAL_TRAINING: 'General Training',
 };
-const SKILLS_WITH_TEST_TYPE = ['READING', 'LISTENING'];
+const SKILLS_WITH_TEST_TYPE = ['READING'];
 
 const toMinutes = (duration?: number | null) => {
   if (!duration || duration <= 0) return '';
@@ -64,16 +71,33 @@ export const TestEditBasicInfoTab = forwardRef<TestEditBasicInfoHandle, Props>(f
   const [section, setSection] = useState<number | null>(test.section ?? null);
   const [testType, setTestType] = useState(normalizeTestType(test.testType));
   const thumbnailFileRef = useRef<File | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Writing-specific state
+  const firstGroup = test.stimuli[0]?.questionGroups[0];
+  const [writingType, setWritingType] = useState(firstGroup?.questionTypeCode || '');
+  const [writingTopic, setWritingTopic] = useState(firstGroup?.groupContent || '');
 
   const sections = skill ? (SKILL_SECTIONS[skill] || []) : [];
   const needsSection = sections.length > 0;
+  const isWriting = skill === 'WRITING';
+  const isTask1 = test.section === 1;
+  const isTask2 = test.section === 2;
+  const writingTypeOptions = isTask1 ? WRITING_TASK1_TYPES : isTask2 ? WRITING_TASK2_TYPES : [];
+  const writingTypeCodes = isTask1 ? WRITING_TASK1_TYPE_CODES : isTask2 ? WRITING_TASK2_TYPE_CODES : {};
+
+  // Reverse lookup: code → label
+  const writingCodeToLabel = isWriting ? Object.fromEntries(
+    Object.entries(writingTypeCodes).map(([label, code]) => [code, label])
+  ) : {};
+  const selectedWritingTypeLabel = writingCodeToLabel[writingType] || '';
 
   const handleSave = async () => {
     if (!title.trim()) {
       toast.error('Vui lòng nhập tiêu đề');
       return false;
     }
-    if (!duration || Number(duration) <= 0) {
+    if (skill !== 'LISTENING' && (!duration || Number(duration) <= 0)) {
       toast.error('Vui lòng nhập thời gian làm bài');
       return false;
     }
@@ -95,6 +119,25 @@ export const TestEditBasicInfoTab = forwardRef<TestEditBasicInfoHandle, Props>(f
         section: section ?? undefined,
         testType: testType || undefined,
       });
+
+      // Save writing type and topic if applicable
+      if (isWriting && firstGroup && (writingType || writingTopic)) {
+        const updates: Promise<any>[] = [];
+        if (writingType && writingType !== firstGroup.questionTypeCode) {
+          updates.push(import('@/lib/admin-api').then(({ updateQuestionGroupTypeCode }) => 
+            updateQuestionGroupTypeCode(firstGroup.id, writingType)
+          ));
+        }
+        if (writingTopic && writingTopic !== firstGroup.groupContent) {
+          updates.push(import('@/lib/admin-api').then(({ updateQuestionGroupContent }) => 
+            updateQuestionGroupContent(firstGroup.id, writingTopic)
+          ));
+        }
+        if (updates.length > 0) {
+          await Promise.all(updates);
+        }
+      }
+
       toast.success('Cập nhật thành công!');
       queryClient.invalidateQueries({ queryKey: ['admin', 'test', String(test.id)] });
       if (onSaved) onSaved();
@@ -117,108 +160,202 @@ export const TestEditBasicInfoTab = forwardRef<TestEditBasicInfoHandle, Props>(f
           e.preventDefault();
           void handleSave();
         }}
-        className="space-y-6"
       >
-        <div className="grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
-          <div className="space-y-5">
+        <div className="flex gap-6 items-stretch">
+          {/* Left column: Title + Thumbnail */}
+          <div className="flex-1 space-y-4 flex flex-col">
             <div>
-              <Label htmlFor="title" className="mb-1.5 block text-sm font-medium">Tiêu đề *</Label>
-              <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Tiêu đề bài thi" />
+              <Label htmlFor="title" className="mb-1.5 block text-sm font-medium">Tiêu đề bài thi *</Label>
+              <Input
+                id="title"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="VD: Cambridge 18 - Test 1"
+              />
             </div>
 
-            <div>
+            <div className="flex-1 flex flex-col">
               <Label className="mb-1.5 block text-sm font-medium">Ảnh bìa</Label>
               {thumbnailUrl ? (
-                <div className="relative w-full overflow-hidden rounded-lg border">
-                  <Image src={thumbnailUrl} alt="Thumbnail" width={960} height={260} className="h-48 w-full object-cover" unoptimized />
+                <div className="relative flex-1 min-h-[160px] w-full overflow-hidden rounded-lg border">
+                  <Image src={thumbnailUrl} alt="Thumbnail" width={960} height={280} className="h-full w-full object-cover" unoptimized />
                   <button
                     type="button"
                     onClick={() => {
                       setThumbnailUrl('');
                       thumbnailFileRef.current = null;
                     }}
-                    className="absolute right-2 top-2 rounded-full bg-red-500 p-1 text-white hover:bg-red-600"
+                    className="absolute right-3 top-3 rounded-full bg-red-500 p-1.5 text-white hover:bg-red-600"
                   >
-                    <X className="h-4 w-4" />
+                    <X className="h-5 w-5" />
                   </button>
                 </div>
               ) : (
-                <MediaUploadZone
-                  onUploaded={setThumbnailUrl}
-                  onFileSelected={(file, previewUrl) => {
-                    setThumbnailUrl(previewUrl);
-                    thumbnailFileRef.current = file;
-                  }}
-                />
+                <div className="flex-1 min-h-[160px]">
+                  <div
+                    onClick={() => inputRef.current?.click()}
+                    className="flex flex-col items-center justify-center h-full border-2 border-dashed border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors"
+                  >
+                    <input
+                      ref={inputRef}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          const previewUrl = URL.createObjectURL(file);
+                          setThumbnailUrl(previewUrl);
+                          thumbnailFileRef.current = file;
+                        }
+                      }}
+                    />
+                    <svg className="w-10 h-10 text-gray-400 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    <span className="text-sm font-medium text-blue-600">Thêm ảnh</span>
+                  </div>
+                </div>
               )}
             </div>
           </div>
 
-          <div className="space-y-5">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="col-span-2">
-                <Label className="mb-1.5 block text-sm font-medium">Kỹ năng</Label>
-                <div className="rounded-md border border-input bg-gray-50 px-3 py-2 text-sm font-medium text-gray-800">
-                  {skill || '-'}
+          {/* Right column: Settings - framed panel */}
+          <div className="w-80 shrink-0 self-stretch">
+            <div className="rounded-lg border border-gray-200 bg-white p-5 h-full">
+              <div className="space-y-4">
+                <div className="flex items-center gap-4">
+                  <Label htmlFor="status" className="text-sm font-medium text-gray-700 whitespace-nowrap">Hiển thị</Label>
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={status === 'PUBLISHED'}
+                      onChange={(e) => setStatus(e.target.checked ? 'PUBLISHED' : 'HIDDEN')}
+                      className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
+                  </label>
                 </div>
-              </div>
 
-              {needsSection && (
-                <div className="col-span-2">
-                  <Label className="mb-1.5 block text-sm font-medium">Phần</Label>
-                  <select
-                    value={section ?? ''}
-                    onChange={(e) => setSection(e.target.value ? Number(e.target.value) : null)}
-                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  >
-                    <option value="">Chọn phần</option>
-                    {sections.map((s) => (
-                      <option key={s.value} value={s.value}>
-                        {s.label}
-                      </option>
-                    ))}
-                  </select>
+                <div className="flex items-center gap-4">
+                  <span className="text-sm font-medium text-gray-700 whitespace-nowrap">Kỹ năng</span>
+                  <div className="rounded-md border border-input bg-white px-3 text-sm font-medium text-gray-800 text-center">
+                    {skill || '-'}
+                  </div>
                 </div>
-              )}
 
-              {SKILLS_WITH_TEST_TYPE.includes(skill) && (
-                <div className="col-span-2">
-                  <Label className="mb-1.5 block text-sm font-medium">Dạng đề</Label>
-                  <select
-                    value={testType}
-                    onChange={(e) => setTestType(e.target.value)}
-                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  >
-                    <option value="">Chọn dạng đề</option>
-                  {TEST_TYPES.map((t) => (
-                    <option key={t} value={t}>
-                      {TEST_TYPE_LABELS[t]}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              )}
+                {needsSection && (
+                  <div className="flex items-center gap-4">
+                    <Label className="text-sm font-medium text-gray-700 whitespace-nowrap">Phần</Label>
+                    <select
+                      value={section ?? ''}
+                      onChange={(e) => setSection(e.target.value ? Number(e.target.value) : null)}
+                      className="rounded-md border border-input bg-white px-3 py-1.5 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring max-w-[140px]"
+                    >
+                      <option value="">Chọn phần</option>
+                      {sections.map((s) => (
+                        <option key={s.value} value={s.value}>
+                          {s.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
 
-              <div>
-                <Label htmlFor="status" className="mb-1.5 block text-sm font-medium">Trạng thái</Label>
-                <select
-                  id="status"
-                  value={status}
-                  onChange={(e) => setStatus(e.target.value)}
-                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                >
-                  {STATUSES.map((s) => (
-                    <option key={s.value} value={s.value}>
-                      {s.label}
-                    </option>
-                  ))}
-                  {status && !STATUSES.some((s) => s.value === status) && <option value={status}>{status}</option>}
-                </select>
-              </div>
+                {SKILLS_WITH_TEST_TYPE.includes(skill) && (
+                  <div className="flex items-center gap-4">
+                    <Label className="text-sm font-medium text-gray-700 whitespace-nowrap">Dạng đề</Label>
+                    <select
+                      value={testType}
+                      onChange={(e) => setTestType(e.target.value)}
+                      className="rounded-md border border-input bg-white px-3 py-1.5 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring max-w-[140px]"
+                    >
+                      <option value="">Chọn dạng đề</option>
+                      {TEST_TYPES.map((t) => (
+                        <option key={t} value={t}>
+                          {TEST_TYPE_LABELS[t]}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
 
-              <div>
-                <Label htmlFor="duration" className="mb-1.5 block text-sm font-medium">Thời gian làm bài (phút) *</Label>
-                <Input id="duration" type="number" value={duration} onChange={(e) => setDuration(e.target.value)} placeholder="VD: 60" min={1} required />
+                {!isWriting && skill !== 'LISTENING' && (
+                  <div className="flex items-center gap-4">
+                    <Label htmlFor="duration" className="text-sm font-medium text-gray-700 whitespace-nowrap">Thời gian</Label>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        id="duration"
+                        type="number"
+                        value={duration}
+                        onChange={(e) => setDuration(e.target.value)}
+                        placeholder="60"
+                        min={1}
+                        required
+                        className="w-16 text-center h-7 text-sm"
+                      />
+                      <span className="text-sm text-gray-600 whitespace-nowrap">phút</span>
+                    </div>
+                  </div>
+                )}
+
+                {isWriting && (
+                  <>
+                    <div className="flex items-center gap-4">
+                      <Label className="text-sm font-medium text-gray-700 whitespace-nowrap">Dạng đề</Label>
+                      <select
+                        value={selectedWritingTypeLabel}
+                        onChange={(e) => {
+                          const label = e.target.value;
+                          const code = (writingTypeCodes[label] as string) || '';
+                          setWritingType(code);
+                        }}
+                        className="rounded-md border border-input bg-white px-3 py-1.5 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring max-w-[180px] truncate"
+                      >
+                        <option value="">Chọn dạng đề</option>
+                        {writingTypeOptions.map((label) => (
+                          <option key={label} value={label}>
+                            {label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {isTask2 && (
+                      <div className="flex items-center gap-4">
+                        <Label className="text-sm font-medium text-gray-700 whitespace-nowrap">Chủ đề</Label>
+                        <select
+                          value={writingTopic}
+                          onChange={(e) => setWritingTopic(e.target.value)}
+                          className="rounded-md border border-input bg-white px-3 py-1.5 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring max-w-[180px] truncate"
+                        >
+                          <option value="">Chọn chủ đề</option>
+                          {WRITING_TOPICS.map((topic) => (
+                            <option key={topic} value={topic}>
+                              {topic}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+
+                    <div className="flex items-center gap-4">
+                      <Label htmlFor="duration" className="text-sm font-medium text-gray-700 whitespace-nowrap">Thời gian</Label>
+                      <div className="flex items-center gap-2">
+                        <Input
+                          id="duration"
+                          type="number"
+                          value={duration}
+                          onChange={(e) => setDuration(e.target.value)}
+                          placeholder="40"
+                          min={1}
+                          required
+                          className="w-16 text-center h-7 text-sm"
+                        />
+                        <span className="text-sm text-gray-600 whitespace-nowrap">phút</span>
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           </div>

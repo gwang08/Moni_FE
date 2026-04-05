@@ -47,7 +47,7 @@ function GapInput({ questionId, userAnswer, submitted, correctAnswer, onTextAnsw
       disabled={submitted}
       placeholder="..."
       onChange={e => onTextAnswer(questionId, e.target.value)}
-      className={`inline-block bg-transparent px-1 py-0.5 outline-none text-center align-baseline border-b-2 ${
+      className={`inline-block bg-transparent px-1 py-0.5 outline-none text-left align-baseline border-b-2 ${
         submitted && correct ? 'border-blue-600 text-gray-900 font-medium'
           : submitted && wrong ? 'border-red-500 text-red-700'
           : hasAnswer ? 'border-blue-600 text-gray-900 font-medium'
@@ -74,25 +74,23 @@ function ExamInlineGapInput({ questionId, userAnswer, submitted, correctAnswer, 
   const isBlank = userAnswer.trim().length === 0;
 
   return (
-    <span
-      className="relative inline-flex align-baseline justify-center"
-      style={{ minWidth: `${minLength}px`, width: `${inputWidth}px`, maxWidth: '400px', height: '32px' }}
-    >
+    <span className="relative inline-block align-middle" style={{ minWidth: `${minLength}px`, width: isBlank ? `${minLength}px` : `${inputWidth}px`, maxWidth: '400px' }}>
       <input
         type="text"
         value={userAnswer}
         disabled={submitted}
         onChange={e => onTextAnswer(questionId, e.target.value)}
-        className={`absolute inset-0 h-full w-full rounded-sm border bg-white px-3 py-1 text-center text-sm font-normal focus:outline-none focus:ring-2 transition-all ${
-          submitted && correct ? 'border-blue-600 text-gray-900 bg-blue-50 ring-0'
-            : submitted && wrong ? 'border-red-500 text-red-700 bg-red-50 ring-0'
-            : hasAnswer ? 'border-blue-600 text-gray-900 bg-white ring-0'
+        className={`w-full rounded-sm border bg-white px-2 text-center text-sm font-normal text-gray-900 focus:outline-none focus:ring-2 transition-all ${
+          submitted && correct ? 'border-blue-600 bg-blue-50'
+            : submitted && wrong ? 'border-red-500 bg-red-50'
+            : hasAnswer ? 'border-blue-600 bg-white'
             : 'border-gray-300 focus:border-blue-600 focus:ring-blue-200'
         }`}
+        style={{ height: '20px', lineHeight: '20px' }}
         placeholder=""
       />
       {!submitted && isBlank && displayNumber != null && (
-        <span className="pointer-events-none absolute inset-0 flex items-center justify-center text-sm font-medium text-gray-400">
+        <span className="pointer-events-none absolute inset-0 flex items-center justify-center text-sm font-bold text-gray-900" style={{ lineHeight: '20px' }}>
           {displayNumber}
         </span>
       )}
@@ -119,13 +117,13 @@ function IELTSBoxedGapFilling({ questions, submitted, textAnswers, onTextAnswer,
 
   return (
     <div className="bg-white p-5">
-      <div className="space-y-3">
+      <div className="space-y-2">
         {sortedQuestions.map((q) => {
           const userAnswer = textAnswers[q.id] ?? '';
 
           return (
-            <div key={q.id} className="py-2 border-b border-gray-100 last:border-0">
-              <p className="text-sm text-gray-800 font-normal leading-8">
+            <div key={q.id} className="py-1 border-b border-gray-100 last:border-0">
+              <p className="text-sm text-gray-800 font-normal leading-7">
                 {(() => {
                   const parsed = parseGapContent(q.content);
                   if (!parsed) {

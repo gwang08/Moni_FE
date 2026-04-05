@@ -13,6 +13,7 @@ import { ListeningAudioPlayer } from '@/components/listening/listening-audio-pla
 import { ListeningQuestionNav } from '@/components/listening/listening-question-nav';
 import { ListeningNotesSidebar } from '@/components/listening/listening-notes-sidebar';
 import { ListeningExamView } from '@/components/listening/listening-exam-view';
+import { ListeningPracticeView } from '@/components/listening/listening-practice-view';
 import { ReadingQuestionsPanel } from '@/components/reading/reading-questions-panel';
 import { useListeningStore } from '@/store/listening-store';
 import { usePracticeStore } from '@/store/practice-store';
@@ -235,17 +236,32 @@ export default function ListeningExercisePage({ params }: Props) {
 
   return (
     <>
-      <ListeningExamView
-        stimuli={stimuli}
-        answers={answers}
-        textAnswers={textAnswers}
-        onAnswer={handleAnswer}
-        onTextAnswer={handleTextAnswer}
-        onSubmit={() => setConfirmOpen(true)}
-        submitted={submitted}
-        isPlaying={isPlaying}
-        elapsedTime={elapsedTime}
-      />
+      {isExamMode ? (
+        <ListeningExamView
+          stimuli={stimuli}
+          answers={answers}
+          textAnswers={textAnswers}
+          onAnswer={handleAnswer}
+          onTextAnswer={handleTextAnswer}
+          onSubmit={() => setConfirmOpen(true)}
+          submitted={submitted}
+          isPlaying={isPlaying}
+          elapsedTime={elapsedTime}
+        />
+      ) : (
+        <ListeningPracticeView
+          stimuli={stimuli}
+          answers={answers}
+          textAnswers={textAnswers}
+          onAnswer={handleAnswer}
+          onTextAnswer={handleTextAnswer}
+          onSubmit={() => setConfirmOpen(true)}
+          submitted={submitted}
+          isPlaying={isPlaying}
+          elapsedTime={elapsedTime}
+          audioUrl={currentStimulus?.mediaUrl ?? undefined}
+        />
+      )}
 
       {/* Shared Confirm Dialogs (only for practice mode) */}
       {!isExamMode && (

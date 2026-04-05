@@ -11,6 +11,7 @@ export interface BasicInfo {
   skill: string;
   thumbnailUrl: string;
   section: number | null;
+  testType: string;
 }
 
 interface Props {
@@ -21,6 +22,7 @@ interface Props {
 }
 
 const SKILLS = ['LISTENING', 'READING', 'SPEAKING', 'WRITING'];
+const TEST_TYPES = ['ACADEMIC', 'GENERAL_TRAINING'];
 
 export const SKILL_SECTIONS: Record<string, { value: number; label: string }[]> = {
   READING: [
@@ -51,10 +53,12 @@ export function TestImportStep1({ data, onChange, onNext, onThumbnailFileSelecte
   const needsSection = sections.length > 0;
 
   const isValid = data.title.trim() && data.skill
+    && ((data.skill === 'READING' || data.skill === 'WRITING') ? data.testType : true)
     && (!needsSection || data.section !== null);
 
   const handleSkillChange = (skill: string) => {
-    onChange({ ...data, skill, section: null });
+    const needsTestType = skill === 'READING' || skill === 'WRITING';
+    onChange({ ...data, skill, section: null, testType: needsTestType ? '' : skill });
   };
 
   return (
@@ -77,6 +81,21 @@ export function TestImportStep1({ data, onChange, onNext, onThumbnailFileSelecte
           {SKILLS.map(s => <option key={s} value={s}>{s}</option>)}
         </select>
       </div>
+
+      {data.skill === 'READING' || data.skill === 'WRITING' ? (
+        <div>
+          <Label htmlFor="testType" className="mb-1.5 block text-sm font-medium">Loại bài thi *</Label>
+          <select
+            id="testType"
+            value={data.testType}
+            onChange={e => onChange({ ...data, testType: e.target.value })}
+            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <option value="">Chọn loại bài thi</option>
+            {TEST_TYPES.map(t => <option key={t} value={t}>{t === 'ACADEMIC' ? 'Academic' : 'General Training'}</option>)}
+          </select>
+        </div>
+      ) : null}
 
       {/* Section selection cho Bài lẻ */}
       {needsSection && (

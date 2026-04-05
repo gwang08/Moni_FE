@@ -212,11 +212,11 @@ export default function WritingExercisePage({ params }: Props) {
   };
 
   return (
-    <div className="h-[calc(100vh-56px)] flex flex-col relative overflow-hidden">
+    <div className="min-h-screen flex flex-col bg-gradient-to-br from-teal-50/50 via-white to-blue-50/30">
       {/* Decorative pastel blobs */}
-      <div className="pointer-events-none absolute -top-32 -left-32 w-80 h-80 rounded-full bg-teal-200/20 blur-3xl" />
-      <div className="pointer-events-none absolute top-1/3 -right-24 w-72 h-72 rounded-full bg-blue-200/20 blur-3xl" />
-      <div className="pointer-events-none absolute -bottom-20 left-1/3 w-64 h-64 rounded-full bg-emerald-200/15 blur-3xl" />
+      <div className="pointer-events-none fixed -top-32 -left-32 w-80 h-80 rounded-full bg-teal-200/20 blur-3xl" />
+      <div className="pointer-events-none fixed top-1/3 -right-24 w-72 h-72 rounded-full bg-blue-200/20 blur-3xl" />
+      <div className="pointer-events-none fixed -bottom-20 left-1/3 w-64 h-64 rounded-full bg-emerald-200/15 blur-3xl" />
 
       <WritingPracticeHeader
         title={testDetail.title}
@@ -230,7 +230,7 @@ export default function WritingExercisePage({ params }: Props) {
         onExit={() => setExitOpen(true)}
       />
 
-      <div className="flex-1 flex overflow-hidden bg-gradient-to-br from-teal-50/50 via-white to-blue-50/30 relative z-10">
+      <div className="flex-1 flex overflow-hidden relative z-10">
         {/* Left: Prompt */}
         <div className="w-[28%] overflow-y-auto p-4">
           <WritingPromptPanel

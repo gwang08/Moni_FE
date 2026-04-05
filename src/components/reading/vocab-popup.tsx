@@ -107,7 +107,7 @@ export function VocabPopup({ word, sentence, position, onClose }: Props) {
         </div>
 
         {/* Content */}
-        <div className="px-5 py-3 max-h-[340px] overflow-y-auto space-y-3">
+        <div className="px-5 py-3 max-h-[340px] overflow-y-auto custom-scrollbar-thick space-y-3">
           {loading ? (
             <div className="space-y-3 py-2">
               <div className="h-4 w-full bg-gray-100 rounded animate-pulse" />

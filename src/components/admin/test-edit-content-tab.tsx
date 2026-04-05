@@ -192,6 +192,7 @@ function GroupEditForm({
   typeCode,
   instruction,
   groupContent,
+  skill,
   onChange,
   onCancel,
   onSave,
@@ -200,6 +201,7 @@ function GroupEditForm({
   typeCode: string;
   instruction: string;
   groupContent: string;
+  skill: string;
   onChange: (draft: { typeCode: string; instruction: string; groupContent: string }) => void;
   onCancel: () => void;
   onSave: () => void;
@@ -207,21 +209,23 @@ function GroupEditForm({
   return (
     <div className="rounded-xl border border-blue-200 bg-blue-50/40 p-3">
       <div className="grid gap-3 md:grid-cols-3">
-        <div className="space-y-1">
-          <label className="text-xs font-medium text-gray-600">Question type</label>
-          <select
-            value={typeCode}
-            onChange={(event) => onChange({ typeCode: event.target.value, instruction, groupContent })}
-            className="h-9 w-full rounded-md border border-gray-300 bg-white px-3 text-sm"
-          >
-            {Object.entries(TYPE_LABELS).map(([code, labelText]) => (
-              <option key={code} value={code}>
-                {labelText}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="space-y-1 md:col-span-2">
+        {skill !== 'LISTENING' && (
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-gray-600">Question type</label>
+            <select
+              value={typeCode}
+              onChange={(event) => onChange({ typeCode: event.target.value, instruction, groupContent })}
+              className="h-9 w-full rounded-md border border-gray-300 bg-white px-3 text-sm"
+            >
+              {Object.entries(TYPE_LABELS).map(([code, labelText]) => (
+                <option key={code} value={code}>
+                  {labelText}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+        <div className={`space-y-1 ${skill !== 'LISTENING' ? 'md:col-span-2' : 'md:col-span-3'}`}>
           <label className="text-xs font-medium text-gray-600">Hướng dẫn</label>
           <input
             value={instruction}
@@ -945,7 +949,9 @@ export function TestEditContentTab({ test, onBeforeSaveBasicInfo }: Props) {
                           </button>
                           <span className="rounded-full bg-blue-600 px-2.5 py-0.5 text-xs font-semibold text-white">Nhóm {index + 1}</span>
                           <span className="text-xs font-medium text-gray-700">{getQuestionRangeLabel(group, index)}</span>
-                          <span className="text-xs text-gray-400">{TYPE_LABELS[typeCode] || typeCode}</span>
+                          {test.skill !== 'LISTENING' && (
+                            <span className="text-xs text-gray-400">{TYPE_LABELS[typeCode] || typeCode}</span>
+                          )}
                           {invalid && (
                             <span className="inline-flex items-center gap-1 rounded-full bg-red-50 px-2 py-0.5 text-[11px] font-medium text-red-600">
                               <AlertTriangle className="h-3 w-3" /> Chưa hoàn chỉnh
@@ -962,6 +968,7 @@ export function TestEditContentTab({ test, onBeforeSaveBasicInfo }: Props) {
                             typeCode={groupDrafts[group.id]?.typeCode || typeCode}
                             instruction={groupDrafts[group.id]?.instruction ?? group.instruction ?? ''}
                             groupContent={groupDrafts[group.id]?.groupContent || ''}
+                            skill={test.skill}
                             onChange={(draft) =>
                               setGroupDrafts((prev) => ({
                                 ...prev,
@@ -1092,6 +1099,7 @@ export function TestEditContentTab({ test, onBeforeSaveBasicInfo }: Props) {
                     stimulusId={stimulus.id}
                     testId={testId}
                     stimulusContent={stimulus.content || ''}
+                    skill={test.skill}
                     excludeTypeCodes={stimulus.questionGroups.map((group) => ((group.questionTypeCode as QuestionTypeCode) || inferQuestionType(group)))}
                     pendingEvidence={pendingEvidence}
                     onAssignEvidence={() => setPendingEvidence(null)}

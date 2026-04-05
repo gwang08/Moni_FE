@@ -40,20 +40,18 @@ function ExamInlineGapInput({
   const isBlank = userAnswer.trim().length === 0;
 
   return (
-    <span
-      className="relative inline-flex align-middle justify-center"
-      style={{ minWidth: `${minLength}px`, width: `${inputWidth}px`, maxWidth: '400px', height: '32px', verticalAlign: 'middle' }}
-    >
+    <span className="relative inline-block align-middle" style={{ minWidth: `${minLength}px`, width: isBlank ? `${minLength}px` : `${inputWidth}px`, maxWidth: '400px' }}>
       <input
         type="text"
         value={userAnswer}
         disabled={submitted}
         onChange={(e) => onTextAnswer(questionId, e.target.value)}
-        className="absolute inset-0 h-full w-full rounded-sm border border-gray-400 bg-white px-3 py-1 text-center text-sm font-normal leading-none text-gray-900 focus:border-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-200"
+        className="w-full rounded-sm border border-gray-400 bg-white px-2 text-center text-sm font-normal text-gray-900 focus:border-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-200"
+        style={{ height: '20px', lineHeight: '20px' }}
         placeholder=""
       />
       {!submitted && isBlank && displayNumber != null && (
-        <span className="pointer-events-none absolute inset-0 flex items-center justify-center text-sm font-medium text-gray-400">
+        <span className="pointer-events-none absolute inset-0 flex items-center justify-center text-sm font-bold text-gray-900" style={{ lineHeight: '20px' }}>
           {displayNumber}
         </span>
       )}
@@ -84,12 +82,12 @@ function IELTSGapFillingBox({
 
   return (
     <div className="bg-white py-4">
-      <div className="space-y-3">
+      <div className="space-y-2">
         {sortedQuestions.map((q) => {
           const userAnswer = textAnswers[q.id] ?? '';
           return (
-            <div key={q.id} id={`question-${q.id}`} className="py-2 border-b border-gray-100 last:border-0">
-              <p className="text-sm text-gray-800 font-normal leading-8">
+            <div key={q.id} id={`question-${q.id}`} className="py-1 border-b border-gray-100 last:border-0">
+              <p className="text-sm text-gray-800 font-normal leading-7">
                 {(() => {
                   const parsed = q.content.match(/^([\s\S]*?)\{\{(.+?)\}\}([\s\S]*)$/);
                   if (!parsed) {
@@ -144,7 +142,7 @@ function IELTSMCQBox({
           return (
             <div key={q.id} id={`question-${q.id}`} className="space-y-3">
               <div className="flex items-start gap-4">
-                <span className="min-w-[20px] text-sm font-normal text-gray-900 mt-0.5">
+                <span className="min-w-[20px] text-sm font-bold text-gray-900 mt-0.5">
                   {displayNumber}
                 </span>
                 <p className="flex-1 text-sm text-gray-800 font-normal leading-relaxed">{q.content}</p>

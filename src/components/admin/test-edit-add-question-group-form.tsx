@@ -38,13 +38,14 @@ interface Props {
   stimulusId: number;
   testId: string;
   stimulusContent?: string;
+  skill?: string;
   excludeTypeCodes?: QuestionTypeCode[];
   pendingEvidence?: string | null;
   onAssignEvidence?: () => void;
   onClose: () => void;
 }
 
-export function TestEditAddQuestionGroupForm({ stimulusId, testId, stimulusContent, excludeTypeCodes = [], pendingEvidence, onAssignEvidence, onClose }: Props) {
+export function TestEditAddQuestionGroupForm({ stimulusId, testId, stimulusContent, skill, excludeTypeCodes = [], pendingEvidence, onAssignEvidence, onClose }: Props) {
   const queryClient = useQueryClient();
   const [saving, setSaving] = useState(false);
   const [instruction, setInstruction] = useState('');
@@ -113,14 +114,16 @@ export function TestEditAddQuestionGroupForm({ stimulusId, testId, stimulusConte
         </button>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <Label className="mb-1 block text-xs text-gray-600">Loại câu hỏi *</Label>
-          <select value={typeCode} onChange={e => handleTypeChange(e.target.value as QuestionTypeCode)}
-            className="w-full rounded-md border border-input bg-background px-2 py-1.5 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-            {availableTypes.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
-          </select>
-        </div>
+      <div className={`grid gap-3 ${skill !== 'LISTENING' ? 'grid-cols-2' : 'grid-cols-1'}`}>
+        {skill !== 'LISTENING' && (
+          <div>
+            <Label className="mb-1 block text-xs text-gray-600">Loại câu hỏi *</Label>
+            <select value={typeCode} onChange={e => handleTypeChange(e.target.value as QuestionTypeCode)}
+              className="w-full rounded-md border border-input bg-background px-2 py-1.5 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+              {availableTypes.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+            </select>
+          </div>
+        )}
         <div>
           <Label className="mb-1 block text-xs text-gray-600">Hướng dẫn</Label>
           <Input value={instruction} onChange={e => setInstruction(e.target.value)}

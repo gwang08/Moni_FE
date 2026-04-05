@@ -28,7 +28,7 @@ export function ReadingQuestionNav({ questionGroups, answeredQuestions, submitte
         {partLabel}
       </div>
       {/* Question pills grouped with separators */}
-      <div className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto px-2 py-1">
+      <div className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto px-2 py-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
         {(() => {
           let globalNum = 0;
           return questionGroups.map((group, gi) => (

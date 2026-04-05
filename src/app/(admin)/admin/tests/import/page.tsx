@@ -67,13 +67,34 @@ export default function TestImportPage() {
   const [error, setError] = useState('');
 
   const draft = loadDraft();
-  const [basicInfo, setBasicInfo] = useState<BasicInfo>(draft?.basicInfo ?? { title: '', skill: '', thumbnailUrl: '', section: null });
+  const [basicInfo, setBasicInfo] = useState<BasicInfo>(draft?.basicInfo ?? { title: '', skill: '', thumbnailUrl: '', section: null, testType: '' });
   const [stimuli, setStimuli] = useState<StimulusRequest[]>(draft?.stimuli ?? []);
   const thumbnailFileRef = useRef<File | null>(null);
+  const [listeningAudioDuration, setListeningAudioDuration] = useState<number>(0); // in seconds
+  const [speakingDuration, setSpeakingDuration] = useState<number>(0); // in seconds
 
   const skill = basicInfo.skill;
   const isReadingOrListening = skill === 'READING' || skill === 'LISTENING' || !skill;
   const reviewStep = 3;
+
+  // Calculate speaking duration based on part and questions
+  const calculateSpeakingDuration = useCallback((part: number, stimuli: StimulusRequest[]): number => {
+    if (stimuli.length === 0) return 0;
+    const stimulus = stimuli[0];
+    const questions = stimulus.questionGroups[0]?.questions || [];
+    
+    if (part === 2) {
+      // Part 2: 120s (cue card)
+      return 120;
+    } else if (part === 1) {
+      // Part 1: 30s per question
+      return questions.length * 30;
+    } else if (part === 3) {
+      // Part 3: 60s per question
+      return questions.length * 60;
+    }
+    return 0;
+  }, []);
 
   const setStep = useCallback((s: number) => {
     setStepRaw(s);
@@ -92,6 +113,14 @@ export default function TestImportPage() {
     }
   }, [step, skill, setStep]);
 
+  // Calculate speaking duration when stimuli change
+  useEffect(() => {
+    if (skill === 'SPEAKING' && basicInfo.section) {
+      const duration = calculateSpeakingDuration(basicInfo.section, stimuli);
+      setSpeakingDuration(duration);
+    }
+  }, [skill, basicInfo.section, stimuli, calculateSpeakingDuration]);
+
   const handleSubmit = async () => {
     setSubmitting(true);
     setError('');
@@ -105,10 +134,17 @@ export default function TestImportPage() {
       const testId = await importTest({
         title: basicInfo.title,
         skill: basicInfo.skill,
+        testType: basicInfo.testType,
         testMode: 'PRACTICE',
         section: basicInfo.section ?? undefined,
         thumbnailUrl,
-        duration: 60 * 60,
+        duration: basicInfo.skill === 'WRITING' 
+          ? (basicInfo.section === 1 ? 20 * 60 : 40 * 60) 
+          : basicInfo.skill === 'LISTENING' 
+            ? Math.ceil(listeningAudioDuration) + 60 
+            : basicInfo.skill === 'SPEAKING'
+              ? speakingDuration
+              : 60 * 60,
         stimuli: stimuli.map((s, i) => ({
           ...s,
           title: s.title || `Passage ${i + 1}`,
@@ -163,7 +199,14 @@ export default function TestImportPage() {
           <StepIndicator step={step} skill={skill} />
         </div>
         <div className="min-h-0 flex-1 overflow-hidden px-4">
-          <TestImportStep3 skill={skill} stimuli={stimuli} onChange={setStimuli} onNext={handleStep2Next} onBack={() => setStep(1)} />
+          <TestImportStep3 
+            skill={skill} 
+            stimuli={stimuli} 
+            onChange={setStimuli} 
+            onNext={handleStep2Next} 
+            onBack={() => setStep(1)} 
+            onAudioDurationChange={setListeningAudioDuration}
+          />
         </div>
       </div>
     );

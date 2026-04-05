@@ -1,0 +1,232 @@
+'use client';
+
+import { useEffect, useRef, useState, useCallback } from 'react';
+import { Play, Pause, RotateCcw, RotateCw, Volume2, VolumeX, Gauge } from 'lucide-react';
+
+interface Props {
+  audioUrl: string;
+}
+
+const PLAYBACK_RATES = [0.5, 0.75, 1, 1.25, 1.5, 2];
+
+export function ListeningPracticeAudioPlayer({ audioUrl }: Props) {
+  const audioRef = useRef<HTMLAudioElement>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [volume, setVolume] = useState(1);
+  const [isMuted, setIsMuted] = useState(false);
+  const [playbackRate, setPlaybackRate] = useState(1);
+  const [showSpeedMenu, setShowSpeedMenu] = useState(false);
+  const speedMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    const handleTimeUpdate = () => setCurrentTime(audio.currentTime);
+    const handleMetadata = () => setDuration(audio.duration);
+    const handleEnded = () => setIsPlaying(false);
+    const handleError = () => setIsPlaying(false);
+
+    audio.addEventListener('timeupdate', handleTimeUpdate);
+    audio.addEventListener('loadedmetadata', handleMetadata);
+    audio.addEventListener('ended', handleEnded);
+    audio.addEventListener('error', handleError);
+
+    return () => {
+      audio.removeEventListener('timeupdate', handleTimeUpdate);
+      audio.removeEventListener('loadedmetadata', handleMetadata);
+      audio.removeEventListener('ended', handleEnded);
+      audio.removeEventListener('error', handleError);
+    };
+  }, [audioUrl]);
+
+  // Close speed menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (speedMenuRef.current && !speedMenuRef.current.contains(e.target as Node)) {
+        setShowSpeedMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const togglePlay = useCallback(async () => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    try {
+      if (isPlaying) {
+        audio.pause();
+        setIsPlaying(false);
+      } else {
+        await audio.play();
+        setIsPlaying(true);
+      }
+    } catch {
+      console.error('Failed to play audio');
+    }
+  }, [isPlaying]);
+
+  const skip = useCallback((seconds: number) => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    audio.currentTime = Math.max(0, Math.min(duration, audio.currentTime + seconds));
+  }, [duration]);
+
+  const handleSeek = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    const time = parseFloat(e.target.value);
+    audio.currentTime = time;
+    setCurrentTime(time);
+  }, []);
+
+  const handleVolumeChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const vol = parseFloat(e.target.value);
+    setVolume(vol);
+    if (audioRef.current) audioRef.current.volume = vol;
+    setIsMuted(vol === 0);
+  }, []);
+
+  const toggleMute = useCallback(() => {
+    if (audioRef.current) {
+      audioRef.current.muted = !isMuted;
+      setIsMuted(!isMuted);
+    }
+  }, [isMuted]);
+
+  const changePlaybackRate = useCallback((rate: number) => {
+    setPlaybackRate(rate);
+    if (audioRef.current) audioRef.current.playbackRate = rate;
+    setShowSpeedMenu(false);
+  }, []);
+
+  const formatTime = (time: number) => {
+    if (!isFinite(time)) return '00:00';
+    const mins = Math.floor(time / 60);
+    const secs = Math.floor(time % 60);
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  if (!audioUrl) return null;
+
+  return (
+    <div className="shrink-0 bg-red-50 border-t border-red-200/60">
+      {/* Progress bar */}
+      <div className="relative w-full h-1 bg-gray-200 cursor-pointer group">
+        <input
+          type="range"
+          min={0}
+          max={duration || 100}
+          value={currentTime}
+          onChange={handleSeek}
+          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+        />
+        <div
+          className="absolute left-0 top-0 h-full bg-red-600 rounded-r transition-all"
+          style={{ width: `${duration ? (currentTime / duration) * 100 : 0}%` }}
+        />
+        <div
+          className="absolute top-1/2 -translate-y-1/2 w-3 h-3 bg-red-600 rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"
+          style={{ left: `calc(${duration ? (currentTime / duration) * 100 : 0}% - 6px)` }}
+        />
+      </div>
+
+      {/* Controls */}
+      <div className="flex items-center justify-between px-5 py-3">
+        {/* Left: Time and Volume */}
+        <div className="flex items-center gap-4">
+          <span className="text-sm text-gray-600 font-mono min-w-[100px]">
+            {formatTime(currentTime)} / {formatTime(duration)}
+          </span>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={toggleMute}
+              className="text-gray-600 hover:text-gray-900 transition-colors"
+            >
+              {isMuted || volume === 0 ? (
+                <VolumeX className="h-5 w-5" />
+              ) : (
+                <Volume2 className="h-5 w-5" />
+              )}
+            </button>
+            <input
+              type="range"
+              min={0}
+              max={1}
+              step={0.05}
+              value={isMuted ? 0 : volume}
+              onChange={handleVolumeChange}
+              className="w-20 h-1 accent-red-600 cursor-pointer"
+            />
+          </div>
+        </div>
+
+        {/* Center: Playback controls */}
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => skip(-5)}
+            className="w-9 h-9 flex items-center justify-center rounded-full text-gray-700 hover:bg-red-100 transition-colors"
+            title="Lùi 5 giây"
+          >
+            <RotateCcw className="h-5 w-5" />
+            <span className="absolute text-[8px] font-bold">5</span>
+          </button>
+
+          <button
+            onClick={togglePlay}
+            className="w-12 h-12 flex items-center justify-center rounded-full bg-red-600 text-white hover:bg-red-700 transition-colors shadow-lg"
+          >
+            {isPlaying ? (
+              <Pause className="h-6 w-6 fill-white" />
+            ) : (
+              <Play className="h-6 w-6 fill-white ml-0.5" />
+            )}
+          </button>
+
+          <button
+            onClick={() => skip(5)}
+            className="w-9 h-9 flex items-center justify-center rounded-full text-gray-700 hover:bg-red-100 transition-colors relative"
+            title="Tiến 5 giây"
+          >
+            <RotateCw className="h-5 w-5" />
+            <span className="absolute text-[8px] font-bold">5</span>
+          </button>
+        </div>
+
+        {/* Right: Speed control */}
+        <div className="relative" ref={speedMenuRef}>
+          <button
+            onClick={() => setShowSpeedMenu(!showSpeedMenu)}
+            className="flex items-center gap-2 px-4 py-2 rounded-full border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 transition-colors"
+          >
+            <Gauge className="h-5 w-5" />
+            <span className="text-sm font-medium">Tốc độ: {playbackRate}x</span>
+          </button>
+
+          {showSpeedMenu && (
+            <div className="absolute bottom-full right-0 mb-2 bg-white border border-gray-200 rounded-lg shadow-lg py-1 min-w-[120px]">
+              {PLAYBACK_RATES.map((rate) => (
+                <button
+                  key={rate}
+                  onClick={() => changePlaybackRate(rate)}
+                  className={`w-full px-4 py-2 text-sm text-left hover:bg-red-50 transition-colors ${
+                    playbackRate === rate ? 'text-red-600 font-semibold bg-red-50' : 'text-gray-700'
+                  }`}
+                >
+                  {rate}x
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <audio ref={audioRef} src={audioUrl} preload="metadata" className="hidden" />
+    </div>
+  );
+}

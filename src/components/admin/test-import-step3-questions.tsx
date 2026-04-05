@@ -15,6 +15,7 @@ interface Props {
   onChange: (stimuli: StimulusRequest[]) => void;
   onNext: () => void;
   onBack: () => void;
+  onAudioDurationChange?: (duration: number) => void;
 }
 
 const emptyGroup = (): QuestionGroupRequest => ({
@@ -127,7 +128,7 @@ function createDefaultQuestion(typeCode: QuestionTypeCode): QuestionRequest {
   };
 }
 
-export function TestImportStep3({ skill, stimuli, onChange, onNext, onBack }: Props) {
+export function TestImportStep3({ skill, stimuli, onChange, onNext, onBack, onAudioDurationChange }: Props) {
   const [activeStimulus, setActiveStimulus] = useState(0);
   const [showValidationDetails, setShowValidationDetails] = useState(false);
   const [leftWidth, setLeftWidth] = useState(40);
@@ -143,6 +144,25 @@ export function TestImportStep3({ skill, stimuli, onChange, onNext, onBack }: Pr
   const layoutRef = useRef<HTMLDivElement>(null);
   const questionScrollRef = useRef<HTMLDivElement>(null);
   const groupRefs = useRef<Record<number, HTMLDivElement | null>>({});
+
+  // Extract audio duration when listening audio is uploaded
+  useEffect(() => {
+    if (skill !== 'LISTENING' || !onAudioDurationChange) return;
+    
+    const stimulus = stimuli[0];
+    if (!stimulus?.mediaUrl) {
+      onAudioDurationChange(0);
+      return;
+    }
+
+    const audio = new Audio(stimulus.mediaUrl);
+    audio.addEventListener('loadedmetadata', () => {
+      onAudioDurationChange(audio.duration);
+    });
+    audio.addEventListener('error', () => {
+      onAudioDurationChange(0);
+    });
+  }, [skill, stimuli, onAudioDurationChange]);
 
   const stimulus = stimuli[activeStimulus];
   const sectionLabel = stimulus?.title?.trim() || (stimulus?.section ? `Phần ${stimulus.section}` : `Phần ${activeStimulus + 1}`);

@@ -112,7 +112,7 @@ export function ReadingWordLookupPopup({ word, position, onClose }: Props) {
         </div>
 
         {/* Body */}
-        <div className="px-4 py-3 max-h-[180px] overflow-y-auto">
+        <div className="px-4 py-3 max-h-[180px] overflow-y-auto custom-scrollbar-thick">
           {loading ? (
             <div className="flex items-center justify-center gap-2 py-6">
               <Loader2 className="h-5 w-5 animate-spin text-blue-400" />

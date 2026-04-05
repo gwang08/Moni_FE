@@ -13,15 +13,11 @@ import { ExamMicTestScreen } from '@/components/speaking-exam/exam-mic-test-scre
 import { ExamQuestionDisplay } from '@/components/speaking-exam/exam-question-display';
 import { ExamSpeakingTimer } from '@/components/speaking-exam/exam-speaking-timer';
 import { ExamEvaluationResult } from '@/components/speaking-exam/exam-evaluation-result';
-import { ExamPart1IntroScreen } from '@/components/speaking-exam/exam-part1-intro-screen';
 import { ExamPart2IntroScreen, ExamPart2CueCardWithNote } from '@/components/speaking-exam/exam-part2-intro-screen';
-import { ExamPart3IntroScreen } from '@/components/speaking-exam/exam-part3-intro-screen';
 import { ExamTransitionScreen } from '@/components/speaking-exam/exam-transition-screen';
 import { ExamErrorDisplay } from '@/components/speaking-exam/exam-error-display';
 import { ExamProgressBar } from '@/components/speaking-exam/exam-progress-bar';
 import { useSessionRecorder } from '@/hooks/use-session-recorder';
-import { X, Volume2 } from 'lucide-react';
-import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 
 // Local UI stages (before/between exam states)
 type UIStage = 'GUIDE' | 'MIC_TEST' | 'EXAM';
@@ -37,10 +33,7 @@ export default function SpeakingPracticePage({ params }: Props) {
 
   const [uiStage, setUIStage] = useState<UIStage>('GUIDE');
   const [showQuestionAlways, setShowQuestionAlways] = useState(false);
-  const [showPart1Intro, setShowPart1Intro] = useState(true);
   const [showPart2Intro, setShowPart2Intro] = useState(false);
-  const [showPart3Intro, setShowPart3Intro] = useState(false);
-  const [showOutro, setShowOutro] = useState(false);
 
   // Track current part and question index for progress bar
   const [currentPart, setCurrentPart] = useState(0);
@@ -50,65 +43,24 @@ export default function SpeakingPracticePage({ params }: Props) {
   const stt = useAssemblyAISTT();
   const startedRef = useRef(false);
 
-  // Fetch test info to dynamically configure progress bar questions length
-  const [partConfig, setPartConfig] = useState<Record<number, number>>({ 1: 12, 2: 1, 3: 6 });
-  useEffect(() => {
-    import('@/lib/tests-api').then(({ getPublicTestDetail }) => {
-      getPublicTestDetail(id).then((test) => {
-        const config = { 1: 0, 2: 0, 3: 0 };
-        test.stimuli.forEach(st => {
-          if (st.section && st.section >= 1 && st.section <= 3) {
-            config[st.section as 1|2|3] += st.questionGroups.reduce((acc, g) => acc + g.questions.length, 0);
-          }
-        });
-        setPartConfig(prev => ({
-          1: config[1] || prev[1],
-          2: config[2] || prev[2],
-          3: config[3] || prev[3],
-        }));
-      }).catch(e => console.error('Failed to fetch test details', e));
-    });
-  }, [id]);
-
   // Update progress bar when current question changes
-  const seenQuestionsRef = useRef<Set<number>>(new Set());
-
   useEffect(() => {
     if (exam.currentQuestion) {
       const part = exam.currentQuestion.partNumber;
       const qId = exam.currentQuestion.questionId;
 
-      if (!seenQuestionsRef.current.has(qId)) {
-        seenQuestionsRef.current.add(qId);
-        
-        setCurrentPart((prevPart) => {
-          if (part !== prevPart) {
-            // New part started
-            setCurrentQuestionIndex(0);
-            
-            if (part === 3) {
-              setShowPart3Intro(true);
-              examRef.current?.setPausePlayback(true);
-            }
-          } else {
-            // Continuation of same part
-            setCurrentQuestionIndex((prev) => prev + 1);
-          }
-          return part;
-        });
+      if (part === 1) {
+        setCurrentPart(1);
+        setCurrentQuestionIndex(qId - 1);
+      } else if (part === 2) {
+        setCurrentPart(2);
+        setCurrentQuestionIndex(0);
+      } else if (part === 3) {
+        setCurrentPart(3);
+        setCurrentQuestionIndex(qId - 1);
       }
     }
-  }, [exam.currentQuestion?.questionId]);
-
-  // When Part 2 starts (from backend cue_card event), show intro and update progress bar
-  useEffect(() => {
-    if (exam.examState === 'PART2_PREP') {
-      setShowPart2Intro(true);
-      setCurrentPart(2);
-      setCurrentQuestionIndex(0);
-      examRef.current?.setPausePlayback(true);
-    }
-  }, [exam.examState]);
+  }, [exam.currentQuestion]);
 
   // Guard: prevent double-submit for the same question
   const submittedQuestionRef = useRef<number | null>(null);
@@ -153,9 +105,23 @@ export default function SpeakingPracticePage({ params }: Props) {
   }, []);
 
   // ── Auto-start AI intro for Cue Card ──────────────────────
-  // ── Auto-start AI intro for Cue Card ──────────────────────
   const isPrepActive = exam.examState === 'PART2_PREP' && !showPart2Intro;
   const isSpeakActive = exam.examState === 'PART2_SPEAKING';
+  
+  useEffect(() => {
+    if (isPrepActive) {
+      if (typeof window !== 'undefined' && window.speechSynthesis) {
+        const intro = new SpeechSynthesisUtterance(
+          'In this part, you will be given a topic card and you will have 1 to 2 minutes to talk about it. Before you talk, you will have exactly 1 minute to prepare, and you can make some notes on the paper provided if you wish.',
+        );
+        intro.lang = 'en-US';
+        intro.rate = 0.9;
+        
+        window.speechSynthesis.cancel();
+        window.speechSynthesis.speak(intro);
+      }
+    }
+  }, [isPrepActive]);
 
   const timers = useSpeakingExamTimers(isPrepActive, isSpeakActive, handlePrepEnd, handleStopPart2);
 
@@ -225,11 +191,11 @@ export default function SpeakingPracticePage({ params }: Props) {
 
   // ── Start exam after WS connected ─────────────────────────
   useEffect(() => {
-    if (uiStage === 'EXAM' && exam.isWsConnected && !showPart1Intro && !startedRef.current) {
+    if (uiStage === 'EXAM' && exam.isWsConnected && !startedRef.current) {
       startedRef.current = true;
       examRef.current.startExam(testId);
     }
-  }, [uiStage, exam.isWsConnected, showPart1Intro, testId]);
+  }, [uiStage, exam.isWsConnected, testId]);
 
   // ── Auto-start mic when entering RECORDING state ──────────
   useEffect(() => {
@@ -251,28 +217,6 @@ export default function SpeakingPracticePage({ params }: Props) {
   useEffect(() => {
     if (exam.examState === 'EVALUATING') {
       examRef.current.endExam();
-      setCurrentPart(4);
-
-      if (typeof window !== 'undefined' && window.speechSynthesis) {
-        setShowOutro(true);
-        const outroText = "That's all of your IELTS speaking test. Please wait a moment while we evaluate your responses.";
-        const outro = new SpeechSynthesisUtterance(outroText);
-        outro.lang = 'en-US';
-        outro.rate = 0.9;
-        
-        const voices = window.speechSynthesis.getVoices();
-        const englishVoice = voices.find(v => v.lang.startsWith('en') && v.name.includes('Female')) || voices.find(v => v.lang.startsWith('en'));
-        if (englishVoice) outro.voice = englishVoice;
-
-        outro.onend = () => setShowOutro(false);
-        outro.onerror = () => setShowOutro(false);
-        
-        window.speechSynthesis.cancel();
-        window.speechSynthesis.speak(outro);
-
-        // Fallback safety timeout in case speech engine hangs
-        setTimeout(() => setShowOutro(false), 8000);
-      }
     }
   }, [exam.examState]);
 
@@ -291,7 +235,7 @@ export default function SpeakingPracticePage({ params }: Props) {
   // Stage 1: Guide screen
   if (uiStage === 'GUIDE') {
     return (
-      <PageShell currentPart={0} currentQuestionIndex={0} partConfig={partConfig}>
+      <PageShell currentPart={0} currentQuestionIndex={0}>
         <ExamGuideScreen
           onNext={() => setUIStage('MIC_TEST')}
           showQuestion={showQuestionAlways}
@@ -304,7 +248,7 @@ export default function SpeakingPracticePage({ params }: Props) {
   // Stage 2: Mic test
   if (uiStage === 'MIC_TEST') {
     return (
-      <PageShell currentPart={0} currentQuestionIndex={0} partConfig={partConfig}>
+      <PageShell currentPart={0} currentQuestionIndex={0}>
         <ExamMicTestScreen onStartTest={handleStartTest} onSkip={handleStartTest} />
       </PageShell>
     );
@@ -313,31 +257,9 @@ export default function SpeakingPracticePage({ params }: Props) {
   // Stage 3: Exam in progress
   const { examState } = exam;
 
-  // Part 1 Intro (if connected but waiting for user to start Part 1)
-  if (uiStage === 'EXAM' && showPart1Intro && exam.isWsConnected) {
-    return (
-      <PageShell wide currentPart={currentPart} currentQuestionIndex={currentQuestionIndex} partConfig={partConfig}>
-        <ExamPart1IntroScreen onStartNow={() => setShowPart1Intro(false)} />
-      </PageShell>
-    );
-  }
-
-  // Part 3 Intro (if connected but waiting for user to start Part 3)
-  if (currentPart === 3 && showPart3Intro && exam.isWsConnected) {
-    return (
-      <PageShell wide currentPart={currentPart} currentQuestionIndex={currentQuestionIndex} partConfig={partConfig}>
-        <ExamPart3IntroScreen onStartNow={() => {
-           setShowPart3Intro(false);
-           examRef.current?.setPausePlayback(false);
-           examRef.current?.playPendingAudio();
-        }} />
-      </PageShell>
-    );
-  }
-
   if (examState === 'IDLE' || examState === 'CONNECTING') {
     return (
-      <PageShell currentPart={currentPart} currentQuestionIndex={currentQuestionIndex} partConfig={partConfig}>
+      <PageShell currentPart={currentPart} currentQuestionIndex={currentQuestionIndex}>
         <div className="flex flex-col items-center gap-4 py-20">
           <Loader2 className="h-10 w-10 animate-spin text-blue-500" />
           <p className="text-gray-600">Connecting to exam server...</p>
@@ -352,7 +274,7 @@ export default function SpeakingPracticePage({ params }: Props) {
     exam.currentQuestion
   ) {
     return (
-      <PageShell wide currentPart={currentPart} currentQuestionIndex={currentQuestionIndex} partConfig={partConfig}>
+      <PageShell wide currentPart={currentPart} currentQuestionIndex={currentQuestionIndex}>
         <ExamQuestionDisplay
           question={exam.currentQuestion}
           isAudioPlaying={exam.isAudioPlaying}
@@ -368,43 +290,35 @@ export default function SpeakingPracticePage({ params }: Props) {
   // Part 2: Show intro screen FIRST (before cue card)
   if (showPart2Intro && examState === 'PART2_PREP') {
     return (
-      <PageShell wide currentPart={currentPart} currentQuestionIndex={currentQuestionIndex} partConfig={partConfig}>
+      <PageShell wide currentPart={currentPart} currentQuestionIndex={currentQuestionIndex}>
         <ExamPart2IntroScreen
-          onStartNow={() => {
-            setShowPart2Intro(false);
-            
-            if (typeof window !== 'undefined' && window.speechSynthesis) {
-              const intro = new SpeechSynthesisUtterance(
-                'In this part, you will be given a topic card and you will have 1 to 2 minutes to talk about it. Before you talk, you will have exactly 1 minute to prepare, and you can make some notes on the paper provided if you wish.',
-              );
-              intro.lang = 'en-US';
-              intro.rate = 0.9;
-              
-              window.speechSynthesis.cancel();
-              window.speechSynthesis.speak(intro);
-            }
-
-            examRef.current?.setPausePlayback(false);
-            examRef.current?.playPendingAudio();
-          }}
+          onStartNow={() => setShowPart2Intro(false)}
         />
       </PageShell>
     );
   }
 
-  // Part 2: Cue card with Note sidebar + thinking time + speaking
-  if ((examState === 'PART2_PREP' || examState === 'PART2_SPEAKING') && exam.cueCard) {
+  // Part 2: Cue card with Note sidebar + thinking time
+  if (examState === 'PART2_PREP' && exam.cueCard) {
     return (
-      <PageShell wide currentPart={currentPart} currentQuestionIndex={currentQuestionIndex} partConfig={partConfig}>
+      <PageShell wide currentPart={currentPart} currentQuestionIndex={currentQuestionIndex}>
         <ExamPart2CueCardWithNote
           topic={exam.cueCard.topic}
-          isPrepPhase={examState === 'PART2_PREP'}
           prepTimer={timers.prepTimer}
           onSkipPrep={handleSkipPrep}
+        />
+      </PageShell>
+    );
+  }
+
+  if (examState === 'PART2_SPEAKING') {
+    return (
+      <PageShell currentPart={currentPart} currentQuestionIndex={currentQuestionIndex}>
+        <ExamSpeakingTimer
           speakTimer={timers.speakTimer}
-          isListening={stt.isListening}
           transcript={stt.transcript}
-          onStopSpeaking={handleStopPart2}
+          isListening={stt.isListening}
+          onStop={handleStopPart2}
         />
       </PageShell>
     );
@@ -412,35 +326,15 @@ export default function SpeakingPracticePage({ params }: Props) {
 
   if (examState === 'PART_BRIDGE') {
     return (
-      <PageShell currentPart={currentPart} currentQuestionIndex={currentQuestionIndex} partConfig={partConfig}>
+      <PageShell currentPart={currentPart} currentQuestionIndex={currentQuestionIndex}>
         <ExamTransitionScreen message="Moving to next part..." />
       </PageShell>
     );
   }
 
   if (examState === 'EVALUATING') {
-    if (showOutro) {
-       return (
-         <PageShell currentPart={currentPart} currentQuestionIndex={currentQuestionIndex} partConfig={partConfig}>
-            <div className="flex flex-col items-center justify-center p-12 text-center min-h-[50vh] bg-white rounded-lg border border-gray-200">
-               <div className="mb-6 relative flex items-center justify-center">
-                 <span className="absolute inline-flex h-16 w-16 animate-ping rounded-full bg-green-400 opacity-20"></span>
-                 <div className="relative bg-green-500 rounded-full p-4 shadow-lg shadow-green-200">
-                   <Volume2 className="text-white h-8 w-8" />
-                 </div>
-               </div>
-               <h2 className="text-2xl font-bold text-[#334155] mb-4">Exam Completed!</h2>
-               <p className="text-blue-600 font-medium text-lg leading-relaxed max-w-sm">
-                 That&apos;s all of your IELTS speaking test.<br/><br/>
-                 Please wait a moment while we evaluate your responses.
-               </p>
-            </div>
-         </PageShell>
-       );
-    }
-
     return (
-      <PageShell currentPart={currentPart} currentQuestionIndex={currentQuestionIndex} partConfig={partConfig}>
+      <PageShell currentPart={currentPart} currentQuestionIndex={currentQuestionIndex}>
         <ExamTransitionScreen message="Evaluating your responses... Please wait." />
       </PageShell>
     );
@@ -448,7 +342,7 @@ export default function SpeakingPracticePage({ params }: Props) {
 
   if (examState === 'COMPLETED' && exam.evaluation) {
     return (
-      <PageShell currentPart={currentPart} currentQuestionIndex={currentQuestionIndex} partConfig={partConfig}>
+      <PageShell currentPart={currentPart} currentQuestionIndex={currentQuestionIndex}>
         <ExamEvaluationResult evaluation={exam.evaluation} recordings={recordedAnswers} />
         <div className="mt-8 flex justify-center">
           <Button onClick={() => router.push('/practice?skill=speaking')} variant="outline">
@@ -461,7 +355,7 @@ export default function SpeakingPracticePage({ params }: Props) {
 
   if (examState === 'CONN_ERROR') {
     return (
-      <PageShell currentPart={currentPart} currentQuestionIndex={currentQuestionIndex} partConfig={partConfig}>
+      <PageShell currentPart={currentPart} currentQuestionIndex={currentQuestionIndex}>
         <ExamErrorDisplay
           error={exam.error || 'An unexpected error occurred'}
           onRetry={() => {
@@ -473,54 +367,24 @@ export default function SpeakingPracticePage({ params }: Props) {
     );
   }
 
-  return <PageShell currentPart={currentPart} currentQuestionIndex={currentQuestionIndex} partConfig={partConfig}><ExamTransitionScreen message="Loading..." /></PageShell>;
+  return <PageShell currentPart={currentPart} currentQuestionIndex={currentQuestionIndex}><ExamTransitionScreen message="Loading..." /></PageShell>;
 }
 
-function PageShell({ children, wide, currentPart, currentQuestionIndex, partConfig }: { 
-  children: React.ReactNode; 
+function PageShell({ children, wide, currentPart, currentQuestionIndex }: {
+  children: React.ReactNode;
   wide?: boolean;
   currentPart?: number;
   currentQuestionIndex?: number;
-  partConfig?: Record<number, number>;
 }) {
-  const [showExitConfirm, setShowExitConfirm] = useState(false);
-  const router = useRouter();
-
   return (
-    <div className="flex flex-col h-[calc(100vh-75px)] bg-[#fcf9f5] relative overflow-hidden">
-      {/* Nút Exit */}
-      <button 
-        onClick={() => setShowExitConfirm(true)}
-        className="absolute top-4 left-4 md:top-8 md:left-8 w-10 h-10 rounded-full bg-white border border-gray-200 flex items-center justify-center text-gray-500 shadow-sm hover:bg-gray-50 hover:text-gray-700 transition z-10"
-      >
-        <X size={20} />
-      </button>
-
-      <div className="flex-1 overflow-y-auto p-4 md:p-8 flex flex-col items-center">
-        <div className={`w-full mt-10 lg:mt-6 ${wide ? 'max-w-4xl' : 'max-w-3xl'}`}>
-          {children}
-        </div>
+    <div className="min-h-screen bg-gray-50 pb-20">
+      <div className={`mx-auto ${wide ? 'max-w-4xl' : 'max-w-2xl'} px-4 py-6`}>
+        <h1 className="mb-6 text-2xl font-bold text-gray-900">IELTS Speaking Exam</h1>
+        {children}
       </div>
-      
       {currentPart !== undefined && currentQuestionIndex !== undefined && (
-        <div className="shrink-0 w-full z-10 border-t border-none border-gray-200 bg-[#fcf9f5]">
-          <ExamProgressBar currentPart={currentPart} currentQuestionIndex={currentQuestionIndex} partConfig={partConfig} />
-        </div>
+        <ExamProgressBar currentPart={currentPart} currentQuestionIndex={currentQuestionIndex} />
       )}
-
-      {/* Dialog xác nhận thoát */}
-      <ConfirmDialog
-        open={showExitConfirm}
-        onOpenChange={setShowExitConfirm}
-        title="Thoát khỏi bài làm"
-        description="Bạn ơi, bạn đang thoát khỏi phần làm bài, bạn có chắc chắn muốn thoát chứ"
-        confirmText="Thoát"
-        cancelText="Quay lại làm bài"
-        variant="destructive"
-        onConfirm={() => {
-          router.push('/practice?skill=speaking');
-        }}
-      />
     </div>
   );
 }

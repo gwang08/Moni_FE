@@ -35,13 +35,13 @@ export function ListeningQuestionMcq({
 
   if (examMode) {
     return (
-      <div id={`question-${questionId}`} className="bg-white p-5 border border-gray-300 rounded-lg shadow-sm">
-        <div className="flex items-start gap-4 mb-4">
-          <span className="min-w-[20px] text-sm font-normal text-gray-900 mt-0.5">{position}</span>
-          <p className="flex-1 text-sm text-gray-800 font-normal leading-relaxed">{content}</p>
+      <div id={`question-${questionId}`} className="bg-white">
+        <div className="flex items-start gap-4 mb-3">
+          <span className="min-w-[20px] text-sm font-bold text-gray-900 mt-0.5">{position}</span>
+          <p className="flex-1 text-sm text-gray-800 font-normal leading-relaxed mb-3">{content}</p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 ml-9">
+        <div className="space-y-2">
           {options.map((option) => {
             const isSelected = selected.includes(option.id);
 

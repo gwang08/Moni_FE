@@ -4,9 +4,9 @@ import { useState, useMemo } from 'react';
 import { ListeningExamHeader } from '@/components/listening/listening-exam-header';
 import { ListeningPartInfo } from '@/components/listening/listening-part-info';
 import { ListeningExamQuestionNav } from '@/components/listening/listening-exam-question-nav';
+import { ListeningPracticeAudioPlayer } from '@/components/listening/listening-practice-audio-player';
 import { ListeningQuestionMcq } from '@/components/listening/listening-question-mcq';
 import { ListeningGapFilling } from '@/components/listening/listening-gap-filling';
-import { ListeningAudioPlayer } from '@/components/listening/listening-audio-player';
 import type { StimulusDetail, QuestionGroupDetail } from '@/types/test.types';
 import type { QuestionTypeCode } from '@/types/admin.types';
 
@@ -20,11 +20,12 @@ interface Props {
   submitted: boolean;
   isPlaying: boolean;
   elapsedTime?: string;
+  audioUrl?: string;
 }
 
 const GAP_TYPES: QuestionTypeCode[] = ['GAP_FILLING', 'DIAGRAM_LABEL'];
 
-export function ListeningExamView({
+export function ListeningPracticeView({
   stimuli,
   answers,
   textAnswers,
@@ -34,13 +35,12 @@ export function ListeningExamView({
   submitted,
   isPlaying,
   elapsedTime,
+  audioUrl,
 }: Props) {
   const [activeStimulusIdx, setActiveStimulusIdx] = useState(0);
   const [activeQuestionId, setActiveQuestionId] = useState<number | null>(null);
 
-  const currentStimulus = stimuli[activeStimulusIdx];
-
-  // Flatten all questions for navigation
+  // In practice mode, show ALL questions from ALL stimuli
   const allQuestionIds = useMemo(
     () => stimuli.flatMap((s) => s.questionGroups.flatMap((g) => g.questions.map((q) => q.id))),
     [stimuli]
@@ -48,11 +48,8 @@ export function ListeningExamView({
   const currentQuestionId = activeQuestionId ?? allQuestionIds[0] ?? null;
   const currentQuestionIndex = allQuestionIds.indexOf(currentQuestionId ?? -1);
 
-  // Calculate total questions for current stimulus
-  const totalQuestions = useMemo(() => {
-    if (!currentStimulus) return 0;
-    return currentStimulus.questionGroups.reduce((sum, g) => sum + g.questions.length, 0);
-  }, [currentStimulus]);
+  // Calculate total questions across all stimuli
+  const totalQuestions = allQuestionIds.length;
 
   const scrollToQuestion = (questionId: number) => {
     const el = document.getElementById(`question-${questionId}`);
@@ -96,7 +93,7 @@ export function ListeningExamView({
   }, [stimuli, answers, textAnswers]);
 
   // Render question group
-  const renderQuestionGroup = (group: QuestionGroupDetail) => {
+  const renderQuestionGroup = (group: QuestionGroupDetail, groupIndex: number) => {
     const type = group.questionTypeCode as QuestionTypeCode;
 
     if (GAP_TYPES.includes(type)) {
@@ -109,11 +106,6 @@ export function ListeningExamView({
           submitted={submitted}
           textAnswers={textAnswers}
           onTextAnswer={onTextAnswer}
-          examMode
-          questionPositionById={group.questions.reduce((acc, q) => {
-            acc[q.id] = q.position;
-            return acc;
-          }, {} as Record<number, number>)}
         />
       );
     }
@@ -131,7 +123,6 @@ export function ListeningExamView({
             submitted={submitted}
             explanation={question.explanation}
             onAnswer={onAnswer}
-            examMode
           />
         ))}
       </div>
@@ -147,23 +138,23 @@ export function ListeningExamView({
       {/* Header */}
       <ListeningExamHeader isPlaying={isPlaying} elapsedTime={elapsedTime} />
 
-      {/* Audio player (hidden but functional) */}
-      {currentStimulus?.mediaUrl && <ListeningAudioPlayer audioUrl={currentStimulus.mediaUrl} />}
+      {/* Audio player */}
+      {audioUrl && <ListeningPracticeAudioPlayer audioUrl={audioUrl} />}
 
-      {/* Main content - scrollable */}
+      {/* Main content - scrollable questions */}
       <div className="flex-1 overflow-y-auto">
         <div className="px-6 py-6 space-y-6">
-          {/* Part info - scrolls with content */}
-          <ListeningPartInfo
-            section={currentStimulus.section ?? activeStimulusIdx + 1}
-            questionRange={`1-${totalQuestions}`}
-            instruction={currentStimulus.questionGroups[0]?.instruction}
-          />
-
-          {/* Render all question groups from all stimuli */}
+          {/* Render all stimuli */}
           {stimuli.map((stimulus, sIdx) => (
             <div key={stimulus.id} className="space-y-4">
-              {stimulus.questionGroups.map((group) => (
+              {/* Part info - scrolls with content */}
+              <ListeningPartInfo
+                section={stimulus.section ?? sIdx + 1}
+                questionRange={`1-${stimulus.questionGroups.reduce((sum, g) => sum + g.questions.length, 0)}`}
+                instruction={stimulus.questionGroups[0]?.instruction}
+              />
+
+              {stimulus.questionGroups.map((group, idx) => (
                 <div key={group.id}>
                   {/* Group header */}
                   <div className="mb-3">
@@ -176,7 +167,7 @@ export function ListeningExamView({
                   </div>
 
                   {/* Questions */}
-                  {renderQuestionGroup(group)}
+                  {renderQuestionGroup(group, idx)}
                 </div>
               ))}
             </div>

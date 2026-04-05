@@ -45,7 +45,7 @@ export function NotesSidebar({ open, onOpenChange }: Props) {
       <SheetContent
         side="right"
         showOverlay={false}
-        className="w-80 sm:w-96 overflow-y-auto border-l shadow-2xl p-0"
+        className="w-80 sm:w-96 overflow-y-auto custom-scrollbar-thick border-l shadow-2xl p-0"
       >
         {/* Header */}
         <SheetHeader className="px-5 pt-5 pb-4 border-b bg-gradient-to-r from-blue-50 to-indigo-50">

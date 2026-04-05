@@ -11,7 +11,9 @@ import { ReadingPassage } from '@/components/reading/reading-passage';
 import { ReadingPassageWithMatching } from '@/components/reading/reading-passage-with-matching';
 import { ReadingQuestionsPanel } from '@/components/reading/reading-questions-panel';
 import { ReadingExamView } from '@/components/reading/reading-exam-view';
+import { ReadingPracticeView } from '@/components/reading/reading-practice-view';
 import { ReadingQuestionNav } from '@/components/reading/reading-question-nav';
+import { ResizableSplitPane } from '@/components/reading/resizable-split-pane';
 import { usePracticeStore } from '@/store/practice-store';
 import { useReadingStore } from '@/store/reading-store';
 import { useTestDetail } from '@/hooks/use-test-detail';
@@ -239,7 +241,43 @@ export default function ReadingExercisePage({ params }: Props) {
   }
 
   return (
-    <div className="h-[calc(100vh-56px)] flex flex-col">
+    <div className="h-[calc(100vh-56px)] flex flex-col overflow-hidden">
+      <style jsx global>{`
+        .reading-scrollbar {
+          scrollbar-width: auto;
+          scrollbar-color: #888 #f1f1f1;
+        }
+
+        .reading-scrollbar::-webkit-scrollbar {
+          width: 16px;
+          height: 16px;
+        }
+
+        .reading-scrollbar::-webkit-scrollbar-track {
+          background: #f1f1f1;
+          border-radius: 0;
+        }
+
+        .reading-scrollbar::-webkit-scrollbar-thumb {
+          background: #888;
+          border-radius: 0;
+          border: 0;
+        }
+
+        .reading-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: #666;
+        }
+
+        .reading-scrollbar::-webkit-scrollbar-button {
+          display: none;
+          width: 0;
+          height: 0;
+        }
+
+        .reading-scrollbar::-webkit-scrollbar-corner {
+          background: #f1f1f1;
+        }
+      `}</style>
       {isExamMode ? (
         <ReadingExamView
           stimuli={stimuli}
@@ -252,66 +290,18 @@ export default function ReadingExercisePage({ params }: Props) {
           elapsedTime={displayTime}
         />
       ) : (
-        <>
-          <ReadingToolbar />
-
-          <div className="flex-1 min-h-0 flex overflow-hidden bg-[#f5f6f8]">
-            <div className="w-[54%] border-r border-gray-300 bg-white">
-              <div className="h-full overflow-y-auto px-6 py-6">
-                {(() => {
-                  const matchingGroup = currentStimulus?.questionGroups.find(
-                    (group) => group.questionTypeCode === 'MATCHING_HEADINGS'
-                  );
-
-                  return matchingGroup ? (
-                    <ReadingPassageWithMatching
-                      content={currentStimulus?.content ?? FALLBACK_PASSAGE.content}
-                      questions={matchingGroup.questions}
-                      answers={answers}
-                      submitted={submitted}
-                      onAnswer={handleAnswer}
-                      selectedPillId={selectedPillId}
-                      onPillAssigned={() => setSelectedPillId(null)}
-                    />
-                  ) : (
-                    <ReadingPassage
-                      content={currentStimulus?.content ?? FALLBACK_PASSAGE.content}
-                      interactive
-                    />
-                  );
-                })()}
-              </div>
-            </div>
-
-            <div className="flex-1 bg-white">
-              <div className="h-full overflow-y-auto px-6 py-6">
-                {currentStimulus && (
-                  <ReadingQuestionsPanel
-                    stimulus={currentStimulus}
-                    submitted={submitted}
-                    answers={answers}
-                    onAnswer={handleAnswer}
-                    textAnswers={textAnswers}
-                    onTextAnswer={handleTextAnswer}
-                    selectedPillId={selectedPillId}
-                    onPillSelect={setSelectedPillId}
-                  />
-                )}
-              </div>
-            </div>
-          </div>
-
-          {currentStimulus?.questionGroups.length > 0 && (
-            <ReadingQuestionNav
-              questionGroups={currentStimulus.questionGroups}
-              answeredQuestions={answeredQuestionIds}
-              submitted={submitted}
-              onSubmit={() => setConfirmOpen(true)}
-              partLabel={`Part ${currentStimulus.section ?? activeStimulusIdx + 1}`}
-              examMode={false}
-            />
-          )}
-        </>
+        <ReadingPracticeView
+          stimuli={stimuli}
+          answers={answers}
+          textAnswers={textAnswers}
+          onAnswer={handleAnswer}
+          onTextAnswer={handleTextAnswer}
+          onSubmit={() => setConfirmOpen(true)}
+          submitted={submitted}
+          elapsedTime={displayTime}
+          selectedPillId={selectedPillId}
+          onPillSelect={setSelectedPillId}
+        />
       )}
 
       {!isExamMode && (

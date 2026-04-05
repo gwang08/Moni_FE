@@ -104,6 +104,7 @@ export default function SpeakingExamPage({ params }: Props) {
       setShowPart2Intro(true);
       setCurrentPart(2);
       setCurrentQuestionIndex(0);
+      examRef.current?.setPausePlayback(true);
     }
   }, [exam.examState]);
 
@@ -152,21 +153,6 @@ export default function SpeakingExamPage({ params }: Props) {
   // ── Auto-start AI intro for Cue Card ──────────────────────
   const isPrepActive = exam.examState === 'PART2_PREP' && !showPart2Intro;
   const isSpeakActive = exam.examState === 'PART2_SPEAKING';
-  
-  useEffect(() => {
-    if (isPrepActive) {
-      if (typeof window !== 'undefined' && window.speechSynthesis) {
-        const intro = new SpeechSynthesisUtterance(
-          'In this part, you will be given a topic card and you will have 1 to 2 minutes to talk about it. Before you talk, you will have exactly 1 minute to prepare, and you can make some notes on the paper provided if you wish.',
-        );
-        intro.lang = 'en-US';
-        intro.rate = 0.9;
-        
-        window.speechSynthesis.cancel();
-        window.speechSynthesis.speak(intro);
-      }
-    }
-  }, [isPrepActive]);
 
   const timers = useSpeakingExamTimers(isPrepActive, isSpeakActive, handlePrepEnd, handleStopPart2);
 
@@ -351,7 +337,11 @@ export default function SpeakingExamPage({ params }: Props) {
     return (
       <PageShell wide currentPart={currentPart} currentQuestionIndex={currentQuestionIndex} partConfig={partConfig}>
         <ExamPart2IntroScreen
-          onStartNow={() => setShowPart2Intro(false)}
+          onStartNow={() => {
+            setShowPart2Intro(false);
+            examRef.current?.setPausePlayback(false);
+            examRef.current?.playPendingAudio();
+          }}
         />
       </PageShell>
     );
@@ -440,7 +430,7 @@ function PageShell({ children, wide, currentPart, currentQuestionIndex, partConf
   const router = useRouter();
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 pb-24 md:p-8 relative">
+    <div className="flex flex-col h-[calc(100vh-75px)] bg-[#fcf9f5] relative overflow-hidden">
       {/* Nút Exit */}
       <button 
         onClick={() => setShowExitConfirm(true)}
@@ -449,13 +439,17 @@ function PageShell({ children, wide, currentPart, currentQuestionIndex, partConf
         <X size={20} />
       </button>
 
-      <div className={`mx-auto ${wide ? 'max-w-4xl' : 'max-w-2xl'}`}>
-        <h1 className="mb-6 text-2xl font-bold text-gray-900 text-center">IELTS Speaking Exam</h1>
-        {children}
+      <div className="flex-1 overflow-y-auto p-4 md:p-8 flex flex-col items-center">
+        <div className={`w-full mt-10 lg:mt-6 ${wide ? 'max-w-4xl' : 'max-w-3xl'}`}>
+          <h1 className="mb-6 text-2xl font-bold text-gray-900 text-center">IELTS Speaking Exam</h1>
+          {children}
+        </div>
       </div>
       
       {currentPart !== undefined && currentQuestionIndex !== undefined && (
-        <ExamProgressBar currentPart={currentPart} currentQuestionIndex={currentQuestionIndex} partConfig={partConfig} />
+        <div className="shrink-0 w-full z-10 border-t border-none border-gray-200 bg-[#fcf9f5]">
+          <ExamProgressBar currentPart={currentPart} currentQuestionIndex={currentQuestionIndex} partConfig={partConfig} />
+        </div>
       )}
 
       {/* Dialog xác nhận thoát */}

@@ -25,12 +25,12 @@ export function ExamProgressBar({ currentPart, currentQuestionIndex, partConfig 
   };
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 border-t border-gray-200 bg-[#faf6f1] px-4 py-3">
-      <div className="mx-auto max-w-6xl">
-        <div className="flex items-start gap-2">
+    <div className="w-full border-t border-gray-200 bg-[#faf6f1] px-4 py-3">
+      <div className="mx-auto max-w-5xl">
+        <div className="flex items-start gap-2 overflow-x-auto pb-1 no-scrollbar">
           {/* Intro */}
           <div
-            className={`rounded-lg px-3 py-2 shrink-0 ${
+            className={`rounded-lg px-3 flex h-[44px] items-center shrink-0 ${
               currentPart > 0
                 ? 'bg-[#16a34a]'
                 : currentPart === 0
@@ -51,12 +51,7 @@ export function ExamProgressBar({ currentPart, currentQuestionIndex, partConfig 
                   <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.815a.75.75 0 011.05-.145z" clipRule="evenodd" />
                 </svg>
               ) : currentPart === 0 ? (
-                <svg
-                  className="h-5 w-5 text-[#16a34a]"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
+                <svg className="h-5 w-5 text-[#16a34a]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
                 </svg>
               ) : null}
@@ -65,8 +60,8 @@ export function ExamProgressBar({ currentPart, currentQuestionIndex, partConfig 
 
           {/* Part 1 */}
           <div
-            className={`rounded-lg px-3 py-2 ${
-              currentPart > 1 ? 'shrink-0 bg-[#16a34a]' : currentPart === 1 ? 'flex-1 border-2 border-[#16a34a] bg-white overflow-x-auto' : 'flex-1 border border-gray-200 bg-white overflow-x-auto'
+            className={`rounded-lg px-3 flex h-[44px] items-center shrink-0 transition-colors ${
+              currentPart > 1 ? 'bg-[#16a34a]' : currentPart === 1 ? 'border-2 border-[#16a34a] bg-white' : 'border border-gray-200 bg-white'
             }`}
           >
             <div className="flex items-center gap-2 min-w-max">
@@ -78,11 +73,18 @@ export function ExamProgressBar({ currentPart, currentQuestionIndex, partConfig 
                 Part 1
               </span>
               {currentPart > 1 ? (
-                <svg className="h-5 w-5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.815a.75.75 0 011.05-.145z" clipRule="evenodd" />
-                </svg>
+                <div className="relative flex items-center justify-end w-full">
+                  <div className="flex gap-1.5 invisible" aria-hidden="true">
+                    {Array.from({ length: finalConfig.part1 }).map((_, idx) => (
+                      <div key={idx} className="h-7 w-7 shrink-0" />
+                    ))}
+                  </div>
+                  <svg className="absolute right-0 h-5 w-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.815a.75.75 0 011.05-.145z" clipRule="evenodd" />
+                  </svg>
+                </div>
               ) : (
-                <div className="flex gap-1.5 flex-wrap">
+                <div className="flex gap-1.5">
                   {Array.from({ length: finalConfig.part1 }).map((_, idx) => {
                     const isActive = currentPart === 1 && idx === currentQuestionIndex;
                     const isCompleted = currentPart > 1 || (currentPart === 1 && idx < currentQuestionIndex);
@@ -109,11 +111,11 @@ export function ExamProgressBar({ currentPart, currentQuestionIndex, partConfig 
 
           {/* Part 2 */}
           <div
-            className={`rounded-lg px-3 py-2 ${
-              currentPart > 2 ? 'shrink-0 bg-[#16a34a]' : currentPart === 2 ? 'border-2 border-[#16a34a] bg-white' : 'border border-gray-200 bg-white'
+            className={`rounded-lg px-3 flex h-[44px] items-center shrink-0 transition-colors ${
+              currentPart > 2 ? 'bg-[#16a34a]' : currentPart === 2 ? 'border-2 border-[#16a34a] bg-white' : 'border border-gray-200 bg-white'
             }`}
           >
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 min-w-max">
               <span
                 className={`text-sm font-medium ${
                   currentPart > 2 ? 'text-white' : currentPart === 2 ? 'text-[#16a34a]' : 'text-gray-400'
@@ -122,9 +124,14 @@ export function ExamProgressBar({ currentPart, currentQuestionIndex, partConfig 
                 Part 2
               </span>
               {currentPart > 2 ? (
-                <svg className="h-5 w-5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.815a.75.75 0 011.05-.145z" clipRule="evenodd" />
-                </svg>
+                <div className="relative flex items-center justify-end w-full">
+                  <div className="flex gap-1.5 invisible" aria-hidden="true">
+                    <div className="h-7 w-7 shrink-0" />
+                  </div>
+                  <svg className="absolute right-0 h-5 w-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.815a.75.75 0 011.05-.145z" clipRule="evenodd" />
+                  </svg>
+                </div>
               ) : (
                 <div
                   className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-medium shrink-0 ${
@@ -141,8 +148,8 @@ export function ExamProgressBar({ currentPart, currentQuestionIndex, partConfig 
 
           {/* Part 3 */}
           <div
-            className={`rounded-lg px-3 py-2 ${
-              currentPart > 3 ? 'shrink-0 bg-[#16a34a]' : currentPart === 3 ? 'flex-1 border-2 border-[#16a34a] bg-white overflow-x-auto' : 'flex-1 border border-gray-200 bg-white overflow-x-auto'
+            className={`rounded-lg px-3 flex h-[44px] items-center shrink-0 transition-colors ${
+              currentPart > 3 ? 'bg-[#16a34a]' : currentPart === 3 ? 'border-2 border-[#16a34a] bg-white' : 'border border-gray-200 bg-white'
             }`}
           >
             <div className="flex items-center gap-2 min-w-max">
@@ -154,11 +161,18 @@ export function ExamProgressBar({ currentPart, currentQuestionIndex, partConfig 
                 Part 3
               </span>
               {currentPart > 3 ? (
-                <svg className="h-5 w-5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.815a.75.75 0 011.05-.145z" clipRule="evenodd" />
-                </svg>
+                <div className="relative flex items-center justify-end w-full">
+                  <div className="flex gap-1.5 invisible" aria-hidden="true">
+                    {Array.from({ length: finalConfig.part3 }).map((_, idx) => (
+                      <div key={idx} className="h-7 w-7 shrink-0" />
+                    ))}
+                  </div>
+                  <svg className="absolute right-0 h-5 w-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.815a.75.75 0 011.05-.145z" clipRule="evenodd" />
+                  </svg>
+                </div>
               ) : (
-                <div className="flex gap-1.5 flex-wrap">
+                <div className="flex gap-1.5">
                   {Array.from({ length: finalConfig.part3 }).map((_, idx) => {
                     const isActive = currentPart === 3 && idx === currentQuestionIndex;
                     const isCompleted = currentPart > 3 || (currentPart === 3 && idx < currentQuestionIndex);

@@ -18,6 +18,8 @@ import { ExamTransitionScreen } from '@/components/speaking-exam/exam-transition
 import { ExamErrorDisplay } from '@/components/speaking-exam/exam-error-display';
 import { ExamProgressBar } from '@/components/speaking-exam/exam-progress-bar';
 import { useSessionRecorder } from '@/hooks/use-session-recorder';
+import { X } from 'lucide-react';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 
 // Local UI stages (before/between exam states)
 type UIStage = 'GUIDE' | 'MIC_TEST' | 'EXAM';
@@ -376,15 +378,41 @@ function PageShell({ children, wide, currentPart, currentQuestionIndex }: {
   currentPart?: number;
   currentQuestionIndex?: number;
 }) {
+  const [showExitConfirm, setShowExitConfirm] = useState(false);
+  const router = useRouter();
+
   return (
-    <div className="min-h-screen bg-gray-50 p-4 pb-24 md:p-8">
+    <div className="min-h-screen bg-gray-50 p-4 pb-24 md:p-8 relative">
+      {/* Nút Exit */}
+      <button 
+        onClick={() => setShowExitConfirm(true)}
+        className="absolute top-4 left-4 md:top-8 md:left-8 w-10 h-10 rounded-full bg-white border border-gray-200 flex items-center justify-center text-gray-500 shadow-sm hover:bg-gray-50 hover:text-gray-700 transition"
+      >
+        <X size={20} />
+      </button>
+
       <div className={`mx-auto ${wide ? 'max-w-4xl' : 'max-w-2xl'}`}>
-        <h1 className="mb-6 text-2xl font-bold text-gray-900">IELTS Speaking Exam</h1>
+        <h1 className="mb-6 text-2xl font-bold text-gray-900 text-center">IELTS Speaking Exam</h1>
         {children}
       </div>
+      
       {currentPart !== undefined && currentQuestionIndex !== undefined && (
         <ExamProgressBar currentPart={currentPart} currentQuestionIndex={currentQuestionIndex} />
       )}
+
+      {/* Dialog xác nhận thoát */}
+      <ConfirmDialog
+        open={showExitConfirm}
+        onOpenChange={setShowExitConfirm}
+        title="Thoát khỏi bài làm"
+        description="Bạn ơi, bạn đang thoát khỏi phần làm bài, bạn có chắc chắn muốn thoát chứ"
+        confirmText="Thoát"
+        cancelText="Quay lại làm bài"
+        variant="destructive"
+        onConfirm={() => {
+          router.push('/practice?skill=speaking');
+        }}
+      />
     </div>
   );
 }

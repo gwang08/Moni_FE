@@ -124,19 +124,18 @@ export function ExamPart2CueCardWithNote({ topic, prepTimer, onSkipPrep }: CueCa
             {formatTime(prepTimer)}
           </span>
           <div className="mt-3 flex justify-center gap-3">
-            <Button
-              onClick={onSkipPrep}
-              className="gap-2 rounded-full bg-[#f97316] px-6 py-2 text-sm text-white hover:bg-[#ea580c]"
+            <div
+              className="flex items-center gap-2 rounded-full bg-[#f97316] px-6 py-2.5 text-sm font-medium text-white shadow-sm"
             >
               <Mic className="h-4 w-4" />
               Recording will start after thinking time
-            </Button>
+            </div>
           </div>
           <button
             onClick={onSkipPrep}
-            className="mt-2 text-xs text-blue-600 hover:underline"
+            className="mt-3 text-[13px] font-medium text-blue-600 hover:text-blue-700 hover:underline flex items-center justify-center w-full"
           >
-            <PauseCircle className="mr-1 inline h-3 w-3" />
+            <PauseCircle className="mr-1.5 h-3.5 w-3.5" />
             I&apos;m ready, skip thinking time
           </button>
         </div>

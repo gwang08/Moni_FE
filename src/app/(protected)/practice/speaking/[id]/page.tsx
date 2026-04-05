@@ -152,23 +152,9 @@ export default function SpeakingPracticePage({ params }: Props) {
   }, []);
 
   // ── Auto-start AI intro for Cue Card ──────────────────────
+  // ── Auto-start AI intro for Cue Card ──────────────────────
   const isPrepActive = exam.examState === 'PART2_PREP' && !showPart2Intro;
   const isSpeakActive = exam.examState === 'PART2_SPEAKING';
-
-  useEffect(() => {
-    if (isPrepActive) {
-      if (typeof window !== 'undefined' && window.speechSynthesis) {
-        const intro = new SpeechSynthesisUtterance(
-          'In this part, you will be given a topic card and you will have 1 to 2 minutes to talk about it. Before you talk, you will have exactly 1 minute to prepare, and you can make some notes on the paper provided if you wish.',
-        );
-        intro.lang = 'en-US';
-        intro.rate = 0.9;
-        
-        window.speechSynthesis.cancel();
-        window.speechSynthesis.speak(intro);
-      }
-    }
-  }, [isPrepActive]);
 
   const timers = useSpeakingExamTimers(isPrepActive, isSpeakActive, handlePrepEnd, handleStopPart2);
 
@@ -363,6 +349,18 @@ export default function SpeakingPracticePage({ params }: Props) {
         <ExamPart2IntroScreen
           onStartNow={() => {
             setShowPart2Intro(false);
+            
+            if (typeof window !== 'undefined' && window.speechSynthesis) {
+              const intro = new SpeechSynthesisUtterance(
+                'In this part, you will be given a topic card and you will have 1 to 2 minutes to talk about it. Before you talk, you will have exactly 1 minute to prepare, and you can make some notes on the paper provided if you wish.',
+              );
+              intro.lang = 'en-US';
+              intro.rate = 0.9;
+              
+              window.speechSynthesis.cancel();
+              window.speechSynthesis.speak(intro);
+            }
+
             examRef.current?.setPausePlayback(false);
             examRef.current?.playPendingAudio();
           }}

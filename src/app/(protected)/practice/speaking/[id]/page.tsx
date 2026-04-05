@@ -20,7 +20,7 @@ import { ExamTransitionScreen } from '@/components/speaking-exam/exam-transition
 import { ExamErrorDisplay } from '@/components/speaking-exam/exam-error-display';
 import { ExamProgressBar } from '@/components/speaking-exam/exam-progress-bar';
 import { useSessionRecorder } from '@/hooks/use-session-recorder';
-import { X } from 'lucide-react';
+import { X, Volume2 } from 'lucide-react';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 
 // Local UI stages (before/between exam states)
@@ -40,6 +40,7 @@ export default function SpeakingPracticePage({ params }: Props) {
   const [showPart1Intro, setShowPart1Intro] = useState(true);
   const [showPart2Intro, setShowPart2Intro] = useState(false);
   const [showPart3Intro, setShowPart3Intro] = useState(false);
+  const [showOutro, setShowOutro] = useState(false);
 
   // Track current part and question index for progress bar
   const [currentPart, setCurrentPart] = useState(0);
@@ -250,6 +251,28 @@ export default function SpeakingPracticePage({ params }: Props) {
   useEffect(() => {
     if (exam.examState === 'EVALUATING') {
       examRef.current.endExam();
+      setCurrentPart(4);
+
+      if (typeof window !== 'undefined' && window.speechSynthesis) {
+        setShowOutro(true);
+        const outroText = "That's all of your IELTS speaking test. Please wait a moment while we evaluate your responses.";
+        const outro = new SpeechSynthesisUtterance(outroText);
+        outro.lang = 'en-US';
+        outro.rate = 0.9;
+        
+        const voices = window.speechSynthesis.getVoices();
+        const englishVoice = voices.find(v => v.lang.startsWith('en') && v.name.includes('Female')) || voices.find(v => v.lang.startsWith('en'));
+        if (englishVoice) outro.voice = englishVoice;
+
+        outro.onend = () => setShowOutro(false);
+        outro.onerror = () => setShowOutro(false);
+        
+        window.speechSynthesis.cancel();
+        window.speechSynthesis.speak(outro);
+
+        // Fallback safety timeout in case speech engine hangs
+        setTimeout(() => setShowOutro(false), 8000);
+      }
     }
   }, [exam.examState]);
 
@@ -396,6 +419,26 @@ export default function SpeakingPracticePage({ params }: Props) {
   }
 
   if (examState === 'EVALUATING') {
+    if (showOutro) {
+       return (
+         <PageShell currentPart={currentPart} currentQuestionIndex={currentQuestionIndex} partConfig={partConfig}>
+            <div className="flex flex-col items-center justify-center p-12 text-center min-h-[50vh] bg-white rounded-lg border border-gray-200">
+               <div className="mb-6 relative flex items-center justify-center">
+                 <span className="absolute inline-flex h-16 w-16 animate-ping rounded-full bg-green-400 opacity-20"></span>
+                 <div className="relative bg-green-500 rounded-full p-4 shadow-lg shadow-green-200">
+                   <Volume2 className="text-white h-8 w-8" />
+                 </div>
+               </div>
+               <h2 className="text-2xl font-bold text-[#334155] mb-4">Exam Completed!</h2>
+               <p className="text-blue-600 font-medium text-lg leading-relaxed max-w-sm">
+                 That&apos;s all of your IELTS speaking test.<br/><br/>
+                 Please wait a moment while we evaluate your responses.
+               </p>
+            </div>
+         </PageShell>
+       );
+    }
+
     return (
       <PageShell currentPart={currentPart} currentQuestionIndex={currentQuestionIndex} partConfig={partConfig}>
         <ExamTransitionScreen message="Evaluating your responses... Please wait." />

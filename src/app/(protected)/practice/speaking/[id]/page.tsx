@@ -66,23 +66,29 @@ export default function SpeakingPracticePage({ params }: Props) {
   }, [id]);
 
   // Update progress bar when current question changes
+  const seenQuestionsRef = useRef<Set<number>>(new Set());
+
   useEffect(() => {
     if (exam.currentQuestion) {
       const part = exam.currentQuestion.partNumber;
       const qId = exam.currentQuestion.questionId;
 
-      if (part === 1) {
-        setCurrentPart(1);
-        setCurrentQuestionIndex(qId - 1);
-      } else if (part === 2) {
-        setCurrentPart(2);
-        setCurrentQuestionIndex(0);
-      } else if (part === 3) {
-        setCurrentPart(3);
-        setCurrentQuestionIndex(qId - 1);
+      if (!seenQuestionsRef.current.has(qId)) {
+        seenQuestionsRef.current.add(qId);
+        
+        setCurrentPart((prevPart) => {
+          if (part !== prevPart) {
+            // New part started
+            setCurrentQuestionIndex(0);
+          } else {
+            // Continuation of same part
+            setCurrentQuestionIndex((prev) => prev + 1);
+          }
+          return part;
+        });
       }
     }
-  }, [exam.currentQuestion]);
+  }, [exam.currentQuestion?.questionId]);
 
   // Guard: prevent double-submit for the same question
   const submittedQuestionRef = useRef<number | null>(null);

@@ -369,27 +369,19 @@ export default function SpeakingPracticePage({ params }: Props) {
     );
   }
 
-  // Part 2: Cue card with Note sidebar + thinking time
-  if (examState === 'PART2_PREP' && exam.cueCard) {
+  // Part 2: Cue card with Note sidebar + thinking time + speaking
+  if ((examState === 'PART2_PREP' || examState === 'PART2_SPEAKING') && exam.cueCard) {
     return (
       <PageShell wide currentPart={currentPart} currentQuestionIndex={currentQuestionIndex} partConfig={partConfig}>
         <ExamPart2CueCardWithNote
           topic={exam.cueCard.topic}
+          isPrepPhase={examState === 'PART2_PREP'}
           prepTimer={timers.prepTimer}
           onSkipPrep={handleSkipPrep}
-        />
-      </PageShell>
-    );
-  }
-
-  if (examState === 'PART2_SPEAKING') {
-    return (
-      <PageShell currentPart={currentPart} currentQuestionIndex={currentQuestionIndex} partConfig={partConfig}>
-        <ExamSpeakingTimer
           speakTimer={timers.speakTimer}
-          transcript={stt.transcript}
           isListening={stt.isListening}
-          onStop={handleStopPart2}
+          transcript={stt.transcript}
+          onStopSpeaking={handleStopPart2}
         />
       </PageShell>
     );

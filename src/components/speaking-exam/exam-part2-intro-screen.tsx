@@ -1,7 +1,5 @@
-'use client';
-
 import { useState } from 'react';
-import { Play, Mic, PauseCircle } from 'lucide-react';
+import { Play, Mic, PauseCircle, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface Props {
@@ -61,16 +59,31 @@ export function ExamPart2IntroScreen({ onStartNow }: Props) {
 }
 
 /**
- * Part 2 Cue Card screen — shows topic card + note sidebar + thinking timer
- * User can click to skip thinking time early
+ * Part 2 Cue Card screen — shows topic card + note sidebar + timers
+ * Handles both the Prep phase and the Speaking phase so notes are not lost.
  */
 interface CueCardWithNoteProps {
   topic: string;
+  isPrepPhase: boolean;
   prepTimer: number;
   onSkipPrep: () => void;
+
+  speakTimer?: number;
+  isListening?: boolean;
+  transcript?: string;
+  onStopSpeaking?: () => void;
 }
 
-export function ExamPart2CueCardWithNote({ topic, prepTimer, onSkipPrep }: CueCardWithNoteProps) {
+export function ExamPart2CueCardWithNote({ 
+  topic, 
+  isPrepPhase,
+  prepTimer, 
+  onSkipPrep,
+  speakTimer = 0,
+  isListening,
+  transcript,
+  onStopSpeaking
+}: CueCardWithNoteProps) {
   const [note, setNote] = useState('');
 
   // Parse cue card topic — if it contains bullet points / "You should say:"
@@ -85,71 +98,107 @@ export function ExamPart2CueCardWithNote({ topic, prepTimer, onSkipPrep }: CueCa
   };
 
   return (
-    <div className="flex gap-0 overflow-hidden rounded-lg border border-gray-200 bg-white">
+    <div className="flex gap-0 overflow-hidden rounded-lg border border-gray-200 bg-white min-h-[60vh]">
       {/* Main content */}
       <div className="flex flex-1 flex-col bg-white">
-        <div className="py-6 text-center">
+        <div className="py-6 text-center shrink-0">
           <h2 className="text-[20px] font-bold text-[#334155]">Part 2</h2>
         </div>
 
-        <div className="flex flex-1 flex-col p-8">
+        <div className="flex flex-1 flex-col p-8 overflow-y-auto">
           {/* Cue card content */}
-          <div className="mb-8">
-            <h3 className="mb-4 text-lg font-semibold text-[#f97316]">{title}</h3>
+          <div className="mb-8 max-w-xl mx-auto w-full">
+            <h3 className="mb-4 text-xl font-semibold text-[#f97316] text-center">{title}</h3>
             {hasSubPoints && (
-              <div>
-                <p className="mb-2 text-sm text-gray-600">You should say:</p>
-                <ul className="space-y-2">
+              <div className="pl-4 md:pl-10">
+                <p className="mb-3 text-[15px] font-medium text-gray-600">You should say:</p>
+                <ul className="space-y-3">
                   {lines.slice(1).map((line, i) => (
-                    <li key={i} className="flex items-start gap-2 text-[#2d3748]">
-                      <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-gray-400" />
-                      <span>{line.replace(/^[-•*]\s*/, '')}</span>
+                    <li key={i} className="flex items-start gap-3 text-[#2d3748]">
+                      <span className="mt-2 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-gray-400" />
+                      <span className="text-[15px]">{line.replace(/^[-•*]\s*/, '')}</span>
                     </li>
                   ))}
                 </ul>
               </div>
             )}
             {!hasSubPoints && (
-              <p className="text-[#2d3748] leading-relaxed whitespace-pre-line">{topic}</p>
+              <p className="text-[#2d3748] text-[15px] leading-relaxed whitespace-pre-line text-center">{topic}</p>
             )}
           </div>
         </div>
 
         {/* Timer footer */}
-        <div className="border-t border-gray-100 py-4 text-center">
-          <p className="mb-1 text-sm text-gray-500">Thinking time</p>
-          <span className="text-lg font-bold tabular-nums text-green-600">
-            {formatTime(prepTimer)}
-          </span>
-          <div className="mt-3 flex justify-center gap-3">
-            <div
-              className="flex items-center gap-2 rounded-full bg-[#f97316] px-6 py-2.5 text-sm font-medium text-white shadow-sm"
-            >
-              <Mic className="h-4 w-4" />
-              Recording will start after thinking time
+        {isPrepPhase ? (
+          <div className="border-t border-gray-100 py-5 text-center shrink-0 bg-gray-50/50">
+            <p className="mb-1 text-sm text-gray-500 font-medium">Thinking time</p>
+            <span className="text-xl font-bold tabular-nums text-green-600">
+              {formatTime(prepTimer)}
+            </span>
+            <div className="mt-4 flex justify-center gap-3">
+              <div className="flex items-center gap-2 rounded-full bg-[#f97316] px-6 py-2.5 text-sm font-medium text-white shadow-sm">
+                <Mic className="h-4 w-4" />
+                Recording will start after thinking time
+              </div>
             </div>
+            <button
+              onClick={onSkipPrep}
+              className="mt-4 text-[13px] font-medium text-blue-600 hover:text-blue-700 hover:underline flex items-center justify-center w-full"
+            >
+              <PauseCircle className="mr-1.5 h-3.5 w-3.5" />
+              I&apos;m ready, skip thinking time
+            </button>
           </div>
-          <button
-            onClick={onSkipPrep}
-            className="mt-3 text-[13px] font-medium text-blue-600 hover:text-blue-700 hover:underline flex items-center justify-center w-full"
-          >
-            <PauseCircle className="mr-1.5 h-3.5 w-3.5" />
-            I&apos;m ready, skip thinking time
-          </button>
-        </div>
+        ) : (
+          <div className="border-t border-gray-100 py-5 text-center shrink-0 bg-white">
+            <div className="flex justify-center mb-4">
+              <div
+                className={`flex items-center gap-2 rounded-full border px-6 py-2.5 ${
+                  speakTimer <= 10
+                    ? 'border-red-300 bg-red-50 text-red-600'
+                    : 'border-red-200 bg-red-50/50 text-red-500'
+                }`}
+              >
+                <span className="h-2.5 w-2.5 rounded bg-red-500 shadow-sm" />
+                <span className="text-sm font-medium">Time limit {formatTime(speakTimer)}</span>
+              </div>
+            </div>
+            
+            {isListening && (
+              <div className="mb-3 flex justify-center items-center gap-2">
+                <span className="h-2 w-2 animate-pulse rounded-full bg-red-500" />
+                <span className="text-sm text-gray-500 font-medium">Listening...</span>
+              </div>
+            )}
+            
+            {transcript && (
+              <div className="mx-auto mb-4 max-w-lg rounded-lg bg-gray-50 border border-gray-100 p-3 text-center text-sm text-gray-600 italic line-clamp-2">
+                {transcript}
+              </div>
+            )}
+
+            <button
+              onClick={onStopSpeaking}
+              className="text-[13px] font-medium text-blue-600 hover:text-blue-700 hover:underline flex items-center justify-center w-full"
+            >
+              <CheckCircle className="mr-1.5 h-3.5 w-3.5" />
+              Finish my answer early
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Note sidebar */}
-      <div className="w-56 flex-shrink-0 border-l border-yellow-300">
-        <div className="bg-[#fbbf24] px-4 py-3 text-center font-bold text-[#2d3748]">
+      <div className="w-64 flex-shrink-0 border-l border-yellow-300 flex flex-col bg-[#fffde7]">
+        <div className="bg-[#fbbf24] px-4 py-3 text-center text-[15px] font-bold text-[#2d3748] shadow-sm shrink-0">
           Note
         </div>
-        <div className="h-full bg-[#fffde7] p-3">
+        <div className="flex-1 p-4">
           <textarea
             value={note}
             onChange={(e) => setNote(e.target.value)}
-            placeholder="Note"
-            className="h-64 w-full resize-none bg-transparent text-sm text-gray-700 outline-none placeholder:text-gray-400"
+            placeholder="Type your notes here..."
+            className="h-full w-full resize-none bg-transparent text-[15px] leading-relaxed text-gray-800 outline-none placeholder:text-gray-400"
           />
         </div>
       </div>

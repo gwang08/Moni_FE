@@ -153,6 +153,21 @@ export default function SpeakingExamPage({ params }: Props) {
   // ── Auto-start AI intro for Cue Card ──────────────────────
   const isPrepActive = exam.examState === 'PART2_PREP' && !showPart2Intro;
   const isSpeakActive = exam.examState === 'PART2_SPEAKING';
+  
+  useEffect(() => {
+    if (isPrepActive) {
+      if (typeof window !== 'undefined' && window.speechSynthesis) {
+        const intro = new SpeechSynthesisUtterance(
+          'In this part, you will be given a topic card and you will have 1 to 2 minutes to talk about it. Before you talk, you will have exactly 1 minute to prepare, and you can make some notes on the paper provided if you wish.',
+        );
+        intro.lang = 'en-US';
+        intro.rate = 0.9;
+        
+        window.speechSynthesis.cancel();
+        window.speechSynthesis.speak(intro);
+      }
+    }
+  }, [isPrepActive]);
 
   const timers = useSpeakingExamTimers(isPrepActive, isSpeakActive, handlePrepEnd, handleStopPart2);
 
@@ -441,7 +456,6 @@ function PageShell({ children, wide, currentPart, currentQuestionIndex, partConf
 
       <div className="flex-1 overflow-y-auto p-4 md:p-8 flex flex-col items-center">
         <div className={`w-full mt-10 lg:mt-6 ${wide ? 'max-w-4xl' : 'max-w-3xl'}`}>
-          <h1 className="mb-6 text-2xl font-bold text-gray-900 text-center">IELTS Speaking Exam</h1>
           {children}
         </div>
       </div>

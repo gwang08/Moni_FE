@@ -3,16 +3,27 @@
 interface Props {
   currentPart: number; // 0 = Intro, 1 = Part 1, 2 = Part 2, 3 = Part 3
   currentQuestionIndex: number; // 0-based index within the current part
+  partConfig?: Record<number, number>; // Mapping of Part number (1,2,3) to total questions
 }
 
-const PART_CONFIG = {
-  intro: { label: 'Intro', questionCount: 0 },
-  part1: { label: 'Part 1', questionCount: 12 },
-  part2: { label: 'Part 2', questionCount: 1 },
-  part3: { label: 'Part 3', questionCount: 6 },
-};
+export function ExamProgressBar({ currentPart, currentQuestionIndex, partConfig }: Props) {
+  const finalConfig = {
+    part1: partConfig?.[1] || 12,
+    part2: partConfig?.[2] || 1,
+    part3: partConfig?.[3] || 6,
+  };
 
-export function ExamProgressBar({ currentPart, currentQuestionIndex }: Props) {
+  const calculateProgress = (part: number, qIdx: number): number => {
+    const total = finalConfig.part1 + finalConfig.part2 + finalConfig.part3;
+    let completed = 0;
+    if (part === 0) { completed = 0; }
+    else if (part === 1) { completed = qIdx; }
+    else if (part === 2) { completed = finalConfig.part1 + qIdx; }
+    else if (part === 3) { completed = finalConfig.part1 + finalConfig.part2 + qIdx; }
+    else { completed = total; }
+    return (completed / total) * 100;
+  };
+
   return (
     <div className="fixed bottom-0 left-0 right-0 border-t border-gray-200 bg-[#faf6f1] px-4 py-3">
       <div className="mx-auto max-w-6xl">
@@ -53,9 +64,9 @@ export function ExamProgressBar({ currentPart, currentQuestionIndex }: Props) {
 
           {/* Part 1 */}
           <div
-            className={`flex-1 rounded-lg border border-gray-200 bg-white px-3 py-2`}
+            className={`flex-1 rounded-lg border border-gray-200 bg-white px-3 py-2 overflow-x-auto`}
           >
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 min-w-max">
               <span
                 className={`text-sm font-medium ${
                   currentPart === 1 ? 'text-[#2d3748]' : 'text-gray-400'
@@ -63,8 +74,8 @@ export function ExamProgressBar({ currentPart, currentQuestionIndex }: Props) {
               >
                 Part 1
               </span>
-              <div className="flex gap-1.5">
-                {Array.from({ length: PART_CONFIG.part1.questionCount }).map((_, idx) => {
+              <div className="flex gap-1.5 flex-wrap">
+                {Array.from({ length: finalConfig.part1 }).map((_, idx) => {
                   const isActive = currentPart === 1 && idx === currentQuestionIndex;
                   const isCompleted =
                     currentPart > 1 || (currentPart === 1 && idx < currentQuestionIndex);
@@ -72,7 +83,7 @@ export function ExamProgressBar({ currentPart, currentQuestionIndex }: Props) {
                   return (
                     <div
                       key={idx}
-                      className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-medium ${
+                      className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-medium shrink-0 ${
                         isActive
                           ? 'border-2 border-[#22c55e] bg-white text-[#22c55e]'
                           : isCompleted
@@ -101,7 +112,7 @@ export function ExamProgressBar({ currentPart, currentQuestionIndex }: Props) {
                 Part 2
               </span>
               <div
-                className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-medium ${
+                className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-medium shrink-0 ${
                   currentPart === 2
                     ? 'border-2 border-[#22c55e] bg-white text-[#22c55e]'
                     : currentPart > 2
@@ -116,9 +127,9 @@ export function ExamProgressBar({ currentPart, currentQuestionIndex }: Props) {
 
           {/* Part 3 */}
           <div
-            className={`flex-1 rounded-lg border border-gray-200 bg-white px-3 py-2`}
+            className={`flex-1 rounded-lg border border-gray-200 bg-white px-3 py-2 overflow-x-auto`}
           >
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 min-w-max">
               <span
                 className={`text-sm font-medium ${
                   currentPart === 3 ? 'text-[#2d3748]' : 'text-gray-400'
@@ -126,8 +137,8 @@ export function ExamProgressBar({ currentPart, currentQuestionIndex }: Props) {
               >
                 Part 3
               </span>
-              <div className="flex gap-1.5">
-                {Array.from({ length: PART_CONFIG.part3.questionCount }).map((_, idx) => {
+              <div className="flex gap-1.5 flex-wrap">
+                {Array.from({ length: finalConfig.part3 }).map((_, idx) => {
                   const isActive = currentPart === 3 && idx === currentQuestionIndex;
                   const isCompleted =
                     currentPart > 3 || (currentPart === 3 && idx < currentQuestionIndex);
@@ -135,7 +146,7 @@ export function ExamProgressBar({ currentPart, currentQuestionIndex }: Props) {
                   return (
                     <div
                       key={idx}
-                      className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-medium ${
+                      className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-medium shrink-0 ${
                         isActive
                           ? 'border-2 border-[#22c55e] bg-white text-[#22c55e]'
                           : isCompleted
@@ -164,30 +175,4 @@ export function ExamProgressBar({ currentPart, currentQuestionIndex }: Props) {
       </div>
     </div>
   );
-}
-
-function calculateProgress(currentPart: number, currentQuestionIndex: number): number {
-  const totalQuestions =
-    PART_CONFIG.part1.questionCount +
-    PART_CONFIG.part2.questionCount +
-    PART_CONFIG.part3.questionCount;
-
-  let completedQuestions = 0;
-
-  if (currentPart === 0) {
-    completedQuestions = 0;
-  } else if (currentPart === 1) {
-    completedQuestions = currentQuestionIndex;
-  } else if (currentPart === 2) {
-    completedQuestions = PART_CONFIG.part1.questionCount + currentQuestionIndex;
-  } else if (currentPart === 3) {
-    completedQuestions =
-      PART_CONFIG.part1.questionCount +
-      PART_CONFIG.part2.questionCount +
-      currentQuestionIndex;
-  } else {
-    completedQuestions = totalQuestions;
-  }
-
-  return (completedQuestions / totalQuestions) * 100;
 }

@@ -98,6 +98,15 @@ export default function SpeakingExamPage({ params }: Props) {
     }
   }, [exam.currentQuestion?.questionId]);
 
+  // When Part 2 starts (from backend cue_card event), show intro and update progress bar
+  useEffect(() => {
+    if (exam.examState === 'PART2_PREP') {
+      setShowPart2Intro(true);
+      setCurrentPart(2);
+      setCurrentQuestionIndex(0);
+    }
+  }, [exam.examState]);
+
   // Guard: prevent double-submit for the same question
   const submittedQuestionRef = useRef<number | null>(null);
 

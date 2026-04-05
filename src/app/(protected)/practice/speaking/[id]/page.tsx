@@ -304,6 +304,7 @@ export default function SpeakingPracticePage({ params }: Props) {
       <PageShell wide currentPart={currentPart} currentQuestionIndex={currentQuestionIndex}>
         <ExamPart2CueCardWithNote
           topic={exam.cueCard.topic}
+          isPrepPhase
           prepTimer={timers.prepTimer}
           onSkipPrep={handleSkipPrep}
         />

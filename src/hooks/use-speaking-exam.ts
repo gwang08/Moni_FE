@@ -34,8 +34,10 @@ export function useSpeakingExam() {
   const [cueCard, setCueCard] = useState<CueCardEvent | null>(null);
   const [evaluation, setEvaluation] = useState<EvaluationEvent | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [hasPendingAudio, setHasPendingAudio] = useState(false);
 
   const audio = useSpeakingExamAudio();
+  const pausePlaybackRef = useRef(false);
 
   // ── Send helper ───────────────────────────────────────────
   const send = useCallback((msg: ClientMessage) => {
@@ -92,13 +94,20 @@ export function useSpeakingExam() {
 
         case 'audio_end':
           if (hasReceivedChunksRef.current) {
-            // ElevenLabs TTS succeeded — play the audio chunks  
-            audio.playChunks();
+            // ElevenLabs TTS succeeded
+            if (pausePlaybackRef.current) {
+               setHasPendingAudio(true);
+            } else {
+               audio.playChunks();
+            }
           } else if (pendingTextRef.current) {
             // ElevenLabs TTS failed — use browser speech synthesis as fallback
-            speakWithBrowserTTS(pendingTextRef.current);
+            if (pausePlaybackRef.current) {
+               setHasPendingAudio(true);
+            } else {
+               speakWithBrowserTTS(pendingTextRef.current);
+            }
           }
-          pendingTextRef.current = null;
           break;
 
         case 'show_cue_card':
@@ -235,6 +244,22 @@ export function useSpeakingExam() {
     setIsWsConnected(false);
   }, []);
 
+  const setPausePlayback = useCallback((paused: boolean) => {
+    pausePlaybackRef.current = paused;
+  }, []);
+
+  const playPendingAudio = useCallback(() => {
+    if (hasPendingAudio) {
+      if (hasReceivedChunksRef.current) {
+         audio.playChunks();
+      } else if (pendingTextRef.current) {
+         speakWithBrowserTTS(pendingTextRef.current);
+      }
+      setHasPendingAudio(false);
+      pendingTextRef.current = null;
+    }
+  }, [audio, hasPendingAudio, speakWithBrowserTTS]);
+
   // ── Cleanup on unmount ────────────────────────────────────
   useEffect(() => {
     return () => {
@@ -273,5 +298,7 @@ export function useSpeakingExam() {
     stopSpeakingPart2,
     endExam,
     disconnect,
+    setPausePlayback,
+    playPendingAudio
   };
 }

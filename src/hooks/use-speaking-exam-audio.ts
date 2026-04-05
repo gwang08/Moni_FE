@@ -16,11 +16,11 @@ export function useSpeakingExamAudio() {
     chunksRef.current = [];
   }, []);
 
-  const playChunks = useCallback(async () => {
+  const playChunks = useCallback(async (): Promise<boolean> => {
     const chunks = chunksRef.current;
     if (chunks.length === 0) {
       setIsAudioPlaying(false);
-      return;
+      return false;
     }
 
     try {
@@ -49,9 +49,11 @@ export function useSpeakingExamAudio() {
 
       setIsAudioPlaying(true);
       await audio.play();
+      return true;
     } catch (err) {
       console.error('Audio playback error:', err);
       setIsAudioPlaying(false);
+      return false;
     }
   }, []);
 

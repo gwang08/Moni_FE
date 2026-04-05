@@ -13,7 +13,9 @@ import { ExamMicTestScreen } from '@/components/speaking-exam/exam-mic-test-scre
 import { ExamQuestionDisplay } from '@/components/speaking-exam/exam-question-display';
 import { ExamSpeakingTimer } from '@/components/speaking-exam/exam-speaking-timer';
 import { ExamEvaluationResult } from '@/components/speaking-exam/exam-evaluation-result';
+import { ExamPart1IntroScreen } from '@/components/speaking-exam/exam-part1-intro-screen';
 import { ExamPart2IntroScreen, ExamPart2CueCardWithNote } from '@/components/speaking-exam/exam-part2-intro-screen';
+import { ExamPart3IntroScreen } from '@/components/speaking-exam/exam-part3-intro-screen';
 import { ExamTransitionScreen } from '@/components/speaking-exam/exam-transition-screen';
 import { ExamErrorDisplay } from '@/components/speaking-exam/exam-error-display';
 import { ExamProgressBar } from '@/components/speaking-exam/exam-progress-bar';
@@ -35,7 +37,9 @@ export default function SpeakingPracticePage({ params }: Props) {
 
   const [uiStage, setUIStage] = useState<UIStage>('GUIDE');
   const [showQuestionAlways, setShowQuestionAlways] = useState(false);
+  const [showPart1Intro, setShowPart1Intro] = useState(true);
   const [showPart2Intro, setShowPart2Intro] = useState(false);
+  const [showPart3Intro, setShowPart3Intro] = useState(false);
 
   // Track current part and question index for progress bar
   const [currentPart, setCurrentPart] = useState(0);
@@ -80,6 +84,11 @@ export default function SpeakingPracticePage({ params }: Props) {
           if (part !== prevPart) {
             // New part started
             setCurrentQuestionIndex(0);
+            
+            if (part === 3) {
+              setShowPart3Intro(true);
+              examRef.current?.setPausePlayback(true);
+            }
           } else {
             // Continuation of same part
             setCurrentQuestionIndex((prev) => prev + 1);
@@ -219,11 +228,11 @@ export default function SpeakingPracticePage({ params }: Props) {
 
   // ── Start exam after WS connected ─────────────────────────
   useEffect(() => {
-    if (uiStage === 'EXAM' && exam.isWsConnected && !startedRef.current) {
+    if (uiStage === 'EXAM' && exam.isWsConnected && !showPart1Intro && !startedRef.current) {
       startedRef.current = true;
       examRef.current.startExam(testId);
     }
-  }, [uiStage, exam.isWsConnected, testId]);
+  }, [uiStage, exam.isWsConnected, showPart1Intro, testId]);
 
   // ── Auto-start mic when entering RECORDING state ──────────
   useEffect(() => {
@@ -284,6 +293,28 @@ export default function SpeakingPracticePage({ params }: Props) {
 
   // Stage 3: Exam in progress
   const { examState } = exam;
+
+  // Part 1 Intro (if connected but waiting for user to start Part 1)
+  if (uiStage === 'EXAM' && showPart1Intro && exam.isWsConnected) {
+    return (
+      <PageShell wide currentPart={currentPart} currentQuestionIndex={currentQuestionIndex} partConfig={partConfig}>
+        <ExamPart1IntroScreen onStartNow={() => setShowPart1Intro(false)} />
+      </PageShell>
+    );
+  }
+
+  // Part 3 Intro (if connected but waiting for user to start Part 3)
+  if (currentPart === 3 && showPart3Intro && exam.isWsConnected) {
+    return (
+      <PageShell wide currentPart={currentPart} currentQuestionIndex={currentQuestionIndex} partConfig={partConfig}>
+        <ExamPart3IntroScreen onStartNow={() => {
+           setShowPart3Intro(false);
+           examRef.current?.setPausePlayback(false);
+           examRef.current?.playPendingAudio();
+        }} />
+      </PageShell>
+    );
+  }
 
   if (examState === 'IDLE' || examState === 'CONNECTING') {
     return (

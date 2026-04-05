@@ -14,33 +14,31 @@ export function ExamPart2IntroScreen({ onStartNow }: Props) {
   return (
     <div className="flex gap-0 overflow-hidden rounded-lg border border-gray-200 bg-white">
       {/* Main content */}
-      <div className="flex flex-1 flex-col">
-        <div className="border-b border-gray-100 bg-[#f0f7ff] py-4 text-center">
-          <h2 className="text-lg font-bold text-blue-700">Part 2</h2>
+      <div className="flex flex-1 flex-col bg-white">
+        <div className="py-6 text-center">
+          <h2 className="text-[20px] font-bold text-[#334155]">Part 2</h2>
         </div>
 
-        <div className="flex flex-1 flex-col justify-between p-8">
-          <ul className="space-y-4 text-[#2d3748]">
-            <li className="leading-relaxed">• Part 2 will take about 3 to 4 minutes.</li>
-            <li className="leading-relaxed">
-              • In this part, you will be given a topic card and you will have 1-2 minutes to talk
-              about it.
+        <div className="flex flex-1 flex-col items-center justify-center p-8 text-center mb-10">
+          <ul className="space-y-3 text-[#334155] max-w-lg text-left inline-block">
+            <li className="leading-relaxed text-[15px]">Part 2 will take about 3 to 4 minutes.</li>
+            <li className="leading-relaxed text-[15px]">
+              In this part, you will be given a topic card and you will have 1-2 minutes to talk about it.
             </li>
-            <li className="leading-relaxed">
-              • Before you talk, you will have exactly 1 minute to prepare, and you can make some
-              notes on the paper provided if you wish.
+            <li className="leading-relaxed text-[15px]">
+              Before you talk, you will have exactly 1 minute to prepare, and you can make some notes on the paper provided if you wish.
             </li>
           </ul>
+        </div>
 
-          <div className="mt-8 flex justify-center">
-            <Button
-              onClick={onStartNow}
-              className="gap-2 rounded-full bg-[#f97316] px-8 py-3 text-white hover:bg-[#ea580c]"
-            >
-              <Play className="h-4 w-4" />
-              Start now
-            </Button>
-          </div>
+        <div className="flex justify-center border-t border-gray-100 p-5 bg-white shrink-0 mt-auto">
+          <Button
+            onClick={onStartNow}
+            className="gap-2 rounded-full bg-[#ff7b42] px-8 py-5 text-[15px] text-white hover:bg-[#ea580c] shadow-sm font-medium"
+          >
+            <Play className="h-4 w-4 fill-current" />
+            Start now
+          </Button>
         </div>
       </div>
 
@@ -89,9 +87,9 @@ export function ExamPart2CueCardWithNote({ topic, prepTimer, onSkipPrep }: CueCa
   return (
     <div className="flex gap-0 overflow-hidden rounded-lg border border-gray-200 bg-white">
       {/* Main content */}
-      <div className="flex flex-1 flex-col">
-        <div className="border-b border-gray-100 bg-[#f0f7ff] py-4 text-center">
-          <h2 className="text-lg font-bold text-blue-700">Part 2</h2>
+      <div className="flex flex-1 flex-col bg-white">
+        <div className="py-6 text-center">
+          <h2 className="text-[20px] font-bold text-[#334155]">Part 2</h2>
         </div>
 
         <div className="flex flex-1 flex-col p-8">

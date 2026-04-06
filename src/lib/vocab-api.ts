@@ -33,11 +33,12 @@ export interface VocabLookupResult {
 // Deduplicate in-flight requests (prevents React strict mode double-fire)
 let inflightKey: string | null = null;
 let inflightPromise: Promise<VocabLookupResult> | null = null;
+let inflightAborted = false;
 
 export async function lookupVocab(word: string, sentence?: string, signal?: AbortSignal): Promise<VocabLookupResult> {
   const key = `${word}|${sentence ?? ''}`;
 
-  if (inflightKey === key && inflightPromise) {
+  if (inflightKey === key && inflightPromise && !inflightAborted) {
     return inflightPromise;
   }
 
@@ -45,6 +46,12 @@ export async function lookupVocab(word: string, sentence?: string, signal?: Abor
   if (sentence) params.set('sentence', sentence);
 
   inflightKey = key;
+  inflightAborted = false;
+
+  if (signal) {
+    signal.addEventListener('abort', () => { inflightAborted = true; }, { once: true });
+  }
+
   inflightPromise = apiClient.get<ApiResponse<VocabLookupResult>>(
     `/api/v1/vocab/lookup?${params}`,
     false,

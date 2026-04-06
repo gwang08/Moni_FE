@@ -1,7 +1,8 @@
 'use client';
 
-import { use, useEffect, useRef, useState } from 'react';
+import { use, useEffect, useRef, useState, useCallback } from 'react';
 import Link from 'next/link';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { SkeletonPractice } from '@/components/ui/skeleton';
@@ -10,6 +11,7 @@ import { WritingPracticeHeader } from '@/components/writing/writing-practice-hea
 import { WritingPromptPanel } from '@/components/writing/writing-prompt-panel';
 import { WritingEditor } from '@/components/writing/writing-editor';
 import { WritingToolbarPanel } from '@/components/writing/writing-toolbar-panel';
+import { WritingExamView } from '@/components/writing/writing-exam-view';
 import { WritingScoringProgressDialog } from '@/components/writing/writing-scoring-progress-dialog';
 import { WritingScoringOptionsDialog } from '@/components/writing/writing-scoring-options-dialog';
 import { getServices } from '@/lib/payment-api';
@@ -18,8 +20,9 @@ import { usePracticeStore } from '@/store/practice-store';
 import { useAuthStore } from '@/store/auth-store';
 import { useTestDetail } from '@/hooks/use-test-detail';
 import { useElapsedTimer } from '@/hooks/use-elapsed-timer';
+import { useCountdownTimer } from '@/hooks/use-countdown-timer';
+import { useExamSession } from '@/hooks/use-exam-session';
 import { submitWriting } from '@/lib/ai-api';
-import { useRouter } from 'next/navigation';
 import type { WritingTaskType } from '@/types/writing.types';
 
 const FALLBACK_PROMPT = 'Hãy viết một bài luận bày tỏ quan điểm của bạn về chủ đề được đề cập.';
@@ -32,7 +35,6 @@ function stripHtml(html: string): string {
   return html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
 }
 
-/** Key localStorage cho draft theo testId */
 function draftKey(testId: string) {
   return `writing-draft-${testId}`;
 }
@@ -46,12 +48,13 @@ interface WritingDraft {
 export default function WritingExercisePage({ params }: Props) {
   const { id } = use(params);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const isExamMode = searchParams.get('mode') === 'exam';
   const { testDetail, loading, error } = useTestDetail(id);
 
   const {
     content,
     wordCount,
-    gradingResult,
     isGrading,
     submitForGrading,
     reset,
@@ -65,24 +68,40 @@ export default function WritingExercisePage({ params }: Props) {
   const [showScoringDialog, setShowScoringDialog] = useState(false);
   const [aiCost, setAiCost] = useState<number | null>(null);
   const [expertCost, setExpertCost] = useState<number | null>(null);
-
-  // Draft restore dialog
   const [draftDialogOpen, setDraftDialogOpen] = useState(false);
   const [pendingDraft, setPendingDraft] = useState<WritingDraft | null>(null);
-  // Restored content passed to editor
   const [restoredContent, setRestoredContent] = useState<string | undefined>(undefined);
-  // Editor remount key — force re-init when content is restored
   const [editorKey, setEditorKey] = useState(0);
-
-  // Submit state
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [submissionId, setSubmissionId] = useState<number | null>(null);
 
-  const { elapsed, formatted: elapsedTime } = useElapsedTimer(isGrading);
-
-  // Auto-save debounce timer
   const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const handleSubmitRef = useRef<() => Promise<void>>(() => Promise.resolve());
+
+  // ===== ALL HOOKS BEFORE ANY EARLY RETURN =====
+
+  const { elapsed, formatted: elapsedTime } = useElapsedTimer(isGrading || isExamMode);
+
+  const examSession = useExamSession(Number(id), isExamMode);
+  const countdownTimer = useCountdownTimer(
+    testDetail?.duration && testDetail.duration > 0 ? testDetail.duration : 60,
+    submitted || !isExamMode,
+    () => {
+      if (!submitted && handleSubmitRef.current) {
+        toast('Hết giờ — bài đã được nộp tự động');
+        handleSubmitRef.current();
+      }
+    },
+    isExamMode && examSession.session ? examSession.session.remainingSeconds : undefined,
+  );
+
+  // Handle EXPIRED exam session
+  useEffect(() => {
+    if (isExamMode && examSession.session?.status === 'EXPIRED') {
+      router.push(`/practice/writing/${id}/review`);
+    }
+  }, [isExamMode, examSession.session?.status, id, router]);
 
   // On mount: reset store + fetch service costs
   useEffect(() => {
@@ -95,7 +114,7 @@ export default function WritingExercisePage({ params }: Props) {
       .catch(() => {});
   }, [reset]);
 
-  // Check draft after testDetail loads
+  // Check draft
   useEffect(() => {
     if (!testDetail) return;
     const raw = localStorage.getItem(draftKey(id));
@@ -109,30 +128,87 @@ export default function WritingExercisePage({ params }: Props) {
     } catch {
       localStorage.removeItem(draftKey(id));
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [testDetail]);
+  }, [testDetail, id]);
 
-  // Auto-save draft on content/wordCount/elapsed change (debounce 1s)
+  // Auto-save draft
   useEffect(() => {
-    if (submitted) return; // Don't auto-save after submission
+    if (submitted) return;
     if (!content && wordCount === 0) return;
-
     if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
     autoSaveTimer.current = setTimeout(() => {
-      const draft: WritingDraft = { content, wordCount, elapsed };
-      localStorage.setItem(draftKey(id), JSON.stringify(draft));
+      localStorage.setItem(draftKey(id), JSON.stringify({ content, wordCount, elapsed }));
     }, 1000);
-
     return () => {
       if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
     };
   }, [content, wordCount, elapsed, id, submitted]);
 
-  // Removed GradingModal — redirect to /writing/result/{id} instead
+  // Submit handler (useCallback so it's a hook, placed before early returns)
+  const handleSubmit = useCallback(() => {
+    const stimulus = testDetail?.stimuli[0];
+    if (!stimulus || isSubmitting || submitted || !testDetail) return Promise.resolve();
+    setIsSubmitting(true);
+    const taskType: WritingTaskType = testDetail.section === 1 ? 1 : 2;
+    return submitWriting({
+      testId: Number(id),
+      stimulusId: stimulus.id,
+      taskType,
+      essayContent: stripHtml(content),
+      wordCount,
+    })
+      .then((result) => {
+        setSubmissionId(result.submissionId);
+        localStorage.removeItem(draftKey(id));
+        markCompleted(id);
+        setSubmitted(true);
+        setShowScoringDialog(true);
+      })
+      .catch(() => {
+        toast.error('Nộp bài thất bại', { description: 'Vui lòng thử lại.' });
+      })
+      .finally(() => {
+        setIsSubmitting(false);
+      });
+  }, [testDetail, isSubmitting, submitted, content, wordCount, id, markCompleted]);
 
-  if (loading) {
-    return <SkeletonPractice />;
-  }
+  // Sync ref
+  useEffect(() => {
+    handleSubmitRef.current = handleSubmit;
+  }, [handleSubmit]);
+
+  // Grade handler
+  const handleGrade = useCallback(() => {
+    const stimulus = testDetail?.stimuli[0];
+    if (!testDetail || !stimulus) return;
+    const taskType: WritingTaskType = testDetail.section === 1 ? 1 : 2;
+    const prompt = stimulus.content || testDetail.description || FALLBACK_PROMPT;
+    const answer = stripHtml(content);
+    const scoringChartUrl = stimulus.mediaUrl || stimulus.content?.match(/<img[^>]+src="([^"]+)"/)?.[1];
+    let chartFile: File | undefined;
+    if (taskType === 1 && scoringChartUrl) {
+      fetch(scoringChartUrl)
+        .then((res) => res.blob())
+        .then((blob) => {
+          chartFile = new File([blob], 'chart.png', { type: blob.type || 'image/png' });
+        })
+        .catch(() => {})
+        .finally(() => {
+          submitForGrading({
+            taskType, question: prompt, answer, chartImage: chartFile,
+            stimulusId: stimulus.id, submissionId: submissionId ?? undefined,
+          }).then(() => { refreshProfile(); if (submissionId) router.push(`/writing/result/${submissionId}`); });
+        });
+    } else {
+      submitForGrading({
+        taskType, question: prompt, answer,
+        stimulusId: stimulus.id, submissionId: submissionId ?? undefined,
+      }).then(() => { refreshProfile(); if (submissionId) router.push(`/writing/result/${submissionId}`); });
+    }
+  }, [testDetail, content, submissionId, submitForGrading, refreshProfile, router]);
+
+  // ===== EARLY RETURNS AFTER ALL HOOKS =====
+
+  if (loading) return <SkeletonPractice />;
 
   if (error || !testDetail) {
     return (
@@ -145,75 +221,52 @@ export default function WritingExercisePage({ params }: Props) {
     );
   }
 
+  // Derived values
   const taskType: WritingTaskType = testDetail.section === 1 ? 1 : 2;
   const stimulus = testDetail.stimuli[0];
   const prompt = stimulus?.content || testDetail.description || FALLBACK_PROMPT;
-  // Only use mediaUrl for chart display — if image is embedded in HTML content,
-  // WritingPromptPanel will render it from the HTML directly (avoid double rendering)
   const chartImageUrl = taskType === 1 ? (stimulus?.mediaUrl ?? undefined) : undefined;
   const sampleAnswer = stimulus?.questionGroups[0]?.instruction || undefined;
-
   const canGrade = wordCount > 0 && !isGrading && !submitted;
 
-  // Phase 2: Nộp bài (lưu essay, không chấm điểm ngay)
-  const handleSubmit = async () => {
-    if (!stimulus || isSubmitting || submitted) return;
-    setIsSubmitting(true);
-    try {
-      const answer = stripHtml(content);
+  // Exam loading
+  if (isExamMode && examSession.loading) return <SkeletonPractice />;
 
-      // 1. Lưu essay vào DB
-      const result = await submitWriting({
-        testId: Number(id),
-        stimulusId: stimulus.id,
-        taskType,
-        essayContent: answer,
-        wordCount,
-      });
-      setSubmissionId(result.submissionId);
+  // ===== EXAM MODE LAYOUT =====
+  if (isExamMode) {
+    return (
+      <div className="min-h-screen flex flex-col bg-white">
+        <WritingExamView
+          prompt={prompt}
+          chartImageUrl={chartImageUrl}
+          taskType={taskType}
+          content={content}
+          wordCount={wordCount}
+          readOnly={submitted}
+          onContentChange={setContent}
+          onSubmit={handleSubmit}
+          isSubmitting={isSubmitting}
+          submitted={submitted}
+          countdownDisplay={countdownTimer.formatted}
+          remainingSeconds={countdownTimer.remaining}
+          testTitle={testDetail.title}
+        />
+        <WritingScoringOptionsDialog
+          open={showScoringDialog}
+          aiCost={aiCost}
+          expertCost={expertCost}
+          onAIScore={() => { setShowScoringDialog(false); handleGrade(); }}
+          onExpertScore={() => { setShowScoringDialog(false); router.push('/scoring-history'); }}
+          onSkip={() => { setShowScoringDialog(false); router.push('/scoring-history'); }}
+        />
+        <WritingScoringProgressDialog open={isGrading} />
+      </div>
+    );
+  }
 
-      // 2. Xoá draft
-      localStorage.removeItem(draftKey(id));
-      markCompleted(id);
-
-      // 4. Đánh dấu đã nộp — giữ nguyên trang để Phase 3 hiển thị dialog chấm điểm
-      setSubmitted(true);
-      setShowScoringDialog(true);
-    } catch {
-      toast.error('Nộp bài thất bại', { description: 'Vui lòng thử lại.' });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  // Phase 3 (giữ lại): Chấm điểm AI
-  const handleGrade = async () => {
-    const answer = stripHtml(content);
-    // For scoring API: get chart image from mediaUrl or extract from HTML content
-    const scoringChartUrl = stimulus?.mediaUrl || stimulus?.content?.match(/<img[^>]+src="([^"]+)"/)?.[1];
-    let chartFile: File | undefined;
-    if (taskType === 1 && scoringChartUrl) {
-      try {
-        const res = await fetch(scoringChartUrl);
-        const blob = await res.blob();
-        chartFile = new File([blob], 'chart.png', { type: blob.type || 'image/png' });
-      } catch { /* proceed without chart */ }
-    }
-    await submitForGrading({
-      taskType,
-      question: prompt,
-      answer,
-      chartImage: chartFile,
-      stimulusId: stimulus?.id,
-      submissionId: submissionId ?? undefined,
-    });
-    refreshProfile();
-    if (submissionId) router.push(`/writing/result/${submissionId}`);
-  };
-
+  // ===== PRACTICE MODE LAYOUT =====
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-teal-50/50 via-white to-blue-50/30">
-      {/* Decorative pastel blobs */}
       <div className="pointer-events-none fixed -top-32 -left-32 w-80 h-80 rounded-full bg-teal-200/20 blur-3xl" />
       <div className="pointer-events-none fixed top-1/3 -right-24 w-72 h-72 rounded-full bg-blue-200/20 blur-3xl" />
       <div className="pointer-events-none fixed -bottom-20 left-1/3 w-64 h-64 rounded-full bg-emerald-200/15 blur-3xl" />
@@ -231,16 +284,9 @@ export default function WritingExercisePage({ params }: Props) {
       />
 
       <div className="flex-1 flex overflow-hidden relative z-10">
-        {/* Left: Prompt */}
         <div className="w-[28%] overflow-y-auto p-4">
-          <WritingPromptPanel
-            prompt={prompt}
-            chartImageUrl={chartImageUrl}
-            taskType={taskType}
-          />
+          <WritingPromptPanel prompt={prompt} chartImageUrl={chartImageUrl} taskType={taskType} />
         </div>
-
-        {/* Center: Editor */}
         <div className="flex-1 overflow-y-auto">
           <WritingEditor
             key={editorKey}
@@ -252,39 +298,21 @@ export default function WritingExercisePage({ params }: Props) {
             initialContent={restoredContent}
           />
         </div>
-
-        {/* Right: Toolbar */}
         <div className="w-[24%] overflow-y-auto p-4">
-          <WritingToolbarPanel
-            wordCount={wordCount}
-            taskType={taskType}
-          />
+          <WritingToolbarPanel wordCount={wordCount} taskType={taskType} />
         </div>
       </div>
 
-      {/* Phase 3: Scoring options dialog (mở sau khi nộp bài) */}
       <WritingScoringOptionsDialog
         open={showScoringDialog}
         aiCost={aiCost}
         expertCost={expertCost}
-        onAIScore={() => {
-          setShowScoringDialog(false);
-          handleGrade();
-        }}
-        onExpertScore={() => {
-          setShowScoringDialog(false);
-          router.push('/scoring-history');
-        }}
-        onSkip={() => {
-          setShowScoringDialog(false);
-          router.push('/scoring-history');
-        }}
+        onAIScore={() => { setShowScoringDialog(false); handleGrade(); }}
+        onExpertScore={() => { setShowScoringDialog(false); router.push('/scoring-history'); }}
+        onSkip={() => { setShowScoringDialog(false); router.push('/scoring-history'); }}
       />
-
-      {/* Scoring progress dialog */}
       <WritingScoringProgressDialog open={isGrading} />
 
-      {/* Draft restore dialog */}
       <ConfirmDialog
         open={draftDialogOpen}
         onOpenChange={setDraftDialogOpen}

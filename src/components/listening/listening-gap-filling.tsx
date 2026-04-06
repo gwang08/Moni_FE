@@ -166,13 +166,13 @@ function IELTSBoxedGapFilling({ questions, submitted, textAnswers, onTextAnswer,
               }`}>
                 <span className="font-bold text-gray-900 min-w-[20px]">{displayPosition}.</span>
                 {correct ? (
-                  <><CheckCircle2 className="h-3.5 w-3.5 text-gray-900" /><span className="text-gray-900 font-semibold">Correct</span></>
+                  <><CheckCircle2 className="h-3.5 w-3.5 text-gray-900" /><span className="text-gray-900 font-semibold">Đúng</span></>
                 ) : wrong ? (
-                  <><XCircle className="h-3.5 w-3.5 text-gray-700" /><span className="text-gray-800">Answer: <strong>{primaryCorrect}</strong>
-                    {correctAnswer.includes('|') && <span className="text-gray-500 font-normal"> (or: {correctAnswer.split('|').slice(1).join(', ')})</span>}
+                  <><XCircle className="h-3.5 w-3.5 text-gray-700" /><span className="text-gray-800">Đáp án: <strong>{primaryCorrect}</strong>
+                    {correctAnswer.includes('|') && <span className="text-gray-500 font-normal"> (hoặc: {correctAnswer.split('|').slice(1).join(', ')})</span>}
                   </span></>
                 ) : (
-                  <span className="text-gray-500 italic">Not answered — Answer: <strong className="text-gray-900">{primaryCorrect}</strong></span>
+                  <span className="text-gray-500 italic">Chưa trả lời — Đáp án: <strong className="text-gray-900">{primaryCorrect}</strong></span>
                 )}
               </div>
             );
@@ -287,11 +287,11 @@ function ParagraphGapFilling({ groupContent, questions, submitted, textAnswers, 
               }`}>
                 <span className="font-bold text-gray-900 min-w-[20px]">{displayPosition}.</span>
                 {correct ? (
-                  <><CheckCircle2 className="h-3.5 w-3.5 text-gray-900" /><span className="text-gray-900 font-semibold">Correct</span></>
+                  <><CheckCircle2 className="h-3.5 w-3.5 text-gray-900" /><span className="text-gray-900 font-semibold">Đúng</span></>
                 ) : wrong ? (
-                  <><XCircle className="h-3.5 w-3.5 text-gray-700" /><span className="text-gray-800">Answer: <strong>{primaryCorrect}</strong></span></>
+                  <><XCircle className="h-3.5 w-3.5 text-gray-700" /><span className="text-gray-800">Đáp án: <strong>{primaryCorrect}</strong></span></>
                 ) : (
-                  <span className="text-gray-500 italic">Not answered — Answer: <strong className="text-gray-900">{primaryCorrect}</strong></span>
+                  <span className="text-gray-500 italic">Chưa trả lời — Đáp án: <strong className="text-gray-900">{primaryCorrect}</strong></span>
                 )}
               </div>
             );

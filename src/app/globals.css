@@ -159,18 +159,24 @@
   animation: pulse-slow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
-/* 
-  1. ẨN TRIỆT ĐỂ THANH CUỘN CỦA TRÌNH DUYỆT (GLOBAL)
+/*
+  1. ẨN THANH CUỘN CỦA TRÌNH DUYỆT (GLOBAL) - nhưng vẫn cho phép scroll
 */
 html, body {
-  overflow: hidden !important;
-  height: 100% !important;
   margin: 0 !important;
   padding: 0 !important;
 }
 
-/* Ẩn scrollbar cho toàn bộ các thành phần, trừ những cái ta chỉ định */
-::-webkit-scrollbar {
+/* Ẩn scrollbar nhưng vẫn scroll được */
+html {
+  scrollbar-width: none; /* Firefox */
+}
+html::-webkit-scrollbar {
+  display: none; /* Chrome, Safari */
+}
+
+/* Ẩn scrollbar cho các phần tử con (trừ html và những cái có class riêng) */
+*:not(html):not(.custom-scrollbar-thick)::-webkit-scrollbar {
   width: 0px !important;
   height: 0px !important;
 }

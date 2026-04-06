@@ -178,17 +178,17 @@ export function ReadingMatchingFeature({ questions, answers, submitted, onAnswer
                 <div className="ml-8 text-xs">
                   {selectedOptId != null ? (
                     isCorrect
-                      ? <span className="text-green-600 font-medium flex items-center gap-1"><CheckCircle2 className="h-3.5 w-3.5" /> Correct</span>
-                      : <span className="text-red-600 flex items-center gap-1"><XCircle className="h-3.5 w-3.5" /> Answer: <strong>{correctOpt?.label}</strong></span>
+                      ? <span className="text-green-600 font-medium flex items-center gap-1"><CheckCircle2 className="h-3.5 w-3.5" /> Đúng</span>
+                      : <span className="text-red-600 flex items-center gap-1"><XCircle className="h-3.5 w-3.5" /> Đáp án: <strong>{correctOpt?.label}</strong></span>
                   ) : (
-                    <span className="text-gray-400 italic">Not answered</span>
+                    <span className="text-gray-400 italic">Chưa trả lời</span>
                   )}
                   {q.explanation?.text && (
-                    <p className="text-gray-500 mt-1"><strong>Explanation:</strong> {q.explanation.text}</p>
+                    <p className="text-gray-500 mt-1"><strong>Giải thích:</strong> {q.explanation.text}</p>
                   )}
                   {q.explanation?.evidence && (
                     <p className="text-amber-700 bg-amber-50 px-2 py-1 rounded mt-1">
-                      Evidence: &ldquo;{q.explanation.evidence}&rdquo;
+                      Dẫn chứng: &ldquo;{q.explanation.evidence}&rdquo;
                     </p>
                   )}
                 </div>

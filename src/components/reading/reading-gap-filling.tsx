@@ -170,13 +170,13 @@ function IELTSBoxedGapFilling({ questions, submitted, textAnswers, onTextAnswer,
               }`}>
                 <span className="font-bold text-gray-900 min-w-[20px]">{displayPosition}.</span>
                 {correct ? (
-                  <><CheckCircle2 className="h-3.5 w-3.5 text-gray-900" /><span className="text-gray-900 font-semibold">Correct</span></>
+                  <><CheckCircle2 className="h-3.5 w-3.5 text-gray-900" /><span className="text-gray-900 font-semibold">Đúng</span></>
                 ) : wrong ? (
-                  <><XCircle className="h-3.5 w-3.5 text-gray-700" /><span className="text-gray-800">Answer: <strong>{primaryCorrect}</strong>
-                    {correctAnswer.includes('|') && <span className="text-gray-500 font-normal"> (or: {correctAnswer.split('|').slice(1).join(', ')})</span>}
+                  <><XCircle className="h-3.5 w-3.5 text-gray-700" /><span className="text-gray-800">Đáp án: <strong>{primaryCorrect}</strong>
+                    {correctAnswer.includes('|') && <span className="text-gray-500 font-normal"> (hoặc: {correctAnswer.split('|').slice(1).join(', ')})</span>}
                   </span></>
                 ) : (
-                  <span className="text-gray-500 italic">Not answered — Answer: <strong className="text-gray-900">{primaryCorrect}</strong></span>
+                  <span className="text-gray-500 italic">Chưa trả lời — Đáp án: <strong className="text-gray-900">{primaryCorrect}</strong></span>
                 )}
               </div>
             );
@@ -232,24 +232,24 @@ function GapQuestion({ question, displayPosition, userAnswer, submitted, onTextA
             }`}>
               <span className="font-bold text-gray-900">{displayPosition}.</span>
               {correct ? (
-                <><CheckCircle2 className="h-3.5 w-3.5 text-gray-900" /><span className="text-gray-900 font-semibold">Correct</span></>
+                <><CheckCircle2 className="h-3.5 w-3.5 text-gray-900" /><span className="text-gray-900 font-semibold">Đúng</span></>
               ) : wrong ? (
-                <><XCircle className="h-3.5 w-3.5 text-gray-700" /><span className="text-gray-800">Answer: <strong>{primaryCorrect}</strong>
-                  {correctAnswer.includes('|') && <span className="text-gray-500 font-normal"> (or: {correctAnswer.split('|').slice(1).join(', ')})</span>}
+                <><XCircle className="h-3.5 w-3.5 text-gray-700" /><span className="text-gray-800">Đáp án: <strong>{primaryCorrect}</strong>
+                  {correctAnswer.includes('|') && <span className="text-gray-500 font-normal"> (hoặc: {correctAnswer.split('|').slice(1).join(', ')})</span>}
                 </span></>
               ) : (
-                <span className="text-gray-500 italic">Not answered — Answer: <strong className="text-gray-900">{primaryCorrect}</strong></span>
+                <span className="text-gray-500 italic">Chưa trả lời — Đáp án: <strong className="text-gray-900">{primaryCorrect}</strong></span>
               )}
             </div>
             {question.explanation?.text && (
               <div className="mt-2">
-                <p className="text-xs text-gray-600"><strong>Explanation:</strong> {question.explanation.text}</p>
+                <p className="text-xs text-gray-600"><strong>Giải thích:</strong> {question.explanation.text}</p>
                 {question.explanation.evidence && (
                   <div className="space-y-1 mt-1">
                     {question.explanation.evidence.split('\n---\n').filter((e: string) => e.trim()).map((chunk: string, i: number) => (
                       <p key={i} className={`text-xs text-gray-700 bg-gray-100 px-2 py-1 rounded ${onLocateEvidence ? 'cursor-pointer hover:bg-gray-200' : ''}`}
                         onClick={() => onLocateEvidence?.(chunk.trim())}>
-                        Evidence {i + 1}: &ldquo;{chunk.trim()}&rdquo;
+                        Dẫn chứng {i + 1}: &ldquo;{chunk.trim()}&rdquo;
                       </p>
                     ))}
                   </div>
@@ -413,24 +413,24 @@ function ParagraphGapFilling({ groupContent, questions, submitted, textAnswers, 
                   <div className="flex items-center gap-2 text-xs">
                   <span className="font-bold text-gray-900">{displayPosition}.</span>
                   {correct ? (
-                    <><CheckCircle2 className="h-3.5 w-3.5 text-gray-900" /><span className="text-gray-900 font-semibold">Correct</span></>
+                    <><CheckCircle2 className="h-3.5 w-3.5 text-gray-900" /><span className="text-gray-900 font-semibold">Đúng</span></>
                   ) : wrong ? (
-                    <><XCircle className="h-3.5 w-3.5 text-gray-700" /><span className="text-gray-800">Answer: <strong>{primaryCorrect}</strong>
-                      {correctAnswer.includes('|') && <span className="text-gray-500 font-normal"> (or: {correctAnswer.split('|').slice(1).join(', ')})</span>}
+                    <><XCircle className="h-3.5 w-3.5 text-gray-700" /><span className="text-gray-800">Đáp án: <strong>{primaryCorrect}</strong>
+                      {correctAnswer.includes('|') && <span className="text-gray-500 font-normal"> (hoặc: {correctAnswer.split('|').slice(1).join(', ')})</span>}
                     </span></>
                   ) : (
-                    <span className="text-gray-500 italic">Not answered — Answer: <strong className="text-gray-900">{primaryCorrect}</strong></span>
+                    <span className="text-gray-500 italic">Chưa trả lời — Đáp án: <strong className="text-gray-900">{primaryCorrect}</strong></span>
                   )}
                 </div>
                 {question.explanation?.text && (
                   <div className="mt-2">
-                    <p className="text-xs text-gray-600"><strong>Explanation:</strong> {question.explanation.text}</p>
+                    <p className="text-xs text-gray-600"><strong>Giải thích:</strong> {question.explanation.text}</p>
                     {question.explanation.evidence && (
                       <div className="space-y-1 mt-1">
                         {question.explanation.evidence.split('\n---\n').filter((e: string) => e.trim()).map((chunk: string, ci: number) => (
                           <p key={ci} className={`text-xs text-gray-700 bg-gray-100 px-2 py-1 rounded ${onLocateEvidence ? 'cursor-pointer hover:bg-gray-200' : ''}`}
                             onClick={() => onLocateEvidence?.(chunk.trim())}>
-                            Evidence {ci + 1}: &ldquo;{chunk.trim()}&rdquo;
+                            Dẫn chứng {ci + 1}: &ldquo;{chunk.trim()}&rdquo;
                           </p>
                         ))}
                       </div>

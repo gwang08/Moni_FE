@@ -131,10 +131,8 @@ export function RoadmapInsights() {
   useEffect(() => {
     const handler = () => fetchInsights();
     window.addEventListener('roadmap-updated', handler);
-    window.addEventListener('focus', handler);
     return () => {
       window.removeEventListener('roadmap-updated', handler);
-      window.removeEventListener('focus', handler);
     };
   }, []);
 
@@ -180,10 +178,10 @@ export function RoadmapInsights() {
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
         <div className="flex items-center gap-2 mb-2">
           <Activity className="h-5 w-5 text-gray-500" />
-          <div className="text-base font-semibold text-gray-800">Personalized Roadmap</div>
+          <div className="text-base font-semibold text-gray-800">Lộ trình cá nhân</div>
         </div>
         <div className="text-sm text-gray-500">
-          Khong the tai bang chi so luc nay. Thu tai lai trang hoac lam moi dashboard.
+          Không thể tải bảng chỉ số lúc này. Thử tải lại trang hoặc làm mới dashboard.
         </div>
       </div>
     );
@@ -202,16 +200,16 @@ export function RoadmapInsights() {
                 <Activity className="h-5 w-5 text-gray-700" />
               </div>
               <div className="min-w-0">
-                <h2 className="text-lg font-bold text-gray-900 leading-tight">Personalized Roadmap</h2>
+                <h2 className="text-lg font-bold text-gray-900 leading-tight">Lộ trình cá nhân</h2>
                 <p className="text-xs text-gray-500">
-                  Bang chi so chi tiet: tu danh gia, he thong hieu chinh, va khoang cach toi muc tieu.
+                  Bảng chỉ số chi tiết: tự đánh giá, hệ thống hiệu chỉnh, và khoảng cách tới mục tiêu.
                 </p>
               </div>
             </div>
           </div>
 
           <div className="flex-shrink-0 text-right">
-            <div className="text-[11px] text-gray-500">Exam</div>
+            <div className="text-[11px] text-gray-500">Ngày thi</div>
             <div className="text-sm font-semibold text-gray-800 font-mono">
               {fmtDateYmd(insights.examDate)}
               {insights.daysToExam != null ? ` • D-${insights.daysToExam}` : ''}
@@ -225,14 +223,14 @@ export function RoadmapInsights() {
           <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 flex items-start gap-3">
             <TriangleAlert className="h-5 w-5 text-amber-600 mt-0.5" />
             <div className="min-w-0">
-              <div className="text-sm font-semibold text-amber-800">Muc tieu co the hoi qua tam</div>
+              <div className="text-sm font-semibold text-amber-800">Mục tiêu có thể hơi quá tầm</div>
               <div className="text-sm text-amber-700 leading-relaxed">
                 {insights.targetWarning ||
-                  'Hay can nhac giam muc tieu, hoac tang tan suat luyen tap truoc ngay thi.'}
+                  'Hãy cân nhắc giảm mục tiêu, hoặc tăng tần suất luyện tập trước ngày thi.'}
               </div>
               {insights.achievableOverallByExam != null && (
                 <div className="text-xs text-amber-700 mt-1">
-                  Uoc tinh bao thu: overall co the dat toi khoang <span className="font-mono font-semibold">{fmtBand(insights.achievableOverallByExam)}</span> toi ngay thi.
+                  Ước tính bảo thủ: overall có thể đạt tới khoảng <span className="font-mono font-semibold">{fmtBand(insights.achievableOverallByExam)}</span> tới ngày thi.
                 </div>
               )}
             </div>
@@ -240,16 +238,16 @@ export function RoadmapInsights() {
         )}
 
         <div className="grid gap-3 md:grid-cols-2">
-          <MetricBar label="Mastery index (0..1)" value01={insights.masteryIndex} accent="sky" />
-          <MetricBar label="Confidence index (0..1)" value01={insights.confidenceIndex} accent="amber" />
+          <MetricBar label="Chỉ số thành thạo" value01={insights.masteryIndex} accent="sky" />
+          <MetricBar label="Chỉ số tự tin" value01={insights.confidenceIndex} accent="amber" />
         </div>
 
         <div className="rounded-2xl border border-gray-100 overflow-hidden">
           <div className="px-4 py-3 bg-gray-50 flex items-center justify-between">
-              <div className="text-sm font-semibold text-gray-800">Band board</div>
+              <div className="text-sm font-semibold text-gray-800">Bảng điểm band</div>
               <div className="text-[11px] text-gray-500">
-              {insights.placementCompletedAt ? `Placement: ${fmtDateYmd(insights.placementCompletedAt)}` : ''}
-              {insights.lastMetricUpdatedAt ? ` • Metrics: ${fmtDateYmd(insights.lastMetricUpdatedAt)}` : ''}
+              {insights.placementCompletedAt ? `Đầu vào: ${fmtDateYmd(insights.placementCompletedAt)}` : ''}
+              {insights.lastMetricUpdatedAt ? ` • Cập nhật: ${fmtDateYmd(insights.lastMetricUpdatedAt)}` : ''}
             </div>
           </div>
 
@@ -257,13 +255,13 @@ export function RoadmapInsights() {
             <table className="min-w-full text-sm">
               <thead className="text-xs text-gray-500 bg-white">
                 <tr className="border-t border-gray-100">
-                  <th className="text-left font-medium px-4 py-2">Skill</th>
+                  <th className="text-left font-medium px-4 py-2">Kỹ năng</th>
                   <th className="text-right font-medium px-4 py-2">
-                    {insights.placementSelfAssessed ? 'Self/Placement' : 'Placement'}
+                    {insights.placementSelfAssessed ? 'Tự đánh giá' : 'Đầu vào'}
                   </th>
-                  <th className="text-right font-medium px-4 py-2">Calibrated</th>
-                  <th className="text-right font-medium px-4 py-2">Target</th>
-                  <th className="text-right font-medium px-4 py-2">Gap</th>
+                  <th className="text-right font-medium px-4 py-2">Hiệu chỉnh</th>
+                  <th className="text-right font-medium px-4 py-2">Mục tiêu</th>
+                  <th className="text-right font-medium px-4 py-2">Chênh lệch</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -307,28 +305,28 @@ export function RoadmapInsights() {
 
         <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-2">
-            <div className="text-sm font-semibold text-gray-800">Weakest focus (tags)</div>
+            <div className="text-sm font-semibold text-gray-800">Điểm yếu cần tập trung</div>
             <div className="space-y-2">
               {(insights?.weakestTags ?? []).slice(0, 5).map((m, idx) => (
                 <TagRow key={`${m.tagId ?? 'x'}-${idx}`} m={m} />
               ))}
               {(insights?.weakestTags ?? []).length === 0 && (
                 <div className="text-sm text-gray-400 rounded-lg border border-dashed border-gray-200 px-3 py-2">
-                  Chua co du lieu tag. Hay lam them bai luyen tap de he thong do duoc diem yeu.
+                  Chưa có dữ liệu tag. Hãy làm thêm bài luyện tập để hệ thống đo được điểm yếu.
                 </div>
               )}
             </div>
           </div>
 
           <div className="space-y-2">
-            <div className="text-sm font-semibold text-gray-800">Strongest (tags)</div>
+            <div className="text-sm font-semibold text-gray-800">Điểm mạnh</div>
             <div className="space-y-2">
               {(insights?.strongestTags ?? []).slice(0, 5).map((m, idx) => (
                 <TagRow key={`${m.tagId ?? 'x'}-${idx}`} m={m} />
               ))}
               {(insights?.strongestTags ?? []).length === 0 && (
                 <div className="text-sm text-gray-400 rounded-lg border border-dashed border-gray-200 px-3 py-2">
-                  Chua co du lieu tag.
+                  Chưa có dữ liệu tag.
                 </div>
               )}
             </div>

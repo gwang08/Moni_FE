@@ -67,13 +67,13 @@ export function ReadingQuestionMcq({ questionId, position, content, options, sel
         </div>
 
         {submitted && !hasAnswer && (
-          <p className="mt-3 text-xs text-gray-500 italic">Not answered</p>
+          <p className="mt-3 text-xs text-gray-500 italic">Chưa trả lời</p>
         )}
 
         {submitted && explanation?.text && (
           <div className="mt-4 pt-3 border-t border-gray-200">
             <p className="text-xs text-gray-600">
-              <strong>Explanation:</strong> {explanation.text}
+              <strong>Giải thích:</strong> {explanation.text}
             </p>
             {explanation.evidence && (
               <div className="space-y-1 mt-1">
@@ -82,7 +82,7 @@ export function ReadingQuestionMcq({ questionId, position, content, options, sel
                     className={`text-xs text-gray-700 bg-gray-100 px-2 py-1 rounded ${onLocateEvidence ? 'cursor-pointer hover:bg-gray-200' : ''}`}
                     onClick={() => onLocateEvidence?.(chunk.trim())}
                   >
-                    Evidence {i + 1}: &ldquo;{chunk.trim()}&rdquo;
+                    Dẫn chứng {i + 1}: &ldquo;{chunk.trim()}&rdquo;
                   </p>
                 ))}
               </div>

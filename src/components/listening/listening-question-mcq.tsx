@@ -70,7 +70,7 @@ export function ListeningQuestionMcq({
         </div>
 
         {submitted && !hasAnswer && (
-          <p className="mt-3 text-xs text-gray-500 italic">Not answered</p>
+          <p className="mt-3 text-xs text-gray-500 italic">Chưa trả lời</p>
         )}
       </div>
     );
@@ -111,7 +111,7 @@ export function ListeningQuestionMcq({
       </div>
 
       {submitted && !hasAnswer && (
-        <p className="mt-2 text-xs text-gray-500 italic ml-2">Not answered</p>
+        <p className="mt-2 text-xs text-gray-500 italic ml-2">Chưa trả lời</p>
       )}
     </div>
   );

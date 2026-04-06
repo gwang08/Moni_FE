@@ -240,41 +240,47 @@ export function WritingExamView({
       </div>
 
       {/* ===== Bottom navigation bar ===== */}
-      <div className="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-2 shrink-0">
-        <span className="text-sm font-medium text-gray-700">Part {taskType}</span>
-        <div className="flex items-center gap-2">
-          <button
-            disabled
-            className="flex items-center justify-center w-9 h-9 rounded bg-gray-100 text-gray-300 cursor-not-allowed"
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </button>
-          <button
-            onClick={onSubmit}
-            disabled={isSubmitting || submitted || localWordCount === 0}
-            className={`flex items-center justify-center w-9 h-9 rounded text-white transition-colors ${
-              isSubmitting || submitted || localWordCount === 0
-                ? 'bg-gray-300 cursor-not-allowed'
-                : 'bg-black hover:bg-gray-800'
-            }`}
-            title={submitted ? 'Submitted' : 'Next'}
-          >
-            {submitted ? <Check className="h-4 w-4" /> : <ArrowRight className="h-4 w-4" />}
-          </button>
+      <div className="shrink-0 bg-white border-t border-gray-300 px-4 py-1">
+        <div className="flex items-end justify-between gap-2">
+          {/* Part label */}
+          <span className={`shrink-0 text-sm font-bold pb-1`}>
+            Part {taskType}
+          </span>
+
+          {/* Spacer */}
+          <div className="flex-1" />
+
+          {/* Navigation controls */}
+          <div className="flex items-center gap-2 shrink-0 pb-1">
+            {/* Prev button - disabled for writing */}
+            <button
+              disabled
+              className="w-[34px] h-[34px] flex items-center justify-center rounded bg-gray-100 text-gray-400 cursor-not-allowed"
+            >
+              <ArrowLeft className="h-[18px] w-[18px]" />
+            </button>
+
+            {/* Submit button */}
+            <button
+              onClick={onSubmit}
+              disabled={isSubmitting || submitted || localWordCount === 0}
+              className={`w-[34px] h-[34px] flex items-center justify-center rounded transition-colors ${
+                submitted
+                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                  : isSubmitting || localWordCount === 0
+                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                    : 'bg-green-600 text-white hover:bg-green-700'
+              }`}
+              title={submitted ? 'Đã nộp' : 'Nộp bài'}
+            >
+              {submitted ? (
+                <Check className="h-[18px] w-[18px] text-green-600" />
+              ) : (
+                <Check className="h-[18px] w-[18px]" />
+              )}
+            </button>
+          </div>
         </div>
-        {/* Check icon on far right */}
-        <button
-          onClick={onSubmit}
-          disabled={isSubmitting || submitted || localWordCount === 0}
-          className={`flex items-center justify-center w-10 h-10 rounded-sm border transition-colors ${
-            isSubmitting || submitted || localWordCount === 0
-              ? 'bg-gray-100 border-gray-200 text-gray-300 cursor-not-allowed'
-              : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400'
-          }`}
-          title={submitted ? 'Đã nộp' : 'Nộp bài'}
-        >
-          {submitted ? <Check className="h-5 w-5 text-green-600" /> : <Check className="h-5 w-5" />}
-        </button>
       </div>
     </div>
   );

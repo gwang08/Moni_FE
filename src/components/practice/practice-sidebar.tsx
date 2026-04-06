@@ -75,7 +75,7 @@ export function PracticeSidebar({
   };
 
   return (
-    <aside className="w-64 bg-gray-50/50 border-r p-4 hidden lg:block overflow-y-auto">
+    <aside className="w-64 bg-gray-50/50 border-r p-4 hidden lg:block overflow-y-auto sticky top-[56px] max-h-[calc(100vh-56px)]">
       <h2 className="text-lg font-bold text-gray-800 mb-4">Luyện tập</h2>
       <div className="space-y-3">
         {SKILLS.map((skill) => {

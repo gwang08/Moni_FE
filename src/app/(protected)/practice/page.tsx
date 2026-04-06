@@ -280,7 +280,7 @@ function PracticePage() {
   const modeLabel = activeMode === 'FULL_TEST' ? 'Bài thi' : 'Phần thi';
 
   return (
-    <div className="flex min-h-[calc(100vh-56px)]">
+    <div className="flex h-[calc(100vh-56px)] overflow-hidden">
       <PracticeSidebar
         activeSkill={activeSkill}
         activeMode={activeMode}
@@ -297,7 +297,7 @@ function PracticePage() {
       />
 
       {/* Main Content */}
-      <main className="flex-1 p-6">
+      <main className="flex-1 p-6 overflow-y-auto h-full">
         {/* Mobile Skill Tabs */}
         <div className="flex items-center gap-4 mb-6 border-b pb-4 lg:hidden">
           {(Object.keys(SKILL_CONFIG) as Skill[]).map((skill) => {

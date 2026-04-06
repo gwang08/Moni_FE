@@ -73,7 +73,7 @@ export default function ProtectedLayout({
   return (
     <div className="min-h-screen bg-gray-50">
       {!isExpertRoute && <InnerNavbar />}
-      <main>{children}</main>
+      <main className="relative">{children}</main>
       {isAuthenticated && <SessionExpiredDialog />}
     </div>
   );

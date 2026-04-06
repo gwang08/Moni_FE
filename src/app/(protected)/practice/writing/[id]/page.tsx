@@ -5,12 +5,9 @@ import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
-import { SkeletonPractice } from '@/components/ui/skeleton';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
-import { WritingPracticeHeader } from '@/components/writing/writing-practice-header';
-import { WritingPromptPanel } from '@/components/writing/writing-prompt-panel';
-import { WritingEditor } from '@/components/writing/writing-editor';
-import { WritingToolbarPanel } from '@/components/writing/writing-toolbar-panel';
+import { SkeletonPractice } from '@/components/ui/skeleton';
+import { WritingPracticeView } from '@/components/writing/writing-practice-view';
 import { WritingExamView } from '@/components/writing/writing-exam-view';
 import { WritingScoringProgressDialog } from '@/components/writing/writing-scoring-progress-dialog';
 import { WritingScoringOptionsDialog } from '@/components/writing/writing-scoring-options-dialog';
@@ -68,15 +65,10 @@ export default function WritingExercisePage({ params }: Props) {
   const [showScoringDialog, setShowScoringDialog] = useState(false);
   const [aiCost, setAiCost] = useState<number | null>(null);
   const [expertCost, setExpertCost] = useState<number | null>(null);
-  const [draftDialogOpen, setDraftDialogOpen] = useState(false);
-  const [pendingDraft, setPendingDraft] = useState<WritingDraft | null>(null);
-  const [restoredContent, setRestoredContent] = useState<string | undefined>(undefined);
-  const [editorKey, setEditorKey] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [submissionId, setSubmissionId] = useState<number | null>(null);
 
-  const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const handleSubmitRef = useRef<() => Promise<void>>(() => Promise.resolve());
 
   // ===== ALL HOOKS BEFORE ANY EARLY RETURN =====
@@ -122,25 +114,18 @@ export default function WritingExercisePage({ params }: Props) {
     try {
       const draft: WritingDraft = JSON.parse(raw);
       if (draft.content) {
-        setPendingDraft(draft);
-        setDraftDialogOpen(true);
+        setContent(draft.content);
       }
     } catch {
       localStorage.removeItem(draftKey(id));
     }
-  }, [testDetail, id]);
+  }, [testDetail, id, setContent]);
 
   // Auto-save draft
   useEffect(() => {
     if (submitted) return;
     if (!content && wordCount === 0) return;
-    if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
-    autoSaveTimer.current = setTimeout(() => {
-      localStorage.setItem(draftKey(id), JSON.stringify({ content, wordCount, elapsed }));
-    }, 1000);
-    return () => {
-      if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
-    };
+    localStorage.setItem(draftKey(id), JSON.stringify({ content, wordCount, elapsed }));
   }, [content, wordCount, elapsed, id, submitted]);
 
   // Submit handler (useCallback so it's a hook, placed before early returns)
@@ -266,42 +251,24 @@ export default function WritingExercisePage({ params }: Props) {
 
   // ===== PRACTICE MODE LAYOUT =====
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-br from-teal-50/50 via-white to-blue-50/30">
-      <div className="pointer-events-none fixed -top-32 -left-32 w-80 h-80 rounded-full bg-teal-200/20 blur-3xl" />
-      <div className="pointer-events-none fixed top-1/3 -right-24 w-72 h-72 rounded-full bg-blue-200/20 blur-3xl" />
-      <div className="pointer-events-none fixed -bottom-20 left-1/3 w-64 h-64 rounded-full bg-emerald-200/15 blur-3xl" />
-
-      <WritingPracticeHeader
+    <>
+      <WritingPracticeView
         title={testDetail.title}
+        prompt={prompt}
+        chartImageUrl={chartImageUrl}
         taskType={taskType}
-        elapsedTime={elapsedTime}
-        isGrading={isGrading}
-        canGrade={canGrade}
-        submitted={submitted}
+        content={content}
+        wordCount={wordCount}
+        sampleAnswer={sampleAnswer}
+        showSample={showSample}
+        onToggleSample={() => setShowSample(v => !v)}
+        onContentChange={setContent}
+        onSubmit={handleSubmit}
         isSubmitting={isSubmitting}
-        onGrade={handleSubmit}
+        submitted={submitted}
+        elapsedTime={elapsedTime}
         onExit={() => setExitOpen(true)}
       />
-
-      <div className="flex-1 flex overflow-hidden relative z-10">
-        <div className="w-[28%] overflow-y-auto p-4">
-          <WritingPromptPanel prompt={prompt} chartImageUrl={chartImageUrl} taskType={taskType} />
-        </div>
-        <div className="flex-1 overflow-y-auto">
-          <WritingEditor
-            key={editorKey}
-            taskType={taskType}
-            sampleAnswer={sampleAnswer}
-            showSample={showSample}
-            onToggleSample={() => setShowSample(v => !v)}
-            readOnly={submitted}
-            initialContent={restoredContent}
-          />
-        </div>
-        <div className="w-[24%] overflow-y-auto p-4">
-          <WritingToolbarPanel wordCount={wordCount} taskType={taskType} />
-        </div>
-      </div>
 
       <WritingScoringOptionsDialog
         open={showScoringDialog}
@@ -314,29 +281,6 @@ export default function WritingExercisePage({ params }: Props) {
       <WritingScoringProgressDialog open={isGrading} />
 
       <ConfirmDialog
-        open={draftDialogOpen}
-        onOpenChange={setDraftDialogOpen}
-        title="Bạn có bài chưa nộp"
-        description="Bạn muốn tiếp tục bài viết trước đó hay bắt đầu lại?"
-        confirmText="Tiếp tục"
-        cancelText="Làm mới"
-        onConfirm={() => {
-          if (pendingDraft) {
-            setContent(pendingDraft.content);
-            setRestoredContent(pendingDraft.content);
-            setEditorKey(k => k + 1);
-          }
-          setPendingDraft(null);
-          setDraftDialogOpen(false);
-        }}
-        onCancel={() => {
-          localStorage.removeItem(draftKey(id));
-          setPendingDraft(null);
-          setDraftDialogOpen(false);
-        }}
-      />
-
-      <ConfirmDialog
         open={exitOpen}
         onOpenChange={setExitOpen}
         title="Thoát khỏi bài làm?"
@@ -346,6 +290,6 @@ export default function WritingExercisePage({ params }: Props) {
         variant="destructive"
         onConfirm={() => router.push('/practice?skill=writing')}
       />
-    </div>
+    </>
   );
 }

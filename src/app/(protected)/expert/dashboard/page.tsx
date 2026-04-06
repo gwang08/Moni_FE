@@ -61,6 +61,18 @@ export default function ExpertDashboardPage() {
     return () => clearInterval(id);
   }, []);
 
+  // Heartbeat: ping AVAILABLE mỗi 20s để backend biết expert còn online
+  useEffect(() => {
+    const ping = () => apiClient.patch('/api/v1/experts/me/status', { status: 'AVAILABLE' }, true).catch(() => {});
+    const heartbeat = setInterval(ping, 20_000);
+
+    return () => {
+      clearInterval(heartbeat);
+      // Khi unmount (navigate away) set offline
+      apiClient.patch('/api/v1/experts/me/status', { status: 'OFFLINE' }, true).catch(() => {});
+    };
+  }, []);
+
   const handleLogout = () => {
     // Set offline before logout
     apiClient.patch('/api/v1/experts/me/status', { status: 'OFFLINE' }, true).catch(() => {});

@@ -11,6 +11,14 @@ export async function getExperts(specialization?: string): Promise<ExpertProfile
   return response.result ?? [];
 }
 
+export async function getExpertsForSpeaking(): Promise<ExpertProfile[]> {
+  const response = await apiClient.get<ApiResponse<ExpertProfile[]>>(
+    '/api/v1/experts?specialization=SPEAKING',
+    true
+  );
+  return response.result ?? [];
+}
+
 export async function getExpertDetail(id: number): Promise<ExpertProfile> {
   const response = await apiClient.get<ApiResponse<ExpertProfile>>(
     `/api/v1/experts/${id}`,

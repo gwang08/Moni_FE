@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { ArrowLeft, Search } from 'lucide-react';
-import { getExperts, createScoringSession } from '@/lib/expert-api';
+import { getExpertsForSpeaking, createScoringSession } from '@/lib/expert-api';
 import { useAuthStore } from '@/store/auth-store';
 import { toast } from 'sonner';
 import { SpeakingModeExpertGrid } from './speaking-mode-expert-grid';
@@ -32,18 +32,16 @@ export function SpeakingModeDialog({ open, testId, aiCost = null, expertCost = n
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    if (!open) { setStep(1); setSearch(''); setConfirming(null); }
+    if (!open) { setStep(1); setSearch(''); setConfirming(null); setExperts([]); }
   }, [open]);
 
   const handleGoToExpertList = () => {
     setStep(2);
-    if (experts.length === 0) {
-      setLoadingExperts(true);
-      getExperts()
-        .then((list) => setExperts(list))
-        .catch(() => toast.error('Không thể tải danh sách giảng viên'))
-        .finally(() => setLoadingExperts(false));
-    }
+    setLoadingExperts(true);
+    getExpertsForSpeaking()
+      .then((list) => setExperts(list))
+      .catch(() => toast.error('Không thể tải danh sách giảng viên'))
+      .finally(() => setLoadingExperts(false));
   };
 
   const handleBook = async (expert: ExpertProfile) => {

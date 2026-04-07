@@ -23,7 +23,7 @@ export function testResponseToExercise(test: TestResponse): Exercise {
     description: test.description || '',
     difficulty,
     questionCount: test.questionCount ?? 0,
-    duration: test.duration ? test.duration * 60 : undefined,
+    duration: test.duration ?? undefined,
     thumbnailUrl: test.thumbnailUrl,
     attemptCount: test.attemptCount ?? 0,
     questionTypes: test.questionTypes ?? [],

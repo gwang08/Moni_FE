@@ -107,6 +107,10 @@ export async function updateStimulus(id: number, data: { content?: string; media
   await apiClient.put(`/api/v1/admin/stimuli/${id}`, data, true);
 }
 
+export async function deleteStimulus(id: number): Promise<void> {
+  await apiClient.delete(`/api/v1/admin/stimuli/${id}`, true);
+}
+
 export async function transcribeByUrl(audioUrl: string): Promise<{ id: string; startTime: number; endTime: number; text: string; speaker?: string }[]> {
   const response = await apiClient.post<ApiResponse<{ id: string; startTime: number; endTime: number; text: string; speaker?: string }[]>>(
     '/api/v1/admin/stimuli/transcribe-url',

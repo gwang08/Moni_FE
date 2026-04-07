@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Loader2, Save, ChevronDown, ChevronUp, Plus, Trash2 } from 'lucide-react';
+import { ChevronDown, ChevronUp, Loader2, Plus, Save, Trash2 } from 'lucide-react';
 import { EvidenceList } from '@/components/admin/evidence-list';
 import { batchUpdateQuestions } from '@/lib/admin-api';
 import { toast } from 'sonner';
@@ -54,6 +54,11 @@ export function TestEditMatchingFeature({ questions, testId, pendingEvidence, on
     setCategories(updated);
   };
 
+  const handleEvidenceChange = (idx: number, ev: string | undefined) => {
+    setExplanations(e => ({ ...e, [idx]: { ...e[idx], evidence: ev } }));
+    if (questions[idx]) onEvidenceChange(questions[idx].id, ev ?? '');
+  };
+
   const handleSaveAll = async () => {
     setSaving(true);
     try {
@@ -67,7 +72,9 @@ export function TestEditMatchingFeature({ questions, testId, pendingEvidence, on
         const stmt = statements[i];
         if (!stmt) return;
         const options = categories.map(c => ({
-          label: c.label, content: c.content, isCorrect: c.label === stmt.correctLabel,
+          label: c.label,
+          content: c.content,
+          isCorrect: c.label === stmt.correctLabel,
         }));
         updates[String(q.id)] = {
           content: stmt.content,
@@ -84,11 +91,6 @@ export function TestEditMatchingFeature({ questions, testId, pendingEvidence, on
     } finally {
       setSaving(false);
     }
-  };
-
-  const handleEvidenceChange = (idx: number, ev: string | undefined) => {
-    setExplanations(e => ({ ...e, [idx]: { ...e[idx], evidence: ev } }));
-    if (questions[idx]) onEvidenceChange(questions[idx].id, ev ?? '');
   };
 
   return (
@@ -185,7 +187,7 @@ export function TestEditMatchingFeature({ questions, testId, pendingEvidence, on
         })}
       </div>
 
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-start">
         <div className="flex gap-2">
           <Button
             type="button" size="sm" variant="outline" className="text-xs h-7 gap-1"

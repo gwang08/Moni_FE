@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Loader2, Save, ChevronDown, ChevronUp, Plus, Trash2 } from 'lucide-react';
+import { ChevronDown, ChevronUp, Loader2, Plus, Save, Trash2 } from 'lucide-react';
 import { EvidenceList, appendEvidence } from '@/components/admin/evidence-list';
 import { batchUpdateQuestions } from '@/lib/admin-api';
 import { toast } from 'sonner';
@@ -60,29 +60,56 @@ export function TestEditMatchingHeadings({ questions, passageHtml, testId, pendi
     distractorLabels.map(l => questions[0]?.options.find(o => o.label === l)?.content ?? '')
   );
 
-  const handleSaveAll = async () => {
-    setSaving(true);
-    try {
-      const allOptions: { label: string; content: string }[] = [];
-      paragraphs.forEach((p, i) => { const c = headings[p] ?? ''; if (c.trim()) allOptions.push({ label: ALPHA(i), content: c }); });
-      distractors.forEach((d, i) => { if (d.trim()) allOptions.push({ label: ALPHA(paragraphs.length + i), content: d }); });
-      const updates: Record<string, { content: string; options: { label: string; content: string; isCorrect: boolean }[]; explanation?: { text?: string; evidence?: string } }> = {};
-      paragraphs.forEach((p, i) => {
-        const q = paraToQuestion[p];
-        if (!q) return;
-        const myLabel = ALPHA(i);
-        const options = allOptions.map(o => ({ label: o.label, content: o.content, isCorrect: o.label === myLabel }));
-        updates[String(q.id)] = { content: q.content, options, explanation: explanations[p] || undefined };
-      });
-      await batchUpdateQuestions(updates);
-      toast.success('Đã lưu tất cả câu matching headings');
-      queryClient.invalidateQueries({ queryKey: ['admin', 'test', testId] });
-    } catch { toast.error('Lưu thất bại'); } finally { setSaving(false); }
-  };
-
   const handleEvidenceChange = (para: string, questionId: number, ev: string | undefined) => {
     setExplanations(e => ({ ...e, [para]: { ...e[para], evidence: ev } }));
     onEvidenceChange(questionId, ev ?? '');
+  };
+
+  const handleSaveAll = async () => {
+    setSaving(true);
+    try {
+      const updates: Record<string, {
+        content: string;
+        options: { label: string; content: string; isCorrect: boolean }[];
+        explanation?: { text?: string; evidence?: string };
+      }> = {};
+
+      // Build complete options list: main paragraphs + distractors
+      const allOptions = [
+        ...paragraphs.map((p, i) => ({
+          label: ALPHA(i),
+          content: headings[p] ?? '',
+          isCorrect: false,
+        })),
+        ...distractors.map((d, i) => ({
+          label: ALPHA(paragraphs.length + i),
+          content: d,
+          isCorrect: false,
+        })),
+      ];
+
+      // For each question, set the correct answer based on headings map
+      for (const [para, q] of Object.entries(paraToQuestion)) {
+        const correctHeading = headings[para] ?? '';
+        const options = allOptions.map(opt => ({
+          ...opt,
+          isCorrect: opt.content === correctHeading && correctHeading.trim() !== '',
+        }));
+        updates[String(q.id)] = {
+          content: q.content,
+          options,
+          explanation: explanations[para] || undefined,
+        };
+      }
+
+      await batchUpdateQuestions(updates);
+      toast.success('Đã lưu tất cả câu matching headings');
+      queryClient.invalidateQueries({ queryKey: ['admin', 'test', testId] });
+    } catch {
+      toast.error('Lưu thất bại');
+    } finally {
+      setSaving(false);
+    }
   };
 
   if (paragraphs.length === 0) {
@@ -155,7 +182,7 @@ export function TestEditMatchingHeadings({ questions, passageHtml, testId, pendi
 
       <div className="flex items-center justify-between">
         <Button type="button" size="sm" variant="outline" className="text-xs h-7 gap-1" onClick={() => setDistractors(d => [...d, ''])}>
-          <Plus className="h-3 w-3" /> Thêm heading 
+          <Plus className="h-3 w-3" /> Thêm heading
         </Button>
         <Button size="sm" onClick={handleSaveAll} disabled={saving}>
           {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}

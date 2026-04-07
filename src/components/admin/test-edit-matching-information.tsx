@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Loader2, Save, ChevronDown, ChevronUp, Plus, Trash2 } from 'lucide-react';
+import { ChevronDown, ChevronUp, Loader2, Plus, Save, Trash2 } from 'lucide-react';
 import { EvidenceList } from '@/components/admin/evidence-list';
 import { batchUpdateQuestions } from '@/lib/admin-api';
 import { toast } from 'sonner';
@@ -41,6 +41,11 @@ export function TestEditMatchingInformation({ questions, passageHtml, testId, pe
     return map;
   });
 
+  const handleEvidenceChange = (idx: number, ev: string | undefined) => {
+    setExplanations(e => ({ ...e, [idx]: { ...e[idx], evidence: ev } }));
+    if (questions[idx]) onEvidenceChange(questions[idx].id, ev ?? '');
+  };
+
   const handleSaveAll = async () => {
     setSaving(true);
     try {
@@ -71,11 +76,6 @@ export function TestEditMatchingInformation({ questions, passageHtml, testId, pe
     } finally {
       setSaving(false);
     }
-  };
-
-  const handleEvidenceChange = (idx: number, ev: string | undefined) => {
-    setExplanations(e => ({ ...e, [idx]: { ...e[idx], evidence: ev } }));
-    if (questions[idx]) onEvidenceChange(questions[idx].id, ev ?? '');
   };
 
   if (paragraphs.length === 0) {
@@ -152,7 +152,7 @@ export function TestEditMatchingInformation({ questions, passageHtml, testId, pe
         })}
       </div>
 
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-start">
         <div className="flex gap-2">
           <Button
             type="button" size="sm" variant="outline" className="text-xs h-7 gap-1"

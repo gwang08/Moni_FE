@@ -11,13 +11,13 @@ interface Props {
 }
 
 const STEPS = [
-  { label: 'Đang phân tích cấu trúc bài viết...', delay: 15000 },
-  { label: 'Đánh giá Task Achievement...', delay: 15000 },
-  { label: 'Đánh giá Coherence & Cohesion...', delay: 35000 },
-  { label: 'Đánh giá Lexical Resource...', delay: 55000 },
-  { label: 'Đánh giá Grammatical Range...', delay: 75000 },
-  { label: 'Áp dụng Rule Engine...', delay: 95000 },
-  { label: 'Tổng hợp nhận xét & feedback...', delay: 110000 },
+  { label: 'Đang phân tích cấu trúc bài viết...', delay: 0 },
+  { label: 'Đánh giá Task Achievement...', delay: 30000 },
+  { label: 'Đánh giá Coherence & Cohesion...', delay: 60000 },
+  { label: 'Đánh giá Lexical Resource...', delay: 90000 },
+  { label: 'Đánh giá Grammatical Range...', delay: 120000 },
+  { label: 'Áp dụng Rule Engine...', delay: 150000 },
+  { label: 'Tổng hợp nhận xét & feedback...', delay: 180000 },
 ];
 
 export function WritingScoringProgressDialog({ open }: Props) {
@@ -42,7 +42,7 @@ export function WritingScoringProgressDialog({ open }: Props) {
           <div className="bg-gradient-to-b from-teal-50 via-emerald-50/50 to-white pt-5 pb-2 px-5">
             <ChibiMascot mood="thinking" size={64} />
             <p className="text-center text-sm font-bold text-gray-700 mt-1">Đang chấm bài viết</p>
-            <p className="text-center text-[11px] text-gray-400 mt-0.5">7 bước phân tích • khoảng 60-120 giây</p>
+            <p className="text-center text-[11px] text-gray-400 mt-0.5">7 bước phân tích • khoảng 60-180 giây</p>
           </div>
 
           <div className="px-5 pb-5 pt-2 space-y-2">

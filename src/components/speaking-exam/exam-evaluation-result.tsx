@@ -142,16 +142,16 @@ export function ExamEvaluationResult({ evaluation, recordings }: Props) {
 
               return (
                 <div key={key} className="bg-white rounded-[20px] border border-gray-100 shadow-sm p-5 flex flex-col hover:shadow-md transition duration-300">
-                  <div className="flex justify-between items-center mb-3">
-                    <div className="flex items-center gap-2">
-                      <div className={`p-1.5 rounded-md bg-gray-50 border border-gray-100 ${meta.color}`}>
+                  <div className="flex justify-between items-center mb-3 gap-2">
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                      <div className={`p-1.5 shrink-0 rounded-md bg-gray-50 border border-gray-100 ${meta.color}`}>
                         <Icon className="w-3.5 h-3.5" />
                       </div>
-                      <span className="text-[10px] font-bold text-gray-700 tracking-wider uppercase">
+                      <span className="text-[10px] font-bold text-gray-700 tracking-wider uppercase truncate">
                         {meta.label}
                       </span>
                     </div>
-                    <span className={`text-[22px] font-bold ${meta.color}`}>
+                    <span className={`text-[22px] font-bold shrink-0 ${meta.color}`}>
                       {Number(score).toFixed(1)}
                     </span>
                   </div>

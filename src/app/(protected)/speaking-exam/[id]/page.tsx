@@ -438,13 +438,8 @@ export default function SpeakingExamPage({ params }: Props) {
 
   if (examState === 'COMPLETED' && exam.evaluation) {
     return (
-      <PageShell currentPart={currentPart} currentQuestionIndex={currentQuestionIndex} partConfig={partConfig}>
+      <PageShell>
         <ExamEvaluationResult evaluation={exam.evaluation} />
-        <div className="mt-8 flex justify-center">
-          <Button onClick={() => router.push('/practice?skill=speaking')} variant="outline">
-            Back to practice list
-          </Button>
-        </div>
       </PageShell>
     );
   }

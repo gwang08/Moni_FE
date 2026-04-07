@@ -175,8 +175,9 @@ export default function WritingExercisePage({ params }: Props) {
         .then((res) => res.blob())
         .then((blob) => {
           chartFile = new File([blob], 'chart.png', { type: blob.type || 'image/png' });
+          console.log('[Writing Score] Chart image fetched:', chartFile.size, 'bytes');
         })
-        .catch(() => {})
+        .catch((err) => { console.error('[Writing Score] Chart fetch failed:', err, 'URL:', scoringChartUrl); })
         .finally(() => {
           submitForGrading({
             taskType, question: prompt, answer, chartImage: chartFile,

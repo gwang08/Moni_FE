@@ -48,6 +48,13 @@ const CRITERIA_META = {
   },
 } as const;
 
+const CRITERION_KEY_MAP = {
+  pronunciation: 'PR',
+  fluency: 'FC',
+  vocabulary: 'LR',
+  grammar: 'GRA'
+} as const;
+
 export function ExamEvaluationResult({ evaluation, recordings }: Props) {
   const router = useRouter();
   const [selectedCriteria, setSelectedCriteria] = useState<keyof typeof CRITERIA_META | null>(null);
@@ -292,8 +299,32 @@ export function ExamEvaluationResult({ evaluation, recordings }: Props) {
                 </div>
              </div>
 
-             <div className="px-8 py-8 min-h-[140px] flex text-left text-[14px] leading-relaxed text-gray-600 border-b border-gray-50">
-               {CRITERIA_META[selectedCriteria].desc}
+             <div className="px-8 py-6 min-h-[140px] flex flex-col text-left text-[14px] leading-relaxed text-gray-600 border-b border-gray-50 overflow-y-auto max-h-[60vh]">
+               <p className="mb-4">{CRITERIA_META[selectedCriteria].desc}</p>
+               {evaluation.criteria && evaluation.criteria[CRITERION_KEY_MAP[selectedCriteria]] && (
+                 <div className="space-y-4">
+                   {evaluation.criteria[CRITERION_KEY_MAP[selectedCriteria]].strengths.length > 0 && (
+                     <div className="bg-green-50/50 p-4 rounded-xl border border-green-100">
+                       <strong className="text-green-700 block mb-2 text-xs uppercase tracking-wider">Điểm mạnh</strong>
+                       <ul className="list-disc pl-5 space-y-1.5 text-green-900/80">
+                         {evaluation.criteria[CRITERION_KEY_MAP[selectedCriteria]].strengths.map((s, i) => (
+                           <li key={i}>{s}</li>
+                         ))}
+                       </ul>
+                     </div>
+                   )}
+                   {evaluation.criteria[CRITERION_KEY_MAP[selectedCriteria]].weaknesses.length > 0 && (
+                     <div className="bg-red-50/50 p-4 rounded-xl border border-red-100">
+                       <strong className="text-red-600 block mb-2 text-xs uppercase tracking-wider">Cần cải thiện</strong>
+                       <ul className="list-disc pl-5 space-y-1.5 text-red-900/80">
+                         {evaluation.criteria[CRITERION_KEY_MAP[selectedCriteria]].weaknesses.map((s, i) => (
+                           <li key={i}>{s}</li>
+                         ))}
+                       </ul>
+                     </div>
+                   )}
+                 </div>
+               )}
              </div>
 
              <div className="px-8 pb-8 pt-6">

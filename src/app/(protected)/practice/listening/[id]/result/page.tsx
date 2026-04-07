@@ -10,6 +10,7 @@ import { ReadingScoreDonut } from '@/components/reading/reading-score-donut';
 import { useTestDetail } from '@/hooks/use-test-detail';
 import type { QuestionGroupDetail } from '@/types/test.types';
 import { getListeningBand } from '@/lib/ielts-band';
+import { QUESTION_TYPE_LABELS } from '@/components/practice/question-type-filter';
 
 interface ResultData {
   attemptId?: number;
@@ -20,7 +21,7 @@ interface ResultData {
 }
 
 interface GroupStat {
-  typeCode: string;
+  typeLabel: string;
   total: number;
   correct: number;
   wrong: number;
@@ -31,6 +32,11 @@ function formatTime(seconds: number) {
   const m = Math.floor(seconds / 60);
   const s = seconds % 60;
   return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+}
+
+function getQuestionTypeLabel(typeCode?: string | null) {
+  if (!typeCode) return 'Nhóm khác';
+  return QUESTION_TYPE_LABELS[typeCode] || typeCode.replace(/_/g, ' ');
 }
 
 const GAP_TYPES = ['GAP_FILLING', 'DIAGRAM_LABEL'];
@@ -56,7 +62,7 @@ function calcGroupStats(groups: QuestionGroupDetail[], answers: Record<number, n
       }
     }
     return {
-      typeCode: group.questionTypeCode || `Nhóm ${group.id}`,
+      typeLabel: getQuestionTypeLabel(group.questionTypeCode),
       total: group.questions.length,
       correct,
       wrong,
@@ -151,7 +157,7 @@ export default function ListeningResultPage({ params }: Props) {
       {/* CTA: Review */}
       <div className="text-center">
         <Link href={`/practice/listening/${id}/review`}>
-          <Button size="lg" className="bg-violet-600 hover:bg-violet-700">
+          <Button size="lg" className="bg-green-600 hover:bg-green-700">
             Xem giải thích chi tiết
           </Button>
         </Link>
@@ -175,7 +181,7 @@ export default function ListeningResultPage({ params }: Props) {
           <tbody>
             {groupStats.map((g, i) => (
               <tr key={i} className="border-t">
-                <td className="px-4 py-2">{g.typeCode}</td>
+                <td className="px-4 py-2">{g.typeLabel}</td>
                 <td className="text-center px-4 py-2">{g.total}</td>
                 <td className="text-center px-4 py-2 font-semibold text-green-600">{g.correct}</td>
                 <td className="text-center px-4 py-2 font-semibold text-red-500">{g.wrong}</td>

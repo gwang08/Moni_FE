@@ -7,7 +7,6 @@ import { X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { updateTest, uploadMedia } from '@/lib/admin-api';
-import { MediaUploadZone } from '@/components/admin/media-upload-zone';
 import { SKILL_SECTIONS } from '@/components/admin/test-import-step1-basic-info';
 import {
   WRITING_TASK1_TYPES,
@@ -20,17 +19,12 @@ import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
 import type { TestDetailResponse } from '@/types/test.types';
 
-const STATUSES = [
-  { value: 'PUBLISHED', label: 'Sẵn sàng' },
-  { value: 'HIDDEN', label: 'Ẩn' },
-];
-
 const TEST_TYPES = ['ACADEMIC', 'GENERAL_TRAINING'];
 const TEST_TYPE_LABELS: Record<string, string> = {
   ACADEMIC: 'Academic',
   GENERAL_TRAINING: 'General Training',
 };
-const SKILLS_WITH_TEST_TYPE = ['READING'];
+const SKILLS_WITH_TEST_TYPE = ['READING', 'WRITING'];
 
 const toMinutes = (duration?: number | null) => {
   if (!duration || duration <= 0) return '';
@@ -69,7 +63,7 @@ export const TestEditBasicInfoTab = forwardRef<TestEditBasicInfoHandle, Props>(f
   const [thumbnailUrl, setThumbnailUrl] = useState(test.thumbnailUrl || '');
   const skill = test.skill || '';
   const [section, setSection] = useState<number | null>(test.section ?? null);
-  const [testType, setTestType] = useState(normalizeTestType(test.testType));
+  const [testType, setTestType] = useState(SKILLS_WITH_TEST_TYPE.includes(skill) ? normalizeTestType(test.testType) : '');
   const thumbnailFileRef = useRef<File | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -117,12 +111,12 @@ export const TestEditBasicInfoTab = forwardRef<TestEditBasicInfoHandle, Props>(f
         skill: skill || undefined,
         testMode: test.testMode || undefined,
         section: section ?? undefined,
-        testType: testType || undefined,
+        testType: SKILLS_WITH_TEST_TYPE.includes(skill) ? testType || undefined : undefined,
       });
 
       // Save writing type and topic if applicable
       if (isWriting && firstGroup && (writingType || writingTopic)) {
-        const updates: Promise<any>[] = [];
+        const updates: Promise<unknown>[] = [];
         if (writingType && writingType !== firstGroup.questionTypeCode) {
           updates.push(import('@/lib/admin-api').then(({ updateQuestionGroupTypeCode }) => 
             updateQuestionGroupTypeCode(firstGroup.id, writingType)

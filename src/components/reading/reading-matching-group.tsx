@@ -23,11 +23,11 @@ interface Props {
   examMode?: boolean;
 }
 
-/** Matching group: shows heading pills at top, question slots below. Click pill → click slot to assign. */
+/** Matching group: shows heading pills at top, question slots below. Click pill -> click slot to assign. */
 export function ReadingMatchingGroup({ questions, answers, submitted, onAnswer, examMode = false }: Props) {
   const [selectedPillId, setSelectedPillId] = useState<number | null>(null);
 
-  // All options are the same across questions in a matching group — take from first question, shuffle
+  // All options are the same across questions in a matching group - take from first question, shuffle
   const allOptions = useMemo(() => {
     const opts = questions[0]?.options || [];
     // Use group's first question ID as seed for consistent shuffle
@@ -52,14 +52,14 @@ export function ReadingMatchingGroup({ questions, answers, submitted, onAnswer, 
 
   const handleClearSlot = (questionId: number) => {
     if (submitted) return;
-    // Clear by setting to 0 (no valid option) — parent handles removal
+  // Clear by setting to 0 (no valid option) - parent handles removal
     onAnswer(questionId, 0);
   };
 
   return (
     <div className="space-y-4">
       {/* Heading pills pool */}
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-col gap-2">
         {allOptions.map((opt) => {
           const isUsed = usedOptionIds.has(opt.id);
           const isActive = selectedPillId === opt.id;
@@ -70,7 +70,7 @@ export function ReadingMatchingGroup({ questions, answers, submitted, onAnswer, 
               type="button"
               onClick={() => handlePillClick(opt.id)}
               disabled={submitted}
-              className={`px-3 py-1.5 text-sm rounded-lg border transition-all ${
+              className={`w-full rounded-lg border px-3 py-1.5 text-left text-sm transition-all ${
                 isActive
                   ? examMode
                     ? 'bg-gray-900 text-white border-gray-900 shadow-sm'
@@ -89,7 +89,7 @@ export function ReadingMatchingGroup({ questions, answers, submitted, onAnswer, 
       </div>
 
       {selectedPillId && !submitted && (
-        <p className={`text-xs animate-pulse ${examMode ? 'text-gray-600' : 'text-blue-600'}`}>Chọn 1 câu hỏi bên dưới để gán heading</p>
+        <p className={`text-xs animate-pulse ${examMode ? 'text-gray-600' : 'text-blue-600'}`}>Select a question below to assign the heading.</p>
       )}
 
       {/* Question slots */}
@@ -139,7 +139,7 @@ export function ReadingMatchingGroup({ questions, answers, submitted, onAnswer, 
                         : 'border-gray-200 text-gray-400 cursor-default'
                     }`}
                   >
-                    {selectedPillId ? 'Gán vào đây' : '— Chưa chọn —'}
+                    {selectedPillId ? 'Assign here' : '— Not selected —'}
                   </button>
                 )}
               </div>
@@ -148,26 +148,26 @@ export function ReadingMatchingGroup({ questions, answers, submitted, onAnswer, 
               {submitted && correctOpt && assignedId != null && (
                 <div className="mt-2 ml-7 flex items-center gap-1.5 text-xs">
                   {isCorrect ? (
-                    <><CheckCircle2 className="h-3.5 w-3.5 text-gray-900" /><span className="text-gray-900 font-medium">Đúng</span></>
+                    <><CheckCircle2 className="h-3.5 w-3.5 text-gray-900" /><span className="text-gray-900 font-medium">Correct</span></>
                   ) : (
-                    <><XCircle className="h-3.5 w-3.5 text-gray-700" /><span className="text-gray-700">Đáp án đúng: <strong>{correctOpt.content}</strong></span></>
+                    <><XCircle className="h-3.5 w-3.5 text-gray-700" /><span className="text-gray-700">Correct answer: <strong>{correctOpt.content}</strong></span></>
                   )}
                 </div>
               )}
 
               {submitted && question.explanation?.text && (
                 <div className="mt-2 ml-7 pt-2 border-t border-gray-200">
-                  <p className="text-xs text-gray-500"><strong>Giải thích:</strong> {question.explanation.text}</p>
+                  <p className="text-xs text-gray-500"><strong>Explanation:</strong> {question.explanation.text}</p>
                   {question.explanation.evidence && (
                     <p className="text-xs text-gray-700 bg-gray-100 px-2 py-1 rounded mt-1">
-                      Dẫn chứng: &ldquo;{question.explanation.evidence}&rdquo;
+                      Evidence: &ldquo;{question.explanation.evidence}&rdquo;
                     </p>
                   )}
                 </div>
               )}
 
               {submitted && assignedId == null && (
-                <p className="mt-2 ml-7 text-xs text-gray-400 italic">Chưa trả lời</p>
+                <p className="mt-2 ml-7 text-xs text-gray-400 italic">Not answered</p>
               )}
             </div>
           );

@@ -14,6 +14,7 @@ export function ReadingScoreDonut({ correct, wrong, total }: Props) {
   const circumference = 2 * Math.PI * radius;
   const correctPct = total > 0 ? correct / total : 0;
   const wrongPct = total > 0 ? wrong / total : 0;
+  const accuracy = total > 0 ? (correct / total) * 100 : 0;
 
   return (
     <div className="relative inline-flex items-center justify-center">
@@ -40,8 +41,8 @@ export function ReadingScoreDonut({ correct, wrong, total }: Props) {
         />
       </svg>
       <div className="absolute text-center">
-        <p className="text-2xl font-bold">{correct}/{total}</p>
-        <p className="text-sm text-muted-foreground">câu đúng</p>
+        <p className="text-3xl font-black text-rose-500">{accuracy.toFixed(1)}%</p>
+        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">Chính xác</p>
       </div>
     </div>
   );

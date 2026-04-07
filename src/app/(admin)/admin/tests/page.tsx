@@ -47,7 +47,6 @@ export default function AdminTestsPage() {
   const [readingTestType, setReadingTestType] = useState('');
   const [listeningSection, setListeningSection] = useState('');
   const [listeningQuestionType, setListeningQuestionType] = useState('');
-  const [listeningTestType, setListeningTestType] = useState('');
   const [writingTask, setWritingTask] = useState('');
   const [writingTestType, setWritingTestType] = useState('');
   const [speakingPart, setSpeakingPart] = useState('');
@@ -114,8 +113,7 @@ export default function AdminTestsPage() {
       return tests.filter(test => {
         const sectionOk = !listeningSection || String(test.section ?? '') === listeningSection;
         const questionTypeOk = matchQuestionType(test.questionTypes, listeningQuestionType);
-        const testTypeOk = !listeningTestType || test.testType === listeningTestType;
-        return sectionOk && questionTypeOk && testTypeOk;
+        return sectionOk && questionTypeOk;
       });
     }
 
@@ -145,7 +143,6 @@ export default function AdminTestsPage() {
     readingTestType,
     listeningSection,
     listeningQuestionType,
-    listeningTestType,
     writingTask,
     writingTestType,
     speakingPart,
@@ -183,7 +180,6 @@ export default function AdminTestsPage() {
                   setReadingTestType('');
                   setListeningSection('');
                   setListeningQuestionType('');
-                  setListeningTestType('');
                   setWritingTask('');
                   setWritingTestType('');
                   setSpeakingPart('');
@@ -243,7 +239,7 @@ export default function AdminTestsPage() {
           )}
 
           {activeSkill === 'LISTENING' && (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
               <select
                 value={listeningSection}
                 onChange={e => setListeningSection(e.target.value)}
@@ -265,18 +261,6 @@ export default function AdminTestsPage() {
                 {questionTypeOptions.map(qt => (
                   <option key={qt} value={qt}>
                     {qt}
-                  </option>
-                ))}
-              </select>
-              <select
-                value={listeningTestType}
-                onChange={e => setListeningTestType(e.target.value)}
-                className="h-10 rounded-md border border-gray-200 px-3 text-sm"
-              >
-                <option value="">Loại đề (tất cả)</option>
-                {testTypeOptions.map(type => (
-                  <option key={type} value={type}>
-                    {type}
                   </option>
                 ))}
               </select>
@@ -362,23 +346,23 @@ export default function AdminTestsPage() {
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
             <table className="w-full text-sm table-fixed">
               <colgroup>
-                <col className="w-[40%]" />
-                <col className="w-[15%]" />
-                <col className="w-[20%]" />
-                <col className="w-[25%]" />
+                <col className={activeSkill === 'LISTENING' ? 'w-[55%]' : 'w-[40%]'} />
+                <col className={activeSkill === 'LISTENING' ? 'w-[20%]' : 'w-[15%]'} />
+                <col className={activeSkill === 'LISTENING' ? 'w-[25%]' : 'w-[20%]'} />
+                {activeSkill !== 'LISTENING' && <col className="w-[25%]" />}
               </colgroup>
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
                   <th className="px-4 py-3 text-left font-medium text-gray-600">Tiêu đề</th>
                   <th className="px-4 py-3 text-left font-medium text-gray-600">Phần</th>
                   <th className="px-4 py-3 text-left font-medium text-gray-600">Kỹ năng</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-600">Loại</th>
+                  {activeSkill !== 'LISTENING' && <th className="px-4 py-3 text-left font-medium text-gray-600">Loại</th>}
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {filteredTests.length === 0 ? (
                   <tr>
-                    <td colSpan={4} className="text-center py-8 text-gray-400">
+                    <td colSpan={activeSkill === 'LISTENING' ? 3 : 4} className="text-center py-8 text-gray-400">
                       Chưa có bài thi nào
                     </td>
                   </tr>
@@ -420,15 +404,17 @@ export default function AdminTestsPage() {
                           {test.skill}
                         </Badge>
                       </td>
-                      <td className="px-4 py-3">
-                        {test.testType ? (
-                          <Badge
-                            className={ADMIN_TEST_TYPE_BADGES[test.testType] || 'border bg-gray-100 text-gray-700 border-gray-200'}
-                          >
-                            {ADMIN_TEST_TYPE_LABELS[test.testType] || test.testType}
-                          </Badge>
-                        ) : null}
-                      </td>
+                      {activeSkill !== 'LISTENING' && (
+                        <td className="px-4 py-3">
+                          {test.testType ? (
+                            <Badge
+                              className={ADMIN_TEST_TYPE_BADGES[test.testType] || 'border bg-gray-100 text-gray-700 border-gray-200'}
+                            >
+                              {ADMIN_TEST_TYPE_LABELS[test.testType] || test.testType}
+                            </Badge>
+                          ) : null}
+                        </td>
+                      )}
                     </tr>
                   ))
                 )}

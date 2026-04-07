@@ -57,8 +57,7 @@ export function TestImportStep1({ data, onChange, onNext, onThumbnailFileSelecte
     && (!needsSection || data.section !== null);
 
   const handleSkillChange = (skill: string) => {
-    const needsTestType = skill === 'READING' || skill === 'WRITING';
-    onChange({ ...data, skill, section: null, testType: needsTestType ? '' : skill });
+    onChange({ ...data, skill, section: null, testType: '' });
   };
 
   return (

@@ -762,7 +762,7 @@ export const TestEditContentTab = forwardRef<TestEditContentHandle, Props>(funct
                 index === activeStimulus ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
             >
-              {item.title || `Passage ${index + 1}`}
+              {item.title || `Đề bài ${index + 1}`}
             </button>
           ))}
         </div>
@@ -776,8 +776,7 @@ export const TestEditContentTab = forwardRef<TestEditContentHandle, Props>(funct
           <div className="shrink-0 border-b border-gray-200 bg-white/90 px-4 py-3 backdrop-blur">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <h4 className="text-sm font-semibold text-gray-800">{stimulus.title || (test.skill === 'LISTENING' ? 'Bai nghe' : 'Bai doc')}</h4>
-                <p className="text-xs text-gray-500">{test.skill === 'LISTENING' ? 'Transcript / âm thanh' : 'Đoạn văn đối chiếu'}</p>
+                <h4 className="text-sm font-semibold text-gray-800">Đề bài</h4>
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 {editingPassage ? (
@@ -813,10 +812,10 @@ export const TestEditContentTab = forwardRef<TestEditContentHandle, Props>(funct
                                 setEditingPassage(true);
                               }}
                     >
-                      <Pencil className="h-3 w-3" /> Sua de
+                      <Pencil className="h-3 w-3" /> Sửa đề
                     </Button>
                     <Button type="button" size="sm" variant="outline" className="h-8 gap-1 text-xs" onClick={captureSelection}>
-                      <Highlighter className="h-3 w-3" /> Quet dan chung
+                      <Highlighter className="h-3 w-3" /> Quét dẫn chứng
                     </Button>
                   </>
                 )}
@@ -848,11 +847,6 @@ export const TestEditContentTab = forwardRef<TestEditContentHandle, Props>(funct
             ) : null}
 
             <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-              <div className="mb-3 flex items-center justify-between">
-                <h4 className="text-sm font-semibold text-gray-700">Passage / Transcript</h4>
-                {!editingPassage && <div className="text-xs text-gray-400">{totalQuestions} cau</div>}
-              </div>
-
               {editingPassage ? (
                 <PassageEditor value={passageEdit} onChange={setPassageEdit} />
               ) : (
@@ -893,8 +887,8 @@ export const TestEditContentTab = forwardRef<TestEditContentHandle, Props>(funct
           <div className="shrink-0 border-b border-gray-200 bg-white/95 px-4 py-3 backdrop-blur">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <h3 className="text-sm font-semibold text-gray-800">Luồng câu hỏi</h3>
-                <p className="text-xs text-gray-500">{totalQuestions} câu hỏi trong {groupMeta.length} nhóm</p>
+                <h3 className="text-sm font-semibold text-gray-800">Phần câu hỏi</h3>
+                <p className="text-xs text-gray-500">{totalQuestions} câu hỏi</p>
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 <Button type="button" size="sm" variant="outline" className="h-8 gap-1 border-dashed text-xs" onClick={() => setAddingGroup(true)}>
@@ -908,7 +902,7 @@ export const TestEditContentTab = forwardRef<TestEditContentHandle, Props>(funct
                   onClick={openQuestionForActiveGroup}
                   disabled={activeGroupId == null}
                 >
-                  <Plus className="h-3.5 w-3.5" /> Thêm câu hỏi cho nhóm đang focus
+                  <Plus className="h-3.5 w-3.5" /> Thêm câu hỏi
                 </Button>
               </div>
             </div>

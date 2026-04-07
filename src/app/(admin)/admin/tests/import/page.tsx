@@ -134,7 +134,7 @@ export default function TestImportPage() {
       const testId = await importTest({
         title: basicInfo.title,
         skill: basicInfo.skill,
-        testType: basicInfo.testType,
+        testType: basicInfo.skill === 'READING' || basicInfo.skill === 'WRITING' ? basicInfo.testType : undefined,
         testMode: 'PRACTICE',
         section: basicInfo.section ?? undefined,
         thumbnailUrl,

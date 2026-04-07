@@ -3,10 +3,15 @@
 import { ReadingQuestionMcq } from '@/components/reading/reading-question-mcq';
 import { ReadingGapFilling } from '@/components/reading/reading-gap-filling';
 import type { StimulusDetail, QuestionDetail, QuestionGroupDetail } from '@/types/test.types';
+import { QUESTION_TYPE_LABELS } from '@/components/practice/question-type-filter';
 
 const GAP_TYPES = ['GAP_FILLING', 'DIAGRAM_LABEL'];
 const MCQ_TYPES = ['MCQ', 'MCQ_MULTIPLE', 'TFNG', 'YNNG'];
 const MATCHING_TYPES = ['MATCHING_HEADINGS', 'MATCHING_INFORMATION', 'MATCHING_FEATURE'];
+
+function getQuestionTypeLabel(typeCode: string) {
+  return QUESTION_TYPE_LABELS[typeCode] || typeCode.replace(/_/g, ' ');
+}
 
 interface Props {
   stimulus: StimulusDetail;
@@ -215,7 +220,7 @@ export function ReadingReviewPanel({ stimulus, answers, textAnswers = {}, onLoca
                 Nhóm {gi + 1}
               </span>
               {group.questionTypeCode && (
-                <span className="text-[10px] text-gray-400">{group.questionTypeCode.replace(/_/g, ' ')}</span>
+                <span className="text-[10px] text-gray-400">{getQuestionTypeLabel(group.questionTypeCode)}</span>
               )}
             </div>
             {group.instruction && (

@@ -3,20 +3,20 @@
 import { useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, Save } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import { AdminHeader } from '@/components/admin/admin-header';
 import { SkeletonPage } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { getTestDetail } from '@/lib/tests-api';
 import { TestEditBasicInfoTab, type TestEditBasicInfoHandle } from '@/components/admin/test-edit-basic-info-tab';
-import { TestEditContentTab } from '@/components/admin/test-edit-content-tab';
+import { TestEditContentTab, type TestEditContentHandle } from '@/components/admin/test-edit-content-tab';
 import { toast } from 'sonner';
 
 export default function TestDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const basicInfoRef = useRef<TestEditBasicInfoHandle>(null);
-  const contentRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<TestEditContentHandle>(null);
   const [saving, setSaving] = useState(false);
 
   const { data: test, isLoading, error } = useQuery({
@@ -33,10 +33,14 @@ export default function TestDetailPage() {
         toast.error('Không thể lưu thông tin cơ bản');
         return;
       }
-      const success = await basicInfoRef.current.save();
-      if (success) {
-        toast.success('Đã lưu toàn bộ thay đổi');
-      }
+
+      const basicSaved = await basicInfoRef.current.save();
+      if (!basicSaved) return;
+
+      const contentSaved = await contentRef.current?.saveAll();
+      if (contentSaved === false) return;
+
+      toast.success('Đã lưu toàn bộ thay đổi');
     } catch {
       toast.error('Lưu thất bại');
     } finally {
@@ -64,18 +68,17 @@ export default function TestDetailPage() {
                 Quay lại
               </button>
               <Button onClick={handleSaveAll} disabled={saving} size="sm" className="bg-green-600 hover:bg-green-700">
-                {saving ? 'Đang cập nhật...' : 'Cập nhật'}
+                {saving ? 'Đang lưu...' : 'Lưu'}
               </Button>
             </div>
 
-            {/* Basic Info */}
             <div>
               <TestEditBasicInfoTab ref={basicInfoRef} test={test} />
             </div>
 
-            {/* Content section */}
-            <div ref={contentRef}>
+            <div>
               <TestEditContentTab
+                ref={contentRef}
                 test={test}
                 onBeforeSaveBasicInfo={async () => {
                   if (!basicInfoRef.current) return true;

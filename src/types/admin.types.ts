@@ -148,7 +148,7 @@ export interface StimulusResponse {
 export interface QuestionUpdateRequest {
   content?: string;
   questionType?: string;
-  orderIndex?: number;
+  position?: number;
   options?: OptionRequest[];
   explanation?: { text?: string; evidence?: string };
   tagIds?: string[];

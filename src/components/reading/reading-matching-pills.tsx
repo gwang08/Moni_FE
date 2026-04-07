@@ -22,7 +22,7 @@ interface Props {
   onPillSelect: (id: number | null) => void;
 }
 
-/** Heading pills for matching headings — click to select, then click drop zone on passage */
+/** Heading pills for matching headings - click to select, then click drop zone on passage */
 export function ReadingMatchingPills({ questions, answers, submitted, selectedPillId, onPillSelect }: Props) {
   const allOptions = useMemo(() => {
     const opts = questions[0]?.options || [];
@@ -54,22 +54,23 @@ export function ReadingMatchingPills({ questions, answers, submitted, selectedPi
 
   return (
     <div className="space-y-3">
-      <p className="text-sm text-gray-500 italic">Chọn heading rồi click vào ô tương ứng bên đoạn văn (hoặc kéo thả)</p>
+      <p className="text-sm text-gray-500 italic">Choose a heading, then click the matching slot in the passage (or drag and drop).</p>
 
       {selectedPillId && !submitted && (
-        <p className="text-xs text-blue-600 animate-pulse">Click vào ô bên trái để gán heading</p>
+        <p className="text-xs text-blue-600 animate-pulse">Click a slot on the left to assign the heading.</p>
       )}
 
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-col gap-2">
         {allOptions.filter(opt => !usedPillContents.has(opt.content)).map((opt) => {
           const isActive = selectedPillId === opt.id;
           return (
-            <div
+            <button
               key={opt.id}
+              type="button"
               draggable={!submitted}
               onDragStart={(e) => handleDragStart(e, opt.id)}
               onClick={() => handleClick(opt.id)}
-              className={`px-3 py-2 text-sm rounded-lg border transition-all ${
+              className={`w-full rounded-lg border px-3 py-2 text-left text-sm transition-all ${
                 isActive
                   ? 'bg-blue-600 text-white border-blue-600 shadow-sm cursor-pointer'
                   : submitted
@@ -78,7 +79,7 @@ export function ReadingMatchingPills({ questions, answers, submitted, selectedPi
               }`}
             >
               {opt.content}
-            </div>
+            </button>
           );
         })}
       </div>

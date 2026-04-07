@@ -28,9 +28,7 @@ import { TestEditMatchingInformation } from '@/components/admin/test-edit-matchi
 import { TestEditMatchingFeature } from '@/components/admin/test-edit-matching-feature';
 import { TestEditGapFilling } from '@/components/admin/test-edit-gap-filling';
 import { TestEditAddQuestionGroupForm } from '@/components/admin/test-edit-add-question-group-form';
-import { TestEditAddStimulusForm } from '@/components/admin/test-edit-add-stimulus-form';
 import type { TestEditAddQuestionGroupFormHandle } from '@/components/admin/test-edit-add-question-group-form';
-import type { TestEditAddStimulusFormHandle } from '@/components/admin/test-edit-add-stimulus-form';
 import type { TestEditAddQuestionFormHandle } from '@/components/admin/test-edit-add-question-form';
 import { useTestEditMutations } from '@/components/admin/use-test-edit-mutations';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
@@ -275,7 +273,7 @@ export const TestEditContentTab = forwardRef<TestEditContentHandle, Props>(funct
   ref
 ) {
   const testId = String(test.id);
-  const { handleDeleteQuestion, handleDeleteStimulus, pendingDelete, confirmDelete, cancelDelete } = useTestEditMutations(testId);
+  const { handleDeleteQuestion, pendingDelete, confirmDelete, cancelDelete } = useTestEditMutations(testId);
   const queryClient = useQueryClient();
 
   const [activeStimulus, setActiveStimulus] = useState(0);
@@ -284,13 +282,11 @@ export const TestEditContentTab = forwardRef<TestEditContentHandle, Props>(funct
   const [pendingEvidence, setPendingEvidence] = useState<string | null>(null);
   const [addingGroup, setAddingGroup] = useState(false);
   const [addingQuestionForGroup, setAddingQuestionForGroup] = useState<number | null>(null);
-  const [addingStimulus, setAddingStimulus] = useState(false);
   const [activeGroupId, setActiveGroupId] = useState<number | null>(null);
   const [editingGroupId, setEditingGroupId] = useState<number | null>(null);
   const [savingPassage, setSavingPassage] = useState(false);
   const addGroupFormRef = useRef<TestEditAddQuestionGroupFormHandle>(null);
   const addQuestionFormRef = useRef<TestEditAddQuestionFormHandle>(null);
-  const addStimulusFormRef = useRef<TestEditAddStimulusFormHandle>(null);
 
   const [evidenceMap, setEvidenceMap] = useState<Record<number, string>>(() => {
     const map: Record<number, string> = {};
@@ -320,12 +316,12 @@ export const TestEditContentTab = forwardRef<TestEditContentHandle, Props>(funct
   const [groupOrder, setGroupOrder] = useState<number[]>([]);
   const [questionOrders, setQuestionOrders] = useState<Record<number, number[]>>({});
   const [dragState, setDragState] = useState<null | {
-    kind: 'group' | 'question' | 'stimulus';
+    kind: 'group' | 'question';
     groupId: number;
     itemId: number;
   }>(null);
   const [dropHint, setDropHint] = useState<null | {
-    kind: 'group' | 'question' | 'stimulus';
+    kind: 'group' | 'question';
     groupId: number;
     itemId: number;
   }>(null);
@@ -347,7 +343,6 @@ export const TestEditContentTab = forwardRef<TestEditContentHandle, Props>(funct
     const firstGroupId = stimulus?.questionGroups[0]?.id ?? null;
     setActiveGroupId(firstGroupId);
     setAddingGroup(false);
-    setAddingStimulus(false);
     setAddingQuestionForGroup(null);
     setEditingGroupId(null);
     setPendingEvidence(null);
@@ -499,11 +494,6 @@ export const TestEditContentTab = forwardRef<TestEditContentHandle, Props>(funct
       ok = (await addQuestionFormRef.current.submit()) && ok;
     }
 
-    if (addingStimulus && addStimulusFormRef.current) {
-      changed = true;
-      ok = (await addStimulusFormRef.current.submit()) && ok;
-    }
-
     if (ok && changed) {
       toast.success('Đã lưu nội dung bài thi');
     }
@@ -512,7 +502,6 @@ export const TestEditContentTab = forwardRef<TestEditContentHandle, Props>(funct
   }, [
     addingGroup,
     addingQuestionForGroup,
-    addingStimulus,
     audioUrlEdit,
     groupDrafts,
     handleSaveGroup,
@@ -758,97 +747,24 @@ export const TestEditContentTab = forwardRef<TestEditContentHandle, Props>(funct
 
   return (
     <div className="flex h-[calc(100vh-100px)] min-h-0 flex-col gap-3 overflow-hidden pb-4">
-      <div className="flex shrink-0 flex-wrap items-center gap-1">
-        {test.stimuli.map((item, index) => (
-          <div
-            key={item.id}
-            draggable
-            onDragStart={(e) => {
-              e.dataTransfer.effectAllowed = 'move';
-              setDragState({ kind: 'stimulus', groupId: -1, itemId: item.id });
-            }}
-            onDragOver={(e) => {
-              e.preventDefault();
-              e.dataTransfer.dropEffect = 'move';
-              if (dragState?.kind === 'stimulus' && dragState.itemId !== item.id) {
-                setDropHint({ kind: 'stimulus', groupId: -1, itemId: item.id });
-              }
-            }}
-            onDragEnd={() => {
-              setDragState(null);
-              setDropHint(null);
-            }}
-            onDrop={async (e) => {
-              e.preventDefault();
-              if (dragState?.kind === 'stimulus' && dragState.itemId !== item.id) {
-                const fromIndex = test.stimuli.findIndex((s) => s.id === dragState.itemId);
-                const toIndex = test.stimuli.findIndex((s) => s.id === item.id);
-                if (fromIndex >= 0 && toIndex >= 0) {
-                  const newOrder = moveItem(test.stimuli, fromIndex, toIndex);
-                  setActiveStimulus(newOrder.findIndex((s) => s.id === stimulus.id));
-                  toast.success('Đã sắp xếp lại thứ tự phần thi (chưa lưu)');
-                }
-              }
-              setDragState(null);
-              setDropHint(null);
-            }}
-            className={`group/stimulus flex items-center gap-1 rounded-md transition-all ${
-              index === activeStimulus ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-            } ${dropHint?.kind === 'stimulus' && dropHint.itemId === item.id ? 'ring-2 ring-blue-400 ring-offset-1' : ''}`}
-          >
+      {test.stimuli.length > 1 && (
+        <div className="flex shrink-0 flex-wrap gap-1">
+          {test.stimuli.map((item, index) => (
             <button
+              key={item.id}
               type="button"
-              draggable
-              onDragStart={(e) => {
-                e.stopPropagation();
-                e.dataTransfer.effectAllowed = 'move';
-                setDragState({ kind: 'stimulus', groupId: -1, itemId: item.id });
-              }}
               onClick={() => {
                 setActiveStimulus(index);
                 setPendingEvidence(null);
                 setAddingGroup(false);
               }}
-              className="rounded-md px-3 py-1.5 text-xs font-medium transition-colors cursor-grab active:cursor-grabbing"
+              className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                index === activeStimulus ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
             >
-              <GripVertical className="mr-1 inline-block h-3 w-3" />
               {item.title || `Passage ${index + 1}`}
             </button>
-            {test.stimuli.length > 1 && (
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleDeleteStimulus(item.id);
-                }}
-                className="mr-1 hidden text-white/70 hover:text-white group-hover/stimulus:block"
-                title="Xóa phần thi này"
-              >
-                <Trash2 className="h-3 w-3" />
-              </button>
-            )}
-          </div>
-        ))}
-        <Button
-          type="button"
-          size="sm"
-          variant="outline"
-          className="h-7 gap-1 border-dashed text-xs"
-          onClick={() => setAddingStimulus(true)}
-        >
-          <Plus className="h-3.5 w-3.5" /> Thêm phần thi
-        </Button>
-      </div>
-
-      {addingStimulus && (
-        <div className="shrink-0">
-          <TestEditAddStimulusForm
-            ref={addStimulusFormRef}
-            testId={testId}
-            skill={test.skill}
-            sectionNumber={test.stimuli.length + 1}
-            onClose={() => setAddingStimulus(false)}
-          />
+          ))}
         </div>
       )}
 

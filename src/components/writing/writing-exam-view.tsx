@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useLayoutEffect, useRef } from 'react';
 import Image from 'next/image';
 import { Wifi, Bell, Menu, ArrowLeft, ArrowRight, Check, Clock } from 'lucide-react';
 import type { WritingTaskType } from '@/types/writing.types';
@@ -56,11 +56,20 @@ export function WritingExamView({
   const [leftWidth, setLeftWidth] = useState(DEFAULT_LEFT_WIDTH);
   const [isDragging, setIsDragging] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const startXRef = useRef<number>(0);
   const startWidthRef = useRef<number>(0);
 
   // Local word count for the textarea (computed from content prop)
   const localWordCount = countWords(content);
+
+  const resizeTextarea = useCallback(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+
+    el.style.height = '0px';
+    el.style.height = `${el.scrollHeight}px`;
+  }, []);
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
@@ -116,12 +125,16 @@ export function WritingExamView({
     };
   }, [isDragging]);
 
+  useLayoutEffect(() => {
+    resizeTextarea();
+  }, [content, resizeTextarea, readOnly, submitted, chartImageUrl, taskType]);
+
   // Warn when time is running low (< 5 min)
   const isTimeWarning = remainingSeconds != null && remainingSeconds > 0 && remainingSeconds < 300;
   const isTimeUp = remainingSeconds != null && remainingSeconds <= 0;
 
   return (
-    <div className="flex flex-col h-screen bg-white">
+    <div className="flex flex-col h-[calc(100vh-56px)] bg-white">
       {/* ===== Top bar: IELTS style ===== */}
       <div className="flex items-center justify-between bg-white border-b border-gray-200 px-4 py-2 shrink-0">
         {/* Left: IELTS logo + timer */}
@@ -159,14 +172,11 @@ export function WritingExamView({
       {/* ===== Main two-pane content area ===== */}
       <div
         ref={containerRef}
-        className="flex-1 flex overflow-hidden relative"
+        className="flex-1 min-h-0 flex overflow-hidden relative"
         style={{ userSelect: isDragging ? 'none' : undefined }}
       >
         {/* Left pane - Question */}
-        <div
-          className="overflow-hidden"
-          style={{ width: `${leftWidth}%` }}
-        >
+        <div className="overflow-hidden" style={{ width: `${leftWidth}%` }}>
           <div className="h-full overflow-y-auto px-8 py-6">
             <div className="max-w-2xl mx-auto">
               <div className="text-[15px] text-gray-800 leading-relaxed space-y-4 font-medium">
@@ -217,19 +227,20 @@ export function WritingExamView({
         </div>
 
         {/* Right pane - Textarea */}
-        <div
-          className="flex-1 overflow-hidden"
-          style={{ width: `${100 - leftWidth}%` }}
-        >
+        <div className="flex-1 overflow-hidden" style={{ width: `${100 - leftWidth}%` }}>
           <div className="h-full overflow-y-auto px-6 py-6">
             <div className="h-full flex flex-col">
               <textarea
+                ref={textareaRef}
                 value={content}
-                onChange={(e) => onContentChange(e.target.value)}
+                onChange={(e) => {
+                  onContentChange(e.target.value);
+                  resizeTextarea();
+                }}
                 placeholder="Write your answer here..."
                 readOnly={readOnly || submitted}
-                className="w-full resize-none border border-gray-400 focus:border-gray-600 focus:outline-none rounded-sm px-4 py-3 text-sm text-gray-800 leading-relaxed placeholder:text-gray-400"
-                style={{ height: '180px', minHeight: '180px' }}
+                className="w-full min-h-[180px] overflow-hidden resize-none border border-gray-400 focus:border-gray-600 focus:outline-none rounded-sm px-4 py-3 text-sm text-gray-800 leading-relaxed placeholder:text-gray-400"
+                style={{ height: 'auto' }}
               />
               <p className="text-xs text-gray-600 text-right mt-1.5 font-medium">
                 Words: {localWordCount}
@@ -243,7 +254,7 @@ export function WritingExamView({
       <div className="shrink-0 bg-white border-t border-gray-300 px-4 py-1">
         <div className="flex items-end justify-between gap-2">
           {/* Part label */}
-          <span className={`shrink-0 text-sm font-bold pb-1`}>
+          <span className="shrink-0 text-sm font-bold pb-1">
             Part {taskType}
           </span>
 
@@ -252,12 +263,20 @@ export function WritingExamView({
 
           {/* Navigation controls */}
           <div className="flex items-center gap-2 shrink-0 pb-1">
-            {/* Prev button - disabled for writing */}
+            {/* Prev button - writing has a single task, so keep navigation disabled */}
             <button
               disabled
               className="w-[34px] h-[34px] flex items-center justify-center rounded bg-gray-100 text-gray-400 cursor-not-allowed"
             >
               <ArrowLeft className="h-[18px] w-[18px]" />
+            </button>
+
+            {/* Next button - writing has a single task, so keep navigation disabled */}
+            <button
+              disabled
+              className="w-[34px] h-[34px] flex items-center justify-center rounded bg-gray-100 text-gray-400 cursor-not-allowed"
+            >
+              <ArrowRight className="h-[18px] w-[18px]" />
             </button>
 
             {/* Submit button */}

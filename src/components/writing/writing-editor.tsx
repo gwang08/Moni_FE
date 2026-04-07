@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useLayoutEffect, useRef } from 'react';
 import { BookOpen, PenLine } from 'lucide-react';
 import { useWritingStore } from '@/store/writing-store';
 import type { WritingTaskType } from '@/types/writing.types';
@@ -45,6 +45,7 @@ const SEPARATOR = '\n---SECTION---\n';
 export function WritingEditor({ taskType = 2, sampleAnswer, showSample, onToggleSample, readOnly = false, initialContent }: WritingEditorProps) {
   const { setContent, setWordCount } = useWritingStore();
   const sections = SECTIONS[taskType] ?? SECTIONS[2];
+  const textareasRef = useRef<(HTMLTextAreaElement | null)[]>([]);
 
   const [texts, setTexts] = useState<string[]>(() => {
     if (initialContent) {
@@ -90,6 +91,18 @@ export function WritingEditor({ taskType = 2, sampleAnswer, showSample, onToggle
     syncStore(updated);
   };
 
+  const resizeTextarea = useCallback((index: number) => {
+    const el = textareasRef.current[index];
+    if (!el) return;
+
+    el.style.height = '0px';
+    el.style.height = `${el.scrollHeight}px`;
+  }, []);
+
+  useLayoutEffect(() => {
+    textareasRef.current.forEach((_, index) => resizeTextarea(index));
+  }, [texts, showSample, readOnly, resizeTextarea, taskType]);
+
   return (
     <div className="h-full flex flex-col">
       {/* Header */}
@@ -128,13 +141,18 @@ export function WritingEditor({ taskType = 2, sampleAnswer, showSample, onToggle
                 )}
               </div>
               <textarea
+                ref={(el) => {
+                  textareasRef.current[idx] = el;
+                }}
                 value={texts[idx]}
-                onChange={(e) => handleTextChange(idx, e.target.value)}
+                onChange={(e) => {
+                  handleTextChange(idx, e.target.value);
+                  resizeTextarea(idx);
+                }}
                 placeholder={section.placeholder}
-                rows={5}
                 disabled={showSample || readOnly}
                 readOnly={readOnly}
-                className={`w-full rounded-2xl border px-4 py-3 text-sm leading-relaxed resize-y shadow-sm transition-all ${
+                className={`w-full min-h-[140px] overflow-hidden rounded-2xl border px-4 py-3 text-sm leading-relaxed resize-none shadow-sm transition-all ${
                   readOnly
                     ? 'border-gray-200 bg-gray-50/80 text-gray-600 cursor-default'
                     : showSample

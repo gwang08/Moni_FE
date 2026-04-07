@@ -267,11 +267,7 @@ function PracticePage() {
         setSpeakingModeOpen(true);
         return;
       }
-      // Writing: go straight to practice
-      if (exercise.skill === 'writing') {
-        router.push(`/practice/${exercise.skill}/${exercise.id}`);
-        return;
-      }
+      // Writing & other skills: show practice/exam mode selection
       setSelectedExercise(exercise);
       setModalOpen(true);
     });

@@ -41,18 +41,18 @@ export function ListeningQuestionMcq({
           <p className="flex-1 text-sm text-gray-800 font-normal leading-relaxed mb-3">{content}</p>
         </div>
 
-        <div className="space-y-2">
+        <div className="space-y-1.5">
           {options.map((option) => {
             const isSelected = selected.includes(option.id);
 
             return (
               <label
                 key={option.id}
-                className={`flex items-center gap-3 p-3 rounded-md border-2 transition-all cursor-pointer ${
+                className={`flex items-center gap-3 rounded-sm px-1 py-1.5 transition-colors ${
                   isSelected
-                    ? 'border-gray-800 bg-gray-50 text-gray-900'
-                    : 'border-gray-100 hover:border-gray-200'
-                } ${submitted ? 'cursor-default opacity-80' : ''}`}
+                    ? 'bg-gray-50 text-gray-900'
+                    : 'text-gray-800 hover:bg-gray-50/60'
+                } ${submitted ? 'cursor-default opacity-90' : 'cursor-pointer'}`}
               >
                 <input
                   type={multiple ? 'checkbox' : 'radio'}
@@ -61,9 +61,11 @@ export function ListeningQuestionMcq({
                   checked={isSelected}
                   disabled={submitted}
                   onChange={() => !submitted && onAnswer(questionId, option.id)}
-                  className="h-4 w-4 text-gray-900 border-gray-400 focus:ring-gray-900"
+                  className="h-4 w-4 shrink-0 border-gray-400 text-gray-900 focus:ring-gray-900"
                 />
-                <span className="text-sm font-normal leading-tight">{option.content}</span>
+                <span className={`text-sm font-normal leading-5 ${isSelected ? 'font-medium' : ''}`}>
+                  {option.content}
+                </span>
               </label>
             );
           })}

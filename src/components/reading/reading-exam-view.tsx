@@ -221,6 +221,7 @@ export function ReadingExamView({
       {/* Navigation */}
       {currentStimulus.questionGroups.length > 0 && (
         <ReadingExamQuestionNav
+          stimuli={stimuli}
           questionGroups={currentStimulus.questionGroups}
           answeredQuestions={answeredQuestionIds}
           submitted={submitted}
@@ -231,7 +232,9 @@ export function ReadingExamView({
           canGoNext={canGoNext}
           partLabel={`Part ${currentStimulus.section ?? activeStimulusIdx + 1}`}
           activeQuestionId={currentQuestionId}
+          activePartIndex={activeStimulusIdx}
           onNavigate={setActiveQuestionId}
+          onPartChange={setActiveStimulusIdx}
         />
       )}
     </div>

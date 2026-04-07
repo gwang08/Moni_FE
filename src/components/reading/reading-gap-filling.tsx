@@ -35,26 +35,53 @@ function GapInput({ questionId, userAnswer, submitted, correctAnswer, onTextAnsw
   const correct = submitted && isAnswerCorrect(userAnswer, correctAnswer);
   const wrong = submitted && userAnswer.trim() !== '' && !isAnswerCorrect(userAnswer, correctAnswer);
   const hasAnswer = userAnswer.trim().length > 0;
+  const primaryCorrect = correctAnswer.split('|')[0];
 
   const minLength = compact ? 30 : 50;
   const charWidth = 7;
   const inputWidth = Math.max(minLength, userAnswer.length * charWidth + 16);
 
-  return (
-    <input
-      type="text"
-      value={userAnswer}
-      disabled={submitted}
-      placeholder="..."
-      onChange={e => onTextAnswer(questionId, e.target.value)}
-      className={`inline-block bg-transparent px-1 py-0.5 outline-none text-left align-baseline border-b-2 ${
-        submitted && correct ? 'border-blue-600 text-gray-900 font-medium'
-          : submitted && wrong ? 'border-red-500 text-red-700'
-          : hasAnswer ? 'border-blue-600 text-gray-900 font-medium'
+  if (!submitted) {
+    return (
+      <input
+        type="text"
+        value={userAnswer}
+        disabled={submitted}
+        placeholder="..."
+        onChange={e => onTextAnswer(questionId, e.target.value)}
+        className={`inline-block bg-transparent px-1 py-0.5 outline-none text-left align-baseline border-b-2 ${
+          hasAnswer ? 'border-blue-600 text-gray-900 font-medium'
           : 'border-gray-300 focus:border-blue-600'
-      } ${compact ? 'text-sm' : 'text-base'}`}
-      style={{ width: `${inputWidth}px`, minWidth: `${minLength}px` }}
-    />
+        } ${compact ? 'text-sm' : 'text-base'}`}
+        style={{ width: `${inputWidth}px`, minWidth: `${minLength}px` }}
+      />
+    );
+  }
+
+  // Submitted - show inline with correct answer, wrapped with underline
+  const underlineColor = wrong ? 'border-red-500' : 'border-gray-300';
+  const isBlank = userAnswer.trim().length === 0;
+  
+  return (
+    <span className={`inline-block border-b-2 pb-0.5 ${underlineColor}`}>
+      <span className="inline-flex items-baseline gap-0 align-baseline">
+        {/* User's answer as text */}
+        <span className={`px-1 ${compact ? 'text-sm' : 'text-base'} ${
+          wrong ? 'text-red-700 line-through font-medium'
+            : isBlank ? 'text-gray-400 text-lg font-bold'
+            : 'text-gray-900 font-medium'
+        }`}>
+          {isBlank ? '✕' : userAnswer}
+        </span>
+        
+        {/* Show correct answer inline when wrong or blank */}
+        {!correct && (
+          <span className={`text-sm font-semibold text-green-600 ${compact ? 'text-sm' : 'text-base'}`}>
+            {primaryCorrect}
+          </span>
+        )}
+      </span>
+    </span>
   );
 }
 
@@ -66,34 +93,67 @@ function ExamInlineGapInput({ questionId, userAnswer, submitted, correctAnswer, 
   const correct = submitted && isAnswerCorrect(userAnswer, correctAnswer);
   const wrong = submitted && userAnswer.trim() !== '' && !isAnswerCorrect(userAnswer, correctAnswer);
   const hasAnswer = userAnswer.trim().length > 0;
+  const isBlank = userAnswer.trim().length === 0;
+  const primaryCorrect = correctAnswer.split('|')[0];
 
   // Calculate input width based on content
   const minLength = 80;
   const charWidth = 8;
   const inputWidth = Math.max(minLength, userAnswer.length * charWidth + 32);
-  const isBlank = userAnswer.trim().length === 0;
 
+  if (!submitted) {
+    return (
+      <span className="relative inline-block align-middle" style={{ minWidth: `${minLength}px`, width: isBlank ? `${minLength}px` : `${inputWidth}px`, maxWidth: '400px' }}>
+        <input
+          type="text"
+          value={userAnswer}
+          disabled={submitted}
+          onChange={e => onTextAnswer(questionId, e.target.value)}
+          className={`w-full rounded-sm border bg-white px-2 text-center text-sm font-normal text-gray-900 focus:outline-none focus:ring-2 transition-all ${
+            hasAnswer ? 'border-blue-600 bg-white' : 'border-gray-300 focus:border-blue-600 focus:ring-blue-200'
+          }`}
+          style={{ height: '20px', lineHeight: '20px' }}
+          placeholder=""
+        />
+        {!submitted && isBlank && displayNumber != null && (
+          <span className="pointer-events-none absolute inset-0 flex items-center justify-center text-sm font-bold text-gray-900" style={{ lineHeight: '20px' }}>
+            {displayNumber}
+          </span>
+        )}
+      </span>
+    );
+  }
+
+  // Submitted - show inline with correct answer only (no duplicate)
+  const underlineColor = wrong ? 'border-red-500' : 'border-gray-300';
+  
   return (
-    <span className="relative inline-block align-middle" style={{ minWidth: `${minLength}px`, width: isBlank ? `${minLength}px` : `${inputWidth}px`, maxWidth: '400px' }}>
-      <input
-        type="text"
-        value={userAnswer}
-        disabled={submitted}
-        onChange={e => onTextAnswer(questionId, e.target.value)}
-        className={`w-full rounded-sm border bg-white px-2 text-center text-sm font-normal text-gray-900 focus:outline-none focus:ring-2 transition-all ${
-          submitted && correct ? 'border-blue-600 bg-blue-50'
-            : submitted && wrong ? 'border-red-500 bg-red-50'
-            : hasAnswer ? 'border-blue-600 bg-white'
-            : 'border-gray-300 focus:border-blue-600 focus:ring-blue-200'
-        }`}
-        style={{ height: '20px', lineHeight: '20px' }}
-        placeholder=""
-      />
-      {!submitted && isBlank && displayNumber != null && (
-        <span className="pointer-events-none absolute inset-0 flex items-center justify-center text-sm font-bold text-gray-900" style={{ lineHeight: '20px' }}>
-          {displayNumber}
-        </span>
-      )}
+    <span className={`inline-block border-b-2 pb-0.5 ${underlineColor}`}>
+      <span className="inline-flex items-baseline gap-0 align-baseline">
+        {wrong ? (
+          // Wrong answer: show red strikethrough
+          <span className="text-sm font-medium text-red-700 line-through px-1">
+            {userAnswer}
+          </span>
+        ) : isBlank ? (
+          // Blank: show X mark in gray
+          <span className="inline-flex items-center justify-center w-[32px] h-5 text-gray-400 text-sm">
+            ✕
+          </span>
+        ) : (
+          // Correct: show in dark
+          <span className="text-sm font-medium text-gray-900 px-1">
+            {userAnswer}
+          </span>
+        )}
+        
+        {/* Show correct answer inline when wrong or blank */}
+        {!correct && (
+          <span className="text-sm font-semibold text-green-600 px-1">
+            {primaryCorrect}
+          </span>
+        )}
+      </span>
     </span>
   );
 }
@@ -152,37 +212,6 @@ function IELTSBoxedGapFilling({ questions, submitted, textAnswers, onTextAnswer,
           );
         })}
       </div>
-
-      {/* Show results after submit */}
-      {submitted && (
-        <div className="mt-4 pt-3 border-t border-gray-200 space-y-2">
-          {sortedQuestions.map((q) => {
-            const userAnswer = textAnswers[q.id] ?? '';
-            const correctAnswer = q.options.find(o => o.isCorrect)?.content ?? '';
-            const correct = isAnswerCorrect(userAnswer, correctAnswer);
-            const wrong = userAnswer.trim() !== '' && !correct;
-            const displayPosition = questionPositionById[q.id] ?? q.position;
-            const primaryCorrect = correctAnswer.split('|')[0];
-
-            return (
-              <div key={q.id} className={`flex items-center gap-2 text-xs px-2 py-1.5 rounded ${
-                correct ? 'bg-green-50' : wrong ? 'bg-red-50' : 'bg-gray-50'
-              }`}>
-                <span className="font-bold text-gray-900 min-w-[20px]">{displayPosition}.</span>
-                {correct ? (
-                  <><CheckCircle2 className="h-3.5 w-3.5 text-gray-900" /><span className="text-gray-900 font-semibold">Đúng</span></>
-                ) : wrong ? (
-                  <><XCircle className="h-3.5 w-3.5 text-gray-700" /><span className="text-gray-800">Đáp án: <strong>{primaryCorrect}</strong>
-                    {correctAnswer.includes('|') && <span className="text-gray-500 font-normal"> (hoặc: {correctAnswer.split('|').slice(1).join(', ')})</span>}
-                  </span></>
-                ) : (
-                  <span className="text-gray-500 italic">Chưa trả lời — Đáp án: <strong className="text-gray-900">{primaryCorrect}</strong></span>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      )}
     </div>
   );
 }
@@ -223,46 +252,11 @@ function GapQuestion({ question, displayPosition, userAnswer, submitted, onTextA
             question.content
           )}
         </p>
-
-        {/* Result feedback */}
-        {submitted && (
-          <div className="mt-3 pt-3 border-t border-gray-200">
-            <div className={`flex items-center gap-2 text-xs px-2 py-1.5 rounded inline-block ${
-              correct ? 'bg-green-50' : wrong ? 'bg-red-50' : 'bg-gray-50'
-            }`}>
-              <span className="font-bold text-gray-900">{displayPosition}.</span>
-              {correct ? (
-                <><CheckCircle2 className="h-3.5 w-3.5 text-gray-900" /><span className="text-gray-900 font-semibold">Đúng</span></>
-              ) : wrong ? (
-                <><XCircle className="h-3.5 w-3.5 text-gray-700" /><span className="text-gray-800">Đáp án: <strong>{primaryCorrect}</strong>
-                  {correctAnswer.includes('|') && <span className="text-gray-500 font-normal"> (hoặc: {correctAnswer.split('|').slice(1).join(', ')})</span>}
-                </span></>
-              ) : (
-                <span className="text-gray-500 italic">Chưa trả lời — Đáp án: <strong className="text-gray-900">{primaryCorrect}</strong></span>
-              )}
-            </div>
-            {question.explanation?.text && (
-              <div className="mt-2">
-                <p className="text-xs text-gray-600"><strong>Giải thích:</strong> {question.explanation.text}</p>
-                {question.explanation.evidence && (
-                  <div className="space-y-1 mt-1">
-                    {question.explanation.evidence.split('\n---\n').filter((e: string) => e.trim()).map((chunk: string, i: number) => (
-                      <p key={i} className={`text-xs text-gray-700 bg-gray-100 px-2 py-1 rounded ${onLocateEvidence ? 'cursor-pointer hover:bg-gray-200' : ''}`}
-                        onClick={() => onLocateEvidence?.(chunk.trim())}>
-                        Dẫn chứng {i + 1}: &ldquo;{chunk.trim()}&rdquo;
-                      </p>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        )}
       </div>
     );
   }
 
-  // Non-exam mode: inline layout
+  // Non-exam mode: inline layout with answer shown inline
   const compact = examMode ?? true;
 
   return (
@@ -296,23 +290,6 @@ function GapQuestion({ question, displayPosition, userAnswer, submitted, onTextA
           </>
         )}
       </div>
-
-      {/* Result feedback */}
-      {submitted && (
-        <div className="mt-2 ml-5 flex items-center gap-2 text-xs">
-          {correct ? (
-            <><CheckCircle2 className="h-3.5 w-3.5 text-gray-900" /><span className="text-gray-900 font-semibold">Đúng</span></>
-          ) : wrong ? (
-            <><XCircle className="h-3.5 w-3.5 text-gray-700" /><span className="text-gray-800">Đáp án: <strong>{primaryCorrect}</strong>
-              {correctAnswer.includes('|') && <span className="text-gray-500 font-normal"> (hoặc: {correctAnswer.split('|').slice(1).join(', ')})</span>}
-            </span></>
-          ) : (
-            <span className="text-gray-500 italic">Chưa trả lời — Đáp án: <strong className="text-gray-900">{primaryCorrect}</strong>
-              {correctAnswer.includes('|') && <span className="text-gray-500 font-normal"> (hoặc: {correctAnswer.split('|').slice(1).join(', ')})</span>}
-            </span>
-          )}
-        </div>
-      )}
 
       {submitted && question.explanation?.text && (
         <div className="mt-2 ml-5 pt-2 border-t border-gray-200">
@@ -387,61 +364,6 @@ function ParagraphGapFilling({ groupContent, questions, submitted, textAnswers, 
   return (
     <div className={`bg-white p-4 space-y-4 ${examMode ? 'text-[13px]' : ''}`}>
       <div className={`text-gray-900 ${examMode ? 'leading-7' : 'text-sm leading-8'}`}>{rendered}</div>
-
-      {/* Show results per question after submit */}
-      {submitted && (
-        <div className="space-y-2 border-t border-gray-100 pt-3">
-          {questions.map(question => {
-            const correctAnswer = question.options.find(o => o.isCorrect)?.content ?? '';
-            const userAnswer = textAnswers[question.id] ?? '';
-            const correct = isAnswerCorrect(userAnswer, correctAnswer);
-            const wrong = userAnswer.trim() !== '' && !correct;
-            const displayPosition = questionPositionById[question.id] ?? question.position;
-            const primaryCorrect = correctAnswer.split('|')[0];
-
-            return (
-                <div
-                  key={question.id}
-                  className={`rounded-lg px-3 py-2 ${
-                    correct
-                      ? 'bg-gray-50'
-                      : wrong
-                      ? 'bg-gray-50'
-                      : 'bg-white'
-                  }`}
-                >
-                  <div className="flex items-center gap-2 text-xs">
-                  <span className="font-bold text-gray-900">{displayPosition}.</span>
-                  {correct ? (
-                    <><CheckCircle2 className="h-3.5 w-3.5 text-gray-900" /><span className="text-gray-900 font-semibold">Đúng</span></>
-                  ) : wrong ? (
-                    <><XCircle className="h-3.5 w-3.5 text-gray-700" /><span className="text-gray-800">Đáp án: <strong>{primaryCorrect}</strong>
-                      {correctAnswer.includes('|') && <span className="text-gray-500 font-normal"> (hoặc: {correctAnswer.split('|').slice(1).join(', ')})</span>}
-                    </span></>
-                  ) : (
-                    <span className="text-gray-500 italic">Chưa trả lời — Đáp án: <strong className="text-gray-900">{primaryCorrect}</strong></span>
-                  )}
-                </div>
-                {question.explanation?.text && (
-                  <div className="mt-2">
-                    <p className="text-xs text-gray-600"><strong>Giải thích:</strong> {question.explanation.text}</p>
-                    {question.explanation.evidence && (
-                      <div className="space-y-1 mt-1">
-                        {question.explanation.evidence.split('\n---\n').filter((e: string) => e.trim()).map((chunk: string, ci: number) => (
-                          <p key={ci} className={`text-xs text-gray-700 bg-gray-100 px-2 py-1 rounded ${onLocateEvidence ? 'cursor-pointer hover:bg-gray-200' : ''}`}
-                            onClick={() => onLocateEvidence?.(chunk.trim())}>
-                            Dẫn chứng {ci + 1}: &ldquo;{chunk.trim()}&rdquo;
-                          </p>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      )}
     </div>
   );
 }

@@ -107,7 +107,7 @@ export const TestEditBasicInfoTab = forwardRef<TestEditBasicInfoHandle, Props>(f
         title,
         thumbnailUrl: finalThumbnailUrl,
         status: normalizeStatus(status),
-        duration: duration ? Number(duration) * 60 : undefined,
+        duration: duration ? Number(duration) : undefined,
         skill: skill || undefined,
         testMode: test.testMode || undefined,
         section: section ?? undefined,

@@ -131,7 +131,7 @@ export default function FullTestDetailPage() {
       return updateFullTest(id, {
         title: data.title,
         testType: data.testType,
-        duration: data.duration * 60,
+        duration: data.duration,
         status: data.status,
         stimulusIds,
       });

@@ -7,8 +7,14 @@ import { ListeningExamQuestionNav } from '@/components/listening/listening-exam-
 import { ListeningPracticeAudioPlayer } from '@/components/listening/listening-practice-audio-player';
 import { ListeningQuestionMcq } from '@/components/listening/listening-question-mcq';
 import { ListeningGapFilling } from '@/components/listening/listening-gap-filling';
+import { ListeningMatchingInformation } from '@/components/listening/listening-matching-information';
+import { ListeningMatchingFeature } from '@/components/listening/listening-matching-feature';
 import type { StimulusDetail, QuestionGroupDetail } from '@/types/test.types';
 import type { QuestionTypeCode } from '@/types/admin.types';
+
+const GAP_TYPES: QuestionTypeCode[] = ['GAP_FILLING', 'DIAGRAM_LABEL'];
+const MATCHING_INFORMATION = 'MATCHING_INFORMATION';
+const MATCHING_FEATURE = 'MATCHING_FEATURE';
 
 interface Props {
   stimuli: StimulusDetail[];
@@ -22,8 +28,6 @@ interface Props {
   elapsedTime?: string;
   audioUrl?: string;
 }
-
-const GAP_TYPES: QuestionTypeCode[] = ['GAP_FILLING', 'DIAGRAM_LABEL'];
 
 export function ListeningPracticeView({
   stimuli,
@@ -110,6 +114,38 @@ export function ListeningPracticeView({
       );
     }
 
+    if (type === MATCHING_INFORMATION) {
+      return (
+        <ListeningMatchingInformation
+          key={group.id}
+          questions={group.questions}
+          answers={answers}
+          submitted={submitted}
+          onAnswer={onAnswer}
+          questionPositionById={group.questions.reduce((acc, q) => {
+            acc[q.id] = q.position;
+            return acc;
+          }, {} as Record<number, number>)}
+        />
+      );
+    }
+
+    if (type === MATCHING_FEATURE) {
+      return (
+        <ListeningMatchingFeature
+          key={group.id}
+          questions={group.questions}
+          answers={answers}
+          submitted={submitted}
+          onAnswer={onAnswer}
+          questionPositionById={group.questions.reduce((acc, q) => {
+            acc[q.id] = q.position;
+            return acc;
+          }, {} as Record<number, number>)}
+        />
+      );
+    }
+
     return (
       <div key={group.id} className="space-y-4">
         {group.questions.map((question) => (
@@ -178,6 +214,7 @@ export function ListeningPracticeView({
       {/* Navigation */}
       {allQuestionIds.length > 0 && (
         <ListeningExamQuestionNav
+          stimuli={stimuli}
           questionGroups={stimuli.flatMap((s) => s.questionGroups)}
           answeredQuestions={answeredQuestionIds}
           submitted={submitted}

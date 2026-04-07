@@ -146,7 +146,7 @@ export default function AdminFullTestCreatePage() {
     createMutation.mutate({
       title: title.trim(),
       skill,
-      duration: duration ? parseInt(duration, 10) * 60 : undefined,
+      duration: duration ? parseInt(duration, 10) : undefined,
       stimulusIds,
     });
   };

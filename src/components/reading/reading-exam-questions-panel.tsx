@@ -5,6 +5,7 @@ import type { StimulusDetail, QuestionDetail } from '@/types/test.types';
 import { ReadingQuestionMcq } from '@/components/reading/reading-question-mcq';
 import { ReadingMatchingPills } from '@/components/reading/reading-matching-pills';
 import { ReadingMatchingInformation } from '@/components/reading/reading-matching-information';
+import { ReadingMatchingFeature } from '@/components/reading/reading-matching-feature';
 
 interface Props {
   stimulus: StimulusDetail;
@@ -287,13 +288,16 @@ export function ReadingExamQuestionsPanel({
                 />
               </div>
             ) : isMatchingFeature ? (
-              <IELTSMCQBox
-                questions={groupQuestions}
-                answers={answers}
-                submitted={submitted}
-                onAnswer={onAnswer}
-                questionPositionById={questionMeta.questionPositionById}
-              />
+              <div className="bg-white">
+                <ReadingMatchingFeature
+                  questions={groupQuestions}
+                  answers={answers}
+                  submitted={submitted}
+                  onAnswer={onAnswer}
+                  examMode
+                  questionPositionById={questionMeta.questionPositionById}
+                />
+              </div>
             ) : isMCQType ? (
               <IELTSMCQBox
                 questions={groupQuestions}

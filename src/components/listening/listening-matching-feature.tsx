@@ -13,7 +13,7 @@ interface Props {
   questionPositionById?: Record<number, number>;
 }
 
-export function ReadingMatchingFeature({ questions, answers, submitted, onAnswer, examMode = false, questionPositionById = {} }: Props) {
+export function ListeningMatchingFeature({ questions, answers, submitted, onAnswer, examMode = false, questionPositionById = {} }: Props) {
   // Extract unique categories from options (A → "Howard Gardner", B → "Sternberg", etc.)
   const categories = useMemo(() => {
     const map = new Map<string, string>();
@@ -198,26 +198,6 @@ export function ReadingMatchingFeature({ questions, answers, submitted, onAnswer
           );
         })}
       </div>
-
-      {/* Explanations after submit — desktop */}
-      {submitted && (
-        <div className="hidden sm:block space-y-2 pt-2 border-t border-gray-200">
-          {questions.map(q => {
-            if (!q.explanation?.text && !q.explanation?.evidence) return null;
-            return (
-              <div key={q.id} className="text-xs">
-                <span className="font-medium text-gray-700">Q{q.position}:</span>
-                {q.explanation?.text && <span className="text-gray-600 ml-1">{q.explanation.text}</span>}
-                {q.explanation?.evidence && (
-                  <span className="text-gray-700 bg-gray-100 px-1.5 py-0.5 rounded ml-1">
-                    &ldquo;{q.explanation.evidence}&rdquo;
-                  </span>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      )}
     </div>
   );
 }

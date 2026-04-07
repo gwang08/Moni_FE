@@ -231,6 +231,7 @@ export function ReadingPracticeView({
       {/* Navigation */}
       {currentStimulus.questionGroups.length > 0 && (
         <ReadingExamQuestionNav
+          stimuli={[currentStimulus]}
           questionGroups={currentStimulus.questionGroups}
           answeredQuestions={answeredQuestionIds}
           submitted={submitted}

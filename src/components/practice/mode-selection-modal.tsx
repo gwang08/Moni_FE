@@ -19,14 +19,13 @@ interface Props {
   onOpenChange: (open: boolean) => void;
 }
 
-function formatDuration(seconds: number): string {
-  const m = Math.floor(seconds / 60);
-  if (m >= 60) {
-    const h = Math.floor(m / 60);
-    const rm = m % 60;
+function formatDuration(minutes: number): string {
+  if (minutes >= 60) {
+    const h = Math.floor(minutes / 60);
+    const rm = minutes % 60;
     return rm > 0 ? `${h}h${rm}p` : `${h} giờ`;
   }
-  return `${m} phút`;
+  return `${minutes} phút`;
 }
 
 function formatRemaining(seconds: number): string {

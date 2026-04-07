@@ -146,10 +146,12 @@ export function ModeSelectionModal({ exercise, open, onOpenChange }: Props) {
                 </div>
                 <span className="text-xs font-bold text-orange-700">Thi thử</span>
                 <div className="text-[10px] text-orange-400 space-y-0.5">
-                  <div className="flex items-center gap-1">
-                    <Clock className="h-2.5 w-2.5" />
-                    {durationText ?? 'Có giới hạn'}
-                  </div>
+                  {exercise.skill !== 'listening' && exercise.skill !== 'speaking' && (
+                    <div className="flex items-center gap-1">
+                      <Clock className="h-2.5 w-2.5" />
+                      {durationText ?? 'Có giới hạn'}
+                    </div>
+                  )}
                   <div className="flex items-center gap-1">
                     <Ban className="h-2.5 w-2.5" />
                     Không gợi ý

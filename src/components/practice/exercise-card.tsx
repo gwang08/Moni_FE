@@ -52,9 +52,10 @@ export function ExerciseCard({ exercise }: Props) {
       case 'writing':
         return `${exercise.minWords}+ từ`;
       case 'listening':
-        return formatDuration(exercise.duration!);
       case 'speaking':
-        return `${Math.floor(exercise.duration! / 60)} phút`;
+        return `${exercise.questionCount} câu hỏi`;
+      default:
+        return '';
     }
   };
 

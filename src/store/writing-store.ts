@@ -2,6 +2,8 @@ import { create } from 'zustand';
 import { scoreWriting } from '@/lib/ai-api';
 import type { GradingResult } from '@/types/writing.types';
 
+import { toast } from 'sonner';
+
 interface WritingStore {
   content: string;
   wordCount: number;
@@ -103,6 +105,7 @@ export const useWritingStore = create<WritingStore>((set) => ({
       set({ gradingResult: result, rawScoringData: data, isGrading: false });
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Không thể chấm bài. Vui lòng thử lại.';
+      toast.error(msg);
       set({ gradingError: msg, isGrading: false });
     }
   },

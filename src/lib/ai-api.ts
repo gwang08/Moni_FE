@@ -65,17 +65,6 @@ export async function submitWriting(params: {
   return response.result;
 }
 
-function getAuthToken(): string {
-  const stored = localStorage.getItem('auth-storage');
-  if (!stored) throw new Error('No authentication token found');
-  try {
-    const { state } = JSON.parse(stored);
-    return state?.token || '';
-  } catch {
-    throw new Error('No authentication token found');
-  }
-}
-
 // Writing score - multipart form data
 export async function scoreWriting(params: {
   taskType: number;
@@ -85,7 +74,6 @@ export async function scoreWriting(params: {
   stimulusId?: number;
   submissionId?: number;
 }): Promise<Record<string, unknown>> {
-  const token = getAuthToken();
   const formData = new FormData();
   formData.append('taskType', String(params.taskType));
   formData.append('question', params.question);
@@ -100,14 +88,13 @@ export async function scoreWriting(params: {
     formData.append('submissionId', String(params.submissionId));
   }
 
-  const response = await fetch(`${API_BASE_URL}/api/v1/ai/writing/score`, {
+  const response = await apiClient.request<Record<string, unknown>>('/api/v1/ai/writing/score', {
     method: 'POST',
-    headers: { Authorization: `Bearer ${token}` },
+    requiresAuth: true,
     body: formData,
   });
 
-  if (!response.ok) throw new Error('Failed to score writing');
-  return response.json();
+  return response;
 }
 
 // Speaking score - multipart form data
@@ -115,7 +102,6 @@ export async function scoreSpeaking(params: {
   audio: File;
   question: string;
 }): Promise<Record<string, unknown>> {
-  const token = getAuthToken();
   const formData = new FormData();
   formData.append('audio', params.audio, params.audio.name);
   formData.append('question', params.question);
@@ -123,16 +109,11 @@ export async function scoreSpeaking(params: {
   console.log('[Speaking Score] audio:', params.audio.name, params.audio.size, 'bytes, type:', params.audio.type);
   console.log('[Speaking Score] question length:', params.question.length);
 
-  const response = await fetch(`${API_BASE_URL}/api/v1/ai/speaking/score`, {
+  const response = await apiClient.request<Record<string, unknown>>('/api/v1/ai/speaking/score', {
     method: 'POST',
-    headers: { Authorization: `Bearer ${token}` },
+    requiresAuth: true,
     body: formData,
   });
 
-  if (!response.ok) {
-    const errorBody = await response.text().catch(() => '');
-    console.error('[Speaking Score] Error:', response.status, errorBody);
-    throw new Error(`Speaking scoring failed (${response.status}): ${errorBody}`);
-  }
-  return response.json();
+  return response;
 }

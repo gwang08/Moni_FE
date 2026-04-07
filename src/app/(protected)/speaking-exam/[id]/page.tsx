@@ -13,6 +13,7 @@ import { ExamMicTestScreen } from '@/components/speaking-exam/exam-mic-test-scre
 import { ExamQuestionDisplay } from '@/components/speaking-exam/exam-question-display';
 import { ExamSpeakingTimer } from '@/components/speaking-exam/exam-speaking-timer';
 import { ExamEvaluationResult } from '@/components/speaking-exam/exam-evaluation-result';
+import { ExamEvaluatingTracker } from '@/components/speaking-exam/exam-evaluating-tracker';
 import { ExamPart2IntroScreen, ExamPart2CueCardWithNote } from '@/components/speaking-exam/exam-part2-intro-screen';
 import { ExamPart1IntroScreen } from '@/components/speaking-exam/exam-part1-intro-screen';
 import { ExamPart3IntroScreen } from '@/components/speaking-exam/exam-part3-intro-screen';
@@ -430,8 +431,8 @@ export default function SpeakingExamPage({ params }: Props) {
     }
 
     return (
-      <PageShell currentPart={currentPart} currentQuestionIndex={currentQuestionIndex} partConfig={partConfig}>
-        <ExamTransitionScreen message="Evaluating your responses... Please wait." />
+      <PageShell>
+        <ExamEvaluatingTracker />
       </PageShell>
     );
   }

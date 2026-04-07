@@ -100,9 +100,15 @@ export class ApiClient {
   async request<T>(endpoint: string, options: FetchOptions = {}): Promise<T> {
     const { requiresAuth = false, headers = {}, ...restOptions } = options;
 
+    const isFormData = restOptions.body instanceof FormData;
+    const configHeaders: Record<string, string> = { ...headers as Record<string, string> };
+    if (!isFormData && !configHeaders['Content-Type']) {
+      configHeaders['Content-Type'] = 'application/json';
+    }
+
     const config: RequestInit = {
       ...restOptions,
-      headers: { 'Content-Type': 'application/json', ...headers },
+      headers: configHeaders,
     };
 
     if (requiresAuth) {

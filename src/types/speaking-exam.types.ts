@@ -50,6 +50,15 @@ export interface EvaluationEvent {
   vocabulary: number;
   grammar: number;
   pronunciation: number;
+  criteria?: {
+    [key: string]: {
+      criterion: string;
+      adjusted_band: number;
+      strengths: string[];
+      weaknesses: string[];
+      justification: string;
+    };
+  };
   feedback: EvaluationFeedback;
   transcript: string;
 }

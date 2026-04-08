@@ -12,11 +12,11 @@ interface Props {
 
 const STEPS = [
   { label: 'Đang phân tích cấu trúc bài viết...', delay: 0 },
-  { label: 'Đánh giá Task Achievement...', delay: 10000 },
-  { label: 'Đánh giá Coherence & Cohesion...', delay: 15000 },
-  { label: 'Đánh giá Lexical Resource...', delay: 20000 },
-  { label: 'Đánh giá Grammatical Range...', delay: 25000 },
-  { label: 'Áp dụng Rule Engine...', delay: 30000 },
+  { label: 'Đánh giá Task Achievement...', delay: 5000 },
+  { label: 'Đánh giá Coherence & Cohesion...', delay: 10000 },
+  { label: 'Đánh giá Lexical Resource...', delay: 15000 },
+  { label: 'Đánh giá Grammatical Range...', delay: 20000 },
+  { label: 'Áp dụng Rule Engine...', delay: 25000 },
   { label: 'Tổng hợp nhận xét & feedback...', delay: 50000 },
 ];
 
@@ -42,7 +42,7 @@ export function WritingScoringProgressDialog({ open }: Props) {
           <div className="bg-gradient-to-b from-teal-50 via-emerald-50/50 to-white pt-5 pb-2 px-5">
             <ChibiMascot mood="thinking" size={64} />
             <p className="text-center text-sm font-bold text-gray-700 mt-1">Đang chấm bài viết</p>
-            <p className="text-center text-[11px] text-gray-400 mt-0.5">7 bước phân tích • khoảng 60-180 giây</p>
+            <p className="text-center text-[11px] text-gray-400 mt-0.5">7 bước phân tích • khoảng 0-60 giây</p>
           </div>
 
           <div className="px-5 pb-5 pt-2 space-y-2">

@@ -12,12 +12,12 @@ interface Props {
 
 const STEPS = [
   { label: 'Đang phân tích cấu trúc bài viết...', delay: 0 },
-  { label: 'Đánh giá Task Achievement...', delay: 30000 },
-  { label: 'Đánh giá Coherence & Cohesion...', delay: 60000 },
-  { label: 'Đánh giá Lexical Resource...', delay: 90000 },
-  { label: 'Đánh giá Grammatical Range...', delay: 120000 },
-  { label: 'Áp dụng Rule Engine...', delay: 150000 },
-  { label: 'Tổng hợp nhận xét & feedback...', delay: 180000 },
+  { label: 'Đánh giá Task Achievement...', delay: 15000 },
+  { label: 'Đánh giá Coherence & Cohesion...', delay: 30000 },
+  { label: 'Đánh giá Lexical Resource...', delay: 45000 },
+  { label: 'Đánh giá Grammatical Range...', delay: 60000 },
+  { label: 'Áp dụng Rule Engine...', delay: 75000 },
+  { label: 'Tổng hợp nhận xét & feedback...', delay: 90000 },
 ];
 
 export function WritingScoringProgressDialog({ open }: Props) {

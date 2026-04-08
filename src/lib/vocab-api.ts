@@ -108,6 +108,28 @@ export async function deleteWord(id: number): Promise<void> {
   await apiClient.delete<ApiResponse<void>>(`/api/v1/vocab/${id}`, true);
 }
 
+export async function getVocabDetail(id: number): Promise<VocabDetail> {
+  const res = await apiClient.get<ApiResponse<VocabDetail>>(`/api/v1/vocab/${id}/detail`, true);
+  if (!res.result) throw new Error('Không thể tải chi tiết từ vựng');
+  return res.result;
+}
+
+export interface VocabDetail {
+  id: number;
+  word: string;
+  phonetic: string | null;
+  pos: string | null;
+  definition: string | null;
+  example: string | null;
+  meaning: string | null;
+  audioUrl: string | null;
+  status: string;
+  collectionName: string | null;
+  collocation: string | null;
+  explanation: string | null;
+  examples: string[] | null;
+}
+
 export async function moveWord(id: number, vocabListId: number): Promise<void> {
   await apiClient.patch<ApiResponse<void>>(`/api/v1/vocab/${id}/move`, { vocabListId }, true);
 }

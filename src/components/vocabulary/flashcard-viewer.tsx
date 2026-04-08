@@ -1,11 +1,14 @@
 'use client';
 
-import { Volume2 } from 'lucide-react';
+import { Volume2, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { VocabWord } from '@/types/vocab.types';
+import { VocabDetail } from '@/lib/vocab-api';
 
 interface FlashcardViewerProps {
   word: VocabWord;
+  detail: VocabDetail | null;
+  loadingDetail: boolean;
   flipped: boolean;
   onFlip: () => void;
   onReview?: (quality: number) => void;
@@ -18,16 +21,27 @@ const REVIEW_BUTTONS = [
   { label: 'Dễ', quality: 5, className: 'border-blue-300 text-blue-600 hover:bg-blue-50' },
 ];
 
-export function FlashcardViewer({ word, flipped, onFlip, onReview }: FlashcardViewerProps) {
+export function FlashcardViewer({ word, detail, loadingDetail, flipped, onFlip, onReview }: FlashcardViewerProps) {
   const playAudio = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (word.audioUrl) new Audio(word.audioUrl).play().catch(() => {});
+    const url = detail?.audioUrl || word.audioUrl;
+    if (url) new Audio(url).play().catch(() => {});
   };
 
   const handleReview = (e: React.MouseEvent, quality: number) => {
     e.stopPropagation();
     onReview?.(quality);
   };
+
+  // Use detail data if available, fallback to basic word data
+  const phonetic = detail?.phonetic || word.phonetic;
+  const audioUrl = detail?.audioUrl || word.audioUrl;
+  const meaning = detail?.meaning || word.meaning;
+  const pos = detail?.pos || word.pos;
+  const definition = detail?.definition || word.definition;
+  const collocation = detail?.collocation;
+  const explanation = detail?.explanation;
+  const examples = detail?.examples || (word.example ? [word.example] : null);
 
   return (
     <div className="w-full max-w-xl mx-auto flex flex-col gap-4">
@@ -44,17 +58,17 @@ export function FlashcardViewer({ word, flipped, onFlip, onReview }: FlashcardVi
             transform: flipped ? 'rotateY(180deg)' : 'rotateY(0deg)',
           }}
         >
-          {/* Front face */}
+          {/* Front face - English word */}
           <div
             className="absolute inset-0 flex flex-col items-center justify-center
               rounded-2xl border border-blue-200 bg-gradient-to-br from-blue-50 to-indigo-100 p-8"
             style={{ backfaceVisibility: 'hidden' }}
           >
             <p className="text-4xl font-bold text-gray-900 text-center">{word.word}</p>
-            {word.phonetic && (
-              <p className="mt-3 text-lg text-gray-500">{word.phonetic}</p>
+            {phonetic && (
+              <p className="mt-3 text-lg text-gray-500">{phonetic}</p>
             )}
-            {word.audioUrl && (
+            {audioUrl && (
               <button
                 onClick={playAudio}
                 className="mt-3 p-2 rounded-full text-gray-400 hover:text-blue-500 hover:bg-blue-100 transition-colors"
@@ -66,30 +80,73 @@ export function FlashcardViewer({ word, flipped, onFlip, onReview }: FlashcardVi
             <p className="mt-4 text-xs text-gray-400">Nhấn để lật thẻ</p>
           </div>
 
-          {/* Back face */}
+          {/* Back face - Vietnamese meaning + details */}
           <div
-            className="absolute inset-0 flex flex-col items-center justify-center gap-3
-              rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50 to-teal-100 p-8"
+            className="absolute inset-0 flex flex-col items-center justify-center
+              rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50 to-teal-100 p-6"
             style={{
               backfaceVisibility: 'hidden',
               transform: 'rotateY(180deg)',
             }}
           >
-            {word.definition && (
-              <p className="text-base font-semibold text-gray-800 text-center">{word.definition}</p>
+            {loadingDetail ? (
+              <div className="flex items-center gap-2">
+                <Loader2 className="h-5 w-5 animate-spin text-emerald-500" />
+                <span className="text-sm text-gray-500">Đang tải...</span>
+              </div>
+            ) : (
+              <div className="w-full max-h-[240px] overflow-y-auto custom-scrollbar-thick">
+                {/* Main meaning */}
+                {meaning && (
+                  <p className="text-xl font-bold text-emerald-700 text-center mb-3">{meaning}</p>
+                )}
+
+                {/* POS badge */}
+                {pos && (
+                  <span className="inline-block text-[10px] font-medium bg-emerald-200 text-emerald-700
+                    px-2 py-0.5 rounded-full mb-3">{pos}</span>
+                )}
+
+                {/* Explanation */}
+                {explanation && (
+                  <div className="mb-3 text-center">
+                    <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Giải thích</p>
+                    <p className="text-xs text-gray-600 leading-relaxed mt-1">{explanation}</p>
+                  </div>
+                )}
+
+                {/* Definition */}
+                {definition && !explanation && (
+                  <p className="text-sm text-gray-700 text-center mb-3">{definition}</p>
+                )}
+
+                {/* Examples */}
+                {examples && examples.length > 0 && (
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider text-center">Ví dụ</p>
+                    {examples.slice(0, 2).map((ex, i) => (
+                      <p key={i} className="text-xs text-gray-600 italic text-center border-l-2 border-teal-200 pl-2">
+                        {ex}
+                      </p>
+                    ))}
+                  </div>
+                )}
+
+                {/* Collocation */}
+                {collocation && (
+                  <div className="mt-2 text-center">
+                    <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Liên quan</p>
+                    <p className="text-xs text-violet-600 mt-1">{collocation}</p>
+                  </div>
+                )}
+              </div>
             )}
-            {word.example && (
-              <p className="text-sm text-gray-600 italic text-center">{word.example}</p>
-            )}
-            {word.meaning && (
-              <p className="mt-2 text-blue-700 font-semibold text-center">{word.meaning}</p>
-            )}
-            <p className="mt-4 text-xs text-gray-400">Nhấn để lật thẻ</p>
+            <p className="mt-auto text-xs text-gray-400 pt-2">Nhấn để lật thẻ</p>
           </div>
         </div>
       </div>
 
-      {/* SR review buttons — only shown on back face when onReview is provided */}
+      {/* SR review buttons */}
       {onReview && flipped && (
         <div className="flex gap-2 justify-center">
           {REVIEW_BUTTONS.map(({ label, quality, className }) => (

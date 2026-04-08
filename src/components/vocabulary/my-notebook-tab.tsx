@@ -1,16 +1,16 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Plus, Trash2, Loader2, BookOpen, ChevronLeft, FolderOpen } from 'lucide-react';
+import { Plus, Trash2, Loader2, FolderOpen } from 'lucide-react';
 import { ChibiMascot, ChibiAnimationStyles } from '@/components/ui/chibi-mascot';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { VocabWordRow } from './vocab-word-row';
 import { getMyLists, getMyWords, createList, deleteList } from '@/lib/vocab-api';
-import type { VocabCollection, VocabWord } from '@/types/vocab.types';
+import type { VocabCollection } from '@/types/vocab.types';
 import { toast } from 'sonner';
 import { useLoginPrompt } from '@/hooks/use-login-prompt';
 import { LoginPromptDialog } from '@/components/auth/login-prompt-dialog';
+import { useRouter } from 'next/navigation';
 
 const T = {
   login_title: '\u0110\u0103ng nh\u1eadp \u0111\u1ec3 xem s\u1ed5 tay c\u1ee7a b\u1ea1n',
@@ -32,11 +32,9 @@ const T = {
 
 export function MyNotebookTab() {
   const { showPrompt, setShowPrompt, requireAuth, isAuthenticated: isLoggedIn } = useLoginPrompt();
+  const router = useRouter();
   const [collections, setCollections] = useState<VocabCollection[]>([]);
-  const [selectedList, setSelectedList] = useState<VocabCollection | null>(null);
-  const [words, setWords] = useState<VocabWord[]>([]);
   const [loadingCollections, setLoadingCollections] = useState(true);
-  const [loadingWords, setLoadingWords] = useState(false);
   const [newListTitle, setNewListTitle] = useState('');
   const [creatingList, setCreatingList] = useState(false);
   const [showNewListInput, setShowNewListInput] = useState(false);
@@ -57,18 +55,14 @@ export function MyNotebookTab() {
     else setLoadingCollections(false);
   }, [isLoggedIn, loadCollections]);
 
-  const handleSelectList = async (list: VocabCollection) => {
-    setSelectedList(list);
-    setLoadingWords(true);
-    setWords([]);
+  const handleSelectList = (list: VocabCollection) => {
+    // Store list data in sessionStorage for the detail page to use
     try {
-      const page = await getMyWords(0, 100, list.id);
-      setWords(page.content);
-    } catch {
-      setWords([]);
-    } finally {
-      setLoadingWords(false);
+      sessionStorage.setItem(`vocab-list-${list.id}`, JSON.stringify(list));
+    } catch (e) {
+      // Ignore sessionStorage errors
     }
+    router.push(`/vocabulary/notebook/${list.id}`);
   };
 
   const handleCreateList = async () => {
@@ -92,7 +86,6 @@ export function MyNotebookTab() {
     try {
       await deleteList(list.id);
       setCollections((prev) => prev.filter((c) => c.id !== list.id));
-      if (selectedList?.id === list.id) setSelectedList(null);
       toast.success(T.deleted_list(list.title));
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : 'Error');
@@ -100,7 +93,8 @@ export function MyNotebookTab() {
   };
 
   const handleWordDeleted = (id: number) => {
-    setWords((prev) => prev.filter((w) => w.id !== id));
+    // Reload collections to update word counts
+    loadCollections();
   };
 
   if (!isLoggedIn) {
@@ -119,55 +113,6 @@ export function MyNotebookTab() {
           {T.login_btn}
         </Button>
         <LoginPromptDialog open={showPrompt} onOpenChange={setShowPrompt} />
-      </div>
-    );
-  }
-
-  if (selectedList) {
-    return (
-      <div className="space-y-5">
-        <div className="flex items-center gap-3">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setSelectedList(null)}
-            className="gap-1.5 text-gray-500 hover:text-gray-700 rounded-xl"
-          >
-            <ChevronLeft className="h-4 w-4" />
-            {T.back}
-          </Button>
-          <div className="flex items-center gap-2">
-            <span className="inline-flex items-center justify-center p-1.5 rounded-lg
-              bg-indigo-50 text-indigo-500">
-              <BookOpen className="h-4 w-4" />
-            </span>
-            <span className="font-bold text-gray-800">{selectedList.title}</span>
-          </div>
-          {!loadingWords && (
-            <span className="ml-auto text-sm text-gray-400 font-medium bg-gray-50
-              px-3 py-1 rounded-lg">
-              {words.length} {T.word_unit}
-            </span>
-          )}
-        </div>
-
-        {loadingWords ? (
-          <div className="flex justify-center py-16">
-            <Loader2 className="h-6 w-6 animate-spin text-indigo-400" />
-          </div>
-        ) : words.length === 0 ? (
-          <div className="text-center py-16">
-            <ChibiAnimationStyles />
-            <ChibiMascot mood="thinking" size={72} />
-            <p className="text-gray-400 mt-3 font-medium">{T.empty_words}</p>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {words.map((w) => (
-              <VocabWordRow key={w.id} word={w} onDelete={handleWordDeleted} />
-            ))}
-          </div>
-        )}
       </div>
     );
   }
@@ -232,7 +177,9 @@ export function MyNotebookTab() {
             <div
               key={col.id}
               className="group rounded-2xl border border-gray-100 bg-white p-5 sm:p-6
-                shadow-sm hover:shadow-md hover:border-indigo-200 transition-all duration-200"
+                shadow-sm hover:shadow-md hover:border-indigo-200 transition-all duration-200
+                cursor-pointer"
+              onClick={() => handleSelectList(col)}
             >
               <div className="flex items-start gap-4">
                 <span className="inline-flex items-center justify-center rounded-xl p-3
@@ -240,25 +187,20 @@ export function MyNotebookTab() {
                   <FolderOpen className="h-5 w-5" />
                 </span>
                 <div className="flex-1 min-w-0">
-                  <button
-                    onClick={() => handleSelectList(col)}
-                    className="text-left w-full"
-                  >
-                    <p className="font-bold text-gray-900 text-base
-                      group-hover:text-indigo-600 transition-colors">
-                      {col.title}
-                    </p>
-                    {col.description && (
-                      <p className="text-xs text-gray-500 mt-1 line-clamp-2">{col.description}</p>
-                    )}
-                    <p className="text-sm text-gray-400 font-medium mt-2">
-                      {col.wordCount} {T.word_unit}
-                    </p>
-                  </button>
+                  <p className="font-bold text-gray-900 text-base
+                    group-hover:text-indigo-600 transition-colors">
+                    {col.title}
+                  </p>
+                  {col.description && (
+                    <p className="text-xs text-gray-500 mt-1 line-clamp-2">{col.description}</p>
+                  )}
+                  <p className="text-sm text-gray-400 font-medium mt-2">
+                    {col.wordCount} {T.word_unit}
+                  </p>
                 </div>
                 {!col.isDefault && (
                   <button
-                    onClick={() => handleDeleteList(col)}
+                    onClick={(e) => { e.stopPropagation(); handleDeleteList(col); }}
                     className="shrink-0 p-2 rounded-xl text-gray-300 hover:text-red-500
                       hover:bg-red-50 transition-all opacity-0 group-hover:opacity-100"
                   >

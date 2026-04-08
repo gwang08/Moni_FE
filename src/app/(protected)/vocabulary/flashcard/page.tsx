@@ -6,7 +6,7 @@ import { ArrowLeft, ArrowRight, Shuffle, RotateCcw, Loader2 } from 'lucide-react
 import { ChibiMascot, ChibiAnimationStyles } from '@/components/ui/chibi-mascot';
 import { Button } from '@/components/ui/button';
 import { FlashcardViewer } from '@/components/vocabulary/flashcard-viewer';
-import { getMyWords, getDueReview, submitReview, getReviewStats } from '@/lib/vocab-api';
+import { getMyWords, getDueReview, submitReview, getReviewStats, getVocabDetail, type VocabDetail } from '@/lib/vocab-api';
 import { VocabWord, ReviewStats } from '@/types/vocab.types';
 import { toast } from 'sonner';
 
@@ -31,6 +31,10 @@ export default function FlashcardPage() {
   const [flipped, setFlipped] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+
+  // Detail state for current word
+  const [wordDetail, setWordDetail] = useState<VocabDetail | null>(null);
+  const [loadingDetail, setLoadingDetail] = useState(false);
 
   // SR review mode state
   const [reviewedCount, setReviewedCount] = useState(0);
@@ -62,6 +66,43 @@ export default function FlashcardPage() {
     };
     load();
   }, [collectionId, mode]);
+
+  // Fetch detail for current word
+  useEffect(() => {
+    if (words.length === 0) return;
+    const currentWord = words[index];
+    if (!currentWord) return;
+
+    setWordDetail(null);
+    setLoadingDetail(true);
+
+    getVocabDetail(currentWord.id)
+      .then((detail) => {
+        setWordDetail(detail);
+      })
+      .catch((e) => {
+        console.warn('Failed to fetch word detail for flashcard:', e?.message);
+        // Fallback to basic data
+        setWordDetail({
+          id: currentWord.id,
+          word: currentWord.word,
+          phonetic: currentWord.phonetic,
+          pos: currentWord.pos,
+          definition: currentWord.definition,
+          example: currentWord.example,
+          meaning: currentWord.meaning,
+          audioUrl: currentWord.audioUrl,
+          status: currentWord.status,
+          collectionName: currentWord.collectionName,
+          collocation: null,
+          explanation: null,
+          examples: currentWord.example ? [currentWord.example] : null,
+        });
+      })
+      .finally(() => {
+        setLoadingDetail(false);
+      });
+  }, [words, index]);
 
   const goNext = useCallback(() => {
     setFlipped(false);
@@ -222,9 +263,11 @@ export default function FlashcardPage() {
         </div>
       </div>
 
-      {/* Flashcard — pass onReview only in SR mode */}
+      {/* Flashcard */}
       <FlashcardViewer
         word={currentWord}
+        detail={wordDetail}
+        loadingDetail={loadingDetail}
         flipped={flipped}
         onFlip={() => setFlipped((f) => !f)}
         onReview={isReviewMode ? handleReview : undefined}

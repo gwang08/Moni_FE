@@ -16,18 +16,19 @@ export function SessionExpiredDialog() {
   const [open, setOpen] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
+  const clearAuth = useAuthStore((s) => s.clearAuth);
 
   useEffect(() => {
-    const handler = () => setOpen(true);
+    const handler = () => {
+      clearAuth(); // Immediately logout from Zustand memory
+      setOpen(true);
+    };
     window.addEventListener('session-expired', handler);
     return () => window.removeEventListener('session-expired', handler);
-  }, []);
-
-  const clearAuth = useAuthStore((s) => s.clearAuth);
+  }, [clearAuth]);
 
   const handleLogin = () => {
     setOpen(false);
-    clearAuth();
     router.push(`/login?redirect=${encodeURIComponent(pathname)}`);
   };
 

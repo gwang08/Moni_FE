@@ -42,16 +42,24 @@ function dig(obj: any, ...paths: string[]): number {
 }
 
 function extractFeedback(data: any): string {
-  // Try nested feedback.overall_strategy first
+  let combinedFeedback = '';
+
   if (typeof data?.feedback?.overall_strategy === 'string' && data.feedback.overall_strategy) {
-    return data.feedback.overall_strategy;
+    combinedFeedback += `💡 TỔNG QUAN:\n${data.feedback.overall_strategy}\n\n`;
   }
-  // Try feedback.improvements array
+
   if (Array.isArray(data?.feedback?.improvements) && data.feedback.improvements.length > 0) {
-    return data.feedback.improvements
-      .map((imp: any) => `[${imp.criterion}] ${imp.reason}`)
-      .join('\n');
+    const bandInc = data.feedback.target_band_increase;
+    combinedFeedback += `🔧 HƯỚNG CẢI THIỆN${bandInc ? ` (Mục tiêu tăng ${bandInc} band)` : ''}:\n`;
+    combinedFeedback += data.feedback.improvements
+      .map((imp: any) => `- [${imp.criterion || 'Lỗi'}] ${imp.reason}\n  ❌ Ban đầu: "${imp.original_sentence}"\n  ✅ Gợi ý sửa: "${imp.improved_sentence}"`)
+      .join('\n\n');
   }
+
+  if (combinedFeedback) {
+    return combinedFeedback.trim();
+  }
+
   // Try flat feedback string
   if (typeof data?.feedback === 'string' && data.feedback) return data.feedback;
   if (typeof data?.comment === 'string' && data.comment) return data.comment;

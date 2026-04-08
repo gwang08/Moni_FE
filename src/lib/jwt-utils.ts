@@ -22,3 +22,14 @@ export function getRoleFromToken(token: string): string | null {
   if (scope.includes('ROLE_EXPERT')) return 'EXPERT';
   return 'USER';
 }
+
+/**
+ * Returns true if the JWT token is expired (or will expire within `bufferSec` seconds).
+ * Returns true (treat as expired) if the token cannot be decoded.
+ */
+export function isTokenExpired(token: string, bufferSec = 30): boolean {
+  const payload = decodeJwtPayload(token);
+  if (!payload || typeof payload.exp !== 'number') return true;
+  const nowSec = Math.floor(Date.now() / 1000);
+  return nowSec >= payload.exp - bufferSec;
+}

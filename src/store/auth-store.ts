@@ -7,7 +7,7 @@ import type {
   UserProfileResponse,
 } from '@/types/auth.types';
 import { apiClient } from '@/lib/api-client';
-import { getRoleFromToken } from '@/lib/jwt-utils';
+import { getRoleFromToken, isTokenExpired } from '@/lib/jwt-utils';
 
 export const useAuthStore = create<AuthStore>()(
   persist(
@@ -75,8 +75,13 @@ export const useAuthStore = create<AuthStore>()(
 
       checkAuth: () => {
         const { token } = get();
-        // Only check if token exists — expiry is handled by api-client auto-refresh
-        return !!token;
+        if (!token) return false;
+        // Check actual JWT expiry
+        if (isTokenExpired(token, 0)) {
+          get().clearAuth();
+          return false;
+        }
+        return true;
       },
 
       clearAuth: () => {

@@ -1,5 +1,7 @@
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
+import { isTokenExpired } from '@/lib/jwt-utils';
+
 export class ApiError extends Error {
   constructor(
     public status: number,
@@ -112,8 +114,25 @@ export class ApiClient {
     };
 
     if (requiresAuth) {
-      const token = this.getAuthToken();
-      if (!token) throw new ApiError(401, undefined, 'Chưa đăng nhập');
+      let token = this.getAuthToken();
+      if (!token) {
+        clearStoredAuth();
+        fireSessionExpired();
+        throw new ApiError(401, undefined, 'Chưa đăng nhập');
+      }
+
+      // Proactive refresh: if token is expired or about to expire, refresh first
+      if (isTokenExpired(token)) {
+        const refreshed = await this.refreshToken();
+        if (refreshed) {
+          token = refreshed;
+        } else {
+          clearStoredAuth();
+          fireSessionExpired();
+          throw new ApiError(401, undefined, 'Phiên đăng nhập đã hết hạn');
+        }
+      }
+
       config.headers = { ...config.headers, Authorization: `Bearer ${token}` };
     }
 

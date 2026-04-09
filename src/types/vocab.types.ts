@@ -1,3 +1,5 @@
+export type VocabSourceType = 'MANUAL' | 'READING_PASSAGE' | 'DICTIONARY_LOOKUP' | 'LISTENING_PASSAGE' | 'WRITING_EXERCISE' | 'SPEAKING_EXERCISE';
+
 export interface VocabWord {
   id: number;
   word: string;
@@ -8,6 +10,10 @@ export interface VocabWord {
   meaning: string | null;
   audioUrl: string | null;
   status: 'DRAFT' | 'ACTIVE' | 'MASTERED' | 'ARCHIVED';
+  sourceType: VocabSourceType;
+  collocation: string | null;
+  explanation: string | null;
+  examples: string[] | null;
   collectionName: string | null;
   nextReviewAt: string | null;
   createdAt: string;

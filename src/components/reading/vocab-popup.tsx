@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { X, Loader2, Copy, BookmarkPlus, MessageSquareText, Link2, Quote, ChevronDown, Plus } from 'lucide-react';
-import { lookupVocab, saveWord, getMyLists, createList, type VocabLookupResult } from '@/lib/vocab-api';
+import { lookupVocab, saveWord, createList, type VocabLookupResult } from '@/lib/vocab-api';
+import { useVocabLists, useInvalidateVocabLists } from '@/hooks/use-vocab-lists';
 import type { VocabCollection } from '@/types/vocab.types';
 import { toast } from 'sonner';
 
@@ -20,20 +21,30 @@ export function VocabPopup({ word, sentence, position, onClose }: Props) {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
-  // Vocab list state
-  const [vocabLists, setVocabLists] = useState<VocabCollection[]>([]);
+  // Use cached vocab lists
+  const { data: vocabLists = [], isLoading: loadingLists } = useVocabLists();
+  const invalidateLists = useInvalidateVocabLists();
+
   const [selectedListId, setSelectedListId] = useState<number | undefined>();
   const [showListDropdown, setShowListDropdown] = useState(false);
-  const [loadingLists, setLoadingLists] = useState(false);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [newListTitle, setNewListTitle] = useState('');
   const [creatingList, setCreatingList] = useState(false);
 
+  // Set default list when vocabLists loads
+  useEffect(() => {
+    if (vocabLists.length > 0 && !selectedListId) {
+      const defaultList = vocabLists.find(l => l.isDefault);
+      if (defaultList) setSelectedListId(defaultList.id);
+    }
+  }, [vocabLists, selectedListId]);
+
+  // Lookup word
   useEffect(() => {
     const controller = new AbortController();
     setLoading(true);
     setError('');
-    lookupVocab(word, sentence, controller.signal)
+    lookupVocab(word, controller.signal)
       .then((result) => { if (!controller.signal.aborted) setData(result); })
       .catch((err) => {
         if (controller.signal.aborted) return;
@@ -43,20 +54,6 @@ export function VocabPopup({ word, sentence, position, onClose }: Props) {
     return () => { controller.abort(); };
   }, [word, sentence]);
 
-  // Fetch vocab lists when popup opens
-  useEffect(() => {
-    setLoadingLists(true);
-    getMyLists()
-      .then((lists) => {
-        setVocabLists(lists);
-        // Default to default list
-        const defaultList = lists.find(l => l.isDefault);
-        if (defaultList) setSelectedListId(defaultList.id);
-      })
-      .catch(() => {})
-      .finally(() => setLoadingLists(false));
-  }, []);
-
   const handleCopy = () => {
     navigator.clipboard.writeText(word);
     toast.success('Đã sao chép');
@@ -65,7 +62,7 @@ export function VocabPopup({ word, sentence, position, onClose }: Props) {
   const handleSave = async () => {
     setSaving(true);
     try {
-      await saveWord(word, sentence, selectedListId);
+      await saveWord(word, sentence, selectedListId, 'READING_PASSAGE');
       setSaved(true);
       const listName = vocabLists.find(l => l.id === selectedListId)?.title || 'sổ từ';
       toast.success(`Đã lưu từ "${word}" vào ${listName}`);
@@ -81,7 +78,7 @@ export function VocabPopup({ word, sentence, position, onClose }: Props) {
     setCreatingList(true);
     try {
       const newList = await createList(newListTitle.trim());
-      setVocabLists(prev => [...prev, newList]);
+      invalidateLists(); // Invalidate cache to trigger refetch
       setSelectedListId(newList.id);
       setShowCreateDialog(false);
       setNewListTitle('');
@@ -197,7 +194,9 @@ export function VocabPopup({ word, sentence, position, onClose }: Props) {
                   <span className="text-gray-700 truncate">
                     {loadingLists
                       ? 'Đang tải danh sách...'
-                      : vocabLists.find(l => l.id === selectedListId)?.title || 'Chọn danh sách'
+                      : vocabLists.length > 0
+                        ? vocabLists.find(l => l.id === selectedListId)?.title || 'Chọn danh sách'
+                        : 'Chưa có danh sách'
                     }
                   </span>
                 </div>
@@ -209,28 +208,43 @@ export function VocabPopup({ word, sentence, position, onClose }: Props) {
                   <div className="fixed inset-0 z-[55]" onClick={() => setShowListDropdown(false)} />
                   <div className="absolute z-[55] w-full mt-1 bg-white border border-gray-200
                     rounded-lg shadow-lg max-h-48 overflow-y-auto">
-                    {vocabLists.map((list) => (
+                    {loadingLists ? (
+                      <div className="px-3 py-2 text-sm text-gray-400 text-center">Đang tải...</div>
+                    ) : vocabLists.length > 0 ? (
+                      <>
+                        {vocabLists.map((list) => (
+                          <button
+                            key={list.id}
+                            onClick={() => { setSelectedListId(list.id); setShowListDropdown(false); }}
+                            className={`w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-indigo-50
+                              transition-colors text-left ${selectedListId === list.id ? 'bg-indigo-50' : ''}`}
+                          >
+                            <span>{list.icon || '📒'}</span>
+                            <span className="flex-1 text-gray-700 truncate">{list.title}</span>
+                            {list.isDefault && (
+                              <span className="text-[10px] text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">Mặc định</span>
+                            )}
+                          </button>
+                        ))}
+                        <button
+                          onClick={() => { setShowListDropdown(false); setShowCreateDialog(true); }}
+                          className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-indigo-50
+                            transition-colors text-left border-t border-gray-100 text-indigo-600"
+                        >
+                          <Plus className="h-4 w-4" />
+                          <span>Tạo danh sách mới...</span>
+                        </button>
+                      </>
+                    ) : (
                       <button
-                        key={list.id}
-                        onClick={() => { setSelectedListId(list.id); setShowListDropdown(false); }}
-                        className={`w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-indigo-50
-                          transition-colors text-left ${selectedListId === list.id ? 'bg-indigo-50' : ''}`}
+                        onClick={() => { setShowListDropdown(false); setShowCreateDialog(true); }}
+                        className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-indigo-50
+                          transition-colors text-left text-indigo-600"
                       >
-                        <span>{list.icon || '📒'}</span>
-                        <span className="flex-1 text-gray-700 truncate">{list.title}</span>
-                        {list.isDefault && (
-                          <span className="text-[10px] text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">Mặc định</span>
-                        )}
+                        <Plus className="h-4 w-4" />
+                        <span>Tạo danh sách đầu tiên...</span>
                       </button>
-                    ))}
-                    <button
-                      onClick={() => { setShowListDropdown(false); setShowCreateDialog(true); }}
-                      className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-indigo-50
-                        transition-colors text-left border-t border-gray-100 text-indigo-600"
-                    >
-                      <Plus className="h-4 w-4" />
-                      <span>Tạo danh sách mới...</span>
-                    </button>
+                    )}
                   </div>
                 </>
               )}
@@ -239,7 +253,7 @@ export function VocabPopup({ word, sentence, position, onClose }: Props) {
             {/* Save button */}
             <button
               onClick={handleSave}
-              disabled={saving || saved || loadingLists}
+              disabled={saving || saved}
               className={`w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold
                 transition-colors
                 ${saved

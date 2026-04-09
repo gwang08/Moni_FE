@@ -7,6 +7,7 @@ import { TargetScores } from '@/components/dashboard/target-scores';
 import { ExamCountdown } from '@/components/dashboard/exam-countdown';
 import { ActivityCalendar } from '@/components/dashboard/activity-calendar';
 import { WeeklyStats } from '@/components/dashboard/weekly-stats';
+import { VocabReviewStats } from '@/components/dashboard/vocab-review-stats';
 import { PracticeHistory } from '@/components/dashboard/practice-history';
 import { useAuthStore } from '@/store/auth-store';
 import { PlacementDialog } from '@/components/dashboard/placement-dialog';
@@ -24,6 +25,7 @@ function DashboardSkeleton() {
         <SkeletonCard className="h-64" />
         <SkeletonCard className="h-64" />
       </div>
+      <SkeletonCard className="h-80" />
       <div className="grid gap-6 md:grid-cols-2">
         <SkeletonCard className="h-72" />
         <SkeletonCard className="h-72" />
@@ -108,6 +110,9 @@ export default function DashboardPage() {
               <TargetScores />
               <ExamCountdown />
             </div>
+
+            {/* Vocab Stats - Full Width */}
+            <VocabReviewStats />
 
             {/* Personalized Roadmap Metrics */}
             <RoadmapInsights />

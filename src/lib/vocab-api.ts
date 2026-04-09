@@ -35,15 +35,14 @@ let inflightKey: string | null = null;
 let inflightPromise: Promise<VocabLookupResult> | null = null;
 let inflightAborted = false;
 
-export async function lookupVocab(word: string, sentence?: string, signal?: AbortSignal): Promise<VocabLookupResult> {
-  const key = `${word}|${sentence ?? ''}`;
+export async function lookupVocab(word: string, signal?: AbortSignal): Promise<VocabLookupResult> {
+  const key = word;
 
   if (inflightKey === key && inflightPromise && !inflightAborted) {
     return inflightPromise;
   }
 
   const params = new URLSearchParams({ word });
-  if (sentence) params.set('sentence', sentence);
 
   inflightKey = key;
   inflightAborted = false;
@@ -95,11 +94,26 @@ export async function getMyWords(
   return res.result;
 }
 
-export async function saveWord(word: string, sentence?: string, vocabListId?: number): Promise<VocabWord> {
-  const body: Record<string, unknown> = { word };
+export async function saveWord(word: string, sentence?: string, vocabListId?: number, sourceType?: string): Promise<VocabWord> {
+  const body: Record<string, unknown> = { word, sourceType };
   if (sentence) body.sentence = sentence;
   if (vocabListId != null) body.vocabListId = vocabListId;
   const res = await apiClient.post<ApiResponse<VocabWord>>('/api/v1/vocab/save', body, true);
+  if (!res.result) throw new Error('Không thể lưu từ');
+  return res.result;
+}
+
+export async function saveWordManual(data: {
+  word: string;
+  vocabListId?: number;
+  meaning?: string;
+  phonetic?: string;
+  pos?: string;
+  definition?: string;
+  example?: string;
+  sourceType?: string;
+}): Promise<VocabWord> {
+  const res = await apiClient.post<ApiResponse<VocabWord>>('/api/v1/vocab/save-manual', data, true);
   if (!res.result) throw new Error('Không thể lưu từ');
   return res.result;
 }

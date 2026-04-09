@@ -1,6 +1,6 @@
 'use client';
 
-import { Volume2, Loader2 } from 'lucide-react';
+import { Volume2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { VocabWord } from '@/types/vocab.types';
 import { VocabDetail } from '@/lib/vocab-api';
@@ -33,15 +33,12 @@ export function FlashcardViewer({ word, detail, loadingDetail, flipped, onFlip, 
     onReview?.(quality);
   };
 
-  // Use detail data if available, fallback to basic word data
-  const phonetic = detail?.phonetic || word.phonetic;
-  const audioUrl = detail?.audioUrl || word.audioUrl;
-  const meaning = detail?.meaning || word.meaning;
-  const pos = detail?.pos || word.pos;
-  const definition = detail?.definition || word.definition;
-  const collocation = detail?.collocation;
-  const explanation = detail?.explanation;
-  const examples = detail?.examples || (word.example ? [word.example] : null);
+  // Use word data directly (already loaded from vocab list)
+  const phonetic = word.phonetic;
+  const audioUrl = word.audioUrl;
+  const meaning = word.meaning;
+  const pos = word.pos;
+  const example = word.example;
 
   return (
     <div className="w-full max-w-xl mx-auto flex flex-col gap-4">
@@ -58,16 +55,20 @@ export function FlashcardViewer({ word, detail, loadingDetail, flipped, onFlip, 
             transform: flipped ? 'rotateY(180deg)' : 'rotateY(0deg)',
           }}
         >
-          {/* Front face - English word */}
+          {/* Front face - English word + POS inline */}
           <div
             className="absolute inset-0 flex flex-col items-center justify-center
               rounded-2xl border border-blue-200 bg-gradient-to-br from-blue-50 to-indigo-100 p-8"
             style={{ backfaceVisibility: 'hidden' }}
           >
-            <p className="text-4xl font-bold text-gray-900 text-center">{word.word}</p>
-            {phonetic && (
-              <p className="mt-3 text-lg text-gray-500">{phonetic}</p>
-            )}
+            <div className="flex items-center gap-3">
+              <p className="text-4xl font-bold text-gray-900">{word.word}</p>
+              {pos && (
+                <span className="inline-block text-sm font-medium bg-blue-200 text-blue-700 px-3 py-1 rounded-full align-middle">
+                  {pos}
+                </span>
+              )}
+            </div>
             {audioUrl && (
               <button
                 onClick={playAudio}
@@ -80,7 +81,7 @@ export function FlashcardViewer({ word, detail, loadingDetail, flipped, onFlip, 
             <p className="mt-4 text-xs text-gray-400">Nhấn để lật thẻ</p>
           </div>
 
-          {/* Back face - Vietnamese meaning + details */}
+          {/* Back face - IPA, Vietnamese meaning, Example */}
           <div
             className="absolute inset-0 flex flex-col items-center justify-center
               rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50 to-teal-100 p-6"
@@ -89,58 +90,31 @@ export function FlashcardViewer({ word, detail, loadingDetail, flipped, onFlip, 
               transform: 'rotateY(180deg)',
             }}
           >
-            {loadingDetail ? (
-              <div className="flex items-center gap-2">
-                <Loader2 className="h-5 w-5 animate-spin text-emerald-500" />
-                <span className="text-sm text-gray-500">Đang tải...</span>
-              </div>
-            ) : (
-              <div className="w-full max-h-[240px] overflow-y-auto custom-scrollbar-thick">
-                {/* Main meaning */}
-                {meaning && (
-                  <p className="text-xl font-bold text-emerald-700 text-center mb-3">{meaning}</p>
-                )}
+            <div className="w-full space-y-4">
+              {/* IPA / Pronunciation */}
+              {phonetic && (
+                <div className="text-center">
+                  <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Cách đọc</p>
+                  <p className="text-lg font-mono text-gray-700">{phonetic}</p>
+                </div>
+              )}
 
-                {/* POS badge */}
-                {pos && (
-                  <span className="inline-block text-[10px] font-medium bg-emerald-200 text-emerald-700
-                    px-2 py-0.5 rounded-full mb-3">{pos}</span>
-                )}
+              {/* Vietnamese meaning */}
+              {meaning && (
+                <div className="text-center">
+                  <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Nghĩa tiếng Việt</p>
+                  <p className="text-xl font-bold text-emerald-700">{meaning}</p>
+                </div>
+              )}
 
-                {/* Explanation */}
-                {explanation && (
-                  <div className="mb-3 text-center">
-                    <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Giải thích</p>
-                    <p className="text-xs text-gray-600 leading-relaxed mt-1">{explanation}</p>
-                  </div>
-                )}
-
-                {/* Definition */}
-                {definition && !explanation && (
-                  <p className="text-sm text-gray-700 text-center mb-3">{definition}</p>
-                )}
-
-                {/* Examples */}
-                {examples && examples.length > 0 && (
-                  <div className="space-y-1">
-                    <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider text-center">Ví dụ</p>
-                    {examples.slice(0, 2).map((ex, i) => (
-                      <p key={i} className="text-xs text-gray-600 italic text-center border-l-2 border-teal-200 pl-2">
-                        {ex}
-                      </p>
-                    ))}
-                  </div>
-                )}
-
-                {/* Collocation */}
-                {collocation && (
-                  <div className="mt-2 text-center">
-                    <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Liên quan</p>
-                    <p className="text-xs text-violet-600 mt-1">{collocation}</p>
-                  </div>
-                )}
-              </div>
-            )}
+              {/* Example */}
+              {example && (
+                <div className="text-center">
+                  <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Ví dụ</p>
+                  <p className="text-sm text-gray-600 italic leading-relaxed">{example}</p>
+                </div>
+              )}
+            </div>
             <p className="mt-auto text-xs text-gray-400 pt-2">Nhấn để lật thẻ</p>
           </div>
         </div>

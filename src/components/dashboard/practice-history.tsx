@@ -1,8 +1,10 @@
 'use client';
 
 import { useState, useMemo, useEffect, useRef } from 'react';
-import { BookOpen, Headphones, Pencil, Mic, Clock, ArrowUpDown, Filter, GraduationCap, Bot } from 'lucide-react';
+import { BookOpen, Headphones, Pencil, Mic, Clock, ArrowUpDown, Filter, GraduationCap, Bot, Search, Calendar } from 'lucide-react';
 import Link from 'next/link';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import type { AttemptHistory } from '@/lib/practice-api';
 import { getMySessions } from '@/lib/expert-api';
 import { getWritingSubmissions, type WritingSubmission } from '@/lib/ai-api';
@@ -212,6 +214,10 @@ export function PracticeHistory() {
   const [activeTab, setActiveTab] = useState<SkillKey>('reading');
   const [sortOrder, setSortOrder] = useState<SortOrder>('newest');
   const [scoreFilter, setScoreFilter] = useState<ScoreFilter>('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+  const [showDateFilter, setShowDateFilter] = useState(false);
   const { attempts, loading } = useAttemptHistory();
 
   // Fetch expert sessions + writing submissions
@@ -275,8 +281,24 @@ export function PracticeHistory() {
       });
     }
 
+    // Search by title
+    if (searchQuery.trim()) {
+      const q = searchQuery.trim().toLowerCase();
+      allEntries = allEntries.filter((e) => e.title.toLowerCase().includes(q));
+    }
+
+    // Date range filter
+    if (dateFrom) {
+      const from = new Date(dateFrom).getTime();
+      allEntries = allEntries.filter((e) => new Date(e.date).getTime() >= from);
+    }
+    if (dateTo) {
+      const to = new Date(dateTo).getTime() + 86400000; // include the whole end date
+      allEntries = allEntries.filter((e) => new Date(e.date).getTime() < to);
+    }
+
     return allEntries;
-  }, [attempts, expertSessions, writingSubs, activeSkill, activeTab, sortOrder, scoreFilter]);
+  }, [attempts, expertSessions, writingSubs, activeSkill, activeTab, sortOrder, scoreFilter, searchQuery, dateFrom, dateTo]);
 
   const isLoading = loading || (activeTab === 'speaking' && expertLoading) || (activeTab === 'writing' && writingSubsLoading);
 
@@ -289,7 +311,7 @@ export function PracticeHistory() {
         {TABS.map(({ key, label, icon }) => (
           <button
             key={key}
-            onClick={() => { setActiveTab(key); setScoreFilter('all'); }}
+            onClick={() => { setActiveTab(key); setScoreFilter('all'); setSearchQuery(''); setDateFrom(''); setDateTo(''); }}
             className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-all ${
               activeTab === key
                 ? 'bg-orange-500 text-white shadow-sm'
@@ -303,16 +325,81 @@ export function PracticeHistory() {
       </div>
 
       {/* Filters */}
-      <div className="flex items-center gap-2 mb-3 flex-wrap">
-        <button
-          onClick={() => setSortOrder(sortOrder === 'newest' ? 'oldest' : 'newest')}
-          className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors"
-        >
-          <ArrowUpDown className="h-3 w-3" />
-          {sortOrder === 'newest' ? 'Mới nhất' : 'Cũ nhất'}
-        </button>
+      <div className="space-y-3 mb-4">
+        {/* Search + sort row */}
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Search */}
+          <div className="relative flex-1 min-w-[200px] max-w-sm">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Input
+              placeholder="Tìm theo tên bài..."
+              className="pl-9 h-9 text-sm rounded-lg"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
 
-        <div className="flex items-center gap-1">
+          {/* Sort */}
+          <button
+            onClick={() => setSortOrder(sortOrder === 'newest' ? 'oldest' : 'newest')}
+            className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors shrink-0"
+          >
+            <ArrowUpDown className="h-3 w-3" />
+            {sortOrder === 'newest' ? 'Mới nhất' : 'Cũ nhất'}
+          </button>
+
+          {/* Date filter toggle */}
+          <button
+            onClick={() => setShowDateFilter(!showDateFilter)}
+            className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors shrink-0 ${
+              showDateFilter || dateFrom || dateTo
+                ? 'bg-orange-100 text-orange-700'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            }`}
+          >
+            <Calendar className="h-3 w-3" />
+            Thời gian
+            {(dateFrom || dateTo) && (
+              <span className="w-1.5 h-1.5 rounded-full bg-orange-500 ml-0.5" />
+            )}
+          </button>
+        </div>
+
+        {/* Date range (collapsible) */}
+        {showDateFilter && (
+          <div className="flex items-center gap-2 flex-wrap">
+            <input
+              type="date"
+              value={dateFrom}
+              onChange={(e) => setDateFrom(e.target.value)}
+              className="h-9 px-3 text-sm border border-gray-200 rounded-lg
+                focus:ring-2 focus:ring-orange-200 focus:border-orange-400 outline-none"
+              placeholder="Từ ngày"
+            />
+            <span className="text-gray-400 text-sm">→</span>
+            <input
+              type="date"
+              value={dateTo}
+              onChange={(e) => setDateTo(e.target.value)}
+              className="h-9 px-3 text-sm border border-gray-200 rounded-lg
+                focus:ring-2 focus:ring-orange-200 focus:border-orange-400 outline-none"
+              placeholder="Đến ngày"
+            />
+            {(dateFrom || dateTo) && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => { setDateFrom(''); setDateTo(''); }}
+                className="h-9 text-xs text-gray-500"
+              >
+                Xóa bộ lọc
+              </Button>
+            )}
+          </div>
+        )}
+
+        {/* Score filter pills */}
+        <div className="flex items-center gap-2 flex-wrap">
           <Filter className="h-3 w-3 text-gray-400" />
           {(['all', 'high', 'mid', 'low'] as ScoreFilter[]).map((f) => {
             const label = f === 'all' ? 'Tất cả' : f === 'high' ? '≥70%' : f === 'mid' ? '40-69%' : '<40%';
@@ -330,6 +417,19 @@ export function PracticeHistory() {
               </button>
             );
           })}
+          {(searchQuery || dateFrom || dateTo || scoreFilter !== 'all') && (
+            <button
+              onClick={() => {
+                setSearchQuery('');
+                setDateFrom('');
+                setDateTo('');
+                setScoreFilter('all');
+              }}
+              className="text-xs text-orange-600 hover:text-orange-700 font-medium ml-1"
+            >
+              Xóa tất cả bộ lọc
+            </button>
+          )}
         </div>
       </div>
 

@@ -1,11 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Menu, X } from 'lucide-react';
 import { UserAvatarDropdown } from '@/components/layout/user-avatar-dropdown';
+import { getDueReview } from '@/lib/vocab-api';
+import { Badge } from '@/components/ui/badge';
 
 const navLinks = [
   { label: 'Trang chủ', href: '/' },
@@ -13,6 +15,32 @@ const navLinks = [
   { label: 'Từ vựng', href: '/vocabulary' },
   { label: 'Liên Hệ', href: '/#contact' },
 ];
+
+function VocabNavItem() {
+  const pathname = usePathname();
+  const isActive = pathname === '/vocabulary' || pathname.startsWith('/vocabulary/');
+  const [dueCount, setDueCount] = useState(0);
+
+  useEffect(() => {
+    getDueReview().then(due => setDueCount(due.length)).catch(() => { });
+  }, []);
+
+  return (
+    <Link
+      href="/vocabulary"
+      className={`relative text-sm font-medium transition-colors hover:text-primary flex items-center gap-1.5 ${
+        isActive ? 'text-primary' : 'text-gray-700'
+      }`}
+    >
+      Từ vựng
+      {dueCount > 0 && (
+        <Badge className="h-4 min-w-4 px-1 text-[9px] bg-red-500 hover:bg-red-500 text-white font-bold">
+          {dueCount > 99 ? '99+' : dueCount}
+        </Badge>
+      )}
+    </Link>
+  );
+}
 
 export function InnerNavbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -35,6 +63,7 @@ export function InnerNavbar() {
         {/* Desktop Nav Links */}
         <div className="hidden md:flex items-center gap-8">
           {navLinks.map((link) => {
+            if (link.label === 'Từ vựng') return <VocabNavItem key={link.label} />;
             const isActive = pathname === link.href || (link.href !== '/' && pathname.startsWith(link.href));
             return (
               <Link

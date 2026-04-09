@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Volume2, BookmarkPlus, Check, Loader2 } from 'lucide-react';
 import { saveWord } from '@/lib/vocab-api';
 import { toast } from 'sonner';
@@ -16,8 +17,13 @@ const POS_BADGE: Record<string, string> = {
 };
 
 export function CuratedWordCard({ word }: { word: CuratedWord }) {
+  const router = useRouter();
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+
+  const handleClick = () => {
+    router.push(`/vocabulary?q=${encodeURIComponent(word.word)}`);
+  };
 
   const playAudio = () => {
     if (word.audioUrl) new Audio(word.audioUrl).play().catch(() => {});
@@ -43,8 +49,11 @@ export function CuratedWordCard({ word }: { word: CuratedWord }) {
     : '';
 
   return (
-    <div className="group rounded-2xl border border-gray-100 bg-white p-5 sm:p-6
-      shadow-sm hover:shadow-md hover:border-gray-200 transition-all duration-200">
+    <div
+      onClick={handleClick}
+      className="group rounded-2xl border border-gray-100 bg-white p-5 sm:p-6
+        shadow-sm hover:shadow-md hover:border-gray-200 transition-all duration-200 cursor-pointer"
+    >
       {/* Row 1: Word + phonetic + audio */}
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-3 flex-wrap min-w-0">

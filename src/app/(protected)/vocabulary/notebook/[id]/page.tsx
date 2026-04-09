@@ -7,7 +7,7 @@ import { ArrowLeft, Zap, Loader2, Volume2, Trash2, Pencil, ChevronUp, ChevronDow
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { getMyWords, deleteList, updateList, saveWord, lookupVocab, getVocabDetail, type VocabDetail } from '@/lib/vocab-api';
+import { getMyWords, deleteList, updateList, saveWordManual, deleteWord, lookupVocab, getVocabDetail, type VocabDetail } from '@/lib/vocab-api';
 import type { VocabWord, VocabCollection } from '@/types/vocab.types';
 import { toast } from 'sonner';
 
@@ -36,6 +36,20 @@ export default function NotebookListDetailPage() {
   const [newWordSentence, setNewWordSentence] = useState('');
   const [lookingUp, setLookingUp] = useState(false);
   const [savingWord, setSavingWord] = useState(false);
+
+  // Edit word dialog state
+  const [showEditWordDialog, setShowEditWordDialog] = useState(false);
+  const [editingWord, setEditingWord] = useState<VocabWord | null>(null);
+  const [editWordPhonetic, setEditWordPhonetic] = useState('');
+  const [editWordMeaning, setEditWordMeaning] = useState('');
+  const [editWordPos, setEditWordPos] = useState('');
+  const [editWordExample, setEditWordExample] = useState('');
+  const [savingWordEdit, setSavingWordEdit] = useState(false);
+
+  // Delete confirmation dialog state
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [wordToDelete, setWordToDelete] = useState<{ id: number; word: string } | null>(null);
+  const [deleting, setDeleting] = useState(false);
   
   const [currentPage, setCurrentPage] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
@@ -175,6 +189,33 @@ export default function NotebookListDetailPage() {
     }
   };
 
+  const handleDeleteWord = (wordId: number, wordText: string) => {
+    setWordToDelete({ id: wordId, word: wordText });
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDeleteWord = async () => {
+    if (!wordToDelete) return;
+    setDeleting(true);
+    try {
+      await deleteWord(wordToDelete.id);
+      toast.success(`Đã xóa từ "${wordToDelete.word}"`);
+      // Reload current page to update the list
+      const listId = Number(id);
+      if (isNaN(listId)) return;
+      const pageData = await getMyWords(currentPage, pageSize, listId);
+      setWords(pageData.content);
+      setTotalPages(pageData.totalPages);
+      setTotalElements(pageData.totalElements);
+    } catch {
+      toast.error('Không thể xóa từ');
+    } finally {
+      setDeleting(false);
+      setShowDeleteConfirm(false);
+      setWordToDelete(null);
+    }
+  };
+
   const handleUpdateList = async () => {
     if (!collection) return;
     setSavingEdit(true);
@@ -238,8 +279,10 @@ export default function NotebookListDetailPage() {
     try {
       const listId = Number(id);
       if (isNaN(listId)) return;
+      setLoading(true);
       const pageData = await getMyWords(0, pageSize, listId);
       setWords(pageData.content);
+      setCurrentPage(0);
       setTotalPages(pageData.totalPages);
       setTotalElements(pageData.totalElements);
       // Update collection word count
@@ -248,6 +291,8 @@ export default function NotebookListDetailPage() {
       }
     } catch (e) {
       console.error('Failed to refresh words:', e);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -264,19 +309,18 @@ export default function NotebookListDetailPage() {
   const handleLookupWord = async () => {
     const word = newWord.trim();
     if (!word) return;
-    
+
     setLookingUp(true);
     try {
       const result = await lookupVocab(word);
       setNewWordMeaning(result.meaning || '');
-      setNewWordPos(result.pos || '');
-      setNewWordDefinition(result.explanation || '');
+      setNewWordPos(result.phonetic || ''); // IPA
+      setNewWordDefinition(result.pos || ''); // Loại từ
       if (result.examples && result.examples.length > 0) {
         setNewWordExample(result.examples[0]);
       }
     } catch (e: any) {
       console.warn('Lookup failed, will save manually:', e?.message);
-      // Don't show error - user can fill in manually
     } finally {
       setLookingUp(false);
     }
@@ -288,18 +332,60 @@ export default function NotebookListDetailPage() {
       toast.error('Vui lòng nhập từ');
       return;
     }
-    
+
+    console.log('[AddWord] Saving word:', {
+      word,
+      listId: Number(id),
+      meaning: newWordMeaning.trim(),
+      pronunciation: newWordPos.trim(),
+      pos: newWordDefinition.trim(),
+      example: newWordExample.trim(),
+    });
+
     setSavingWord(true);
     try {
       const listId = Number(id);
-      await saveWord(word, newWordSentence || undefined, listId);
+      await saveWordManual({
+        word: word,
+        vocabListId: listId,
+        meaning: newWordMeaning.trim() || undefined,
+        phonetic: newWordPos.trim() || undefined,
+        pos: newWordDefinition.trim() || undefined,
+        definition: undefined,
+        example: newWordExample.trim() || undefined,
+      });
       toast.success(`Đã thêm từ "${word}"`);
       setShowAddWordDialog(false);
       await refreshWords();
     } catch (e: any) {
-      toast.error(e?.message || 'Không thể thêm từ');
+      console.error('[AddWord] Error:', e);
+      toast.error(e?.message || e?.response?.data?.message || 'Không thể thêm từ');
     } finally {
       setSavingWord(false);
+    }
+  };
+
+  const openEditWordDialog = (word: VocabWord) => {
+    setEditingWord(word);
+    setEditWordPhonetic(word.phonetic || '');
+    setEditWordMeaning(word.meaning || '');
+    setEditWordPos(word.pos || '');
+    setEditWordExample(word.example || '');
+    setShowEditWordDialog(true);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingWord) return;
+    setSavingWordEdit(true);
+    try {
+      // For now, just delete and re-add (backend doesn't have update endpoint yet)
+      // Or we can implement update if needed
+      toast.info('Tính năng cập nhật từ sẽ được thêm sớm!');
+      setShowEditWordDialog(false);
+    } catch (e: any) {
+      toast.error(e?.message || 'Không thể cập nhật từ');
+    } finally {
+      setSavingWordEdit(false);
     }
   };
 
@@ -408,39 +494,62 @@ export default function NotebookListDetailPage() {
         <>
           <div className="space-y-3">
             {words.map((word) => (
-              <button
+              <div
                 key={word.id}
-                onClick={() => handleWordClick(word)}
-                className="w-full text-left rounded-xl border border-gray-200 bg-white p-5 shadow-sm
+                className="relative rounded-xl border border-gray-200 bg-white p-5 shadow-sm
                   hover:border-blue-300 hover:shadow-md transition-all duration-200"
               >
-                <div className="flex items-center gap-3 mb-2">
-                  <span className="text-lg font-bold text-gray-900">{word.word}</span>
-                  {word.phonetic && (
-                    <span className="text-sm text-gray-400">{word.phonetic}</span>
+                {/* Action buttons */}
+                <div className="absolute top-3 right-3 flex gap-2 z-10">
+                  {/* Edit button */}
+                  <button
+                    onClick={(e) => { e.stopPropagation(); openEditWordDialog(word); }}
+                    className="p-2 rounded-lg bg-gray-50 text-gray-400 hover:text-blue-500
+                      hover:bg-blue-50 border border-gray-200 hover:border-blue-200 transition-all duration-200"
+                    title="Chỉnh sửa"
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </button>
+                  {/* Delete button */}
+                  <button
+                    onClick={(e) => { e.stopPropagation(); handleDeleteWord(word.id, word.word); }}
+                    className="p-2 rounded-lg bg-gray-50 text-gray-400 hover:text-red-500
+                      hover:bg-red-50 border border-gray-200 hover:border-red-200 transition-all duration-200"
+                    title="Xóa từ"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+
+                {/* Word info */}
+                <div className="pr-20">
+                  <div className="flex items-center gap-2 mb-2 flex-wrap">
+                    <span className="text-lg font-bold text-gray-900">{word.word}</span>
+                    {word.pos && (
+                      <span className="inline-block text-[11px] font-medium bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full">
+                        {word.pos}
+                      </span>
+                    )}
+                    {word.phonetic && (
+                      <span className="text-sm text-gray-400">{word.phonetic}</span>
+                    )}
+                    {word.audioUrl && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); new Audio(word.audioUrl!).play().catch(() => {}); }}
+                        className="text-gray-400 hover:text-blue-500"
+                      >
+                        <Volume2 className="h-4 w-4" />
+                      </button>
+                    )}
+                  </div>
+                  {word.example && (
+                    <p className="text-sm text-gray-500 italic mt-1">{word.example}</p>
                   )}
-                  {word.audioUrl && (
-                    <button
-                      onClick={(e) => { e.stopPropagation(); new Audio(word.audioUrl!).play().catch(() => {}); }}
-                      className="text-gray-400 hover:text-blue-500"
-                    >
-                      <Volume2 className="h-4 w-4" />
-                    </button>
-                  )}
-                  {word.pos && (
-                    <Badge variant="outline" className="text-xs ml-auto">{word.pos}</Badge>
+                  {word.meaning && (
+                    <p className="text-sm text-blue-600 font-medium mt-2">{word.meaning}</p>
                   )}
                 </div>
-                {word.definition && (
-                  <p className="text-sm text-gray-700">{word.definition}</p>
-                )}
-                {word.example && (
-                  <p className="text-sm text-gray-500 italic mt-1">{word.example}</p>
-                )}
-                {word.meaning && (
-                  <p className="text-sm text-blue-600 font-medium mt-2">{word.meaning}</p>
-                )}
-              </button>
+              </div>
             ))}
           </div>
 
@@ -642,81 +751,103 @@ export default function NotebookListDetailPage() {
 
       {/* Add Word Dialog */}
       {showAddWordDialog && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="fixed inset-0 bg-black/40" onClick={() => setShowAddWordDialog(false)} />
-          <div className="relative bg-white rounded-2xl shadow-2xl border border-gray-100 w-[500px] max-h-[90vh] overflow-y-auto animate-in fade-in zoom-in-95 duration-150">
-            <div className="p-6 border-b border-gray-100">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="relative bg-white rounded-xl shadow-xl border border-gray-200 w-[480px] max-h-[80vh] overflow-hidden">
+            {/* Header */}
+            <div className="px-5 py-4 border-b border-gray-100 bg-gray-50">
               <div className="flex items-center justify-between">
-                <h3 className="text-lg font-bold text-gray-900">Thêm từ mới</h3>
+                <h3 className="text-base font-semibold text-gray-900">Thêm từ mới</h3>
                 <button
                   onClick={() => setShowAddWordDialog(false)}
-                  className="p-1 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100"
+                  className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-200 transition-colors"
                 >
-                  <X className="h-5 w-5" />
+                  <X className="h-4 w-4" />
                 </button>
               </div>
             </div>
 
-            <div className="p-6 space-y-4">
+            {/* Content */}
+            <div className="p-5 space-y-3 overflow-y-auto max-h-[calc(80vh-140px)]">
               {/* Word input with lookup */}
               <div>
-                <label className="text-sm font-medium text-gray-700 mb-1 block">
+                <label className="text-xs font-medium text-gray-600 mb-1.5 block uppercase tracking-wide">
                   Từ tiếng Anh <span className="text-red-500">*</span>
                 </label>
                 <div className="flex gap-2">
                   <Input
                     value={newWord}
                     onChange={(e) => setNewWord(e.target.value)}
-                    placeholder="Nhập từ..."
+                    placeholder="Nhập từ cần tra..."
                     onKeyDown={(e) => { if (e.key === 'Enter') handleLookupWord(); }}
                     autoFocus
-                    className="flex-1"
+                    className="flex-1 h-9 text-sm"
                   />
                   <Button
                     onClick={handleLookupWord}
                     disabled={lookingUp || !newWord.trim()}
                     variant="outline"
                     size="sm"
+                    className="h-9 px-3 text-sm"
                   >
-                    {lookingUp ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Tra'}
+                    {lookingUp ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : 'Tra từ'}
                   </Button>
                 </div>
               </div>
 
-              {/* Auto-filled fields */}
-              <div className="grid grid-cols-2 gap-4">
+              {/* Pronunciation and POS */}
+              <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-sm font-medium text-gray-700 mb-1 block">Nghĩa tiếng Việt</label>
-                  <Input
-                    value={newWordMeaning}
-                    onChange={(e) => setNewWordMeaning(e.target.value)}
-                    placeholder="nước biển"
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-700 mb-1 block">Loại từ</label>
+                  <label className="text-xs font-medium text-gray-600 mb-1.5 block uppercase tracking-wide">
+                    Cách đọc (IPA)
+                  </label>
                   <Input
                     value={newWordPos}
                     onChange={(e) => setNewWordPos(e.target.value)}
-                    placeholder="noun, verb, adj..."
+                    placeholder="/hæt/, /saʊnd/..."
+                    className="h-9 text-sm font-mono"
                   />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-gray-600 mb-1.5 block uppercase tracking-wide">
+                    Loại từ
+                  </label>
+                  <select
+                    value={newWordDefinition}
+                    onChange={(e) => setNewWordDefinition(e.target.value)}
+                    className="w-full h-9 px-3 text-sm border border-gray-200 rounded-lg
+                      focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400 outline-none bg-white"
+                  >
+                    <option value="">Chọn loại từ...</option>
+                    <option value="noun">Noun (Danh từ)</option>
+                    <option value="verb">Verb (Động từ)</option>
+                    <option value="adj">Adjective (Tính từ)</option>
+                    <option value="adv">Adverb (Trạng từ)</option>
+                    <option value="prep">Preposition (Giới từ)</option>
+                    <option value="pron">Pronoun (Đại từ)</option>
+                    <option value="conj">Conjunction (Liên từ)</option>
+                    <option value="interj">Interjection (Thán từ)</option>
+                  </select>
                 </div>
               </div>
 
+              {/* Meaning */}
               <div>
-                <label className="text-sm font-medium text-gray-700 mb-1 block">Định nghĩa</label>
-                <textarea
-                  value={newWordDefinition}
-                  onChange={(e) => setNewWordDefinition(e.target.value)}
-                  placeholder="Định nghĩa tiếng Anh..."
-                  rows={2}
-                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg
-                    focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400 outline-none resize-none"
+                <label className="text-xs font-medium text-gray-600 mb-1.5 block uppercase tracking-wide">
+                  Nghĩa tiếng Việt
+                </label>
+                <Input
+                  value={newWordMeaning}
+                  onChange={(e) => setNewWordMeaning(e.target.value)}
+                  placeholder="nghĩa tiếng Việt..."
+                  className="h-9 text-sm"
                 />
               </div>
 
+              {/* Example */}
               <div>
-                <label className="text-sm font-medium text-gray-700 mb-1 block">Ví dụ</label>
+                <label className="text-xs font-medium text-gray-600 mb-1.5 block uppercase tracking-wide">
+                  Ví dụ <span className="text-gray-400 font-normal normal-case">(tùy chọn)</span>
+                </label>
                 <textarea
                   value={newWordExample}
                   onChange={(e) => setNewWordExample(e.target.value)}
@@ -726,15 +857,117 @@ export default function NotebookListDetailPage() {
                     focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400 outline-none resize-none"
                 />
               </div>
+            </div>
 
+            {/* Footer */}
+            <div className="px-5 py-4 border-t border-gray-100 bg-gray-50 flex gap-2 justify-end">
+              <Button
+                variant="ghost"
+                onClick={() => setShowAddWordDialog(false)}
+                className="h-9 text-sm"
+              >
+                Hủy
+              </Button>
+              <Button
+                onClick={handleAddWord}
+                disabled={savingWord || !newWord.trim()}
+                className="gap-2 h-9 text-sm px-4"
+              >
+                {savingWord ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
+                {savingWord ? 'Đang thêm...' : 'Thêm từ'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Word Dialog */}
+      {showEditWordDialog && editingWord && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="relative bg-white rounded-xl shadow-xl border border-gray-200 w-[480px] max-h-[80vh] overflow-hidden">
+            {/* Header */}
+            <div className="px-5 py-4 border-b border-gray-100 bg-gray-50">
+              <div className="flex items-center justify-between">
+                <h3 className="text-base font-semibold text-gray-900">Chỉnh sửa từ</h3>
+                <button
+                  onClick={() => setShowEditWordDialog(false)}
+                  className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-200 transition-colors"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="p-5 space-y-3 overflow-y-auto max-h-[calc(80vh-140px)]">
+              {/* Word display (read-only) */}
               <div>
-                <label className="text-sm font-medium text-gray-700 mb-1 block">
-                  Câu chứa từ <span className="text-gray-400 font-normal">(tùy chọn)</span>
+                <label className="text-xs font-medium text-gray-600 mb-1.5 block uppercase tracking-wide">
+                  Từ tiếng Anh
+                </label>
+                <div className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-gray-900 font-semibold text-sm">
+                  {editingWord.word}
+                </div>
+              </div>
+
+              {/* Pronunciation and POS */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-medium text-gray-600 mb-1.5 block uppercase tracking-wide">
+                    Cách đọc (IPA)
+                  </label>
+                  <Input
+                    value={editWordPhonetic}
+                    onChange={(e) => setEditWordPhonetic(e.target.value)}
+                    placeholder="/hæt/, /saʊnd/..."
+                    className="h-9 text-sm font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-gray-600 mb-1.5 block uppercase tracking-wide">
+                    Loại từ
+                  </label>
+                  <select
+                    value={editWordPos}
+                    onChange={(e) => setEditWordPos(e.target.value)}
+                    className="w-full h-9 px-3 text-sm border border-gray-200 rounded-lg
+                      focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400 outline-none bg-white"
+                  >
+                    <option value="">Chọn loại từ...</option>
+                    <option value="noun">Noun (Danh từ)</option>
+                    <option value="verb">Verb (Động từ)</option>
+                    <option value="adj">Adjective (Tính từ)</option>
+                    <option value="adv">Adverb (Trạng từ)</option>
+                    <option value="prep">Preposition (Giới từ)</option>
+                    <option value="pron">Pronoun (Đại từ)</option>
+                    <option value="conj">Conjunction (Liên từ)</option>
+                    <option value="interj">Interjection (Thán từ)</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Meaning */}
+              <div>
+                <label className="text-xs font-medium text-gray-600 mb-1.5 block uppercase tracking-wide">
+                  Nghĩa tiếng Việt
+                </label>
+                <Input
+                  value={editWordMeaning}
+                  onChange={(e) => setEditWordMeaning(e.target.value)}
+                  placeholder="nghĩa tiếng Việt..."
+                  className="h-9 text-sm"
+                />
+              </div>
+
+              {/* Example */}
+              <div>
+                <label className="text-xs font-medium text-gray-600 mb-1.5 block uppercase tracking-wide">
+                  Ví dụ <span className="text-gray-400 font-normal normal-case">(tùy chọn)</span>
                 </label>
                 <textarea
-                  value={newWordSentence}
-                  onChange={(e) => setNewWordSentence(e.target.value)}
-                  placeholder="Câu văn có chứa từ này để làm ngữ cảnh..."
+                  value={editWordExample}
+                  onChange={(e) => setEditWordExample(e.target.value)}
+                  placeholder="Câu ví dụ..."
                   rows={2}
                   className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg
                     focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400 outline-none resize-none"
@@ -742,20 +975,60 @@ export default function NotebookListDetailPage() {
               </div>
             </div>
 
-            <div className="p-6 border-t border-gray-100 flex gap-2 justify-end">
+            {/* Footer */}
+            <div className="px-5 py-4 border-t border-gray-100 bg-gray-50 flex gap-2 justify-end">
               <Button
                 variant="ghost"
-                onClick={() => setShowAddWordDialog(false)}
+                onClick={() => setShowEditWordDialog(false)}
+                className="h-9 text-sm"
               >
                 Hủy
               </Button>
               <Button
-                onClick={handleAddWord}
-                disabled={savingWord || !newWord.trim()}
-                className="gap-2"
+                onClick={handleSaveEdit}
+                disabled={savingWordEdit}
+                className="gap-2 h-9 text-sm px-4"
               >
-                {savingWord ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-                {savingWord ? 'Đang thêm...' : 'Thêm từ'}
+                {savingWordEdit ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Pencil className="h-3.5 w-3.5" />}
+                {savingWordEdit ? 'Đang lưu...' : 'Lưu thay đổi'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Dialog */}
+      {showDeleteConfirm && wordToDelete && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center">
+          <div className="fixed inset-0 bg-black/40" onClick={() => setShowDeleteConfirm(false)} />
+          <div className="relative bg-white rounded-2xl shadow-2xl border border-gray-100 w-[360px] p-6 animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex flex-col items-center text-center">
+              <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center mb-4">
+                <Trash2 className="h-6 w-6 text-red-600" />
+              </div>
+              <h3 className="text-base font-bold text-gray-900 mb-1">Xóa từ vựng</h3>
+              <p className="text-sm text-gray-600 mb-1">Bạn có chắc muốn xóa từ này khỏi danh sách?</p>
+              <p className="text-lg font-semibold text-gray-900 bg-gray-50 px-4 py-2 rounded-lg mt-2">
+                "{wordToDelete.word}"
+              </p>
+            </div>
+            <div className="flex gap-3 mt-6">
+              <Button
+                variant="outline"
+                onClick={() => setShowDeleteConfirm(false)}
+                className="flex-1 h-10 text-sm"
+                disabled={deleting}
+              >
+                Hủy
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={confirmDeleteWord}
+                className="flex-1 h-10 text-sm gap-2"
+                disabled={deleting}
+              >
+                {deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                {deleting ? 'Đang xóa...' : 'Xóa'}
               </Button>
             </div>
           </div>

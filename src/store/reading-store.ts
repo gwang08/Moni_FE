@@ -12,7 +12,7 @@ interface ReadingStore {
   mode: Mode;
   editingHighlightId: string | null;
 
-  addHighlight: (highlight: Omit<Highlight, 'id'>) => void;
+  addHighlight: (highlight: Omit<Highlight, 'id'> & { id?: string }) => string;
   removeHighlight: (id: string) => void;
   addNote: (highlightId: string, note: string) => void;
   addVocab: (vocab: Omit<VocabItem, 'id'>) => void;
@@ -32,10 +32,13 @@ export const useReadingStore = create<ReadingStore>((set) => ({
   mode: 'practice',
   editingHighlightId: null,
 
-  addHighlight: (highlight) =>
+  addHighlight: (highlight) => {
+    const id = highlight.id ?? `hl_${Date.now()}`;
     set((state) => ({
-      highlights: [...state.highlights, { ...highlight, id: `hl_${Date.now()}` }],
-    })),
+      highlights: [...state.highlights, { ...highlight, id }],
+    }));
+    return id;
+  },
 
   removeHighlight: (id) =>
     set((state) => ({

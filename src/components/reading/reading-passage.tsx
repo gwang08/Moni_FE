@@ -318,10 +318,13 @@ export function ReadingPassage({ content, interactive = true, examMode = false }
         onMouseDown={handleMouseDown}
         onMouseUp={(e) => handleMouseUp(e)}
         onClick={handleClick}
-        onMouseOver={handleMouseOver}
-        onMouseOut={handleMouseOut}
-        onMouseMove={handleMouseMove}
-        onMouseLeave={clearHoveredWord}
+        {...(activeTool !== 'vocab' ? {
+          onMouseOver: handleMouseOver,
+          onMouseOut: handleMouseOut,
+        } : {
+          onMouseMove: handleMouseMove,
+          onMouseLeave: clearHoveredWord,
+        })}
         className={`prose max-w-none leading-relaxed ${
           examMode
             ? 'p-0 bg-transparent rounded-none text-[13px] leading-6'

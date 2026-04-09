@@ -18,8 +18,10 @@ interface Props {
 function resolveStyle(x: number, y: number): React.CSSProperties {
   if (typeof window === 'undefined') return { position: 'fixed', left: x, top: y, zIndex: 60 };
   const W = 300;
+  const H = 280; // estimated visible height
   const left = Math.min(Math.max(x - W / 2, 8), window.innerWidth - W - 8);
-  const top = y + 14 + 400 > window.innerHeight ? y - 414 : y + 14;
+  // Prefer below the word; only flip above if truly no room below
+  const top = y + 14 + H > window.innerHeight ? Math.max(8, y - H - 8) : y + 14;
   return { position: 'fixed', left, top, zIndex: 60, width: W };
 }
 

@@ -123,6 +123,7 @@ export function ReadingPassage({ content, interactive = true, examMode = false }
   const [translateButton, setTranslateButton] = useState<{ text: string; x: number; y: number } | null>(null);
   const [translatePopup, setTranslatePopup] = useState<{ text: string; x: number; y: number } | null>(null);
   const hoveredWordRef = useRef<{ el: HTMLElement | null }>({ el: null });
+  const isDraggingRef = useRef(false);
 
   const getSentenceAroundWord = useCallback((node: Node, word: string): string => {
     const parent = node.parentElement;
@@ -137,7 +138,12 @@ export function ReadingPassage({ content, interactive = true, examMode = false }
     return text.slice(start, end).trim();
   }, []);
 
+  const handleMouseDown = useCallback(() => {
+    isDraggingRef.current = true;
+  }, []);
+
   const handleMouseUp = (e: React.MouseEvent) => {
+    isDraggingRef.current = false;
     if (!interactive) return;
     if (activeTool === 'vocab') return; // vocab uses click, not drag
     const selected = window.getSelection();
@@ -221,7 +227,7 @@ export function ReadingPassage({ content, interactive = true, examMode = false }
   }, [activeTool, clearHoveredWord, interactive]);
 
   const handleMouseOver = (e: React.MouseEvent) => {
-    if (!interactive) return;
+    if (!interactive || isDraggingRef.current) return;
     const target = e.target as HTMLElement;
     const noteIcon = target.closest('[data-note-id]') as HTMLElement;
     if (noteIcon) {
@@ -235,7 +241,7 @@ export function ReadingPassage({ content, interactive = true, examMode = false }
   };
 
   const handleMouseOut = (e: React.MouseEvent) => {
-    if (!interactive) return;
+    if (!interactive || isDraggingRef.current) return;
     const target = e.relatedTarget as HTMLElement | null;
     if (!target?.closest?.('[data-note-id]')) {
       setNotePopup(null);
@@ -309,6 +315,7 @@ export function ReadingPassage({ content, interactive = true, examMode = false }
     <>
       <div
         ref={passageRef}
+        onMouseDown={handleMouseDown}
         onMouseUp={(e) => handleMouseUp(e)}
         onClick={handleClick}
         onMouseOver={handleMouseOver}
@@ -420,6 +427,16 @@ export function ReadingPassage({ content, interactive = true, examMode = false }
       {interactive && activeTool === 'vocab' && (
         <style dangerouslySetInnerHTML={{ __html: `
           .vocab-mode { cursor: default !important; user-select: none !important; }
+        `}} />
+      )}
+
+      {/* CSS to ensure stable text selection in passage */}
+      {interactive && activeTool && activeTool !== 'vocab' && (
+        <style dangerouslySetInnerHTML={{ __html: `
+          .prose p, .prose div, .prose strong, .prose mark, .prose span {
+            user-select: text !important;
+            -webkit-user-select: text !important;
+          }
         `}} />
       )}
     </>

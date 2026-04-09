@@ -19,7 +19,7 @@ function resolveStyle(x: number, y: number): React.CSSProperties {
   if (typeof window === 'undefined') return { position: 'fixed', left: x, top: y, zIndex: 60 };
   const W = 300;
   const left = Math.min(Math.max(x - W / 2, 8), window.innerWidth - W - 8);
-  const top = y + 14 + 240 > window.innerHeight ? y - 254 : y + 14;
+  const top = y + 14 + 400 > window.innerHeight ? y - 414 : y + 14;
   return { position: 'fixed', left, top, zIndex: 60, width: W };
 }
 
@@ -190,7 +190,7 @@ export function ReadingWordLookupPopup({ word, position, onClose }: Props) {
         </div>
 
         {/* Body */}
-        <div className="px-4 py-3 max-h-[180px] overflow-y-auto custom-scrollbar-thick">
+        <div className="px-4 py-3 max-h-[320px] overflow-y-auto custom-scrollbar-thick">
           {loading ? (
             <div className="flex items-center justify-center gap-2 py-6">
               <Loader2 className="h-5 w-5 animate-spin text-blue-400" />
@@ -201,12 +201,17 @@ export function ReadingWordLookupPopup({ word, position, onClose }: Props) {
           ) : data ? (
             <div className="space-y-2">
               {data.explanation && (
-                <p className="text-xs text-gray-600 leading-relaxed line-clamp-3">{data.explanation}</p>
+                <p className="text-xs text-gray-600 leading-relaxed">{data.explanation}</p>
               )}
-              {data.examples?.[0] && (
-                <p className="text-xs text-gray-400 italic line-clamp-2 pl-2 border-l-2 border-gray-200">
-                  {data.examples[0]}
-                </p>
+              {data.collocation && (
+                <p className="text-xs text-gray-500 mt-1"><span className="font-medium">Cụm từ:</span> {data.collocation}</p>
+              )}
+              {data.examples && data.examples.length > 0 && (
+                <div className="mt-1 space-y-1">
+                  {data.examples.map((ex, i) => (
+                    <p key={i} className="text-xs text-gray-400 italic pl-2 border-l-2 border-gray-200">{ex}</p>
+                  ))}
+                </div>
               )}
             </div>
           ) : null}

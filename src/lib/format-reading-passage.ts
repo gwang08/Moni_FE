@@ -1,11 +1,15 @@
 /**
  * Detects and formats paragraph labels (A, B, C...) in reading passages.
  * Non-destructive: if content is already well-formatted HTML, it enhances it without breaking it.
+ *
+ * IMPORTANT: Uses <div> instead of <p> for paragraphs because Chrome has a bug
+ * where text selection inside <p> elements snaps to include the entire paragraph
+ * when dragging across line boundaries (backward selection).
  */
 
-/** Wraps a paragraph letter label as a separate inline-block element to prevent selection snapping */
+/** Wraps a paragraph letter label */
 function boldLabel(letter: string, rest: string): string {
-  return `<b style="font-weight:700;margin-right:4px;user-select:text">${letter}</b>${rest}`;
+  return `<b style="font-weight:700;margin-right:4px">${letter}</b>${rest}`;
 }
 
 /**
@@ -27,11 +31,6 @@ function plainTextToHtml(text: string): string {
 
 /**
  * Applies bold label formatting to paragraph text.
- * Handles patterns:
- *   - "A\nText..." (letter alone on first line)
- *   - "A. Text..."
- *   - "A Text..." (letter followed by space + content)
- *   - "Paragraph A\nText..."
  */
 function applyLabelFormatting(text: string): string {
   // "Paragraph A" at start (case-insensitive)
@@ -65,42 +64,47 @@ function isHtml(content: string): boolean {
 
 /**
  * Enhances existing HTML by:
- * 1. Bolding paragraph labels in <p> tags
- * 2. Adding spacing wrapper divs around <p> tags without mb-* classes
+ * 1. Converting <p> to <div> (prevents Chrome selection snap bug)
+ * 2. Replacing <strong> labels with <b> (prevents selection boundary snap)
+ * 3. Adding spacing classes
  */
 function enhanceHtml(html: string): string {
-  // Replace existing <strong> paragraph labels that cause selection snapping
+  // Replace <strong> paragraph labels with <b>
   let result = html.replace(
     /<strong[^>]*class="[^"]*font-bold[^"]*"[^>]*>([A-Z])<\/strong>/g,
-    '<b style="font-weight:700;margin-right:4px;user-select:text">$1</b>'
+    '<b style="font-weight:700;margin-right:4px">$1</b>'
   );
 
-  // Bold single-letter paragraph labels inside <p> tags
-  // Handles: <p>A. text</p>, <p>A\ntext</p>
+  // Convert <p> to <div> to avoid Chrome selection snapping bug
+  result = result.replace(/<p(\s|>)/g, '<div$1');
+  result = result.replace(/<\/p>/g, '</div>');
+
+  // Bold single-letter paragraph labels inside <div> tags
   result = result.replace(
-    /<p([^>]*)>((?:\s*(?:Paragraph\s+)?[A-Z])(?:[.\s]|\n)[\s\S]*?)<\/p>/g,
+    /<div([^>]*)>((?:\s*(?:Paragraph\s+)?[A-Z])(?:[.\s]|\n)[\s\S]*?)<\/div>/g,
     (match, attrs, content) => {
       const trimmed = content.trim();
       const formatted = applyLabelFormatting(trimmed);
-      // Only inject wrapper if not already wrapped
       if (formatted !== trimmed) {
-        return `<p${attrs}>${formatted}</p>`;
+        return `<div${attrs}>${formatted}</div>`;
       }
       return match;
     }
   );
 
-  // Add mb-6 spacing to <p> tags that don't have a mb- class
-  result = result.replace(/<p(?![^>]*\bclass=)([^>]*)>/g, '<p class="mb-6"$1>');
-  result = result.replace(/<p([^>]*class="(?![^"]*\bmb-)[^"]*")([^>]*)>/g, (m, cls, rest) =>
-    m.replace(/class="/, 'class="mb-6 ')
-  );
+  // Add mb-6 spacing to <div> paragraph tags that don't have a mb- class
+  result = result.replace(/<div(?![^>]*\bclass=)([^>]*)>/g, (m, attrs) => {
+    // Only add mb-6 to divs that look like paragraphs (not wrapper divs)
+    if (attrs.includes('style=') || attrs.includes('data-')) return m;
+    return `<div class="mb-6"${attrs}>`;
+  });
 
   return result;
 }
 
 /**
  * Formats a reading passage for display.
+ * - Converts <p> to <div> to prevent Chrome selection bugs
  * - Detects paragraph labels (A, B, C...) and bolds them
  * - Adds spacing between paragraphs
  * - Handles both plain text and HTML content

@@ -37,8 +37,10 @@ export function useSessionRecorder(
 
       recordingContextRef.current = { part, questionText };
 
-      navigator.mediaDevices.getUserMedia({ audio: true }).then((stream) => {
-        streamRef.current = stream;
+      // Stagger the getUserMedia request by 500ms to avoid locking conflicts with useBrowserSTT
+      const delayTimer = setTimeout(() => {
+        navigator.mediaDevices.getUserMedia({ audio: true }).then((stream) => {
+          streamRef.current = stream;
 
         const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
           ? 'audio/webm;codecs=opus'
@@ -73,9 +75,13 @@ export function useSessionRecorder(
 
         mr.start(500);
         mediaRecorderRef.current = mr;
-      }).catch((e) => {
-        console.error('Failed to start session recorder:', e);
-      });
+        }).catch((e) => {
+          console.error('Failed to start session recorder:', e);
+        });
+      }, 500);
+
+      // Cleanup function in case state changes before the delay finishes
+      return () => clearTimeout(delayTimer);
     } else {
       if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
         mediaRecorderRef.current.stop();

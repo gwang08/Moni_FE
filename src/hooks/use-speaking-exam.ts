@@ -92,8 +92,8 @@ export function useSpeakingExam() {
     window.speechSynthesis.cancel();
     window.speechSynthesis.speak(utterance);
     
-    // Safety fallback: if utterance never starts within 1.5 seconds
-    initialTimeout = setTimeout(finalizeTTS, 1500);
+    // Safety fallback: if utterance never starts within 4 seconds (cold boot delay)
+    initialTimeout = setTimeout(finalizeTTS, 4000);
     
   }, []);
 

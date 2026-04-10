@@ -57,7 +57,21 @@ export default function PracticePageWrapper() {
 function PracticePage() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const userRole = useAuthStore((state) => state.user?.role);
   const initialSkill = (searchParams.get('skill') as Skill) || 'reading';
+  
+  // Redirect ADMIN and EXPERT away from practice page
+  useEffect(() => {
+    if (userRole === 'ADMIN') {
+      router.replace('/admin');
+      return;
+    }
+    if (userRole === 'EXPERT') {
+      router.replace('/expert/dashboard');
+      return;
+    }
+  }, [userRole, router]);
+  
   // URL uses 'q' param: 'test' for Phần thi (PRACTICE), 'full-test' for Bài thi (FULL_TEST)
   const qParam = searchParams.get('q');
   const initialMode: TestMode = qParam === 'full-test' ? 'FULL_TEST' : 'PRACTICE';

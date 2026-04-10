@@ -8,9 +8,35 @@ import { InnerNavbar } from '@/components/layout/inner-navbar';
 import { SessionExpiredDialog } from '@/components/auth/session-expired-dialog';
 
 // Pages that can be viewed without authentication
+// Note: /practice and /vocabulary are intentionally kept public for browsing
+// but result/review pages require authentication
 const PUBLIC_PATHS = ['/practice', '/vocabulary'];
 
+// Paths that ALWAYS require authentication (result/review pages with personal data)
+const PROTECTED_SUB_PATHS = [
+  '/practice/reading/',
+  '/practice/listening/',
+  '/practice/writing/',
+  '/practice/speaking/',
+  '/practice/speaking-exam/',
+  '/writing/result/',
+];
+
+// Result and review pages that contain personal performance data
+const RESULT_REVIEW_PATTERNS = ['/result', '/review'];
+
 function isPublicPath(pathname: string) {
+  // Check if this is a protected sub-path that requires auth
+  const isProtectedSubPath = PROTECTED_SUB_PATHS.some(p => pathname.startsWith(p));
+  
+  // If it's under a protected sub-path AND matches result/review patterns, require auth
+  if (isProtectedSubPath) {
+    const isResultOrReview = RESULT_REVIEW_PATTERNS.some(pattern => pathname.includes(pattern));
+    if (isResultOrReview) {
+      return false; // Requires auth
+    }
+  }
+  
   return PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(p + '/'));
 }
 
@@ -44,12 +70,34 @@ export default function ProtectedLayout({
     if (stored) {
       try {
         const { state } = JSON.parse(stored);
-        if (state?.user?.role === 'ADMIN') {
+        const role = state?.user?.role;
+        
+        // Define learner-only routes
+        const learnerRoutes = [
+          '/dashboard',
+          '/practice',
+          '/vocabulary',
+          '/placement',
+          '/speaking-exam',
+          '/listening',
+          '/reading',
+          '/writing',
+          '/scoring-history',
+          '/payment',
+          '/transactions',
+          '/profile',
+        ];
+        
+        const isLearnerRoute = learnerRoutes.some(route => 
+          pathname === route || pathname.startsWith(route + '/')
+        );
+        
+        if (role === 'ADMIN' && isLearnerRoute) {
           router.push('/admin');
           return;
         }
-        // Expert truy cập trang learner → redirect về expert dashboard
-        if (state?.user?.role === 'EXPERT' && !pathname.startsWith('/expert')) {
+        
+        if (role === 'EXPERT' && isLearnerRoute) {
           router.push('/expert/dashboard');
           return;
         }

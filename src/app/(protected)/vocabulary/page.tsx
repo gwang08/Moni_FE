@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Search, Loader2, Bookmark, BookOpen, Layers, Tag, X, BookMarked } from 'lucide-react';
 import { Input } from '@/components/ui/input';
@@ -15,17 +15,32 @@ import { VocabSearchAutocomplete } from '@/components/vocabulary/vocab-search-au
 import { BandDeckCards } from '@/components/vocabulary/band-deck-cards';
 import { TopicDeckCards } from '@/components/vocabulary/topic-deck-cards';
 import { ChibiMascot } from '@/components/ui/chibi-mascot';
+import { useAuthStore } from '@/store/auth-store';
 
 type BrowseTab = 'dict' | 'band' | 'topic';
 
 function VocabularyContent() {
+  const router = useRouter();
   const searchParams = useSearchParams();
+  const userRole = useAuthStore((state) => state.user?.role);
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<VocabLookupResult | null>(null);
   const [isSaved, setIsSaved] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+
+  // Redirect ADMIN and EXPERT away from vocabulary page
+  useEffect(() => {
+    if (userRole === 'ADMIN') {
+      router.replace('/admin');
+      return;
+    }
+    if (userRole === 'EXPERT') {
+      router.replace('/expert/dashboard');
+      return;
+    }
+  }, [userRole, router]);
 
   const [suggestions, setSuggestions] = useState<CuratedWord[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);

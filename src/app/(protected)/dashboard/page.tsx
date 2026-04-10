@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { useHydration } from '@/hooks/use-hydration';
 import { SkeletonCard } from '@/components/ui/skeleton';
 import { TargetScores } from '@/components/dashboard/target-scores';
@@ -36,13 +37,28 @@ function DashboardSkeleton() {
 }
 
 export default function DashboardPage() {
+  const router = useRouter();
   const hydrated = useHydration();
+  const userRole = useAuthStore((state) => state.user?.role);
   const setPlacementResult = useUserStore((s) => s.setPlacementResult);
   const setTargetScore = useUserStore((s) => s.setTargetScore);
   const setExamDate = useUserStore((s) => s.setExamDate);
   const refreshProfile = useAuthStore((s) => s.refreshProfile);
   const [showPlacementDialog, setShowPlacementDialog] = useState(false);
   const fetchedRef = useRef(false);
+
+  // Redirect ADMIN and EXPERT away from learner dashboard
+  useEffect(() => {
+    if (!hydrated) return;
+    if (userRole === 'ADMIN') {
+      router.replace('/admin');
+      return;
+    }
+    if (userRole === 'EXPERT') {
+      router.replace('/expert/dashboard');
+      return;
+    }
+  }, [hydrated, userRole, router]);
 
   useEffect(() => {
     if (!hydrated || fetchedRef.current) return;

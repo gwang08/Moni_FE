@@ -8,6 +8,7 @@ import { Menu, X } from 'lucide-react';
 import { UserAvatarDropdown } from '@/components/layout/user-avatar-dropdown';
 import { getDueReview } from '@/lib/vocab-api';
 import { Badge } from '@/components/ui/badge';
+import { useAuthStore } from '@/store/auth-store';
 
 const navLinks = [
   { label: 'Trang chủ', href: '/' },
@@ -45,6 +46,18 @@ function VocabNavItem() {
 export function InnerNavbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const pathname = usePathname();
+  const userRole = useAuthStore((state) => state.user?.role);
+  
+  // Filter out learner-specific links for ADMIN and EXPERT
+  const filteredNavLinks = navLinks.filter((link) => {
+    if (userRole === 'ADMIN' || userRole === 'EXPERT') {
+      // Hide learner-specific features
+      if (link.label === 'Luyện Tập' || link.label === 'Từ vựng') {
+        return false;
+      }
+    }
+    return true;
+  });
 
   return (
     <nav className="sticky top-0 z-50 bg-white border-b shadow-sm">
@@ -62,7 +75,7 @@ export function InnerNavbar() {
 
         {/* Desktop Nav Links */}
         <div className="hidden md:flex items-center gap-8">
-          {navLinks.map((link) => {
+          {filteredNavLinks.map((link) => {
             if (link.label === 'Từ vựng') return <VocabNavItem key={link.label} />;
             const isActive = pathname === link.href || (link.href !== '/' && pathname.startsWith(link.href));
             return (
@@ -95,7 +108,7 @@ export function InnerNavbar() {
       {/* Mobile dropdown */}
       {mobileOpen && (
         <div className="md:hidden border-t bg-white pb-3">
-          {navLinks.map((link) => {
+          {filteredNavLinks.map((link) => {
             const isActive = pathname === link.href || (link.href !== '/' && pathname.startsWith(link.href));
             return (
               <Link

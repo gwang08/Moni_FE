@@ -3,11 +3,9 @@
  * Non-destructive: if content is already well-formatted HTML, it enhances it without breaking it.
  */
 
-const BOLD_LABEL_CLASS = 'font-bold text-lg';
-
-/** Wraps a paragraph letter label in a bold span */
+/** Wraps a paragraph letter label as a separate inline-block element to prevent selection snapping */
 function boldLabel(letter: string, rest: string): string {
-  return `<strong class="${BOLD_LABEL_CLASS}">${letter}</strong>${rest}`;
+  return `<b style="font-weight:700;margin-right:4px;user-select:text">${letter}</b>${rest}`;
 }
 
 /**
@@ -71,9 +69,15 @@ function isHtml(content: string): boolean {
  * 2. Adding spacing wrapper divs around <p> tags without mb-* classes
  */
 function enhanceHtml(html: string): string {
+  // Replace existing <strong> paragraph labels that cause selection snapping
+  let result = html.replace(
+    /<strong[^>]*class="[^"]*font-bold[^"]*"[^>]*>([A-Z])<\/strong>/g,
+    '<b style="font-weight:700;margin-right:4px;user-select:text">$1</b>'
+  );
+
   // Bold single-letter paragraph labels inside <p> tags
   // Handles: <p>A. text</p>, <p>A\ntext</p>
-  let result = html.replace(
+  result = result.replace(
     /<p([^>]*)>((?:\s*(?:Paragraph\s+)?[A-Z])(?:[.\s]|\n)[\s\S]*?)<\/p>/g,
     (match, attrs, content) => {
       const trimmed = content.trim();

@@ -1,5 +1,4 @@
 import { useRef, useState, useCallback, useEffect } from 'react';
-import { useSpeakingExamAudio } from './use-speaking-exam-audio';
 import type {
   ExamState,
   QuestionEvent,
@@ -36,7 +35,7 @@ export function useSpeakingExam() {
   const [error, setError] = useState<string | null>(null);
   const [hasPendingAudio, setHasPendingAudio] = useState(false);
 
-  const audio = useSpeakingExamAudio();
+  const [isAudioPlaying, setIsAudioPlaying] = useState(false);
   const pausePlaybackRef = useRef(false);
 
   // ── Send helper ───────────────────────────────────────────
@@ -46,9 +45,8 @@ export function useSpeakingExam() {
     }
   }, []);
 
-  // ── Browser TTS fallback ───────────────────────────────────
+  // ── Browser TTS ─────────────────────────────────────────────
   const pendingTextRef = useRef<string | null>(null);
-  const hasReceivedChunksRef = useRef(false);
 
   const speakWithBrowserTTS = useCallback((text: string) => {
     if (typeof window === 'undefined' || !window.speechSynthesis) return;
@@ -65,15 +63,13 @@ export function useSpeakingExam() {
       || voices[0];
     if (englishVoice) utterance.voice = englishVoice;
 
-    utterance.onstart = () => audio.setIsAudioPlaying(true);
-    utterance.onend = () => audio.setIsAudioPlaying(false);
-    utterance.onerror = () => audio.setIsAudioPlaying(false);
+    utterance.onstart = () => setIsAudioPlaying(true);
+    utterance.onend = () => setIsAudioPlaying(false);
+    utterance.onerror = () => setIsAudioPlaying(false);
 
-    // Mark as playing via audio state
-    window.speechSynthesis.cancel(); // cancel any ongoing speech
+    window.speechSynthesis.cancel();
     window.speechSynthesis.speak(utterance);
-    console.log('[TTS Fallback] Reading question with browser voice');
-  }, [audio]);
+  }, []);
 
   // ── Message handler ───────────────────────────────────────
   const handleMessage = useCallback(
@@ -81,32 +77,13 @@ export function useSpeakingExam() {
       switch (msg.type) {
         case 'question':
           setCurrentQuestion(msg);
-          audio.resetChunks();
           pendingTextRef.current = msg.text;
-          hasReceivedChunksRef.current = false;
           setExamState('AUDIO_PLAYING');
-          break;
-
-        case 'audio_chunk':
-          audio.pushChunk(msg.data);
-          hasReceivedChunksRef.current = true;
-          break;
-
-        case 'audio_end':
-          if (hasReceivedChunksRef.current) {
-            // ElevenLabs TTS succeeded
-            if (pausePlaybackRef.current) {
-               setHasPendingAudio(true);
-            } else {
-               audio.playChunks();
-            }
-          } else if (pendingTextRef.current) {
-            // ElevenLabs TTS failed — use browser speech synthesis as fallback
-            if (pausePlaybackRef.current) {
-               setHasPendingAudio(true);
-            } else {
-               speakWithBrowserTTS(pendingTextRef.current);
-            }
+          // Use Browser TTS to read question aloud
+          if (pausePlaybackRef.current) {
+            setHasPendingAudio(true);
+          } else {
+            speakWithBrowserTTS(msg.text);
           }
           break;
 
@@ -135,7 +112,7 @@ export function useSpeakingExam() {
           break;
       }
     },
-    [audio, speakWithBrowserTTS],
+    [speakWithBrowserTTS],
   );
 
   // ── Connect ───────────────────────────────────────────────
@@ -250,15 +227,13 @@ export function useSpeakingExam() {
 
   const playPendingAudio = useCallback(() => {
     if (hasPendingAudio) {
-      if (hasReceivedChunksRef.current) {
-         audio.playChunks();
-      } else if (pendingTextRef.current) {
-         speakWithBrowserTTS(pendingTextRef.current);
+      if (pendingTextRef.current) {
+        speakWithBrowserTTS(pendingTextRef.current);
       }
       setHasPendingAudio(false);
       pendingTextRef.current = null;
     }
-  }, [audio, hasPendingAudio, speakWithBrowserTTS]);
+  }, [hasPendingAudio, speakWithBrowserTTS]);
 
   // ── Cleanup on unmount ────────────────────────────────────
   useEffect(() => {
@@ -272,7 +247,7 @@ export function useSpeakingExam() {
 
   useEffect(() => {
     if (examState === 'AUDIO_PLAYING') {
-      if (audio.isAudioPlaying) {
+      if (isAudioPlaying) {
         setAudioHasStarted(true);
       } else if (audioHasStarted) {
         setExamState('RECORDING');
@@ -281,7 +256,7 @@ export function useSpeakingExam() {
     } else {
       setAudioHasStarted(false);
     }
-  }, [examState, audio.isAudioPlaying, audioHasStarted]);
+  }, [examState, isAudioPlaying, audioHasStarted]);
 
   return {
     examState,
@@ -290,7 +265,7 @@ export function useSpeakingExam() {
     evaluation,
     error,
     isWsConnected,
-    isAudioPlaying: audio.isAudioPlaying,
+    isAudioPlaying: isAudioPlaying,
     connect,
     startExam,
     sendTranscript,

@@ -8,7 +8,6 @@ interface Props {
   question: QuestionEvent;
   isAudioPlaying: boolean;
   isListening: boolean;
-  transcript: string;
   showQuestionAlways: boolean;
   onSubmitAnswer: () => void;
 }
@@ -17,7 +16,6 @@ export function ExamQuestionDisplay({
   question,
   isAudioPlaying,
   isListening,
-  transcript,
   showQuestionAlways,
   onSubmitAnswer,
 }: Props) {
@@ -91,13 +89,6 @@ export function ExamQuestionDisplay({
           <div className="mt-8 flex items-center gap-2">
             <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-red-500" />
             <span className="text-sm text-gray-500">Listening...</span>
-          </div>
-        )}
-
-        {/* Live transcript preview */}
-        {transcript && (
-          <div className="mt-4 max-w-lg rounded-lg bg-gray-50 p-3 text-center text-sm text-gray-600 italic">
-            {transcript}
           </div>
         )}
       </div>

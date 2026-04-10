@@ -234,36 +234,58 @@ export function ExamEvaluationResult({ evaluation, recordings }: Props) {
 
             {/* Recordings Array */}
             {recordings && recordings.length > 0 && (
-              <div className="mt-8 pt-8 border-t border-gray-100">
-                <h4 className="font-bold text-gray-800 mb-5 flex items-center gap-2 tracking-tight">
-                  <PlayCircle className="w-5 h-5 text-indigo-500" />
+              <div className="mt-8 pt-8 border-t border-gray-100 flex flex-col items-center">
+                <h4 className="font-bold text-[#f97316] mb-6 flex items-center gap-2 tracking-tight text-lg">
+                  <PlayCircle className="w-5 h-5 text-[#f97316]" />
                   Bản ghi âm & Transcript
                 </h4>
-                <div className="space-y-4">
+                <div className="w-full space-y-6">
                   {recordings.map((rec, idx) => (
-                     <div key={idx} className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm hover:shadow-md transition duration-300">
-                       <div className="flex flex-col lg:flex-row gap-5 items-start">
-                         <div className="w-full lg:w-1/3 shrink-0">
-                           <div className="bg-indigo-50 text-indigo-700 font-bold px-3 py-1.5 rounded-lg inline-block text-[11px] uppercase tracking-wider mb-3 border border-indigo-100">
+                     <div key={idx} className="bg-white border border-[#fed7aa] rounded-2xl p-6 shadow-sm hover:shadow-md transition duration-300 w-full">
+                       <div className="flex flex-col gap-5">
+                         {/* Question section */}
+                         <div>
+                           <div className="bg-[#ffedd5] text-[#ea580c] font-bold px-3 py-1.5 rounded-lg inline-block text-[11px] uppercase tracking-wider mb-3 border border-[#fed7aa]">
                              Part {rec.part} - Question {idx + 1}
                            </div>
-                           {rec.audioUrl ? (
-                             <audio 
-                               controls 
-                               src={rec.audioUrl}
-                               className="w-full h-10 outline-none" 
-                             />
-                           ) : (
-                              <p className="text-xs text-gray-400 italic">No audio recorded</p>
-                           )}
+                           <p className="text-[#2d3748] font-bold text-[15px] leading-relaxed mb-1">
+                             <span className="text-[#f97316] mr-1">Q:</span>
+                             {rec.questionText || 'Loading question...'}
+                           </p>
                          </div>
-                         <div className="w-full bg-[#f8fafc] rounded-xl p-4 border border-gray-100 text-[13px] leading-relaxed text-gray-600 relative mt-2 lg:mt-0">
-                            <div className="absolute -top-2.5 left-4 bg-white border border-gray-200 px-2 py-0.5 text-[10px] font-bold text-gray-400 uppercase tracking-widest rounded shadow-sm">
-                              AI Transcript
-                            </div>
-                            <span className="pt-1 block">
-                              {rec.transcript || <span className="italic text-gray-400">Không nhận diện được giọng nói...</span>}
-                            </span>
+
+                         {/* Audio & Script columns */}
+                         <div className="flex flex-col lg:flex-row gap-5 items-start bg-white">
+                           
+                           {/* Audio column */}
+                           <div className="w-full lg:w-1/3 shrink-0">
+                             <div className="text-[12px] font-bold text-[#ea580c] uppercase tracking-widest mb-2 flex items-center gap-1.5">
+                               <Volume2 className="w-3.5 h-3.5" />
+                               Audio
+                             </div>
+                             {rec.audioUrl ? (
+                               <audio 
+                                 controls 
+                                 src={rec.audioUrl}
+                                 className="w-full h-10 outline-none accent-[#f97316]" 
+                               />
+                             ) : (
+                                <p className="text-[13px] text-gray-400 italic bg-gray-50 border border-gray-100 rounded-lg p-3 text-center">
+                                  No audio recorded
+                                </p>
+                             )}
+                           </div>
+
+                           {/* Script column */}
+                           <div className="w-full bg-[#fff7ed] rounded-xl p-5 border border-[#fed7aa] text-[14px] leading-relaxed text-gray-700 relative">
+                              <div className="absolute -top-2.5 left-4 bg-white border border-[#fed7aa] px-2 py-0.5 text-[10px] font-bold text-[#ea580c] uppercase tracking-widest rounded shadow-sm">
+                                Script
+                              </div>
+                              <span className="pt-1 block">
+                                {rec.transcript || <span className="italic text-orange-300">Không nhận diện được giọng nói...</span>}
+                              </span>
+                           </div>
+
                          </div>
                        </div>
                      </div>

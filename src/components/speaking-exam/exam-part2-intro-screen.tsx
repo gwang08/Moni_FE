@@ -53,6 +53,7 @@ interface CueCardWithNoteProps {
 
   speakTimer?: number;
   isListening?: boolean;
+  transcript?: string;
   onStopSpeaking?: () => void;
 }
 
@@ -63,6 +64,7 @@ export function ExamPart2CueCardWithNote({
   onSkipPrep,
   speakTimer = 0,
   isListening,
+  transcript,
   onStopSpeaking
 }: CueCardWithNoteProps) {
   const [note, setNote] = useState('');
@@ -149,6 +151,12 @@ export function ExamPart2CueCardWithNote({
               <div className="mb-3 flex justify-center items-center gap-2">
                 <span className="h-2 w-2 animate-pulse rounded-full bg-red-500" />
                 <span className="text-sm text-gray-500 font-medium">Listening...</span>
+              </div>
+            )}
+            
+            {transcript && (
+              <div className="mx-auto mb-4 max-w-lg rounded-lg bg-gray-50 border border-gray-100 p-3 text-center text-sm text-gray-600 italic line-clamp-2">
+                {transcript}
               </div>
             )}
 

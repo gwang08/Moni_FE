@@ -2,14 +2,16 @@
 
 import { Button } from '@/components/ui/button';
 import { Mic, StopCircle } from 'lucide-react';
+import { ExamTranscriptLive } from './exam-transcript-live';
 
 interface Props {
   speakTimer: number;
+  transcript: string;
   isListening: boolean;
   onStop: () => void;
 }
 
-export function ExamSpeakingTimer({ speakTimer, isListening, onStop }: Props) {
+export function ExamSpeakingTimer({ speakTimer, transcript, isListening, onStop }: Props) {
   const isUrgent = speakTimer <= 15;
   const minutes = Math.floor(speakTimer / 60);
   const seconds = speakTimer % 60;
@@ -36,13 +38,8 @@ export function ExamSpeakingTimer({ speakTimer, isListening, onStop }: Props) {
         </div>
       </div>
 
-      {/* Listening indicator */}
-      {isListening && (
-        <div className="flex justify-center items-center gap-2">
-          <span className="h-2 w-2 animate-pulse rounded-full bg-red-500" />
-          <span className="text-sm text-gray-500">Listening...</span>
-        </div>
-      )}
+      {/* Live transcript */}
+      <ExamTranscriptLive text={transcript} isListening={isListening} />
 
       {/* Stop button */}
       <div className="flex justify-center">

@@ -399,6 +399,7 @@ export default function SpeakingExamPage({ params }: Props) {
           question={exam.currentQuestion}
           isAudioPlaying={exam.isAudioPlaying}
           isListening={stt.isListening}
+          transcript={stt.transcript}
           showQuestionAlways={showQuestionAlways}
           onSubmitAnswer={handleSubmitAnswer}
         />
@@ -444,6 +445,7 @@ export default function SpeakingExamPage({ params }: Props) {
           onSkipPrep={handleSkipPrep}
           speakTimer={timers.speakTimer}
           isListening={stt.isListening}
+          transcript={stt.transcript}
           onStopSpeaking={handleStopPart2}
         />
       </PageShell>

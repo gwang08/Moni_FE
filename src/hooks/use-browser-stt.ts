@@ -78,7 +78,16 @@ export function useBrowserSTT() {
 
       // Setup MediaRecorder
       try {
-        const mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+        let mimeType = '';
+        if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
+          mimeType = 'audio/webm;codecs=opus';
+        } else if (MediaRecorder.isTypeSupported('audio/webm')) {
+          mimeType = 'audio/webm';
+        } else if (MediaRecorder.isTypeSupported('audio/mp4')) {
+          mimeType = 'audio/mp4';
+        }
+        
+        const mediaRecorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
         
         mediaRecorder.ondataavailable = (event) => {
           if (event.data.size > 0) {
@@ -87,7 +96,8 @@ export function useBrowserSTT() {
         };
 
         mediaRecorder.onstop = () => {
-          const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+          const actualMimeType = mediaRecorder.mimeType || 'audio/webm';
+          const blob = new Blob(audioChunksRef.current, { type: actualMimeType });
           audioChunksRef.current = [];
           if (resolveBlobRef.current) {
             resolveBlobRef.current(blob);

@@ -46,6 +46,7 @@ export function useSpeakingExam() {
 
   // ── Browser TTS (Replaces ElevenLabs) ───────────────────────────────────
   const pendingTextRef = useRef<string | null>(null);
+  const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
 
   const speakWithBrowserTTS = useCallback((text: string) => {
     if (typeof window === 'undefined' || !window.speechSynthesis) {
@@ -65,29 +66,34 @@ export function useSpeakingExam() {
       || voices[0];
     if (englishVoice) utterance.voice = englishVoice;
 
-    // Estimate speaking duration as fallback if onend fails to fire (common bug in some browsers)
-    const estimatedDurationMs = Math.max(2000, text.length * 60 + 500);
-    let fallbackTimeout: NodeJS.Timeout;
+    const estimatedDurationMs = Math.max(3000, text.length * 60 + 1000); // More generous fallback
+    let initialTimeout: NodeJS.Timeout;
+    let durationTimeout: NodeJS.Timeout;
 
     const finalizeTTS = () => {
-      clearTimeout(fallbackTimeout);
+      clearTimeout(initialTimeout);
+      clearTimeout(durationTimeout);
       setIsAudioPlaying(false);
       setExamState(prev => prev === 'AUDIO_PLAYING' ? 'RECORDING' : prev);
     };
 
     utterance.onstart = () => {
+      clearTimeout(initialTimeout); // Clear the initial safety fallback
       setIsAudioPlaying(true);
-      // Start fallback timer ONLY when audio actually starts playing
-      fallbackTimeout = setTimeout(finalizeTTS, estimatedDurationMs);
+      durationTimeout = setTimeout(finalizeTTS, estimatedDurationMs);
     };
     utterance.onend = finalizeTTS;
     utterance.onerror = finalizeTTS;
 
+    // Prevent garbage collection bug in Chrome that kills onend
+    utteranceRef.current = utterance;
+
+    // Cancel any ongoing speech first
     window.speechSynthesis.cancel();
     window.speechSynthesis.speak(utterance);
     
-    // Safety fallback: if utterance.onstart never fires!
-    fallbackTimeout = setTimeout(finalizeTTS, estimatedDurationMs + 1000);
+    // Safety fallback: if utterance never starts within 1.5 seconds
+    initialTimeout = setTimeout(finalizeTTS, 1500);
     
   }, []);
 

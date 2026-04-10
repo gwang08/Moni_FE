@@ -147,27 +147,15 @@ export function ReadingPassage({ content, interactive = true, examMode = false }
     selStartRef.current = caret ? { node: caret.startContainer, offset: caret.startOffset } : null;
   }, [activeTool]);
 
-  /** Custom selection: override native selection on each mouse move to prevent snapping */
+  /** Custom selection: use setBaseAndExtent for precise forward + backward selection */
   const handleDragSelect = useCallback((e: React.MouseEvent) => {
     if (!isDraggingRef.current || !selStartRef.current || activeTool === 'vocab') return;
+    if (!passageRef.current?.contains(e.target as Node)) return;
     const end = document.caretRangeFromPoint(e.clientX, e.clientY);
     if (!end) return;
-    const sel = window.getSelection();
-    if (!sel) return;
     try {
-      const range = document.createRange();
       const s = selStartRef.current;
-      const cmp = s.node.compareDocumentPosition(end.startContainer);
-      if (cmp & Node.DOCUMENT_POSITION_FOLLOWING ||
-          (s.node === end.startContainer && s.offset <= end.startOffset)) {
-        range.setStart(s.node, s.offset);
-        range.setEnd(end.startContainer, end.startOffset);
-      } else {
-        range.setStart(end.startContainer, end.startOffset);
-        range.setEnd(s.node, s.offset);
-      }
-      sel.removeAllRanges();
-      sel.addRange(range);
+      window.getSelection()?.setBaseAndExtent(s.node, s.offset, end.startContainer, end.startOffset);
     } catch { /* ignore invalid ranges */ }
   }, [activeTool]);
 

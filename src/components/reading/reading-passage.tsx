@@ -124,6 +124,7 @@ export function ReadingPassage({ content, interactive = true, examMode = false }
   const [translatePopup, setTranslatePopup] = useState<{ text: string; x: number; y: number } | null>(null);
   const hoveredWordRef = useRef<{ el: HTMLElement | null }>({ el: null });
   const isDraggingRef = useRef(false);
+  const selStartRef = useRef<{ node: Node; offset: number } | null>(null);
 
   const getSentenceAroundWord = useCallback((node: Node, word: string): string => {
     const parent = node.parentElement;
@@ -138,9 +139,37 @@ export function ReadingPassage({ content, interactive = true, examMode = false }
     return text.slice(start, end).trim();
   }, []);
 
-  const handleMouseDown = useCallback(() => {
+  /** Custom selection: record precise start caret on mousedown */
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
     isDraggingRef.current = true;
-  }, []);
+    if (activeTool === 'vocab') return;
+    const caret = document.caretRangeFromPoint(e.clientX, e.clientY);
+    selStartRef.current = caret ? { node: caret.startContainer, offset: caret.startOffset } : null;
+  }, [activeTool]);
+
+  /** Custom selection: override native selection on each mouse move to prevent snapping */
+  const handleDragSelect = useCallback((e: React.MouseEvent) => {
+    if (!isDraggingRef.current || !selStartRef.current || activeTool === 'vocab') return;
+    const end = document.caretRangeFromPoint(e.clientX, e.clientY);
+    if (!end) return;
+    const sel = window.getSelection();
+    if (!sel) return;
+    try {
+      const range = document.createRange();
+      const s = selStartRef.current;
+      const cmp = s.node.compareDocumentPosition(end.startContainer);
+      if (cmp & Node.DOCUMENT_POSITION_FOLLOWING ||
+          (s.node === end.startContainer && s.offset <= end.startOffset)) {
+        range.setStart(s.node, s.offset);
+        range.setEnd(end.startContainer, end.startOffset);
+      } else {
+        range.setStart(end.startContainer, end.startOffset);
+        range.setEnd(s.node, s.offset);
+      }
+      sel.removeAllRanges();
+      sel.addRange(range);
+    } catch { /* ignore invalid ranges */ }
+  }, [activeTool]);
 
   const handleMouseUp = (e: React.MouseEvent) => {
     isDraggingRef.current = false;
@@ -320,10 +349,8 @@ export function ReadingPassage({ content, interactive = true, examMode = false }
         onClick={handleClick}
         onMouseOver={handleMouseOver}
         onMouseOut={handleMouseOut}
-        {...(activeTool === 'vocab' ? {
-          onMouseMove: handleMouseMove,
-          onMouseLeave: clearHoveredWord,
-        } : {})}
+        onMouseMove={activeTool === 'vocab' ? handleMouseMove : handleDragSelect}
+        {...(activeTool === 'vocab' ? { onMouseLeave: clearHoveredWord } : {})}
         className={`max-w-none leading-relaxed ${
           examMode
             ? 'p-0 bg-transparent rounded-none text-[13px] leading-6'

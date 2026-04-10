@@ -7,8 +7,6 @@ interface Props {
 }
 
 export function ExamPart2IntroScreen({ onStartNow }: Props) {
-  const [note, setNote] = useState('');
-
   return (
     <div className="flex gap-0 overflow-hidden rounded-lg border border-gray-200 bg-white">
       {/* Main content */}
@@ -37,21 +35,6 @@ export function ExamPart2IntroScreen({ onStartNow }: Props) {
             <Play className="h-4 w-4 fill-current" />
             Start now
           </Button>
-        </div>
-      </div>
-
-      {/* Note sidebar */}
-      <div className="w-56 flex-shrink-0 border-l border-yellow-300">
-        <div className="bg-[#fbbf24] px-4 py-3 text-center font-bold text-[#2d3748]">
-          Note
-        </div>
-        <div className="h-full bg-[#fffde7] p-3">
-          <textarea
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-            placeholder="Note"
-            className="h-64 w-full resize-none bg-transparent text-sm text-gray-700 outline-none placeholder:text-gray-400"
-          />
         </div>
       </div>
     </div>

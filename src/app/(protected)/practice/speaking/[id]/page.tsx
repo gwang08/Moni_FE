@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useSpeakingExam } from '@/hooks/use-speaking-exam';
-import { useAssemblyAISTT } from '@/hooks/use-assemblyai-stt';
+import { useBrowserSTT } from '@/hooks/use-browser-stt';
 import { useSpeakingExamTimers } from '@/hooks/use-speaking-exam-timers';
 import { useSilenceDetector } from '@/hooks/use-silence-detector';
 import { ExamGuideScreen } from '@/components/speaking-exam/exam-guide-screen';
@@ -40,7 +40,7 @@ export default function SpeakingPracticePage({ params }: Props) {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
 
   const exam = useSpeakingExam();
-  const stt = useAssemblyAISTT();
+  const stt = useBrowserSTT();
   const startedRef = useRef(false);
 
   // Update progress bar when current question changes

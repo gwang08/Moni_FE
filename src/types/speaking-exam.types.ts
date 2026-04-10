@@ -76,7 +76,7 @@ export type ServerMessage =
 // ── Client → Server Messages ───────────────────────────────
 export type ClientMessage =
   | { type: 'start_exam'; testId: number }
-  | { type: 'transcript'; partNumber: number; questionId: number; text: string }
+  | { type: 'transcript'; partNumber: number; questionId: number; text: string; audioUrl: string }
   | { type: 'start_speaking_part2' }
-  | { type: 'stop_speaking_part2'; text: string }
+  | { type: 'stop_speaking_part2'; text: string; audioUrl: string }
   | { type: 'end_exam' };

@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useSpeakingExam } from '@/hooks/use-speaking-exam';
-import { useAssemblyAISTT } from '@/hooks/use-assemblyai-stt';
+import { useBrowserSTT } from '@/hooks/use-browser-stt';
 import { useSpeakingExamTimers } from '@/hooks/use-speaking-exam-timers';
 import { useSilenceDetector } from '@/hooks/use-silence-detector';
 import { ExamGuideScreen } from '@/components/speaking-exam/exam-guide-screen';
@@ -25,6 +25,43 @@ import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 
 // Local UI stages (before/between exam states)
 type UIStage = 'GUIDE' | 'MIC_TEST' | 'EXAM';
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+
+function getAuthToken(): string {
+  const stored = localStorage.getItem('auth-storage');
+  if (!stored) return '';
+  try {
+    const { state } = JSON.parse(stored);
+    return state?.token || '';
+  } catch {
+    return '';
+  }
+}
+
+async function uploadAudioBlob(blob: Blob): Promise<string> {
+  try {
+    const formData = new FormData();
+    const file = new File([blob], 'audio.webm', { type: 'audio/webm' });
+    formData.append('file', file);
+    
+    const token = getAuthToken();
+    const res = await fetch(`${API_URL}/api/v1/user/media/upload`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`
+      },
+      body: formData
+    });
+    if (res.ok) {
+      const json = await res.json();
+      return json.result || '';
+    }
+  } catch (e) {
+    console.error('Audio upload failed', e);
+  }
+  return '';
+}
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -47,7 +84,7 @@ export default function SpeakingExamPage({ params }: Props) {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
 
   const exam = useSpeakingExam();
-  const stt = useAssemblyAISTT();
+  const stt = useBrowserSTT();
   const startedRef = useRef(false);
 
   // Fetch test info to dynamically configure progress bar questions length
@@ -58,7 +95,11 @@ export default function SpeakingExamPage({ params }: Props) {
         const config = { 1: 0, 2: 0, 3: 0 };
         test.stimuli.forEach(st => {
           if (st.section && st.section >= 1 && st.section <= 3) {
-            config[st.section as 1|2|3] += st.questionGroups.reduce((acc, g) => acc + g.questions.length, 0);
+            config[st.section as 1|2|3] += st.questionGroups.reduce((acc, g) => {
+              // Only count interactive questions (position > 0), ignore intro/transition text (position == 0)
+              const interactiveQuestions = g.questions.filter((q: any) => q.position > 0).length;
+              return acc + interactiveQuestions;
+            }, 0);
           }
         });
         setPartConfig(prev => ({
@@ -124,9 +165,13 @@ export default function SpeakingExamPage({ params }: Props) {
   const hasStartedMicForQuestionRef = useRef<number | null>(null);
 
   // ── Handlers (defined before timers so they can be passed) ──
-  const handleStopPart2 = useCallback(() => {
-    sttRef.current.stopListening();
-    examRef.current.stopSpeakingPart2(sttRef.current.transcript || '[no response]');
+  const handleStopPart2 = useCallback(async () => {
+    const audioBlob = await sttRef.current.stopListening();
+    let audioUrl = '';
+    if (audioBlob) {
+      audioUrl = await uploadAudioBlob(audioBlob);
+    }
+    examRef.current.stopSpeakingPart2(sttRef.current.transcript || '[no response]', audioUrl);
   }, []);
 
   const handlePrepEnd = useCallback(() => {
@@ -159,7 +204,7 @@ export default function SpeakingExamPage({ params }: Props) {
   const timers = useSpeakingExamTimers(isPrepActive, isSpeakActive, handlePrepEnd, handleStopPart2);
 
   // ── Submit answer (Part 1 & 3) with double-submit guard ───
-  const handleSubmitAnswer = useCallback(() => {
+  const handleSubmitAnswer = useCallback(async () => {
     const currentQ = examRef.current.currentQuestion;
     if (!currentQ) return;
 
@@ -167,11 +212,17 @@ export default function SpeakingExamPage({ params }: Props) {
     if (submittedQuestionRef.current === currentQ.questionId) return;
     submittedQuestionRef.current = currentQ.questionId;
 
-    sttRef.current.stopListening();
+    const audioBlob = await sttRef.current.stopListening();
+    let audioUrl = '';
+    if (audioBlob) {
+      audioUrl = await uploadAudioBlob(audioBlob);
+    }
+
     examRef.current.sendTranscript(
       currentQ.partNumber,
       currentQ.questionId,
       sttRef.current.transcript || '[no response]',
+      audioUrl
     );
   }, []);
 

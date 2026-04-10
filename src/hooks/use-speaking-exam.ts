@@ -215,8 +215,8 @@ export function useSpeakingExam() {
   );
 
   const sendTranscript = useCallback(
-    (partNumber: number, questionId: number, text: string) => {
-      send({ type: 'transcript', partNumber, questionId, text });
+    (partNumber: number, questionId: number, text: string, audioUrl?: string) => {
+      send({ type: 'transcript', partNumber, questionId, text, audioUrl: audioUrl || '' });
       setExamState('PROCESSING');
     },
     [send],
@@ -228,7 +228,7 @@ export function useSpeakingExam() {
   }, [send]);
 
   const stopSpeakingPart2 = useCallback(
-    (text: string) => send({ type: 'stop_speaking_part2', text }),
+    (text: string, audioUrl?: string) => send({ type: 'stop_speaking_part2', text, audioUrl: audioUrl || '' }),
     [send],
   );
 

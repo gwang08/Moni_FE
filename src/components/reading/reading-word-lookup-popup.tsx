@@ -150,7 +150,7 @@ export function ReadingWordLookupPopup({ word, position, onClose }: Props) {
 
       <div
         style={resolveStyle(position.x, position.y)}
-        className="bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden
+        className="bg-white rounded-2xl shadow-2xl border border-gray-100
           animate-in fade-in zoom-in-95 duration-150"
       >
         {/* Header */}

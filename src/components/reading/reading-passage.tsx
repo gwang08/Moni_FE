@@ -318,24 +318,24 @@ export function ReadingPassage({ content, interactive = true, examMode = false }
         onMouseDown={handleMouseDown}
         onMouseUp={(e) => handleMouseUp(e)}
         onClick={handleClick}
-        {...(activeTool !== 'vocab' ? {
-          onMouseOver: handleMouseOver,
-          onMouseOut: handleMouseOut,
-        } : {
+        onMouseOver={handleMouseOver}
+        onMouseOut={handleMouseOut}
+        {...(activeTool === 'vocab' ? {
           onMouseMove: handleMouseMove,
           onMouseLeave: clearHoveredWord,
-        })}
-        className={`prose max-w-none leading-relaxed ${
+        } : {})}
+        className={`max-w-none leading-relaxed ${
           examMode
             ? 'p-0 bg-transparent rounded-none text-[13px] leading-6'
             : 'p-6 bg-white rounded-lg text-lg'
         } ${
           !interactive
-            ? 'select-text'
+            ? ''
             : activeTool === 'vocab'
-              ? 'vocab-mode select-none'
-              : 'select-text'
+              ? 'vocab-mode'
+              : ''
         } ${interactive && activeTool && activeTool !== 'vocab' ? 'cursor-text' : ''}`}
+        style={{ userSelect: activeTool === 'vocab' ? 'none' : 'text', WebkitUserSelect: activeTool === 'vocab' ? 'none' : 'text' }}
         dangerouslySetInnerHTML={{ __html: renderedHtml }}
       />
 
@@ -429,17 +429,7 @@ export function ReadingPassage({ content, interactive = true, examMode = false }
       {/* CSS for vocab mode: default cursor, no text selection */}
       {interactive && activeTool === 'vocab' && (
         <style dangerouslySetInnerHTML={{ __html: `
-          .vocab-mode { cursor: default !important; user-select: none !important; }
-        `}} />
-      )}
-
-      {/* CSS to ensure stable text selection in passage */}
-      {interactive && activeTool && activeTool !== 'vocab' && (
-        <style dangerouslySetInnerHTML={{ __html: `
-          .prose p, .prose div, .prose strong, .prose mark, .prose span {
-            user-select: text !important;
-            -webkit-user-select: text !important;
-          }
+          .vocab-mode { cursor: default !important; }
         `}} />
       )}
     </>

@@ -55,6 +55,14 @@ export function useSpeakingExam() {
       return;
     }
 
+    // Detach old handlers to prevent old finalizeTTS from firing when cancel() is called
+    if (utteranceRef.current) {
+      utteranceRef.current.onstart = null;
+      utteranceRef.current.onend = null;
+      utteranceRef.current.onerror = null;
+    }
+    window.speechSynthesis.cancel(); // Cancel any ongoing speech first
+
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = 'en-US';
     utterance.rate = 0.9;
@@ -88,8 +96,6 @@ export function useSpeakingExam() {
     // Prevent garbage collection bug in Chrome that kills onend
     utteranceRef.current = utterance;
 
-    // Cancel any ongoing speech first
-    window.speechSynthesis.cancel();
     window.speechSynthesis.speak(utterance);
     
     // Safety fallback: if utterance never starts within 4 seconds (cold boot delay)

@@ -150,9 +150,7 @@ export default function SpeakingPracticePage({ params }: Props) {
   }, [exam.currentQuestion?.questionId]);
 
   // ── Silence detection — Dynamic threshold by Part ─────────
-  let part13SilenceThreshold = 6000;
-  if (exam.currentQuestion?.partNumber === 1) part13SilenceThreshold = 4000;
-  if (exam.currentQuestion?.partNumber === 3) part13SilenceThreshold = 6000;
+  const part13SilenceThreshold = 7000; // 7 seconds for Part 1 and 3
 
   const isSilenceActive = exam.examState === 'RECORDING';
   useSilenceDetector(stt.transcript, isSilenceActive, handleSubmitAnswer, part13SilenceThreshold);

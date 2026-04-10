@@ -35,6 +35,7 @@ export function useSpeakingExam() {
   const [error, setError] = useState<string | null>(null);
   const [hasPendingAudio, setHasPendingAudio] = useState(false);
   const [isAudioPlaying, setIsAudioPlaying] = useState(false);
+  const currentQuestionRef = useRef<QuestionEvent | null>(null);
   const pausePlaybackRef = useRef(false);
 
   // ── Send helper ───────────────────────────────────────────
@@ -108,10 +109,16 @@ export function useSpeakingExam() {
     (msg: ServerMessage) => {
       switch (msg.type) {
         case 'question':
+          const prevPart = currentQuestionRef.current?.partNumber;
+          currentQuestionRef.current = msg;
           setCurrentQuestion(msg);
           pendingTextRef.current = msg.text;
           setExamState('AUDIO_PLAYING');
-          if (pausePlaybackRef.current) {
+          
+          const isNewPart3 = msg.partNumber === 3 && prevPart !== 3;
+
+          if (pausePlaybackRef.current || isNewPart3) {
+            pausePlaybackRef.current = true; // Auto-pause for Part 3 intro and logic consistency
             setHasPendingAudio(true);
           } else {
             speakWithBrowserTTS(msg.text);

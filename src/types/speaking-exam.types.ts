@@ -31,11 +31,6 @@ export interface CueCardEvent {
   topic: string;
 }
 
-export interface AudioChunkEvent {
-  type: 'audio_chunk';
-  data: string; // base64 MP3
-}
-
 export interface EvaluationFeedback {
   summary: string;
   strengths: string[];
@@ -66,8 +61,6 @@ export interface EvaluationEvent {
 export type ServerMessage =
   | QuestionEvent
   | CueCardEvent
-  | AudioChunkEvent
-  | { type: 'audio_end' }
   | { type: 'evaluating' }
   | EvaluationEvent
   | { type: 'error'; message: string }

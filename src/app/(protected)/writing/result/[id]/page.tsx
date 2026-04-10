@@ -3,11 +3,11 @@
 import { use, useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, FileText, Loader2, Sparkles, ChevronDown, ChevronUp } from 'lucide-react';
+import { ArrowLeft, FileText, Loader2, Sparkles, ChevronDown, ChevronUp, Info, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { WritingScoringProgressDialog } from '@/components/writing/writing-scoring-progress-dialog';
 import { WritingPromptPanel } from '@/components/writing/writing-prompt-panel';
 import { useTestDetail } from '@/hooks/use-test-detail';
@@ -133,84 +133,190 @@ function ScoreOverview({ data }: { data: NormalisedData }) {
   );
 }
 
-function CriterionTab({ c }: { c: NormalisedData['criteria'][number] }) {
-  // Count active violations (non-empty arrays)
+function CriterionCard({ c }: { c: NormalisedData['criteria'][number] }) {
   const activeViolations = c.violations
     ? Object.entries(c.violations).filter(([, v]) => Array.isArray(v) && (v as unknown[]).length > 0)
     : [];
 
   return (
-    <div className="space-y-3 pt-2">
-      <div className="flex items-center gap-3">
-        <span className={`text-3xl font-black ${bc(c.band)}`}>{c.band.toFixed(1)}</span>
-        <span className="text-sm text-gray-500">{c.label}</span>
+    <div className={`rounded-2xl border p-4 ${bbg(c.band)}`}>
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-2">
+          <span className={`text-2xl font-black ${bc(c.band)}`}>{c.band.toFixed(1)}</span>
+          <div>
+            <p className="text-sm font-bold text-gray-800">{c.label}</p>
+            <p className="text-[10px] text-gray-500">Band {c.band.toFixed(1)}</p>
+          </div>
+        </div>
       </div>
+
       {c.justification && (
-        <p className="text-[13px] text-gray-700 leading-relaxed">{c.justification}</p>
+        <p className="text-[12px] text-gray-700 leading-relaxed mb-2">{c.justification}</p>
       )}
+
       {c.strengths && c.strengths.length > 0 && (
-        <div className="rounded-xl bg-emerald-50 border border-emerald-100 p-3 space-y-1">
-          <p className="text-[11px] font-bold text-emerald-600 uppercase tracking-wide">Điểm mạnh</p>
-          {c.strengths.map((s, i) => (
-            <p key={i} className="text-[12px] text-gray-700 flex gap-1.5"><span className="text-emerald-500 shrink-0">✓</span>{s}</p>
+        <div className="space-y-1 mb-2">
+          {c.strengths.slice(0, 2).map((s, i) => (
+            <p key={i} className="text-[11px] text-gray-700 flex gap-1.5">
+              <span className="text-emerald-500 shrink-0">✓</span>{s}
+            </p>
           ))}
         </div>
       )}
+
       {c.weaknesses && c.weaknesses.length > 0 && (
-        <div className="rounded-xl bg-amber-50 border border-amber-100 p-3 space-y-1">
-          <p className="text-[11px] font-bold text-amber-600 uppercase tracking-wide">Điểm yếu</p>
-          {c.weaknesses.map((w, i) => (
-            <p key={i} className="text-[12px] text-gray-700 flex gap-1.5"><span className="text-amber-500 shrink-0">⚠</span>{w}</p>
+        <div className="space-y-1 mb-2">
+          {c.weaknesses.slice(0, 2).map((w, i) => (
+            <p key={i} className="text-[11px] text-gray-700 flex gap-1.5">
+              <span className="text-amber-500 shrink-0">⚠</span>{w}
+            </p>
           ))}
         </div>
       )}
+
       {activeViolations.length > 0 && (
-        <div className="space-y-2">
-          <p className="text-[11px] font-bold text-red-500 uppercase tracking-wide">Lỗi phát hiện</p>
-          {activeViolations.map(([vKey, vArr]) => (
-            <div key={vKey} className="rounded-xl bg-red-50 border border-red-100 p-3">
-              <p className="text-[11px] font-semibold text-red-600 mb-1">{vKey}</p>
-              {(vArr as Record<string, unknown>[]).slice(0, 3).map((item, i) => {
-                const evidence = item.evidence != null ? String(item.evidence) : '';
-                const reason = item.reason != null ? String(item.reason) : '';
-                return (
-                  <div key={i} className="text-[12px] text-gray-700 mb-1.5 last:mb-0">
-                    {evidence && <p className="italic text-gray-500">&ldquo;{evidence}&rdquo;</p>}
-                    {reason && <p>{reason}</p>}
-                  </div>
-                );
-              })}
-            </div>
-          ))}
+        <div className="space-y-1.5">
+          <p className="text-[10px] font-bold text-red-500 uppercase tracking-wide">Lỗi thường gặp</p>
+          {activeViolations.slice(0, 1).map(([, vArr]) => {
+            const item = (vArr as Record<string, unknown>[])[0];
+            const reason = item?.reason != null ? String(item.reason) : '';
+            return reason ? (
+              <p key={0} className="text-[11px] text-red-600 leading-relaxed">• {reason}</p>
+            ) : null;
+          })}
         </div>
-      )}
-      {!c.justification && !c.strengths?.length && !c.weaknesses?.length && activeViolations.length === 0 && (
-        <p className="text-[13px] text-gray-400 italic">Không có chi tiết cho tiêu chí này.</p>
       )}
     </div>
   );
 }
 
-function ImprovementsSection({ improvements }: { improvements: NormalisedData['improvements'] }) {
-  if (!improvements.length) return null;
+interface HighlightInfo {
+  text: string;
+  reason: string;
+  criterion: string;
+  issueType?: string;
+  improvedVersion?: string;
+}
+
+function parseEssayWithHighlights(essay: string, improvements: NormalisedData['improvements']): { segments: Array<{ type: 'text' | 'highlight'; content: string | HighlightInfo }> } {
+  if (!improvements.length) {
+    return { segments: [{ type: 'text', content: essay }] };
+  }
+
+  const segments: Array<{ type: 'text' | 'highlight'; content: string | HighlightInfo }> = [];
+  let remaining = essay;
+
+  // Try to match original sentences in the essay
+  const highlights: Array<{ index: number; length: number; info: HighlightInfo }> = [];
+
+  for (const imp of improvements) {
+    if (!imp.original_sentence) continue;
+    const original = imp.original_sentence.replace(/^"|"$/g, '').trim();
+    const idx = remaining.indexOf(original);
+    if (idx !== -1) {
+      highlights.push({
+        index: idx,
+        length: original.length,
+        info: {
+          text: original,
+          reason: imp.reason || '',
+          criterion: imp.criterion,
+          issueType: imp.issue_type,
+          improvedVersion: imp.improved_sentence?.replace(/^"|"$/g, '').trim(),
+        },
+      });
+    }
+  }
+
+  if (highlights.length === 0) {
+    return { segments: [{ type: 'text', content: essay }] };
+  }
+
+  // Sort by index
+  highlights.sort((a, b) => a.index - b.index);
+
+  // Build segments
+  let lastIdx = 0;
+  for (const hl of highlights) {
+    if (hl.index > lastIdx) {
+      segments.push({ type: 'text', content: remaining.slice(lastIdx, hl.index) });
+    }
+    segments.push({ type: 'highlight', content: hl.info });
+    lastIdx = hl.index + hl.length;
+  }
+  if (lastIdx < remaining.length) {
+    segments.push({ type: 'text', content: remaining.slice(lastIdx) });
+  }
+
+  return { segments };
+}
+
+function HighlightedEssay({ essay, improvements }: { essay: string; improvements: NormalisedData['improvements'] }) {
+  const { segments } = parseEssayWithHighlights(essay, improvements);
+  const [openDialog, setOpenDialog] = useState<number | null>(null);
+
+  if (!segments.length || (segments.length === 1 && segments[0].type === 'text')) {
+    return (
+      <div className="rounded-xl bg-gray-50/60 border border-gray-100 p-4">
+        <p className="text-[13px] text-gray-800 leading-relaxed whitespace-pre-wrap">{essay}</p>
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-2.5">
-      <p className="text-xs font-bold text-teal-500 uppercase tracking-wider">Gợi ý cải thiện</p>
-      {improvements.map((imp, i) => (
-        <div key={i} className="rounded-2xl border border-gray-100 bg-white p-4 space-y-2 shadow-sm">
-          <div className="flex items-center gap-2">
-            <Badge variant="secondary" className="text-[10px]">{imp.criterion}</Badge>
-            {imp.issue_type && <span className="text-[11px] text-gray-400">{imp.issue_type}</span>}
-          </div>
-          {imp.original_sentence && (
-            <p className="text-[12px] text-gray-500 line-through leading-relaxed">"{imp.original_sentence}"</p>
-          )}
-          {imp.improved_sentence && (
-            <p className="text-[12px] text-emerald-700 bg-emerald-50 rounded-lg px-2 py-1 leading-relaxed">"{imp.improved_sentence}"</p>
-          )}
-          {imp.reason && <p className="text-[12px] text-gray-600">{imp.reason}</p>}
-        </div>
-      ))}
+    <div className="rounded-xl bg-gray-50/60 border border-gray-100 p-4 space-y-2">
+      <div className="flex items-center gap-2 mb-2">
+        <Info className="h-4 w-4 text-amber-500" />
+        <p className="text-[11px] text-gray-600">Các đoạn được highlight là những phần cần cải thiện. Nhấn vào icon <Info className="h-3 w-3 inline" /> để xem chi tiết.</p>
+      </div>
+      <div className="text-[13px] text-gray-800 leading-relaxed whitespace-pre-wrap">
+        {segments.map((seg, i) => {
+          if (seg.type === 'text') {
+            return <span key={i}>{seg.content as string}</span>;
+          }
+          const hl = seg.content as HighlightInfo;
+          return (
+            <span
+              key={i}
+              className="inline bg-amber-100 border-b-2 border-amber-400 px-1 py-0.5 rounded cursor-pointer hover:bg-amber-200 transition-colors"
+            >
+              {hl.text}
+              <Dialog open={openDialog === i} onOpenChange={(open) => setOpenDialog(open ? i : null)}>
+                <DialogTrigger asChild>
+                  <button className="inline-flex ml-1 align-middle hover:scale-110 transition-transform">
+                    <Info className="h-3.5 w-3.5 text-amber-700 hover:text-amber-800" />
+                  </button>
+                </DialogTrigger>
+                <DialogContent className="max-w-md">
+                  <DialogHeader>
+                    <DialogTitle className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Badge variant="secondary">{hl.criterion}</Badge>
+                        {hl.issueType && <span className="text-xs text-gray-500">{hl.issueType}</span>}
+                      </div>
+                      <button onClick={() => setOpenDialog(null)} className="text-gray-400 hover:text-gray-600">
+                        <X className="h-4 w-4" />
+                      </button>
+                    </DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-3 mt-2">
+                    <div className="rounded-lg bg-gray-50 border border-gray-200 p-3">
+                      <p className="text-[10px] font-bold text-gray-600 mb-1">⚠ Vấn đề</p>
+                      <p className="text-[12px] text-gray-700 leading-relaxed">{hl.reason}</p>
+                    </div>
+                    {hl.improvedVersion && (
+                      <div className="rounded-lg bg-emerald-50 border border-emerald-100 p-3">
+                        <p className="text-[10px] font-bold text-emerald-600 mb-1">✓ Gợi ý sửa</p>
+                        <p className="text-[12px] text-emerald-700 leading-relaxed">{hl.improvedVersion}</p>
+                      </div>
+                    )}
+                  </div>
+                </DialogContent>
+              </Dialog>
+            </span>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -302,9 +408,9 @@ export default function WritingResultPage({ params }: Props) {
   ).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 
   return (
-    <div className="h-[calc(100vh-56px)] flex flex-col">
+    <div className="h-[calc(100vh-56px)] overflow-y-auto">
       {/* Header */}
-      <div className="bg-white border-b px-4 py-3 flex items-center gap-3 shrink-0">
+      <div className="bg-white border-b px-4 py-3 flex items-center gap-3 sticky top-0 z-10">
         <Link href="/scoring-history">
           <Button variant="ghost" size="icon"><ArrowLeft className="h-5 w-5" /></Button>
         </Link>
@@ -317,26 +423,45 @@ export default function WritingResultPage({ params }: Props) {
         </Badge>
       </div>
 
-      {/* Body */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* Left: Prompt (40%) */}
+      <div className="max-w-5xl mx-auto p-6 space-y-6">
+        {/* Prompt at the top */}
         {prompt && (
-          <div className="w-2/5 overflow-y-auto p-6 border-r border-gray-200 bg-gradient-to-b from-teal-50/40 to-emerald-50/20 shrink-0">
-            <WritingPromptPanel prompt={prompt} chartImageUrl={chartImageUrl} taskType={taskType} />
+          <div className="rounded-2xl border border-teal-100/60 bg-gradient-to-br from-teal-50/40 to-emerald-50/20 p-4">
+            <WritingPromptPanel prompt={prompt} chartImageUrl={chartImageUrl || ''} taskType={taskType} />
           </div>
         )}
 
-        {/* Right: Results (60%) */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-5">
-          {/* Score overview */}
-          {normData && (
-            <div className="rounded-2xl border border-teal-100/60 bg-white p-4 shadow-sm">
-              <p className="text-[10px] font-bold text-teal-500 uppercase tracking-wider mb-3">Tổng quan điểm số</p>
-              <ScoreOverview data={normData} />
-            </div>
-          )}
+        {/* Score overview */}
+        {normData && (
+          <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+            <p className="text-[10px] font-bold text-teal-500 uppercase tracking-wider mb-3">Tổng quan điểm số</p>
+            <ScoreOverview data={normData} />
+          </div>
+        )}
 
-          {/* Essay (collapsible) */}
+        {/* All 4 criteria displayed directly */}
+        {normData && (
+          <div>
+            <p className="text-sm font-bold text-gray-800 mb-3">Phân tích chi tiết theo tiêu chí</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {normData.criteria.map((c) => (
+                <CriterionCard key={c.key} c={c} />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Essay with highlights */}
+        {normData && normData.improvements.length > 0 ? (
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <FileText className="h-4 w-4 text-teal-500" />
+              <p className="text-sm font-bold text-gray-800">Bài viết của bạn</p>
+              <Badge variant="secondary" className="text-[10px]">{submission.wordCount} từ</Badge>
+            </div>
+            <HighlightedEssay essay={submission.essayContent} improvements={normData.improvements} />
+          </div>
+        ) : (
           <div className="rounded-2xl border border-gray-100 bg-white shadow-sm overflow-hidden">
             <button
               className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition-colors"
@@ -357,75 +482,53 @@ export default function WritingResultPage({ params }: Props) {
               </div>
             )}
           </div>
+        )}
 
-          {/* Detailed criteria tabs */}
-          {normData && (
-            <div className="rounded-2xl border border-gray-100 bg-white shadow-sm p-4">
-              <p className="text-[10px] font-bold text-teal-500 uppercase tracking-wider mb-3">Phân tích chi tiết</p>
-              <Tabs defaultValue={normData.criteria[0]?.key ?? 'TA/TR'}>
-                <TabsList className="grid grid-cols-4 w-full h-8 bg-gray-100/80">
-                  {normData.criteria.map((c) => (
-                    <TabsTrigger key={c.key} value={c.key} className="text-[11px] font-semibold">{c.key}</TabsTrigger>
-                  ))}
-                </TabsList>
-                {normData.criteria.map((c) => (
-                  <TabsContent key={c.key} value={c.key}>
-                    <CriterionTab c={c} />
-                  </TabsContent>
-                ))}
-              </Tabs>
-            </div>
-          )}
+        {/* Expert format: summary/strengths/improvements text */}
+        {normData && (normData.summary || normData.strengths) && (
+          <div className="space-y-3">
+            {normData.summary && (
+              <div className="rounded-2xl bg-teal-50/50 border border-teal-100/60 p-4">
+                <p className="text-xs font-bold text-teal-600 mb-1.5">Nhận xét tổng quan</p>
+                <p className="text-[13px] text-gray-600 leading-relaxed whitespace-pre-line">{normData.summary}</p>
+              </div>
+            )}
+            {normData.strengths && (
+              <div className="rounded-2xl bg-emerald-50/50 border border-emerald-100/60 p-4">
+                <p className="text-xs font-bold text-emerald-600 mb-1.5">Điểm mạnh</p>
+                <p className="text-[13px] text-gray-600 leading-relaxed whitespace-pre-line">{normData.strengths}</p>
+              </div>
+            )}
+            {normData.feedbackImprovements && (
+              <div className="rounded-2xl bg-amber-50/50 border border-amber-100/60 p-4">
+                <p className="text-xs font-bold text-amber-600 mb-1.5">Cần cải thiện</p>
+                <p className="text-[13px] text-gray-600 leading-relaxed whitespace-pre-line">{normData.feedbackImprovements}</p>
+              </div>
+            )}
+          </div>
+        )}
 
-          {/* Expert format: summary/strengths/improvements text */}
-          {normData && (normData.summary || normData.strengths) && (
-            <div className="space-y-3">
-              {normData.summary && (
-                <div className="rounded-2xl bg-teal-50/50 border border-teal-100/60 p-4">
-                  <p className="text-xs font-bold text-teal-600 mb-1.5">Nhận xét tổng quan</p>
-                  <p className="text-[13px] text-gray-600 leading-relaxed whitespace-pre-line">{normData.summary}</p>
-                </div>
-              )}
-              {normData.strengths && (
-                <div className="rounded-2xl bg-emerald-50/50 border border-emerald-100/60 p-4">
-                  <p className="text-xs font-bold text-emerald-600 mb-1.5">Điểm mạnh</p>
-                  <p className="text-[13px] text-gray-600 leading-relaxed whitespace-pre-line">{normData.strengths}</p>
-                </div>
-              )}
-              {normData.feedbackImprovements && (
-                <div className="rounded-2xl bg-amber-50/50 border border-amber-100/60 p-4">
-                  <p className="text-xs font-bold text-amber-600 mb-1.5">Cần cải thiện</p>
-                  <p className="text-[13px] text-gray-600 leading-relaxed whitespace-pre-line">{normData.feedbackImprovements}</p>
-                </div>
-              )}
-            </div>
-          )}
+        {/* Overall strategy */}
+        {normData?.overall_strategy && (
+          <div className="rounded-2xl bg-gradient-to-br from-teal-50 to-emerald-50/60 border border-teal-100/60 p-4">
+            <p className="text-xs font-bold text-teal-600 mb-1.5">Chiến lược tổng thể</p>
+            <p className="text-[13px] text-gray-700 leading-relaxed">{normData.overall_strategy}</p>
+          </div>
+        )}
 
-          {/* AI format: improvements list */}
-          {normData && <ImprovementsSection improvements={normData.improvements} />}
-
-          {/* Overall strategy */}
-          {normData?.overall_strategy && (
-            <div className="rounded-2xl bg-gradient-to-br from-teal-50 to-emerald-50/60 border border-teal-100/60 p-4">
-              <p className="text-xs font-bold text-teal-600 mb-1.5">Chiến lược tổng thể</p>
-              <p className="text-[13px] text-gray-700 leading-relaxed">{normData.overall_strategy}</p>
-            </div>
-          )}
-
-          {/* AI score CTA */}
-          {!scored && (
-            <div className="flex justify-center pb-2">
-              <Button
-                onClick={handleAiScore}
-                disabled={isGrading}
-                className="gap-2 bg-gradient-to-r from-teal-400 to-emerald-400 hover:from-teal-500 hover:to-emerald-500 text-white shadow-md shadow-teal-200/50 px-6 rounded-2xl"
-              >
-                <Sparkles className="h-4 w-4" />
-                Chấm AI ngay
-              </Button>
-            </div>
-          )}
-        </div>
+        {/* AI score CTA */}
+        {!scored && (
+          <div className="flex justify-center pb-4">
+            <Button
+              onClick={handleAiScore}
+              disabled={isGrading}
+              className="gap-2 bg-gradient-to-r from-teal-400 to-emerald-400 hover:from-teal-500 hover:to-emerald-500 text-white shadow-md shadow-teal-200/50 px-6 rounded-2xl"
+            >
+              <Sparkles className="h-4 w-4" />
+              Chấm AI ngay
+            </Button>
+          </div>
+        )}
       </div>
 
       <WritingScoringProgressDialog open={isGrading} />

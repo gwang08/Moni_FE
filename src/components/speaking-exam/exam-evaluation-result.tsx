@@ -184,7 +184,7 @@ export function ExamEvaluationResult({ evaluation, recordings, title }: Props) {
 
       {/* ── MODAL: DETAILED AI FEEDBACK & RECORDINGS ── */}
       <Dialog open={showDetailedFeedback} onOpenChange={setShowDetailedFeedback}>
-        <DialogContent className="w-[90vw] max-w-6xl max-h-[90vh] overflow-y-auto bg-white p-6 md:p-8 rounded-3xl border-gray-100 outline-none">
+        <DialogContent className="w-[95vw] sm:max-w-[95vw] md:max-w-5xl lg:max-w-6xl max-h-[90vh] overflow-y-auto bg-white p-6 md:p-8 rounded-3xl border-gray-100 outline-none">
           <DialogTitle className="text-2xl font-bold text-gray-800 mb-6 border-b border-gray-100 pb-4 tracking-tight">
             {title ? title : 'Chi tiết Đề bài & Bài làm'}
           </DialogTitle>

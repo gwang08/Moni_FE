@@ -2,7 +2,7 @@
 
 import { use, useEffect, useCallback, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Play } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useSpeakingExam } from '@/hooks/use-speaking-exam';
 import { useBrowserSTT } from '@/hooks/use-browser-stt';

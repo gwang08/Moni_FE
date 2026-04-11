@@ -7,7 +7,7 @@ import { getRoadmapInsights } from '@/lib/roadmap-api';
 import type { LearnerRoadmapInsights, LearnerTagMetric } from '@/types/roadmap.types';
 
 function fmtBand(val: number | null | undefined): string {
-  if (val == null || Number.isNaN(val) || val <= 0) return '—';
+  if (val == null || Number.isNaN(val) || val < 0) return '—';
   return val.toFixed(1);
 }
 

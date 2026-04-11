@@ -135,10 +135,8 @@ export default function ExpertSessionPage({ params }: Props) {
                   if (res.result.writingSubmissionId) {
                     getWritingSubmissionDetail(res.result.writingSubmissionId).then((sub) => {
                       const stimuli = testRes.result?.stimuli ?? [];
-                      let exactMatch = stimuli.find(s => s.id === sub.stimulusId);
-                      if (!exactMatch && sub.taskType) {
-                        exactMatch = stimuli.find(s => s.section === (sub.taskType === 'TASK_1' ? 1 : 2));
-                      }
+                      const targetSection = sub.taskType === 'TASK_1' ? 1 : 2;
+                      const exactMatch = stimuli.find(s => s.section === targetSection);
                       if (exactMatch) {
                         setPromptFromStimulus(exactMatch, sub.taskType === 'TASK_1' ? 1 : 2);
                       } else if (testRes.result?.stimuli?.[0]) {
@@ -322,39 +320,60 @@ export default function ExpertSessionPage({ params }: Props) {
         </div>
       )}
 
-              onClick={() => setShowQuestions((v) => !v)}
-              className="flex items-center justify-between w-full font-bold text-gray-800 text-[15px]"
-            >
-              <div className="flex items-center gap-2">
-                <FileText className="h-4 w-4 text-emerald-600" />
-                <span>Câu hỏi đề thi</span>
-                <Badge variant="secondary" className="ml-2 font-medium bg-emerald-50 text-emerald-700 hover:bg-emerald-100">
-                  {Object.values(questionsByPart).flat().length} câu
-                </Badge>
-              </div>
-              {showQuestions ? <ChevronUp className="h-4 w-4 text-gray-500" /> : <ChevronDown className="h-4 w-4 text-gray-500" />}
-            </button>
-            
-            {showQuestions && (
-              <div className="mt-4 space-y-5">
-                {Object.entries(questionsByPart).map(([part, qs]) => (
-                  <div key={part}>
-                    <h4 className="text-sm font-bold text-gray-700 mb-2 pb-1 border-b border-gray-100">
-                      {skill === 'SPEAKING' ? `Part ${part}` : `Task ${part}`}
-                    </h4>
-                    <ol className="space-y-2 list-outside ml-4">
-                      {qs.map((q, i) => (
-                        <li key={q.id} className="text-[13px] text-gray-600 leading-relaxed list-decimal marker:text-emerald-500 marker:font-semibold">
-                          <span className="text-gray-800 ml-1">{q.content}</span>
-                        </li>
-                      ))}
-                    </ol>
-                  </div>
-                ))}
-              </div>
-            )}
-          </Card>
-        )}
+      {/* Right panel: Evaluation form */}
+      <div className={`${skill === 'WRITING' ? 'w-[50%]' : 'w-1/2'} flex flex-col bg-white overflow-hidden shadow-[-4px_0_15px_-5px_rgba(0,0,0,0.05)]`}>
+        {/* Header */}
+        <div className="px-5 py-4 border-b bg-white border-gray-100 shrink-0 flex items-center justify-between">
+          <h2 className="text-[17px] font-bold text-gray-800 tracking-tight flex items-center gap-2">
+            Bảng chấm điểm
+            <Badge variant="secondary" className="text-[10px] font-bold px-2 py-0.5 bg-gray-100 text-gray-500 rounded flex gap-1">
+              Phiên <span className="text-gray-800">#{sessionId}</span>
+            </Badge>
+          </h2>
+          <Badge className={`text-[10px] px-2 py-0.5 tracking-wider uppercase ${skill === 'WRITING' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-[#ea580c] hover:bg-[#c2410c]'} font-bold border-0 shadow-sm rounded`}>
+            {skill}
+          </Badge>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-5 scrollbar-thin scrollbar-thumb-gray-200 scrollbar-track-transparent space-y-4">
+          {/* Grouped Questions Accordion - ONLY FOR SPEAKING */}
+          {skill !== 'WRITING' && Object.keys(questionsByPart).length > 0 && (
+            <Card className="p-4 border-gray-200 shadow-sm rounded-xl bg-white">
+              <button
+                type="button"
+                onClick={() => setShowQuestions((v) => !v)}
+                className="flex items-center justify-between w-full font-bold text-gray-800 text-[15px]"
+              >
+                <div className="flex items-center gap-2">
+                  <FileText className="h-4 w-4 text-emerald-600" />
+                  <span>Câu hỏi đề thi</span>
+                  <Badge variant="secondary" className="ml-2 font-medium bg-emerald-50 text-emerald-700 hover:bg-emerald-100">
+                    {Object.values(questionsByPart).flat().length} câu
+                  </Badge>
+                </div>
+                {showQuestions ? <ChevronUp className="h-4 w-4 text-gray-500" /> : <ChevronDown className="h-4 w-4 text-gray-500" />}
+              </button>
+              
+              {showQuestions && (
+                <div className="mt-4 space-y-5">
+                  {Object.entries(questionsByPart).map(([part, qs]) => (
+                    <div key={part}>
+                      <h4 className="text-sm font-bold text-gray-700 mb-2 pb-1 border-b border-gray-100">
+                        Part {part}
+                      </h4>
+                      <ol className="space-y-2 list-outside ml-4">
+                        {qs.map((q) => (
+                          <li key={q.id} className="text-[13px] text-gray-600 leading-relaxed list-decimal marker:text-emerald-500 marker:font-semibold">
+                            <span className="text-gray-800 ml-1">{q.content}</span>
+                          </li>
+                        ))}
+                      </ol>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </Card>
+          )}
 
         {/* Score inputs */}
         <Card className="p-5 border-gray-200 shadow-sm rounded-xl bg-white">
@@ -438,6 +457,7 @@ export default function ExpertSessionPage({ params }: Props) {
             <><Send className="h-4 w-4" /> Gửi kết quả chấm điểm</>
           )}
         </Button>
+        </div>
       </div>
     </div>
   );

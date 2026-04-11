@@ -160,7 +160,11 @@ export function LearningRoadmap() {
     // Route based on skill type
     switch (slot.skill) {
       case 'SPEAKING':
-        router.push(`/practice/speaking/${id}`);
+        if (slot.stimulusId) {
+          router.push(`/speaking-exam/${slot.stimulusId}`);
+        } else {
+          router.push(`/practice/speaking/${id}`);
+        }
         break;
       case 'WRITING':
         router.push(`/practice/writing/${id}`);

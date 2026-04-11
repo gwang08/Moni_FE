@@ -102,11 +102,11 @@ export default function SpeakingExamPage({ params }: Props) {
             }, 0);
           }
         });
-        setPartConfig(prev => ({
-          1: config[1] || prev[1],
-          2: config[2] || prev[2],
-          3: config[3] || prev[3],
-        }));
+        setPartConfig({
+          1: config[1],
+          2: config[2],
+          3: config[3],
+        });
       }).catch(e => console.error('Failed to fetch test details', e));
     });
   }, [id]);

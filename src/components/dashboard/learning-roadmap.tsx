@@ -10,7 +10,7 @@ import { getWeeklyPlan } from '@/lib/roadmap-api';
 import { SkeletonCard } from '@/components/ui/skeleton';
 import type { WeeklyPlanResponse, DailySlotResponse, RoadmapSkill, PerformanceVerdict } from '@/types/roadmap.types';
 
-const DAY_LABELS = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
+const WEEKDAY_SHORT = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
 
 const SKILL_STYLE: Record<RoadmapSkill, { bg: string; text: string; border: string; dot: string }> = {
   READING: { bg: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-200', dot: 'bg-blue-500' },
@@ -212,11 +212,19 @@ export function LearningRoadmap() {
       <div className="px-6 py-4">
         <div className="grid grid-cols-7 gap-2">
           {/* Day headers */}
-          {DAY_LABELS.map((label, i) => {
+          {Array.from({ length: 7 }, (_, i) => {
             const dayNum = i + 1;
             const daySlots = slotsByDay.get(dayNum) ?? [];
-            const isToday = daySlots.length > 0 && daySlots[0].slotDate === today;
-            const isFuture = daySlots.length > 0 && daySlots[0].slotDate > today;
+            // Build label from slot date or plan start date
+            const slotDate = daySlots.length > 0 ? daySlots[0].slotDate : null;
+            let dayLabel = `N${dayNum}`;
+            if (slotDate) {
+              const d = new Date(slotDate);
+              const wd = WEEKDAY_SHORT[d.getDay()];
+              dayLabel = `${wd} ${d.getDate()}/${d.getMonth() + 1}`;
+            }
+            const isToday = slotDate === today;
+            const isFuture = slotDate != null && slotDate > today;
             const allDone = daySlots.length > 0 && daySlots.every(s => s.status === 'DONE');
             const isDay7 = dayNum === 7;
 
@@ -233,7 +241,7 @@ export function LearningRoadmap() {
                           : 'text-gray-500'
                   }`}
                 >
-                  {label}
+                  {dayLabel}
                 </div>
                 <div className="space-y-1.5">
                   {daySlots.map((slot) => (

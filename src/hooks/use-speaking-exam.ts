@@ -125,6 +125,16 @@ export function useSpeakingExam() {
           }
           break;
 
+        case 'resume_exam':
+          setExamState(msg.state);
+          if (msg.part === 2) {
+            setCueCard(msg.currentQuestion);
+          } else {
+            currentQuestionRef.current = msg.currentQuestion;
+            setCurrentQuestion(msg.currentQuestion);
+          }
+          break;
+
         case 'show_cue_card':
           setCueCard(msg);
           setExamState('PART2_PREP');

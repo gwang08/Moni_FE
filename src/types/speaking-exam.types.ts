@@ -58,9 +58,17 @@ export interface EvaluationEvent {
   transcript: string;
 }
 
+export interface ResumeEvent {
+  type: 'resume_exam';
+  state: ExamState;
+  part: number;
+  currentQuestion: any;
+}
+
 export type ServerMessage =
   | QuestionEvent
   | CueCardEvent
+  | ResumeEvent
   | { type: 'evaluating' }
   | EvaluationEvent
   | { type: 'error'; message: string }

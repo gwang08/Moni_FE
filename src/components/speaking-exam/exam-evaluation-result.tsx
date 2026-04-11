@@ -15,6 +15,7 @@ import { useRouter } from 'next/navigation';
 interface Props {
   evaluation: EvaluationEvent;
   recordings?: RecordedAnswer[];
+  title?: string;
 }
 
 const CRITERIA_META = {
@@ -55,7 +56,7 @@ const CRITERION_KEY_MAP = {
   grammar: 'GRA'
 } as const;
 
-export function ExamEvaluationResult({ evaluation, recordings }: Props) {
+export function ExamEvaluationResult({ evaluation, recordings, title }: Props) {
   const router = useRouter();
   const [selectedCriteria, setSelectedCriteria] = useState<keyof typeof CRITERIA_META | null>(null);
   const [showDetailedFeedback, setShowDetailedFeedback] = useState(false);
@@ -181,10 +182,12 @@ export function ExamEvaluationResult({ evaluation, recordings }: Props) {
         </div>
       </div>
 
-      {/* ── DETAILED AI FEEDBACK & RECORDINGS (TOGGLEABLE) ── */}
-      {showDetailedFeedback && (
-        <div className="bg-white rounded-3xl shadow-lg p-6 md:p-8 mb-10 overflow-hidden border border-gray-100 animate-in slide-in-from-top-4 fade-in duration-300">
-          <h3 className="text-xl font-bold text-gray-800 mb-6 border-b border-gray-100 pb-4 tracking-tight">Chi tiết Đề bài & Bài làm</h3>
+      {/* ── MODAL: DETAILED AI FEEDBACK & RECORDINGS ── */}
+      <Dialog open={showDetailedFeedback} onOpenChange={setShowDetailedFeedback}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-white p-6 md:p-8 rounded-3xl border-gray-100 outline-none">
+          <DialogTitle className="text-xl font-bold text-gray-800 mb-6 border-b border-gray-100 pb-4 tracking-tight">
+            {title ? title : 'Chi tiết Đề bài & Bài làm'}
+          </DialogTitle>
           
           <div className="space-y-6">
             {/* AI Summary */}
@@ -271,7 +274,7 @@ export function ExamEvaluationResult({ evaluation, recordings }: Props) {
                                />
                              ) : (
                                 <p className="text-[13px] text-gray-400 italic bg-gray-50 border border-gray-100 rounded-lg p-3 text-center">
-                                  No audio recorded
+                                  Bạn không trả lời
                                 </p>
                              )}
                            </div>
@@ -279,7 +282,7 @@ export function ExamEvaluationResult({ evaluation, recordings }: Props) {
                            {/* Script column */}
                            <div className="w-full bg-[#fff7ed] rounded-xl p-5 border border-[#fed7aa] text-[14px] leading-relaxed text-gray-700 relative">
                               <div className="absolute -top-2.5 left-4 bg-white border border-[#fed7aa] px-2 py-0.5 text-[10px] font-bold text-[#ea580c] uppercase tracking-widest rounded shadow-sm">
-                                Script
+                                Transcript
                               </div>
                               <span className="pt-1 block">
                                 {rec.transcript || <span className="italic text-orange-300">Không nhận diện được giọng nói...</span>}
@@ -294,8 +297,8 @@ export function ExamEvaluationResult({ evaluation, recordings }: Props) {
               </div>
             )}
           </div>
-        </div>
-      )}
+        </DialogContent>
+      </Dialog>
 
       {/* ── MODAL: CRITERIA DETAILS ── */}
       <Dialog 

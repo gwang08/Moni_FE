@@ -20,6 +20,7 @@ import { ExamPart3IntroScreen } from '@/components/speaking-exam/exam-part3-intr
 import { ExamTransitionScreen } from '@/components/speaking-exam/exam-transition-screen';
 import { ExamErrorDisplay } from '@/components/speaking-exam/exam-error-display';
 import { ExamProgressBar } from '@/components/speaking-exam/exam-progress-bar';
+import { useSessionRecorder } from '@/hooks/use-session-recorder';
 import { X, Volume2 } from 'lucide-react';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { useAuthStore } from '@/store/auth-store';
@@ -91,9 +92,12 @@ export default function SpeakingExamPage({ params }: Props) {
 
   // Fetch test info to dynamically configure progress bar questions length
   const [partConfig, setPartConfig] = useState<Record<number, number>>({ 1: 12, 2: 1, 3: 6 });
+  const [testTitle, setTestTitle] = useState('IELTS Speaking Test');
+
   useEffect(() => {
     import('@/lib/tests-api').then(({ getPublicTestDetail }) => {
       getPublicTestDetail(id).then((test) => {
+        if (test.title) setTestTitle(test.title);
         const config = { 1: 0, 2: 0, 3: 0 };
         test.stimuli.forEach(st => {
           if (st.section && st.section >= 1 && st.section <= 3) {
@@ -157,6 +161,14 @@ export default function SpeakingExamPage({ params }: Props) {
       examRef.current?.setPausePlayback(true);
     }
   }, [exam.examState]);
+
+  // ── Session Recorder to capture local answers ─────────────
+  const recordedAnswers = useSessionRecorder(
+    exam.examState,
+    exam.currentQuestion,
+    exam.cueCard,
+    stt.transcript
+  );
 
   // Guard: prevent double-submit for the same question
   const submittedQuestionRef = useRef<number | null>(null);
@@ -518,7 +530,11 @@ export default function SpeakingExamPage({ params }: Props) {
   if (examState === 'COMPLETED' && exam.evaluation) {
     return (
       <PageShell>
-        <ExamEvaluationResult evaluation={exam.evaluation} />
+        <ExamEvaluationResult 
+          evaluation={exam.evaluation} 
+          recordings={recordedAnswers}
+          title={testTitle}
+        />
       </PageShell>
     );
   }

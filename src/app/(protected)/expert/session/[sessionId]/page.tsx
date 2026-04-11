@@ -63,6 +63,7 @@ export default function ExpertSessionPage({ params }: Props) {
   const criteria = skill === 'WRITING' ? WRITING_CRITERIA : SPEAKING_CRITERIA;
 
   const [scores, setScores] = useState<Record<string, string>>({});
+  const [criteriaFeedback, setCriteriaFeedback] = useState<Record<string, string>>({});
   const [feedback, setFeedback] = useState('');
   const [strengths, setStrengths] = useState('');
   const [areasForImprovement, setAreasForImprovement] = useState('');
@@ -156,13 +157,15 @@ export default function ExpertSessionPage({ params }: Props) {
       return;
     }
 
+    const compiledFeedback = `[NHẬN XÉT CHUNG]\n${feedback.trim()}\n\n[ĐÁNH GIÁ CHI TIẾT]\n${criteria.map(c => `- ${c.label} (${scores[c.key]}):\n${criteriaFeedback[c.key] || 'Không có nhận xét thêm'}`).join('\n\n')}`;
+
     setSubmitting(true);
     try {
       await apiClient.post<ApiResponse<unknown>>(
         `/api/v1/expert/sessions/${sessionId}/evaluate`,
         {
           ...Object.fromEntries(Object.entries(scores).map(([k, v]) => [k, parseFloat(v)])),
-          feedback,
+          feedback: compiledFeedback,
           strengths,
           areasForImprovement,
         },
@@ -361,20 +364,28 @@ export default function ExpertSessionPage({ params }: Props) {
             <span className="text-[11px] font-medium text-gray-500 uppercase tracking-wider">Thang điểm 0–9</span>
           </div>
           
-          <div className="space-y-3.5">
+          <div className="space-y-4">
             {criteria.map((c) => (
-              <div key={c.key} className="flex items-center justify-between p-3 rounded-lg bg-gray-50/80 border border-gray-100 hover:border-emerald-200 transition-colors">
-                <Label className="text-[13px] font-semibold text-gray-700 truncate mr-3">{c.label}</Label>
-                <div className="relative">
-                  <Input
-                    type="number"
-                    min={0} max={9} step={0.5}
-                    value={scores[c.key] ?? ''}
-                    onChange={(e) => setScores((prev) => ({ ...prev, [c.key]: e.target.value }))}
-                    className="w-20 h-9 font-bold text-center text-emerald-700 bg-white border-gray-200 focus:border-emerald-500 focus:ring-emerald-500/20"
-                    placeholder="0.0"
-                  />
+              <div key={c.key} className="flex flex-col gap-3 p-4 rounded-xl bg-gray-50/60 border border-gray-100 hover:border-emerald-200 transition-colors shadow-sm">
+                <div className="flex items-center justify-between">
+                  <Label className="text-[13px] font-bold text-gray-800 truncate mr-3">{c.label}</Label>
+                  <div className="relative">
+                    <Input
+                      type="number"
+                      min={0} max={9} step={0.5}
+                      value={scores[c.key] ?? ''}
+                      onChange={(e) => setScores((prev) => ({ ...prev, [c.key]: e.target.value }))}
+                      className="w-20 h-9 font-bold text-center text-emerald-700 bg-white border-gray-200 focus:border-emerald-500 focus:ring-emerald-500/20"
+                      placeholder="0.0"
+                    />
+                  </div>
                 </div>
+                <textarea
+                  className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-[12.5px] leading-relaxed min-h-[70px] resize-y focus:outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/10 transition-all placeholder:text-gray-400"
+                  placeholder={`Nhận xét chi tiết cho ${c.label}...`}
+                  value={criteriaFeedback[c.key] ?? ''}
+                  onChange={(e) => setCriteriaFeedback((prev) => ({ ...prev, [c.key]: e.target.value }))}
+                />
               </div>
             ))}
           </div>

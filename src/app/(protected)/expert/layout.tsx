@@ -37,9 +37,12 @@ export default function ExpertLayout({ children }: { children: React.ReactNode }
     );
   }
 
+  const isSessionPage = pathname.includes('/expert/session/');
+
   return (
     <div className="min-h-[calc(100vh-56px)] flex">
       {/* Sidebar */}
+      {!isSessionPage && (
       <aside className="w-56 bg-white border-r flex-shrink-0">
         <div className="p-4 border-b">
           <p className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">
@@ -66,6 +69,7 @@ export default function ExpertLayout({ children }: { children: React.ReactNode }
           })}
         </nav>
       </aside>
+      )}
 
       {/* Main content */}
       <main className="flex-1 overflow-auto bg-gray-50">{children}</main>

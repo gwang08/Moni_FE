@@ -38,7 +38,9 @@ export function TestEditSpeakingContent({ test, onBeforeSaveBasicInfo }: Props) 
 
   const parts = useMemo(
     () =>
-      test.stimuli.map((stimulus, partIdx) => {
+      test.stimuli.map((stimulus, idx) => {
+        const partBase0 = test.section ? test.section - 1 : (stimulus.section ? stimulus.section - 1 : idx);
+
         const group = stimulus.questionGroups[0];
         const questions = group?.questions ?? [];
         const transition = questions.find((q) => q.position === 0) ?? null;
@@ -47,9 +49,10 @@ export function TestEditSpeakingContent({ test, onBeforeSaveBasicInfo }: Props) 
 
         return {
           stimulusId: stimulus.id,
-          partIdx,
-          title: getPartTitle(partIdx),
-          tone: getPartTone(partIdx),
+          partIdx: partBase0,
+          originalIdx: idx,
+          title: getPartTitle(partBase0),
+          tone: getPartTone(partBase0),
           questions,
           transition,
           cueCard,
@@ -57,7 +60,7 @@ export function TestEditSpeakingContent({ test, onBeforeSaveBasicInfo }: Props) 
           groupId: group?.id ?? null,
         };
       }),
-    [test.stimuli]
+    [test.stimuli, test.section]
   );
 
   const [edits, setEdits] = useState<Record<number, QuestionEdit>>(() => {
@@ -152,7 +155,7 @@ export function TestEditSpeakingContent({ test, onBeforeSaveBasicInfo }: Props) 
                       : `${part.mainQuestions.length} câu hỏi`}
                 </p>
               </div>
-              <span className="text-xs text-gray-400">Stimulus #{part.partIdx + 1}</span>
+              <span className="text-xs text-gray-400">Stimulus #{part.originalIdx + 1}</span>
             </div>
 
             <div className="space-y-4 p-4">

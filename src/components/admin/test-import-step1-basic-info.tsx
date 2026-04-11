@@ -53,7 +53,7 @@ export function TestImportStep1({ data, onChange, onNext, onThumbnailFileSelecte
   const needsSection = sections.length > 0;
 
   const isValid = data.title.trim() && data.skill
-    && ((data.skill === 'READING' || data.skill === 'WRITING') ? data.testType : true)
+    && (data.skill === 'READING' ? data.testType : true)
     && (!needsSection || data.section !== null);
 
   const handleSkillChange = (skill: string) => {
@@ -81,7 +81,7 @@ export function TestImportStep1({ data, onChange, onNext, onThumbnailFileSelecte
         </select>
       </div>
 
-      {data.skill === 'READING' || data.skill === 'WRITING' ? (
+      {data.skill === 'READING' ? (
         <div>
           <Label htmlFor="testType" className="mb-1.5 block text-sm font-medium">Loại bài thi *</Label>
           <select

@@ -11,6 +11,7 @@ import { DailyVideoCall } from '@/components/video/daily-video-call';
 import { Send, Loader2, FileText, PenLine } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
 import { uploadMedia } from '@/lib/admin-api';
+import { getWritingSubmissionDetail } from '@/lib/ai-api';
 import { useAuthStore } from '@/store/auth-store';
 import type { ApiResponse } from '@/types/auth.types';
 import type { ScoringSession } from '@/types/expert.types';
@@ -120,16 +121,34 @@ export default function ExpertSessionPage({ params }: Props) {
                 }
                 setQuestionsByPart(groupedLog);
 
-                // Extract writing prompt from first stimulus (writing tests have 1 stimulus)
+                // Extract writing prompt from exact task or fallback
                 if (res.result?.skill === 'WRITING') {
-                  const firstStimulus = testRes.result?.stimuli?.[0];
-                  if (firstStimulus) {
-                    const section = firstStimulus.section ?? 2;
+                  const setPromptFromStimulus = (st: any, forcedType?: 1 | 2) => {
+                    const section = st.section ?? 2;
                     setWritingPrompt({
-                      prompt: firstStimulus.content ?? firstStimulus.title ?? '',
-                      chartImageUrl: firstStimulus.mediaUrl ?? null,
-                      taskType: section === 1 ? 1 : 2,
+                      prompt: st.content ?? st.title ?? '',
+                      chartImageUrl: st.mediaUrl ?? null,
+                      taskType: forcedType ?? (section === 1 ? 1 : 2),
                     });
+                  };
+
+                  if (res.result.writingSubmissionId) {
+                    getWritingSubmissionDetail(res.result.writingSubmissionId).then((sub) => {
+                      const stimuli = testRes.result?.stimuli ?? [];
+                      let exactMatch = stimuli.find(s => s.id === sub.stimulusId);
+                      if (!exactMatch && sub.taskType) {
+                        exactMatch = stimuli.find(s => s.section === (sub.taskType === 'TASK_1' ? 1 : 2));
+                      }
+                      if (exactMatch) {
+                        setPromptFromStimulus(exactMatch, sub.taskType === 'TASK_1' ? 1 : 2);
+                      } else if (testRes.result?.stimuli?.[0]) {
+                        setPromptFromStimulus(testRes.result.stimuli[0], sub.taskType === 'TASK_1' ? 1 : 2);
+                      }
+                    }).catch(() => {
+                      if (testRes.result?.stimuli?.[0]) setPromptFromStimulus(testRes.result.stimuli[0]);
+                    });
+                  } else if (testRes.result?.stimuli?.[0]) {
+                    setPromptFromStimulus(testRes.result.stimuli[0]);
                   }
                 }
               })
@@ -207,9 +226,9 @@ export default function ExpertSessionPage({ params }: Props) {
     <div className="flex h-[calc(100vh-56px)]">
       {/* Left panel: Writing essay view OR Speaking video call */}
       {skill === 'WRITING' ? (
-        <div className="w-1/2 flex flex-col gap-0 bg-gradient-to-br from-teal-50/60 to-emerald-50/40 border-r border-teal-100 overflow-hidden">
-          {/* Đề bài section */}
-          <div className="flex-1 overflow-y-auto p-5 space-y-3 min-h-0">
+        <div className="w-[50%] flex flex-col gap-0 bg-gradient-to-br from-teal-50/60 to-emerald-50/40 border-r border-teal-100 overflow-hidden">
+          {/* Đề bài section - Flex-none ensures it only takes needed space up to a max */}
+          <div className="flex-none p-5 space-y-3 shrink-0 max-h-[40%] overflow-y-auto">
             <div className="flex items-center gap-2 mb-1">
               <div className="w-8 h-8 rounded-2xl bg-gradient-to-br from-teal-100 to-emerald-100 flex items-center justify-center shadow-sm">
                 <FileText className="h-4 w-4 text-teal-600" />
@@ -219,10 +238,10 @@ export default function ExpertSessionPage({ params }: Props) {
               </span>
             </div>
 
-            <div className="rounded-xl bg-teal-50 border border-teal-100 p-4">
+            <div className="rounded-xl bg-white border border-teal-100 p-4 shadow-sm">
               {writingPrompt ? (
                 <div
-                  className="text-[13px] text-gray-700 leading-relaxed prose prose-sm max-w-none"
+                  className="text-[14px] text-gray-800 leading-relaxed prose prose-sm max-w-none"
                   dangerouslySetInnerHTML={{ __html: writingPrompt.prompt }}
                 />
               ) : (
@@ -234,7 +253,7 @@ export default function ExpertSessionPage({ params }: Props) {
             {writingPrompt?.chartImageUrl && (
               <>
                 <div
-                  className="group relative rounded-xl overflow-hidden border border-teal-100 cursor-zoom-in hover:border-teal-300 transition-all shadow-sm bg-white"
+                  className="group relative rounded-xl overflow-hidden border border-teal-100 cursor-zoom-in hover:border-teal-300 transition-all shadow-sm bg-white mt-3"
                   onClick={() => setChartZoomOpen(true)}
                 >
                   <Image
@@ -242,7 +261,7 @@ export default function ExpertSessionPage({ params }: Props) {
                     alt="Biểu đồ đề bài"
                     width={500}
                     height={320}
-                    className="w-full object-contain bg-white p-2"
+                    className="w-full object-contain bg-white p-2 max-h-[250px]"
                     unoptimized
                   />
                   <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors flex items-center justify-center">
@@ -267,31 +286,25 @@ export default function ExpertSessionPage({ params }: Props) {
             )}
           </div>
 
-          {/* Divider */}
-          <div className="border-t border-teal-100 mx-5" />
-
-          {/* Bài viết section */}
-          <div className="flex-1 flex flex-col p-5 gap-3 min-h-0">
-            <div className="flex items-center justify-between">
+          {/* Bài viết section - Takes all remaining space */}
+          <div className="flex-1 overflow-y-auto p-5 border-t-2 border-emerald-100/50 space-y-3 bg-white min-h-0 flex flex-col">
+            <div className="flex items-center justify-between pb-2 border-b border-gray-100">
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-2xl bg-gradient-to-br from-emerald-100 to-teal-100 flex items-center justify-center shadow-sm">
+                <div className="w-8 h-8 rounded-2xl bg-gradient-to-br from-emerald-100 to-green-100 flex items-center justify-center shadow-sm">
                   <PenLine className="h-4 w-4 text-emerald-600" />
                 </div>
-                <span className="text-sm font-bold text-teal-800">Bài viết</span>
+                <span className="text-sm font-bold text-emerald-800">Bài viết</span>
               </div>
-              <Badge className="bg-teal-100 text-teal-700 border-teal-200 text-xs font-medium">
+              <Badge variant="outline" className="text-[11px] font-bold text-emerald-600 bg-emerald-50 border-emerald-200">
                 {essayWordCount} từ
               </Badge>
             </div>
-
-            <div className="flex-1 overflow-y-auto rounded-xl bg-white border border-teal-100 p-4 min-h-0">
-              {session?.content ? (
-                <p className="text-[13px] text-gray-800 leading-relaxed whitespace-pre-wrap">
-                  {session.content.replace(/<[^>]*>/g, '')}
-                </p>
-              ) : (
-                <p className="text-xs text-gray-400 italic">Không có nội dung bài viết.</p>
-              )}
+            
+            <div className="rounded-xl border border-gray-100 p-5 shadow-sm bg-gray-50 flex-1 overflow-y-auto">
+              <div
+                className="text-[14px] text-gray-700 leading-relaxed font-medium prose prose-sm max-w-none whitespace-pre-wrap break-words"
+                dangerouslySetInnerHTML={{ __html: session?.content ?? '<span class="text-gray-400 italic">Không có bài viết...</span>' }}
+              />
             </div>
           </div>
         </div>
@@ -309,20 +322,6 @@ export default function ExpertSessionPage({ params }: Props) {
         </div>
       )}
 
-      {/* Right: Scoring panel */}
-      <div className="w-1/2 overflow-y-auto p-5 space-y-4 bg-gray-50">
-        <div className="flex items-center justify-between">
-          <h2 className="font-bold text-lg">Bảng chấm điểm</h2>
-          <Badge variant="outline">Phiên #{sessionId}</Badge>
-        </div>
-
-        <Badge className="text-xs">{skill}</Badge>
-
-        {/* Test questions (collapsible) */}
-        {Object.keys(questionsByPart).length > 0 && (
-          <Card className="p-4 border-gray-200 shadow-sm rounded-xl bg-white">
-            <button
-              type="button"
               onClick={() => setShowQuestions((v) => !v)}
               className="flex items-center justify-between w-full font-bold text-gray-800 text-[15px]"
             >

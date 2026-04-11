@@ -22,6 +22,7 @@ import { ExamErrorDisplay } from '@/components/speaking-exam/exam-error-display'
 import { ExamProgressBar } from '@/components/speaking-exam/exam-progress-bar';
 import { X, Volume2 } from 'lucide-react';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { useAuthStore } from '@/store/auth-store';
 
 // Local UI stages (before/between exam states)
 type UIStage = 'GUIDE' | 'MIC_TEST' | 'EXAM';
@@ -321,6 +322,14 @@ export default function SpeakingExamPage({ params }: Props) {
     }
   }, [exam.examState]);
 
+  // ── Refresh credit balance when exam completes ────────────
+  const refreshProfile = useAuthStore((s) => s.refreshProfile);
+  useEffect(() => {
+    if (exam.examState === 'COMPLETED') {
+      refreshProfile();
+    }
+  }, [exam.examState, refreshProfile]);
+
   // ── Skip prep handler ─────────────────────────────────────
   // ── Skip prep handler ─────────────────────────────────────
   const handleSkipPrep = useCallback(() => {
@@ -496,6 +505,7 @@ export default function SpeakingExamPage({ params }: Props) {
       </PageShell>
     );
   }
+
 
   if (examState === 'CONN_ERROR') {
     return (

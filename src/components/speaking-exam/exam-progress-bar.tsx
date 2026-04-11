@@ -62,51 +62,53 @@ export function ExamProgressBar({ currentPart, currentQuestionIndex, partConfig 
           </div>
 
           {/* Part 1 */}
-          <div
-            className={`rounded-lg px-3 flex h-[44px] items-center shrink-0 relative justify-center transition-colors ${
-              currentPart > 1 ? 'bg-[#16a34a]' : currentPart === 1 ? 'border-2 border-[#16a34a] bg-white' : 'border border-gray-200 bg-white'
-            }`}
-          >
-            <div className={`flex items-center gap-2 min-w-max ${currentPart > 1 ? 'invisible' : ''}`}>
-              <span
-                className={`text-sm font-medium ${
-                  currentPart === 1 ? 'text-[#16a34a]' : 'text-gray-400'
-                }`}
-              >
-                Part 1
-              </span>
-              <div className="flex gap-1.5">
-                {Array.from({ length: finalConfig.part1 }).map((_, idx) => {
-                  const isActive = currentPart === 1 && idx === currentQuestionIndex;
-                  const isCompleted = currentPart === 1 && idx < currentQuestionIndex;
+          {finalConfig.part1 > 0 && (
+            <div
+              className={`rounded-lg px-3 flex h-[44px] items-center shrink-0 relative justify-center transition-colors ${
+                currentPart > 1 ? 'bg-[#16a34a]' : currentPart === 1 ? 'border-2 border-[#16a34a] bg-white' : 'border border-gray-200 bg-white'
+              }`}
+            >
+              <div className={`flex items-center gap-2 min-w-max ${currentPart > 1 ? 'invisible' : ''}`}>
+                <span
+                  className={`text-sm font-medium ${
+                    currentPart === 1 ? 'text-[#16a34a]' : 'text-gray-400'
+                  }`}
+                >
+                  Part 1
+                </span>
+                <div className="flex gap-1.5">
+                  {Array.from({ length: finalConfig.part1 }).map((_, idx) => {
+                    const isActive = currentPart === 1 && idx === currentQuestionIndex;
+                    const isCompleted = currentPart === 1 && idx < currentQuestionIndex;
 
-                  return (
-                    <div
-                      key={idx}
-                      className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-medium shrink-0 ${
-                        isActive
-                          ? 'border-2 border-[#16a34a] bg-white text-[#16a34a]'
-                          : isCompleted
-                          ? 'border border-[#16a34a] bg-[#16a34a] text-white'
-                          : 'border border-gray-200 bg-white text-gray-300'
-                      }`}
-                    >
-                      {idx + 1}
-                    </div>
-                  );
-                })}
+                    return (
+                      <div
+                        key={idx}
+                        className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-medium shrink-0 ${
+                          isActive
+                            ? 'border-2 border-[#16a34a] bg-white text-[#16a34a]'
+                            : isCompleted
+                            ? 'border border-[#16a34a] bg-[#16a34a] text-white'
+                            : 'border border-gray-200 bg-white text-gray-300'
+                        }`}
+                      >
+                        {idx + 1}
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
+
+              {currentPart > 1 && (
+                <div className="absolute inset-0 flex items-center justify-center gap-2">
+                  <span className="text-sm font-medium text-white whitespace-nowrap">Part 1</span>
+                  <svg className="h-5 w-5 text-white shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.815a.75.75 0 011.05-.145z" clipRule="evenodd" />
+                  </svg>
+                </div>
+              )}
             </div>
-
-            {currentPart > 1 && (
-              <div className="absolute inset-0 flex items-center justify-center gap-2">
-                <span className="text-sm font-medium text-white whitespace-nowrap">Part 1</span>
-                <svg className="h-5 w-5 text-white shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.815a.75.75 0 011.05-.145z" clipRule="evenodd" />
-                </svg>
-              </div>
-            )}
-          </div>
+          )}
 
           {/* Part 2 */}
           {finalConfig.part2 > 0 && (

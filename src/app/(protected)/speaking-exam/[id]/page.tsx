@@ -393,11 +393,38 @@ export default function SpeakingExamPage({ params }: Props) {
   // Stage 3: Exam in progress
   const { examState } = exam;
 
-  // Part 1 Intro (if connected but waiting for user to start Part 1)
+  // Exam Start Gate (if connected but waiting for user to start)
   if (uiStage === 'EXAM' && showPart1Intro && exam.isWsConnected) {
     return (
       <PageShell wide currentPart={currentPart} currentQuestionIndex={currentQuestionIndex} partConfig={partConfig}>
-        <ExamPart1IntroScreen onStartNow={() => setShowPart1Intro(false)} />
+        {partConfig[1] > 0 ? (
+          <ExamPart1IntroScreen onStartNow={() => setShowPart1Intro(false)} />
+        ) : (
+          <div className="flex flex-col overflow-hidden rounded-lg border border-gray-200 bg-white min-h-[500px]">
+            <div className="py-6 text-center">
+              <h2 className="text-[20px] font-bold text-[#334155]">
+                {partConfig[2] > 0 ? 'Speaking Part 2 Practice' : 'Speaking Part 3 Practice'}
+              </h2>
+            </div>
+            <div className="flex flex-1 flex-col items-center justify-center p-8 text-center mb-10">
+              <p className="text-[#334155] max-w-lg text-[15px] leading-relaxed">
+                You are about to start a practice exam focused on {partConfig[2] > 0 ? 'Part 2' : 'Part 3'}.
+              </p>
+              <p className="text-[#334155] max-w-lg text-[15px] leading-relaxed mt-2">
+                Make sure your microphone is ready. Click the button below to connect with the AI Examiner.
+              </p>
+            </div>
+            <div className="flex justify-center border-t border-gray-100 p-5 bg-white shrink-0 mt-auto">
+              <Button
+                onClick={() => setShowPart1Intro(false)}
+                className="gap-2 rounded-full bg-[#ff7b42] px-8 py-5 text-[15px] text-white hover:bg-[#ea580c] shadow-sm font-medium"
+              >
+                <Play className="h-4 w-4 fill-current" />
+                Start Practice
+              </Button>
+            </div>
+          </div>
+        )}
       </PageShell>
     );
   }

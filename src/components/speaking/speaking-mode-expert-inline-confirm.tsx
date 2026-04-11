@@ -15,20 +15,27 @@ interface Props {
 export function SpeakingModeExpertInlineConfirm({ expert, cost, balance, submitting, onConfirm, onCancel }: Props) {
   const hasEnough = balance >= cost;
   return (
-    <div className="border rounded-xl p-4 bg-orange-50 space-y-3">
-      <p className="font-semibold text-sm">
-        Xác nhận đặt lịch với <span className="text-orange-700">{expert.displayName}</span>
+    <div className="border border-orange-200 rounded-2xl p-5 bg-orange-50/80 shadow-sm space-y-4">
+      <p className="font-bold text-[15px] flex items-center gap-2">
+         ✨ Xác nhận đặt lịch với <span className="text-orange-700">{expert.displayName}</span>
       </p>
-      <div className="text-sm space-y-1 text-muted-foreground">
-        <p>Chi phí: <span className="font-semibold text-foreground inline-flex items-center gap-1">{cost} <img src="/currency.webp" alt="credit" className="h-3.5 w-3.5 inline" /></span></p>
-        <p>Số dư: <span className={`font-semibold inline-flex items-center gap-1 ${hasEnough ? 'text-foreground' : 'text-destructive'}`}>{balance} <img src="/currency.webp" alt="credit" className="h-3.5 w-3.5 inline" /></span></p>
-        {!hasEnough && <p className="text-destructive font-medium">Không đủ credit! Vui lòng nạp thêm.</p>}
+      <div className="text-sm space-y-2 text-gray-600 bg-white/60 p-4 rounded-xl border border-orange-100">
+        <p className="flex justify-between items-center">
+          <span className="font-medium">Chi phí:</span> 
+          <span className="font-bold text-gray-800 inline-flex items-center gap-1.5">{cost} <img src="/currency.webp" alt="credit" className="h-4 w-4 inline" /></span>
+        </p>
+        <div className="h-px w-full bg-orange-100/50" />
+        <p className="flex justify-between items-center">
+          <span className="font-medium">Số dư hiện tại:</span> 
+          <span className={`font-bold inline-flex items-center gap-1.5 ${hasEnough ? 'text-green-600' : 'text-red-500'}`}>{balance} <img src="/currency.webp" alt="credit" className="h-4 w-4 inline" /></span>
+        </p>
+        {!hasEnough && <p className="text-red-500 font-bold text-xs mt-2 bg-red-50 p-2 rounded-lg text-center">Không đủ credit! Vui lòng nạp thêm.</p>}
       </div>
-      <div className="flex gap-2">
-        <Button variant="outline" size="sm" onClick={onCancel} disabled={submitting}>Huỷ</Button>
+      <div className="flex gap-2.5 pt-1">
+        <Button variant="outline" className="flex-1 rounded-xl h-10 font-bold border-orange-200 text-orange-700 hover:bg-orange-100" onClick={onCancel} disabled={submitting}>Huỷ</Button>
         {hasEnough && (
-          <Button size="sm" onClick={onConfirm} disabled={submitting}>
-            {submitting ? 'Đang đặt...' : 'Xác nhận'}
+          <Button className="flex-1 rounded-xl h-10 font-bold bg-[#16a34a] hover:bg-[#15803d] text-white shadow-sm" onClick={onConfirm} disabled={submitting}>
+            {submitting ? 'Đang đặt...' : 'Xác nhận đặt lịch'}
           </Button>
         )}
       </div>

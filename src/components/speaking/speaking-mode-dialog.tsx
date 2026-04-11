@@ -126,13 +126,13 @@ export function SpeakingModeDialog({ open, testId, aiCost = null, expertCost = n
         {step === 2 && (
           <div className="space-y-3 mt-1">
             {/* Search */}
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <div className="relative mb-4">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
               <Input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Tìm theo tên..."
-                className="pl-9"
+                placeholder="Nhập tên giảng viên để tìm kiếm..."
+                className="pl-10 h-11 rounded-xl border-gray-200 bg-gray-50 hover:bg-gray-100/50 focus:bg-white focus:border-orange-300 focus:ring-4 focus:ring-orange-100 transition-all"
               />
             </div>
 

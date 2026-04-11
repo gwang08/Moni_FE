@@ -44,46 +44,46 @@ export function SpeakingModeExpertGrid({ experts, expertCost, onBook, onDetail }
       {experts.map((expert) => {
         const isOffline = expert.status === 'OFFLINE';
         return (
-          <div key={expert.id} className={`border rounded-xl p-3 flex flex-col gap-2 bg-white transition-shadow ${isOffline ? 'opacity-60' : 'hover:shadow-sm'}`}>
+          <div key={expert.id} className={`border border-gray-100 rounded-[20px] p-4 flex flex-col gap-3 bg-white hover:border-orange-200 hover:shadow-md transition-all duration-300 ${isOffline ? 'opacity-60' : ''}`}>
             {/* Header */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               <div className="relative shrink-0">
-                <Avatar className="h-9 w-9">
+                <Avatar className="h-11 w-11 shadow-sm border border-gray-100">
                   <AvatarImage src={expert.avatarUrl} alt={expert.displayName} />
-                  <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
+                  <AvatarFallback className="bg-orange-100 text-orange-700 text-xs font-bold">
                     {getInitials(expert.displayName)}
                   </AvatarFallback>
                 </Avatar>
-                <span className={`absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-white ${STATUS_DOT[expert.status]}`} />
+                <span className={`absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-white shadow-sm ${STATUS_DOT[expert.status]}`} />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold truncate">{expert.displayName}</p>
-                <div className="flex items-center gap-1.5">
-                  <Badge variant="outline" className="text-xs px-1.5 py-0">Band {expert.bandScore}</Badge>
-                  {isOffline && <Badge variant="secondary" className="text-[10px] px-1.5 py-0 text-gray-500">Ngoại tuyến</Badge>}
+                <p className="text-[15px] font-bold text-gray-800 truncate leading-snug">{expert.displayName}</p>
+                <div className="flex items-center gap-1.5 mt-1">
+                  <Badge variant="outline" className="text-[11px] px-2 py-0 bg-orange-50 text-orange-600 border-orange-200 font-semibold tracking-wide rounded-md">Band {expert.bandScore}</Badge>
+                  {isOffline && <Badge variant="secondary" className="text-[10px] px-1.5 py-0 text-gray-500 rounded-md">Ngoại tuyến</Badge>}
                 </div>
               </div>
             </div>
 
-            <Stars rating={expert.rating} />
-
-            {expertCost != null && (
-              <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                <img src="/currency.webp" alt="credit" className="h-3.5 w-3.5" />
-                {expertCost} credit
-              </span>
-            )}
+            <div className="flex justify-between items-center pl-1 pr-1">
+              <Stars rating={expert.rating} />
+              {expertCost != null && (
+                <span className="flex items-center gap-1.5 text-[12px] font-bold text-[#16a34a] bg-green-50 px-2.5 py-0.5 rounded-full border border-green-100">
+                  {expertCost} <img src="/currency.webp" alt="credit" className="h-3.5 w-3.5" />
+                </span>
+              )}
+            </div>
 
             {/* Actions */}
-            <div className="flex gap-1.5 mt-auto">
+            <div className="flex gap-2 mt-auto pt-2 border-t border-gray-50">
               {isOffline ? (
-                <p className="text-xs text-red-400 text-center w-full py-1">Ngoại tuyến — vui lòng chọn giảng viên khác</p>
+                <p className="text-xs font-medium text-red-500/80 text-center w-full py-1.5 bg-red-50/50 rounded-xl">Khôi phục sau — vui lòng thử giảng viên khác</p>
               ) : (
                 <>
-                  <Button size="sm" className="flex-1 text-xs h-7" onClick={() => onBook(expert)}>
-                    Book
+                  <Button className="flex-1 text-[13px] h-9 font-bold rounded-xl bg-[#16a34a] hover:bg-[#15803d] text-white shadow-sm" onClick={() => onBook(expert)}>
+                    Book Now
                   </Button>
-                  <Button size="sm" variant="outline" className="flex-1 text-xs h-7" onClick={() => onDetail(expert)}>
+                  <Button variant="outline" className="flex-1 text-[13px] h-9 font-bold rounded-xl border-gray-200 text-gray-600 hover:bg-gray-50 hover:text-gray-900" onClick={() => onDetail(expert)}>
                     Chi tiết
                   </Button>
                 </>

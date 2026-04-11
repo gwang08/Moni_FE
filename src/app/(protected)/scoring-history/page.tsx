@@ -20,14 +20,14 @@ import { toast } from 'sonner';
 type Tab = 'writing' | 'expert';
 
 const STATUS_BADGE: Record<string, { label: string; cls: string }> = {
-  PENDING: { label: 'Chưa chấm', cls: 'bg-orange-100 text-orange-700' },
-  SUBMITTED: { label: 'Chưa chấm', cls: 'bg-orange-100 text-orange-700' },
-  PROCESSING: { label: 'Đang chấm', cls: 'bg-blue-100 text-blue-700' },
-  COMPLETED: { label: 'Đã chấm', cls: 'bg-green-100 text-green-700' },
-  FAILED: { label: 'Lỗi', cls: 'bg-red-100 text-red-700' },
-  QUEUED: { label: 'Đang chờ', cls: 'bg-yellow-100 text-yellow-700' },
-  IN_PROGRESS: { label: 'Đang diễn ra', cls: 'bg-blue-100 text-blue-700' },
-  CANCELLED: { label: 'Đã huỷ', cls: 'bg-gray-100 text-gray-500' },
+  PENDING: { label: 'Chưa chấm', cls: 'bg-orange-50 text-orange-600 border border-orange-100' },
+  SUBMITTED: { label: 'Chưa chấm', cls: 'bg-orange-50 text-orange-600 border border-orange-100' },
+  PROCESSING: { label: 'Đang chấm', cls: 'bg-blue-50 text-blue-600 border border-blue-100' },
+  COMPLETED: { label: 'Đã chấm', cls: 'bg-emerald-50 text-emerald-600 border border-emerald-100' },
+  FAILED: { label: 'Lỗi', cls: 'bg-red-50 text-red-600 border border-red-100' },
+  QUEUED: { label: 'Đang chờ', cls: 'bg-yellow-50 text-yellow-600 border border-yellow-100' },
+  IN_PROGRESS: { label: 'Đang diễn ra', cls: 'bg-indigo-50 text-indigo-600 border border-indigo-100' },
+  CANCELLED: { label: 'Đã huỷ', cls: 'bg-gray-50 text-gray-500 border border-gray-100' },
 };
 
 function fmtDate(d: string) {
@@ -120,14 +120,14 @@ export default function ScoringHistoryPage() {
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-2 mb-6 justify-center">
-          <button onClick={() => setTab('writing')} className={`flex items-center gap-1.5 px-5 py-2 rounded-full text-sm font-medium transition-all ${tab === 'writing' ? 'bg-teal-500 text-white shadow' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
-            <PenLine className="h-3.5 w-3.5" /> Bài viết ({subs.length})
+        <div className="flex gap-3 mb-8 justify-center">
+          <button onClick={() => setTab('writing')} className={`flex items-center gap-2 px-6 py-2.5 rounded-full text-[14px] font-bold transition-all ${tab === 'writing' ? 'bg-[#16a34a] text-white shadow-md' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'}`}>
+            <PenLine className="h-4 w-4" /> Bài viết ({subs.length})
           </button>
-          <button onClick={() => setTab('expert')} className={`flex items-center gap-1.5 px-5 py-2 rounded-full text-sm font-medium transition-all ${tab === 'expert' ? 'bg-orange-500 text-white shadow' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
-            <GraduationCap className="h-3.5 w-3.5" /> Phiên chấm ({sessions.length})
+          <button onClick={() => setTab('expert')} className={`flex items-center gap-2 px-6 py-2.5 rounded-full text-[14px] font-bold transition-all ${tab === 'expert' ? 'bg-[#f97316] text-white shadow-md' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'}`}>
+            <GraduationCap className="h-4 w-4" /> Phiên chấm ({sessions.length})
           </button>
-          <button onClick={refresh} className="p-2 rounded-full text-gray-400 hover:bg-gray-100 transition-colors" title="Làm mới">
+          <button onClick={refresh} className="p-2.5 rounded-full text-gray-500 bg-white border border-gray-200 hover:bg-gray-50 hover:text-gray-800 transition-colors shadow-sm ml-2" title="Làm mới">
             <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
           </button>
         </div>
@@ -142,30 +142,47 @@ export default function ScoringHistoryPage() {
               <p className="text-sm text-gray-400">Bạn chưa nộp bài viết nào.</p>
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-4">
               {subs.map((s) => {
                 const st = STATUS_BADGE[s.evaluationStatus] ?? STATUS_BADGE.PENDING;
                 const canScore = s.evaluationStatus === 'PENDING' || s.evaluationStatus === 'SUBMITTED';
                 return (
-                  <div key={s.submissionId} className="flex items-center justify-between gap-3 rounded-2xl border border-gray-100 bg-white px-4 py-3 hover:shadow-sm transition-shadow">
-                    <div className="flex items-center gap-3 flex-wrap min-w-0">
-                      <Badge variant="outline" className="text-xs font-semibold shrink-0">{s.taskType === 'TASK_1' ? 'Task 1' : 'Task 2'}</Badge>
-                      <span className="text-sm text-gray-600">{s.wordCount ?? 0} từ</span>
-                      <span className="text-xs text-gray-400">{fmtDate(s.submittedAt)}</span>
-                      <Badge className={`text-xs border-0 ${st.cls}`}>{st.label}</Badge>
+                  <div key={s.submissionId} className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 rounded-[20px] border border-gray-100 bg-white p-5 shadow-sm hover:shadow-md hover:border-[#16a34a]/30 transition-all">
+                    <div className="flex items-center gap-3 md:gap-5 flex-wrap min-w-0">
+                      <Badge variant="outline" className="text-[13px] px-3 py-1 bg-gray-50 border-gray-200 font-bold text-gray-700 shrink-0 uppercase tracking-wide">
+                        {s.taskType === 'TASK_1' ? 'Task 1' : 'Task 2'}
+                      </Badge>
+                      <div className="flex items-center gap-1.5 text-[14px] font-medium text-gray-600 border-r border-gray-200 pr-4 md:pr-5">
+                        <span className="flex h-5 w-5 items-center justify-center rounded-full bg-gray-100 text-gray-500">📝</span>
+                        <span className="font-bold text-gray-800">{s.wordCount ?? 0}</span> <span className="text-gray-500">từ</span>
+                      </div>
+                      <div className="flex items-center gap-1.5 text-[13px] font-medium text-gray-500 border-r border-gray-200 pr-4 md:pr-5">
+                        <span className="flex h-5 w-5 items-center justify-center rounded-full bg-gray-100">🕒</span>
+                        {fmtDate(s.submittedAt)}
+                      </div>
+                      <Badge className={`text-[12px] font-bold px-2.5 py-0.5 rounded-lg ${st.cls}`}>
+                        {st.label}
+                      </Badge>
                     </div>
-                    <div className="flex gap-2 shrink-0">
+                    
+                    <div className="flex gap-2.5 shrink-0 w-full sm:w-auto mt-2 sm:mt-0">
                       {canScore && (
                         <>
-                          <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => router.push(`/writing/result/${s.submissionId}`)}>Chấm AI</Button>
-                          <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => handleExpertScore(s.submissionId)}>Gửi Expert</Button>
+                          <Button className="flex-1 sm:flex-none h-9 text-[13px] font-bold rounded-xl bg-gray-50 text-gray-700 hover:bg-teal-50 hover:text-teal-700 hover:border-teal-200 border border-gray-200 transition-colors shadow-none" onClick={() => router.push(`/writing/result/${s.submissionId}`)}>
+                            <span className="mr-1">🤖</span> AI Chấm
+                          </Button>
+                          <Button className="flex-1 sm:flex-none h-9 text-[13px] font-bold rounded-xl bg-orange-50 text-orange-700 hover:bg-orange-100 hover:text-orange-800 border border-orange-200 transition-colors shadow-none" onClick={() => handleExpertScore(s.submissionId)}>
+                            <span className="mr-1">👨‍🏫</span> Gửi Expert
+                          </Button>
                         </>
                       )}
                       {s.evaluationStatus === 'COMPLETED' && (
-                        <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => router.push(`/writing/result/${s.submissionId}`)}>Xem kết quả</Button>
+                        <Button className="w-full sm:w-auto h-9 text-[13px] font-bold rounded-xl bg-[#16a34a] hover:bg-[#15803d] text-white shadow-sm border-none" onClick={() => router.push(`/writing/result/${s.submissionId}`)}>
+                          Xem kết quả đánh giá ➔
+                        </Button>
                       )}
                       {s.evaluationStatus === 'PROCESSING' && (
-                        <Badge className="text-xs bg-blue-50 text-blue-600 border-0">Đang chờ...</Badge>
+                        <Badge className="text-[12px] font-bold px-3 py-1 bg-blue-50 text-blue-600 border border-blue-100 rounded-lg">Đang chấm điểm...</Badge>
                       )}
                     </div>
                   </div>
@@ -181,21 +198,35 @@ export default function ScoringHistoryPage() {
               <p className="text-sm text-gray-400">Bạn chưa có phiên chấm nào.</p>
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-4">
               {sessions.map((s) => {
                 const st = STATUS_BADGE[s.status] ?? STATUS_BADGE.QUEUED;
                 return (
-                  <div key={s.id} className="flex items-center justify-between gap-3 rounded-2xl border border-gray-100 bg-white px-4 py-3 hover:shadow-sm transition-shadow">
-                    <div className="flex items-center gap-3 flex-wrap min-w-0">
-                      <span className="text-sm font-medium text-gray-700">#{s.id}</span>
-                      <Badge variant="outline" className="text-xs">{s.skill}</Badge>
-                      <span className="text-xs text-gray-500">{s.expertDisplayName}</span>
-                      <Badge className={`text-xs border-0 ${st.cls}`}>{st.label}</Badge>
-                      {s.createdAt && <span className="text-xs text-gray-400">{fmtDate(String(s.createdAt))}</span>}
+                  <div key={s.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 rounded-[20px] border border-gray-100 bg-white p-5 shadow-sm hover:shadow-md hover:border-[#f97316]/30 transition-all">
+                    <div className="flex items-center gap-3 md:gap-5 flex-wrap min-w-0">
+                      <span className="text-[14px] font-bold text-gray-800 bg-gray-100 px-2 py-0.5 rounded border border-gray-200">#{s.id}</span>
+                      <Badge variant="outline" className="text-[13px] px-3 py-1 bg-gray-50 border-gray-200 font-bold text-gray-700 shrink-0 uppercase tracking-wide">
+                        {s.skill}
+                      </Badge>
+                      <div className="flex items-center gap-1.5 text-[14px] font-medium text-gray-600 border-r border-gray-200 pr-4 md:pr-5">
+                        <span className="flex h-5 w-5 items-center justify-center rounded-full bg-gray-100 text-xl">👨‍🏫</span>
+                        <span className="font-bold text-gray-800">{s.expertDisplayName}</span>
+                      </div>
+                      {s.createdAt && (
+                        <div className="flex items-center gap-1.5 text-[13px] font-medium text-gray-500 border-r border-gray-200 pr-4 md:pr-5">
+                          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-gray-100">🕒</span>
+                          {fmtDate(String(s.createdAt))}
+                        </div>
+                      )}
+                      <Badge className={`text-[12px] font-bold px-2.5 py-0.5 rounded-lg ${st.cls}`}>
+                        {st.label}
+                      </Badge>
                     </div>
-                    <div className="flex gap-2 shrink-0">
+                    <div className="flex gap-2.5 shrink-0 w-full sm:w-auto mt-2 sm:mt-0">
                       {s.status === 'COMPLETED' && (
-                        <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => handleViewEval(s.id)}>Xem đánh giá</Button>
+                        <Button className="w-full sm:w-auto h-9 text-[13px] font-bold rounded-xl bg-[#f97316] hover:bg-[#ea580c] text-white shadow-sm border-none" onClick={() => handleViewEval(s.id)}>
+                          Xem nhận xét chuyên gia ➔
+                        </Button>
                       )}
                     </div>
                   </div>

@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Eye } from 'lucide-react';
+import { Eye, Mic, MicOff } from 'lucide-react';
 import type { QuestionEvent } from '@/types/speaking-exam.types';
+import type { RecordingMode } from './exam-guide-screen';
 
 interface Props {
   question: QuestionEvent;
@@ -10,6 +11,9 @@ interface Props {
   isListening: boolean;
   showQuestionAlways: boolean;
   onSubmitAnswer: () => void;
+  recordingMode: RecordingMode;
+  onManualStartMic: () => void;
+  onManualStopMic: () => void;
 }
 
 export function ExamQuestionDisplay({
@@ -18,6 +22,9 @@ export function ExamQuestionDisplay({
   isListening,
   showQuestionAlways,
   onSubmitAnswer,
+  recordingMode,
+  onManualStartMic,
+  onManualStopMic,
 }: Props) {
   const [showQuestion, setShowQuestion] = useState(showQuestionAlways);
   const [timeLeft, setTimeLeft] = useState(45); // 45s per question
@@ -52,6 +59,10 @@ export function ExamQuestionDisplay({
     return `${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
   };
 
+  const isManual = recordingMode === 'manual';
+  const waitingForMic = isManual && !isAudioPlaying && !isListening;
+  const manualRecording = isManual && isListening;
+
   return (
     <div className="relative flex min-h-[60vh] flex-col rounded-lg border border-gray-200 bg-white">
       {/* Part header */}
@@ -84,8 +95,39 @@ export function ExamQuestionDisplay({
           </button>
         )}
 
-        {/* Listening indicator */}
-        {isListening && (
+        {/* Manual mode: waiting for user to click mic */}
+        {waitingForMic && (
+          <div className="mt-8 flex flex-col items-center gap-3">
+            <p className="text-sm text-gray-500">Bấm nút bên dưới để bắt đầu trả lời</p>
+            <button
+              onClick={onManualStartMic}
+              className="flex h-16 w-16 items-center justify-center rounded-full bg-green-500 text-white shadow-lg transition-all hover:bg-green-600 hover:shadow-xl active:scale-95"
+              title="Bắt đầu nói"
+            >
+              <Mic className="h-7 w-7" />
+            </button>
+          </div>
+        )}
+
+        {/* Manual mode: recording, show stop button */}
+        {manualRecording && (
+          <div className="mt-8 flex flex-col items-center gap-3">
+            <div className="flex items-center gap-2">
+              <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-red-500" />
+              <span className="text-sm text-gray-500">Đang ghi âm...</span>
+            </div>
+            <button
+              onClick={onManualStopMic}
+              className="flex h-16 w-16 items-center justify-center rounded-full bg-red-500 text-white shadow-lg transition-all hover:bg-red-600 hover:shadow-xl active:scale-95"
+              title="Dừng nói"
+            >
+              <MicOff className="h-7 w-7" />
+            </button>
+          </div>
+        )}
+
+        {/* Auto mode: Listening indicator */}
+        {!isManual && isListening && (
           <div className="mt-8 flex items-center gap-2">
             <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-red-500" />
             <span className="text-sm text-gray-500">Listening...</span>

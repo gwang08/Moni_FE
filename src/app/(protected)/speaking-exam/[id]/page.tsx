@@ -8,7 +8,7 @@ import { useSpeakingExam } from '@/hooks/use-speaking-exam';
 import { useBrowserSTT } from '@/hooks/use-browser-stt';
 import { useSpeakingExamTimers } from '@/hooks/use-speaking-exam-timers';
 import { useSilenceDetector } from '@/hooks/use-silence-detector';
-import { ExamGuideScreen } from '@/components/speaking-exam/exam-guide-screen';
+import { ExamGuideScreen, type RecordingMode } from '@/components/speaking-exam/exam-guide-screen';
 import { ExamMicTestScreen } from '@/components/speaking-exam/exam-mic-test-screen';
 import { ExamQuestionDisplay } from '@/components/speaking-exam/exam-question-display';
 import { ExamSpeakingTimer } from '@/components/speaking-exam/exam-speaking-timer';
@@ -75,6 +75,7 @@ export default function SpeakingExamPage({ params }: Props) {
 
   const [uiStage, setUIStage] = useState<UIStage>('GUIDE');
   const [showQuestionAlways, setShowQuestionAlways] = useState(false);
+  const [recordingMode, setRecordingMode] = useState<RecordingMode>('auto');
   const [showPart1Intro, setShowPart1Intro] = useState(true);
   const [showPart2Intro, setShowPart2Intro] = useState(false);
   const [showPart3Intro, setShowPart3Intro] = useState(false);
@@ -242,7 +243,7 @@ export default function SpeakingExamPage({ params }: Props) {
   // ── Silence detection — Dynamic threshold by Part ─────────
   const part13SilenceThreshold = 7000; // 7 seconds for Part 1 and 3
 
-  const isSilenceActive = exam.examState === 'RECORDING';
+  const isSilenceActive = exam.examState === 'RECORDING' && recordingMode === 'auto';
   useSilenceDetector(stt.transcript, isSilenceActive, handleSubmitAnswer, part13SilenceThreshold);
 
   // ── Silence detection — auto-stop after 10s silence in Part 2 ──────
@@ -277,21 +278,32 @@ export default function SpeakingExamPage({ params }: Props) {
     }
   }, [uiStage, exam.isWsConnected, showPart1Intro, testId]);
 
-  // ── Auto-start mic when entering RECORDING state ──────────
+  // ── Auto-start mic when entering RECORDING state (auto mode only) ──
   useEffect(() => {
     if (!exam.currentQuestion) {
       hasStartedMicForQuestionRef.current = null;
       return;
     }
 
-    if (exam.examState === 'RECORDING') {
+    if (exam.examState === 'RECORDING' && recordingMode === 'auto') {
       const qId = exam.currentQuestion.questionId;
       if (hasStartedMicForQuestionRef.current !== qId && !sttRef.current.isListening) {
         hasStartedMicForQuestionRef.current = qId;
         sttRef.current.startListening();
       }
     }
-  }, [exam.currentQuestion, exam.examState]);
+  }, [exam.currentQuestion, exam.examState, recordingMode]);
+
+  // ── Manual mic handlers ───────────────────────────────────
+  const handleManualStartMic = useCallback(() => {
+    if (!sttRef.current.isListening) {
+      sttRef.current.startListening();
+    }
+  }, []);
+
+  const handleManualStopMic = useCallback(() => {
+    handleSubmitAnswer();
+  }, [handleSubmitAnswer]);
 
   // ── End exam when evaluating ──────────────────────────────
   useEffect(() => {
@@ -350,6 +362,8 @@ export default function SpeakingExamPage({ params }: Props) {
           onNext={() => setUIStage('MIC_TEST')}
           showQuestion={showQuestionAlways}
           onToggleShowQuestion={setShowQuestionAlways}
+          recordingMode={recordingMode}
+          onChangeRecordingMode={setRecordingMode}
         />
       </PageShell>
     );
@@ -413,6 +427,9 @@ export default function SpeakingExamPage({ params }: Props) {
           isListening={stt.isListening}
           showQuestionAlways={showQuestionAlways}
           onSubmitAnswer={handleSubmitAnswer}
+          recordingMode={recordingMode}
+          onManualStartMic={handleManualStartMic}
+          onManualStopMic={handleManualStopMic}
         />
       </PageShell>
     );

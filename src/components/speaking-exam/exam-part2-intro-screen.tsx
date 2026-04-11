@@ -68,8 +68,8 @@ export function ExamPart2CueCardWithNote({
   const [note, setNote] = useState('');
 
   // Parse cue card topic — if it contains bullet points / "You should say:"
-  const lines = topic.split('\n').filter(Boolean);
-  const title = lines[0] || topic;
+  const lines = (topic || '').split('\n').filter(Boolean);
+  const title = lines[0] || (topic || 'Part 2 Topic');
   const hasSubPoints = lines.length > 1;
 
   const formatTime = (s: number) => {

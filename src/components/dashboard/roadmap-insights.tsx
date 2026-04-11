@@ -267,7 +267,7 @@ export function RoadmapInsights() {
               <tbody className="divide-y divide-gray-100">
                 {rows.map((r) => {
                   const gap =
-                    r.target != null && r.target > 0 && r.calibrated != null && r.calibrated > 0
+                    r.target != null && r.target >= 0 && r.calibrated != null && r.calibrated >= 0
                       ? Math.round((r.target - r.calibrated) * 2) / 2
                       : null;
                   const gapClass =

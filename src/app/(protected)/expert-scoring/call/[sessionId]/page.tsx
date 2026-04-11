@@ -135,59 +135,65 @@ export default function ExpertCallPage({ params }: Props) {
   // Session ended — show rating overlay
   if (sessionEnded) {
     return (
-      <div className="h-[calc(100vh-56px)] bg-gradient-to-br from-gray-50 to-white flex items-center justify-center">
-        <div className="bg-white rounded-2xl shadow-xl border p-8 max-w-md w-full mx-4 space-y-6 text-center">
+      <div className="h-[calc(100vh-56px)] bg-gradient-to-br from-orange-50/50 to-emerald-50/50 flex items-center justify-center">
+        <div className="bg-white rounded-[24px] shadow-sm border border-orange-100 p-8 max-w-md w-full mx-4 space-y-6 text-center relative overflow-hidden">
+          <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-orange-400 to-emerald-500" />
+          
           <div>
-            <h2 className="text-xl font-bold">Phiên chấm đã kết thúc</h2>
-            <p className="text-muted-foreground text-sm mt-1">
-              Giảng viên đã gửi đánh giá. Hãy cho điểm giảng viên nhé!
+            <h2 className="text-2xl font-bold text-gray-800 tracking-tight">Phiên chấm đã kết thúc</h2>
+            <p className="text-gray-500 text-[13px] mt-2">
+              Giảng viên đã hoàn tất việc gửi đánh giá bài thi của bạn. Hãy chia sẻ cảm nhận về giảng viên nhé!
             </p>
           </div>
 
           {/* Star rating */}
-          <div className="flex items-center justify-center gap-1">
-            {[1, 2, 3, 4, 5].map((star) => (
-              <button
-                key={star}
-                type="button"
-                onClick={() => setRating(star)}
-                className="p-1 transition-transform hover:scale-110"
-              >
-                <Star
-                  className={`h-8 w-8 transition-colors ${
-                    star <= rating
-                      ? 'fill-amber-400 text-amber-400'
-                      : 'text-gray-300 hover:text-amber-300'
-                  }`}
-                />
-              </button>
-            ))}
+          <div className="flex flex-col items-center justify-center gap-2">
+            <div className="flex items-center justify-center gap-1.5">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <button
+                  key={star}
+                  type="button"
+                  onClick={() => setRating(star)}
+                  className="p-1 transition-transform hover:scale-110 active:scale-95"
+                >
+                  <Star
+                    className={`h-10 w-10 transition-colors drop-shadow-sm ${
+                      star <= rating
+                        ? 'fill-orange-400 text-orange-400'
+                        : 'text-gray-200 hover:text-orange-300'
+                    }`}
+                  />
+                </button>
+              ))}
+            </div>
+            <div className="h-5">
+              {rating > 0 && (
+                <span className="text-[13px] font-bold text-orange-600 bg-orange-50 px-3 py-1 rounded-full animate-in fade-in zoom-in duration-300">
+                  {rating === 5 ? 'Tuyệt vời!' : rating === 4 ? 'Rất tốt' : rating === 3 ? 'Tốt' : rating === 2 ? 'Trung bình' : 'Cần cải thiện'}
+                </span>
+              )}
+            </div>
           </div>
-          {rating > 0 && (
-            <p className="text-sm text-amber-600 font-medium">
-              {rating === 5 ? 'Xuất sắc!' : rating === 4 ? 'Rất tốt' : rating === 3 ? 'Tốt' : rating === 2 ? 'Bình thường' : 'Cần cải thiện'}
-            </p>
-          )}
 
           {/* Comment */}
           <textarea
             value={ratingComment}
             onChange={(e) => setRatingComment(e.target.value)}
-            placeholder="Nhận xét về giảng viên (tuỳ chọn)..."
-            className="w-full rounded-lg border px-3 py-2 text-sm min-h-[80px] resize-y focus:outline-none focus:ring-2 focus:ring-ring"
+            placeholder="Viết nhận xét ngắn về giảng viên (tuỳ chọn)..."
+            className="w-full rounded-xl border border-gray-200 bg-gray-50/50 px-4 py-3 text-[13px] leading-relaxed min-h-[100px] resize-y focus:outline-none focus:border-orange-400 focus:ring-4 focus:ring-orange-500/10 transition-all placeholder:text-gray-400"
           />
 
           {uploadingRecording && (
-            <p className="text-xs text-muted-foreground flex items-center justify-center gap-1">
-              <Loader2 className="h-3 w-3 animate-spin" />
-              Đang lưu bản ghi...
-            </p>
+            <div className="flex items-center justify-center gap-2 text-[12px] font-medium text-emerald-600 bg-emerald-50 py-2 rounded-lg">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <span>Đang đồng bộ bản ghi âm lên hệ thống...</span>
+            </div>
           )}
 
-          <div className="flex gap-3">
+          <div className="flex gap-3 pt-2">
             <Button
               variant="outline"
-              className="flex-1"
+              className="flex-1 rounded-xl h-12 font-bold text-[14px] border-gray-200 text-gray-500 hover:bg-gray-50 hover:text-gray-800 transition-colors"
               disabled={uploadingRecording}
               onClick={async () => {
                 // Save recording URL even if user skips rating
@@ -206,11 +212,11 @@ export default function ExpertCallPage({ params }: Props) {
               Bỏ qua
             </Button>
             <Button
-              className="flex-1"
+              className="flex-1 rounded-xl h-12 font-bold text-[14px] bg-[#f97316] hover:bg-[#ea580c] text-white shadow-sm transition-colors"
               onClick={handleSubmitRating}
               disabled={submittingRating || rating === 0 || uploadingRecording}
             >
-              {submittingRating ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Gửi đánh giá'}
+              {submittingRating ? <Loader2 className="h-5 w-5 animate-spin" /> : 'Gửi đánh giá'}
             </Button>
           </div>
         </div>

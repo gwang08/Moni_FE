@@ -60,22 +60,28 @@ export function EvaluationDialog({
 
           {evaluation.feedback && (
             <div>
-              <p className="text-sm font-medium mb-1">Nhận xét</p>
-              <p className="text-sm text-muted-foreground bg-muted rounded-lg px-3 py-2">{evaluation.feedback}</p>
+              <p className="text-[13px] font-bold mb-1.5 text-gray-800 flex items-center gap-1.5"><span className="text-[16px]">💬</span> Nhận xét</p>
+              <div className="text-[13.5px] leading-relaxed text-gray-700 bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 whitespace-pre-wrap shadow-sm">
+                {evaluation.feedback}
+              </div>
             </div>
           )}
 
           {evaluation.strengths && (
             <div>
-              <p className="text-sm font-medium mb-1 text-green-700">Điểm mạnh</p>
-              <p className="text-sm text-muted-foreground bg-green-50 rounded-lg px-3 py-2">{evaluation.strengths}</p>
+              <p className="text-[13px] font-bold mb-1.5 text-emerald-700 flex items-center gap-1.5"><span className="text-[16px]">✨</span> Điểm mạnh</p>
+              <div className="text-[13.5px] leading-relaxed text-emerald-800 bg-emerald-50/50 border border-emerald-100 rounded-xl px-4 py-3 whitespace-pre-wrap shadow-sm">
+                {evaluation.strengths}
+              </div>
             </div>
           )}
 
           {evaluation.areasForImprovement && (
             <div>
-              <p className="text-sm font-medium mb-1 text-amber-700">Cần cải thiện</p>
-              <p className="text-sm text-muted-foreground bg-amber-50 rounded-lg px-3 py-2">{evaluation.areasForImprovement}</p>
+              <p className="text-[13px] font-bold mb-1.5 text-orange-700 flex items-center gap-1.5"><span className="text-[16px]">💡</span> Cần cải thiện</p>
+              <div className="text-[13.5px] leading-relaxed text-orange-800 bg-orange-50/50 border border-orange-100 rounded-xl px-4 py-3 whitespace-pre-wrap shadow-sm">
+                {evaluation.areasForImprovement}
+              </div>
             </div>
           )}
         </div>

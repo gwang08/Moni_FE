@@ -71,3 +71,67 @@ export interface LearnerRoadmapInsights {
   weakestTags: LearnerTagMetric[] | null;
   strongestTags: LearnerTagMetric[] | null;
 }
+
+// =====================================================================
+// Weekly Plan Types (new system)
+// =====================================================================
+
+export type SlotTaskType = 'PRACTICE' | 'ASSESSMENT';
+export type SlotStatus = 'TODO' | 'DONE';
+export type PerformanceVerdict = 'IMPROVED' | 'STABLE' | 'DECLINED';
+
+export interface DailySlotResponse {
+  id: number;
+  dayOfWeek: number;
+  slotDate: string;
+  skill: RoadmapSkill;
+  taskType: SlotTaskType;
+  stimulusId: number | null;
+  stimulusTitle: string | null;
+  testId: number | null;
+  status: SlotStatus;
+  score: number | null;
+  totalQuestions: number | null;
+}
+
+export interface WeeklyPlanResponse {
+  id: number;
+  weekNumber: number;
+  monthCycle: number;
+  weekInMonth: number;
+  weekStartDate: string;
+  weekEndDate: string;
+  status: 'ACTIVE' | 'COMPLETED';
+  difficultyLevel: number;
+  weeklyAccuracy: number | null;
+  completionRate: number | null;
+  performanceVerdict: PerformanceVerdict | null;
+  previousVerdict: PerformanceVerdict | null;
+  slots: DailySlotResponse[];
+  todayCompleted: boolean;
+  suggestVocabulary: boolean;
+  monthlyAssessmentPending: boolean;
+}
+
+export interface WeeklyPlanSummary {
+  weekNumber: number;
+  monthCycle: number;
+  weekInMonth: number;
+  weekStartDate: string;
+  weekEndDate: string;
+  weeklyAccuracy: number | null;
+  completionRate: number | null;
+  performanceVerdict: string | null;
+}
+
+export interface MonthlyAssessmentResponse {
+  id: number;
+  monthCycle: number;
+  fullTestId: number | null;
+  status: 'PENDING' | 'COMPLETED';
+  readingBand: number | null;
+  listeningBand: number | null;
+  writingBand: number | null;
+  speakingBand: number | null;
+  overallBand: number | null;
+}

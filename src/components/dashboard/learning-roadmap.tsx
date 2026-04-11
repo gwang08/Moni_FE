@@ -1,174 +1,139 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { BookOpen, Check, Lock, FileText, ClipboardList, RotateCcw } from 'lucide-react';
-import { getRoadmapGoals } from '@/lib/roadmap-api';
-import { useUserStore } from '@/store/user-store';
+import {
+  BookOpen, Check, Clock, TrendingUp, TrendingDown, Minus, Trophy,
+  Sparkles, ArrowRight,
+} from 'lucide-react';
+import { getWeeklyPlan } from '@/lib/roadmap-api';
 import { SkeletonCard } from '@/components/ui/skeleton';
-import type { RoadmapGoal, RoadmapTask, RoadmapSkill } from '@/types/roadmap.types';
-import type { SkillKey } from '@/types';
+import type { WeeklyPlanResponse, DailySlotResponse, RoadmapSkill, PerformanceVerdict } from '@/types/roadmap.types';
 
-const SKILL_CONFIG: Record<RoadmapSkill, { label: string; color: string; activeColor: string }> = {
-  READING: { label: 'Reading', color: 'text-blue-600', activeColor: 'bg-blue-50 border-blue-200 text-blue-700' },
-  LISTENING: { label: 'Listening', color: 'text-purple-600', activeColor: 'bg-purple-50 border-purple-200 text-purple-700' },
-  WRITING: { label: 'Writing', color: 'text-green-600', activeColor: 'bg-green-50 border-green-200 text-green-700' },
-  SPEAKING: { label: 'Speaking', color: 'text-orange-600', activeColor: 'bg-orange-50 border-orange-200 text-orange-700' },
+const DAY_LABELS = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
+
+const SKILL_STYLE: Record<RoadmapSkill, { bg: string; text: string; border: string; dot: string }> = {
+  READING: { bg: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-200', dot: 'bg-blue-500' },
+  LISTENING: { bg: 'bg-purple-50', text: 'text-purple-700', border: 'border-purple-200', dot: 'bg-purple-500' },
+  WRITING: { bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200', dot: 'bg-emerald-500' },
+  SPEAKING: { bg: 'bg-orange-50', text: 'text-orange-700', border: 'border-orange-200', dot: 'bg-orange-500' },
 };
 
-const TASK_TYPE_LABEL: Record<string, string> = {
-  PRACTICE_STIMULUS: 'Luyện tập',
-  MINI_TEST: 'Kiểm tra',
-  PLACEMENT_TEST: 'Bài đánh giá',
+const VERDICT_CONFIG: Record<PerformanceVerdict, { icon: typeof TrendingUp; label: string; color: string }> = {
+  IMPROVED: { icon: TrendingUp, label: 'Tiến bộ', color: 'text-green-600' },
+  STABLE: { icon: Minus, label: 'Ổn định', color: 'text-amber-600' },
+  DECLINED: { icon: TrendingDown, label: 'Cần cải thiện', color: 'text-red-500' },
 };
 
-function TaskIcon({ task }: { task: RoadmapTask }) {
-  if (task.status === 'DONE') return <Check className="h-4 w-4 text-green-600" />;
-  if (task.status === 'LOCKED') return <Lock className="h-4 w-4 text-gray-400" />;
-  if (task.taskType === 'MINI_TEST') return <ClipboardList className="h-4 w-4 text-orange-500" />;
-  return <FileText className="h-4 w-4 text-blue-500" />;
+function DifficultyBar({ level }: { level: number }) {
+  const filled = Math.round(level * 5);
+  return (
+    <div className="flex items-center gap-1">
+      <span className="text-[10px] text-gray-400 mr-1">Độ khó</span>
+      {Array.from({ length: 5 }, (_, i) => (
+        <div
+          key={i}
+          className={`h-2 w-3 rounded-sm transition-colors ${
+            i < filled ? 'bg-gradient-to-r from-orange-400 to-rose-400' : 'bg-gray-200'
+          }`}
+        />
+      ))}
+    </div>
+  );
 }
 
-function TaskCard({ task, skill }: { task: RoadmapTask; skill: RoadmapSkill }) {
-  const router = useRouter();
-  const hasLink = task.testId != null;
-
-  const handleClick = () => {
-    if (task.status === 'LOCKED' || !hasLink) return;
-    const skillPath = skill.toLowerCase();
-    router.push(`/practice/${skillPath}/${task.testId}?roadmapTaskId=${task.id}`);
-  };
-
-  const isClickable = task.status !== 'LOCKED' && hasLink;
+function SlotCard({ slot, onClick }: { slot: DailySlotResponse; onClick: () => void }) {
+  const style = SKILL_STYLE[slot.skill];
+  const isDone = slot.status === 'DONE';
+  const isAssessment = slot.taskType === 'ASSESSMENT';
 
   return (
     <button
-      onClick={handleClick}
-      disabled={!isClickable}
-      className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all ${
-        task.status === 'DONE'
-          ? 'bg-green-50 border border-green-100 hover:border-green-300 cursor-pointer'
-          : task.status === 'LOCKED'
-            ? 'bg-gray-50 border border-gray-100 opacity-60 cursor-not-allowed'
-            : 'bg-white border border-gray-200 hover:border-blue-300 hover:shadow-sm cursor-pointer'
+      onClick={onClick}
+      disabled={!slot.testId}
+      className={`w-full rounded-xl border px-3 py-2.5 text-left transition-all ${
+        isDone
+          ? `${style.bg} ${style.border} opacity-90`
+          : slot.testId
+            ? `bg-white border-gray-200 hover:${style.border} hover:shadow-sm cursor-pointer`
+            : 'bg-gray-50 border-gray-100 opacity-60 cursor-not-allowed'
       }`}
     >
-      <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
-        task.status === 'DONE' ? 'bg-green-100' : task.status === 'LOCKED' ? 'bg-gray-100' : 'bg-blue-50'
-      }`}>
-        <TaskIcon task={task} />
-      </div>
-      <div className="flex-1 min-w-0">
-        <p className={`text-sm font-medium truncate ${
-          task.status === 'DONE' ? 'text-green-700' : task.status === 'LOCKED' ? 'text-gray-400' : 'text-gray-800'
-        }`}>
-          {task.stimulusTitle || TASK_TYPE_LABEL[task.taskType] || task.taskType}
-        </p>
-        <p className="text-xs text-gray-400">
-          {TASK_TYPE_LABEL[task.taskType]}
-          {task.questionCount ? ` • ${task.questionCount} câu` : ''}
-          {task.status === 'DONE' && ' • Hoàn thành'}
-        </p>
-      </div>
-      {task.status === 'TODO' && isClickable && (
-        <span className="text-xs font-medium text-blue-500 flex-shrink-0">Làm →</span>
-      )}
-      {task.status === 'DONE' && isClickable && (
-        <span className="flex items-center gap-1 text-xs font-medium text-green-600 flex-shrink-0">
-          <RotateCcw className="h-3 w-3" /> Làm lại
+      <div className="flex items-center gap-2">
+        <div className={`h-2 w-2 rounded-full flex-shrink-0 ${isDone ? 'bg-green-500' : style.dot}`} />
+        <span className={`text-xs font-semibold ${isDone ? 'text-green-700' : style.text}`}>
+          {slot.skill}
         </span>
+        {isAssessment && (
+          <span className="text-[9px] font-bold uppercase bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded">
+            Đánh giá
+          </span>
+        )}
+        {isDone && <Check className="h-3.5 w-3.5 text-green-600 ml-auto flex-shrink-0" />}
+      </div>
+      <p className="text-[11px] text-gray-500 mt-1 truncate">
+        {slot.stimulusTitle || (isAssessment ? 'Bài đánh giá kỹ năng' : 'Bài luyện tập')}
+      </p>
+      {isDone && slot.score != null && slot.totalQuestions != null && (
+        <p className="text-[10px] font-mono text-green-700 mt-0.5">
+          {slot.score}/{slot.totalQuestions}
+        </p>
       )}
     </button>
   );
 }
 
-const SKILL_TO_KEY: Record<string, SkillKey> = {
-  READING: 'reading', LISTENING: 'listening', WRITING: 'writing', SPEAKING: 'speaking',
-};
-
-function SkillGoalView({ goal, userTarget }: { goal: RoadmapGoal; userTarget: number }) {
-  const displayTarget = userTarget > 0 ? userTarget : goal.targetBand;
-  const daysLeft = goal.deadline
-    ? Math.max(0, Math.ceil((new Date(goal.deadline).getTime() - Date.now()) / 86400000))
-    : null;
-
-  return (
-    <div className="space-y-4">
-      {/* Band info */}
-      <div className="flex items-center justify-between text-sm">
-        <span className="text-gray-500">
-          Band hiện tại: <span className="font-semibold text-gray-800">{goal.startingBand}</span>
-          {' → '}
-          Mục tiêu: <span className="font-semibold text-gray-800">{displayTarget}</span>
-        </span>
-        <span className="text-xs text-gray-400">
-          {goal.roadmapVersion ? `v${goal.roadmapVersion}` : ''}
-          {daysLeft !== null ? ` • Còn ${daysLeft} ngày` : ''}
-        </span>
-      </div>
-
-      {/* Progress bar */}
-      <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
-        <div
-          className="h-full bg-gradient-to-r from-orange-400 to-rose-400 rounded-full transition-all duration-500"
-          style={{ width: `${Math.min(goal.progress, 100)}%` }}
-        />
-      </div>
-      <p className="text-xs text-gray-400 text-right">{Math.round(goal.progress)}% hoàn thành</p>
-
-      {/* Task list */}
-      <div className="space-y-2">
-        {goal.tasks.map((task) => (
-          <TaskCard key={task.id} task={task} skill={goal.skill} />
-        ))}
-      </div>
-    </div>
-  );
-}
-
 export function LearningRoadmap() {
-  const [goals, setGoals] = useState<RoadmapGoal[]>([]);
+  const router = useRouter();
+  const [plan, setPlan] = useState<WeeklyPlanResponse | null>(null);
   const [loading, setLoading] = useState(true);
-  const [activeSkill, setActiveSkill] = useState<RoadmapSkill | null>(null);
-  const targetScores = useUserStore((s) => s.targetScores);
+  const fetchedRef = useRef(false);
 
-  const fetchGoals = async () => {
+  const fetchPlan = async () => {
     try {
-      const data = await getRoadmapGoals();
-      setGoals(data);
-      if (data.length > 0 && !activeSkill) setActiveSkill(data[0].skill);
+      const data = await getWeeklyPlan();
+      setPlan(data);
     } catch { /* ignore */ }
     finally { setLoading(false); }
   };
 
-  const fetchedRef = useRef(false);
   useEffect(() => {
     if (fetchedRef.current) return;
     fetchedRef.current = true;
-    fetchGoals();
+    fetchPlan();
   }, []);
 
-  // Refresh when AI recommendation updates goals
   useEffect(() => {
-    const handler = () => fetchGoals();
+    const handler = () => fetchPlan();
     window.addEventListener('roadmap-updated', handler);
     return () => window.removeEventListener('roadmap-updated', handler);
   }, []);
 
+  const today = useMemo(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  }, []);
+
+  const slotsByDay = useMemo(() => {
+    if (!plan) return new Map<number, DailySlotResponse[]>();
+    const map = new Map<number, DailySlotResponse[]>();
+    for (const slot of plan.slots) {
+      const list = map.get(slot.dayOfWeek) ?? [];
+      list.push(slot);
+      map.set(slot.dayOfWeek, list);
+    }
+    return map;
+  }, [plan]);
+
   if (loading) return <SkeletonCard className="h-72" />;
 
-  const activeGoal = goals.find((g) => g.skill === activeSkill) ?? goals[0];
-  const availableSkills = goals.map((g) => g.skill);
-
-  return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-      {/* Header */}
-      <div className="flex items-center gap-2 mb-4">
-        <BookOpen className="h-5 w-5 text-orange-500" />
-        <h2 className="text-lg font-bold text-gray-800">Lộ trình học tập</h2>
-      </div>
-
-      {goals.length === 0 ? (
+  if (!plan) {
+    return (
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+        <div className="flex items-center gap-2 mb-4">
+          <BookOpen className="h-5 w-5 text-orange-500" />
+          <h2 className="text-lg font-bold text-gray-800">Lộ trình học tập</h2>
+        </div>
         <div className="text-center py-8">
           <div className="w-12 h-12 bg-orange-50 rounded-full flex items-center justify-center mx-auto mb-3">
             <BookOpen className="h-6 w-6 text-orange-400" />
@@ -177,36 +142,145 @@ export function LearningRoadmap() {
             Làm bài đánh giá trình độ để nhận lộ trình học tập phù hợp nhé!
           </p>
         </div>
-      ) : (
-        <>
-          {/* Skill tabs */}
-          <div className="flex gap-2 mb-5 flex-wrap">
-            {availableSkills.map((skill) => {
-              const config = SKILL_CONFIG[skill];
-              const isActive = skill === activeSkill;
-              return (
-                <button
-                  key={skill}
-                  onClick={() => setActiveSkill(skill)}
-                  className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
-                    isActive ? config.activeColor : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-50'
+      </div>
+    );
+  }
+
+  const handleSlotClick = (slot: DailySlotResponse) => {
+    if (!slot.testId) return;
+    const skillPath = slot.skill.toLowerCase();
+    router.push(`/practice/${skillPath}/${slot.testId}`);
+  };
+
+  const verdict = plan.previousVerdict ? VERDICT_CONFIG[plan.previousVerdict] : null;
+  const VerdictIcon = verdict?.icon;
+
+  return (
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+      {/* Header */}
+      <div className="px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-orange-50/50 to-rose-50/30">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5">
+            <div className="p-2 rounded-xl bg-orange-100">
+              <BookOpen className="h-5 w-5 text-orange-600" />
+            </div>
+            <div>
+              <h2 className="text-base font-bold text-gray-800">
+                Lộ trình tuần {plan.weekNumber}
+                <span className="text-xs font-normal text-gray-400 ml-2">Tháng {plan.monthCycle}</span>
+              </h2>
+              <p className="text-[11px] text-gray-400">
+                {plan.weekStartDate} – {plan.weekEndDate}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            {verdict && VerdictIcon && (
+              <div className={`flex items-center gap-1 ${verdict.color}`}>
+                <VerdictIcon className="h-3.5 w-3.5" />
+                <span className="text-xs font-medium">{verdict.label}</span>
+              </div>
+            )}
+            <DifficultyBar level={plan.difficultyLevel} />
+          </div>
+        </div>
+      </div>
+
+      {/* Weekly Grid */}
+      <div className="px-6 py-4">
+        <div className="grid grid-cols-7 gap-2">
+          {/* Day headers */}
+          {DAY_LABELS.map((label, i) => {
+            const dayNum = i + 1;
+            const daySlots = slotsByDay.get(dayNum) ?? [];
+            const isToday = daySlots.length > 0 && daySlots[0].slotDate === today;
+            const allDone = daySlots.length > 0 && daySlots.every(s => s.status === 'DONE');
+            const isDay7 = dayNum === 7;
+
+            return (
+              <div key={dayNum} className="text-center">
+                <div
+                  className={`text-[11px] font-semibold mb-2 py-1 rounded-md ${
+                    isToday
+                      ? 'bg-orange-500 text-white'
+                      : allDone
+                        ? 'bg-green-100 text-green-700'
+                        : isDay7
+                          ? 'bg-amber-50 text-amber-700'
+                          : 'text-gray-500'
                   }`}
                 >
-                  {config.label}
-                </button>
-              );
-            })}
-          </div>
+                  {label}
+                </div>
+                <div className="space-y-1.5">
+                  {daySlots.map((slot) => (
+                    <SlotCard
+                      key={slot.id}
+                      slot={slot}
+                      onClick={() => handleSlotClick(slot)}
+                    />
+                  ))}
+                  {daySlots.length === 0 && (
+                    <div className="text-[10px] text-gray-300 py-4">—</div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
 
-          {/* Active goal content */}
-          {activeGoal && (
-            <SkillGoalView
-              goal={activeGoal}
-              userTarget={targetScores[SKILL_TO_KEY[activeGoal.skill]] ?? 0}
-            />
-          )}
-        </>
+      {/* Today Completed Banner */}
+      {plan.todayCompleted && plan.suggestVocabulary && (
+        <div className="mx-6 mb-4 rounded-xl bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 px-4 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Sparkles className="h-4 w-4 text-emerald-600" />
+            <div>
+              <p className="text-sm font-semibold text-emerald-800">Bạn đã hoàn thành task hôm nay! 🎉</p>
+              <p className="text-xs text-emerald-600">Hãy ôn tập từ vựng IELTS để cải thiện thêm</p>
+            </div>
+          </div>
+          <button
+            onClick={() => router.push('/vocabulary')}
+            className="flex items-center gap-1 text-xs font-semibold text-emerald-700 bg-emerald-100 hover:bg-emerald-200 px-3 py-1.5 rounded-lg transition-colors"
+          >
+            Học từ vựng <ArrowRight className="h-3 w-3" />
+          </button>
+        </div>
       )}
+
+      {/* Monthly Assessment Banner */}
+      {plan.monthlyAssessmentPending && (
+        <div className="mx-6 mb-4 rounded-xl bg-gradient-to-r from-violet-50 to-indigo-50 border border-violet-200 px-4 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Trophy className="h-5 w-5 text-violet-600" />
+            <div>
+              <p className="text-sm font-semibold text-violet-800">Bài đánh giá tháng {plan.monthCycle} đã sẵn sàng!</p>
+              <p className="text-xs text-violet-600">Làm Full Test để đánh giá toàn diện trình độ IELTS</p>
+            </div>
+          </div>
+          <button
+            onClick={() => router.push('/full-test')}
+            className="flex items-center gap-1 text-xs font-semibold text-violet-700 bg-violet-100 hover:bg-violet-200 px-3 py-1.5 rounded-lg transition-colors"
+          >
+            Làm bài <ArrowRight className="h-3 w-3" />
+          </button>
+        </div>
+      )}
+
+      {/* Legend */}
+      <div className="px-6 pb-4 flex items-center gap-4 flex-wrap">
+        {(Object.entries(SKILL_STYLE) as [RoadmapSkill, typeof SKILL_STYLE.READING][]).map(([skill, style]) => (
+          <div key={skill} className="flex items-center gap-1">
+            <div className={`h-2 w-2 rounded-full ${style.dot}`} />
+            <span className="text-[10px] text-gray-500">{skill}</span>
+          </div>
+        ))}
+        <div className="flex items-center gap-1">
+          <Clock className="h-2.5 w-2.5 text-gray-400" />
+          <span className="text-[10px] text-gray-400">Tuần {plan.weekInMonth}/4</span>
+        </div>
+      </div>
     </div>
   );
 }

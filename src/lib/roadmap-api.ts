@@ -35,3 +35,54 @@ export async function getRoadmapInsights(): Promise<LearnerRoadmapInsights | nul
   );
   return res.result ?? null;
 }
+
+// =====================================================================
+// Weekly Plan API (new system)
+// =====================================================================
+
+import type { WeeklyPlanResponse, WeeklyPlanSummary, MonthlyAssessmentResponse } from '@/types/roadmap.types';
+
+export async function getWeeklyPlan(): Promise<WeeklyPlanResponse | null> {
+  const res = await apiClient.get<ApiResponse<WeeklyPlanResponse>>(
+    '/api/v1/learner/weekly-plan',
+    true
+  );
+  return res.result ?? null;
+}
+
+export async function completeSlot(
+  slotId: number,
+  score: number,
+  totalQuestions: number
+): Promise<void> {
+  await apiClient.patch(
+    `/api/v1/learner/weekly-plan/slots/${slotId}/complete`,
+    { score, totalQuestions },
+    true
+  );
+}
+
+export async function evaluateWeek(): Promise<WeeklyPlanResponse | null> {
+  const res = await apiClient.post<ApiResponse<WeeklyPlanResponse>>(
+    '/api/v1/learner/weekly-plan/evaluate',
+    {},
+    true
+  );
+  return res.result ?? null;
+}
+
+export async function getWeeklyPlanHistory(): Promise<WeeklyPlanSummary[]> {
+  const res = await apiClient.get<ApiResponse<WeeklyPlanSummary[]>>(
+    '/api/v1/learner/weekly-plan/history',
+    true
+  );
+  return res.result ?? [];
+}
+
+export async function getMonthlyAssessment(): Promise<MonthlyAssessmentResponse | null> {
+  const res = await apiClient.get<ApiResponse<MonthlyAssessmentResponse>>(
+    '/api/v1/learner/weekly-plan/monthly-assessment',
+    true
+  );
+  return res.result ?? null;
+}

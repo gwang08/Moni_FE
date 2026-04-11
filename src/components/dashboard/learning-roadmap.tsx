@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  BookOpen, Check, Clock, TrendingUp, TrendingDown, Minus, Trophy,
+  BookOpen, Check, Clock, Lock, TrendingUp, TrendingDown, Minus, Trophy,
   Sparkles, ArrowRight,
 } from 'lucide-react';
 import { getWeeklyPlan } from '@/lib/roadmap-api';
@@ -42,26 +42,30 @@ function DifficultyBar({ level }: { level: number }) {
   );
 }
 
-function SlotCard({ slot, onClick }: { slot: DailySlotResponse; onClick: () => void }) {
+function SlotCard({ slot, onClick, locked }: { slot: DailySlotResponse; onClick: () => void; locked: boolean }) {
   const style = SKILL_STYLE[slot.skill];
   const isDone = slot.status === 'DONE';
   const isAssessment = slot.taskType === 'ASSESSMENT';
+  const hasLink = slot.testId != null || slot.stimulusId != null;
+  const isDisabled = locked || (!hasLink && !isDone);
 
   return (
     <button
       onClick={onClick}
-      disabled={!slot.testId}
+      disabled={isDisabled}
       className={`w-full rounded-xl border px-3 py-2.5 text-left transition-all ${
         isDone
           ? `${style.bg} ${style.border} opacity-90`
-          : slot.testId
-            ? `bg-white border-gray-200 hover:${style.border} hover:shadow-sm cursor-pointer`
-            : 'bg-gray-50 border-gray-100 opacity-60 cursor-not-allowed'
+          : locked
+            ? 'bg-gray-50 border-gray-100 opacity-50 cursor-not-allowed'
+            : hasLink
+              ? `bg-white border-gray-200 hover:${style.border} hover:shadow-sm cursor-pointer`
+              : 'bg-gray-50 border-gray-100 opacity-60 cursor-not-allowed'
       }`}
     >
       <div className="flex items-center gap-2">
-        <div className={`h-2 w-2 rounded-full flex-shrink-0 ${isDone ? 'bg-green-500' : style.dot}`} />
-        <span className={`text-xs font-semibold ${isDone ? 'text-green-700' : style.text}`}>
+        <div className={`h-2 w-2 rounded-full flex-shrink-0 ${isDone ? 'bg-green-500' : locked ? 'bg-gray-300' : style.dot}`} />
+        <span className={`text-xs font-semibold ${isDone ? 'text-green-700' : locked ? 'text-gray-400' : style.text}`}>
           {slot.skill}
         </span>
         {isAssessment && (
@@ -69,9 +73,10 @@ function SlotCard({ slot, onClick }: { slot: DailySlotResponse; onClick: () => v
             Đánh giá
           </span>
         )}
+        {locked && !isDone && <Lock className="h-3 w-3 text-gray-300 ml-auto flex-shrink-0" />}
         {isDone && <Check className="h-3.5 w-3.5 text-green-600 ml-auto flex-shrink-0" />}
       </div>
-      <p className="text-[11px] text-gray-500 mt-1 truncate">
+      <p className={`text-[11px] mt-1 truncate ${locked && !isDone ? 'text-gray-300' : 'text-gray-500'}`}>
         {slot.stimulusTitle || (isAssessment ? 'Bài đánh giá kỹ năng' : 'Bài luyện tập')}
       </p>
       {isDone && slot.score != null && slot.totalQuestions != null && (
@@ -147,9 +152,26 @@ export function LearningRoadmap() {
   }
 
   const handleSlotClick = (slot: DailySlotResponse) => {
-    if (!slot.testId) return;
-    const skillPath = slot.skill.toLowerCase();
-    router.push(`/practice/${skillPath}/${slot.testId}`);
+    if (slot.status === 'DONE') return;
+
+    const id = slot.testId ?? slot.stimulusId;
+    if (!id) return;
+
+    // Route based on skill type
+    switch (slot.skill) {
+      case 'SPEAKING':
+        router.push(`/practice/speaking/${id}`);
+        break;
+      case 'WRITING':
+        router.push(`/practice/writing/${id}`);
+        break;
+      case 'READING':
+        router.push(`/practice/reading/${id}`);
+        break;
+      case 'LISTENING':
+        router.push(`/practice/listening/${id}`);
+        break;
+    }
   };
 
   const verdict = plan.previousVerdict ? VERDICT_CONFIG[plan.previousVerdict] : null;
@@ -194,6 +216,7 @@ export function LearningRoadmap() {
             const dayNum = i + 1;
             const daySlots = slotsByDay.get(dayNum) ?? [];
             const isToday = daySlots.length > 0 && daySlots[0].slotDate === today;
+            const isFuture = daySlots.length > 0 && daySlots[0].slotDate > today;
             const allDone = daySlots.length > 0 && daySlots.every(s => s.status === 'DONE');
             const isDay7 = dayNum === 7;
 
@@ -217,6 +240,7 @@ export function LearningRoadmap() {
                     <SlotCard
                       key={slot.id}
                       slot={slot}
+                      locked={isFuture}
                       onClick={() => handleSlotClick(slot)}
                     />
                   ))}

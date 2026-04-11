@@ -123,7 +123,7 @@ export default function ExpertSessionPage({ params }: Props) {
 
                 // Extract writing prompt from exact task or fallback
                 if (res.result?.skill === 'WRITING') {
-                  const setPromptFromStimulus = (st: any, forcedType?: 1 | 2) => {
+                  const setPromptFromStimulus = (st: { title?: string; content?: string; mediaUrl?: string | null; section?: number }, forcedType?: 1 | 2) => {
                     const section = st.section ?? 2;
                     setWritingPrompt({
                       prompt: st.content ?? st.title ?? '',

@@ -24,6 +24,7 @@ interface TestQuestion {
   id: number;
   content: string;
   position: number;
+  part: number;
 }
 
 interface WritingPromptData {
@@ -67,7 +68,7 @@ export default function ExpertSessionPage({ params }: Props) {
   const [areasForImprovement, setAreasForImprovement] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [inCall, setInCall] = useState(false);
-  const [questions, setQuestions] = useState<TestQuestion[]>([]);
+  const [questionsByPart, setQuestionsByPart] = useState<Record<number, TestQuestion[]>>({});
   const [showQuestions, setShowQuestions] = useState(true);
   const [writingPrompt, setWritingPrompt] = useState<WritingPromptData | null>(null);
   const [chartZoomOpen, setChartZoomOpen] = useState(false);
@@ -97,16 +98,26 @@ export default function ExpertSessionPage({ params }: Props) {
                 true,
               )
               .then((testRes) => {
-                const qs: TestQuestion[] = [];
+                const groupedLog: Record<number, TestQuestion[]> = {};
                 for (const s of testRes.result?.stimuli ?? []) {
+                  const currentPart = s.section ?? 1;
+                  if (!groupedLog[currentPart]) groupedLog[currentPart] = [];
                   for (const g of s.questionGroups ?? []) {
                     for (const q of g.questions ?? []) {
-                      if (q.position !== 0) qs.push(q);
+                      if (q.position !== 0) {
+                        let cleanedContent = q.content;
+                        // Remove leading step numbers (e.g., "1. ", "2. ")
+                        cleanedContent = cleanedContent.replace(/^\d+\.\s*/, '');
+                        groupedLog[currentPart].push({ ...q, content: cleanedContent, part: currentPart });
+                      }
                     }
                   }
                 }
-                qs.sort((a, b) => a.position - b.position);
-                setQuestions(qs);
+                // Sort within each part
+                for (const pt in groupedLog) {
+                  groupedLog[pt].sort((a, b) => a.position - b.position);
+                }
+                setQuestionsByPart(groupedLog);
 
                 // Extract writing prompt from first stimulus (writing tests have 1 stimulus)
                 if (res.result?.skill === 'WRITING') {
@@ -305,83 +316,116 @@ export default function ExpertSessionPage({ params }: Props) {
         <Badge className="text-xs">{skill}</Badge>
 
         {/* Test questions (collapsible) */}
-        {questions.length > 0 && (
-          <Card className="p-3">
+        {Object.keys(questionsByPart).length > 0 && (
+          <Card className="p-4 border-gray-200 shadow-sm rounded-xl bg-white">
             <button
               type="button"
               onClick={() => setShowQuestions((v) => !v)}
-              className="flex items-center justify-between w-full text-sm font-semibold"
+              className="flex items-center justify-between w-full font-bold text-gray-800 text-[15px]"
             >
-              <span>Câu hỏi đề thi ({questions.length})</span>
-              {showQuestions ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              <div className="flex items-center gap-2">
+                <FileText className="h-4 w-4 text-emerald-600" />
+                <span>Câu hỏi đề thi</span>
+                <Badge variant="secondary" className="ml-2 font-medium bg-emerald-50 text-emerald-700 hover:bg-emerald-100">
+                  {Object.values(questionsByPart).flat().length} câu
+                </Badge>
+              </div>
+              {showQuestions ? <ChevronUp className="h-4 w-4 text-gray-500" /> : <ChevronDown className="h-4 w-4 text-gray-500" />}
             </button>
+            
             {showQuestions && (
-              <ol className="mt-3 space-y-2 list-decimal list-inside">
-                {questions.map((q, i) => (
-                  <li key={q.id} className="text-xs text-muted-foreground">
-                    <span className="font-medium text-foreground">{i + 1}. </span>
-                    {q.content}
-                  </li>
+              <div className="mt-4 space-y-5">
+                {Object.entries(questionsByPart).map(([part, qs]) => (
+                  <div key={part}>
+                    <h4 className="text-sm font-bold text-gray-700 mb-2 pb-1 border-b border-gray-100">
+                      {skill === 'SPEAKING' ? `Part ${part}` : `Task ${part}`}
+                    </h4>
+                    <ol className="space-y-2 list-outside ml-4">
+                      {qs.map((q, i) => (
+                        <li key={q.id} className="text-[13px] text-gray-600 leading-relaxed list-decimal marker:text-emerald-500 marker:font-semibold">
+                          <span className="text-gray-800 ml-1">{q.content}</span>
+                        </li>
+                      ))}
+                    </ol>
+                  </div>
                 ))}
-              </ol>
+              </div>
             )}
           </Card>
         )}
 
         {/* Score inputs */}
-        <Card className="p-4 space-y-3">
-          <p className="text-sm font-semibold">Điểm số (0–9, bước 0.5)</p>
-          {criteria.map((c) => (
-            <div key={c.key} className="flex items-center gap-3">
-              <Label className="text-xs w-52 shrink-0">{c.label}</Label>
-              <Input
-                type="number"
-                min={0} max={9} step={0.5}
-                value={scores[c.key] ?? ''}
-                onChange={(e) => setScores((prev) => ({ ...prev, [c.key]: e.target.value }))}
-                className="w-24"
-                placeholder="0–9"
-              />
-            </div>
-          ))}
+        <Card className="p-5 border-gray-200 shadow-sm rounded-xl bg-white">
+          <div className="mb-4 flex items-center justify-between border-b border-gray-100 pb-3">
+            <h3 className="text-[15px] font-bold text-gray-800">Đánh giá tiêu chí</h3>
+            <span className="text-[11px] font-medium text-gray-500 uppercase tracking-wider">Thang điểm 0–9</span>
+          </div>
+          
+          <div className="space-y-3.5">
+            {criteria.map((c) => (
+              <div key={c.key} className="flex items-center justify-between p-3 rounded-lg bg-gray-50/80 border border-gray-100 hover:border-emerald-200 transition-colors">
+                <Label className="text-[13px] font-semibold text-gray-700 truncate mr-3">{c.label}</Label>
+                <div className="relative">
+                  <Input
+                    type="number"
+                    min={0} max={9} step={0.5}
+                    value={scores[c.key] ?? ''}
+                    onChange={(e) => setScores((prev) => ({ ...prev, [c.key]: e.target.value }))}
+                    className="w-20 h-9 font-bold text-center text-emerald-700 bg-white border-gray-200 focus:border-emerald-500 focus:ring-emerald-500/20"
+                    placeholder="0.0"
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
         </Card>
 
         {/* Text fields */}
-        <Card className="p-4 space-y-3">
-          <div className="space-y-1.5">
-            <Label className="text-xs font-semibold">Nhận xét chung *</Label>
+        <Card className="p-5 border-gray-200 shadow-sm rounded-xl bg-white space-y-5">
+          <div className="space-y-2">
+            <Label className="text-[13px] font-bold text-gray-800 flex items-center gap-2">
+              <span className="h-6 w-6 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 text-xs">💬</span>
+              Nhận xét chung <span className="text-red-500">*</span>
+            </Label>
             <textarea
-              className="w-full rounded-md border bg-white px-3 py-2 text-sm min-h-[80px] resize-y focus:outline-none focus:ring-2 focus:ring-ring"
-              placeholder="Nhận xét về bài làm của học viên..."
+              className="w-full rounded-xl border border-gray-200 bg-gray-50/50 px-4 py-3 text-[13px] leading-relaxed min-h-[100px] resize-y focus:outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/10 transition-all placeholder:text-gray-400"
+              placeholder="Viết nhận xét tổng quan về bài làm của học viên để giúp họ định hướng rõ ràng nhất..."
               value={feedback}
               onChange={(e) => setFeedback(e.target.value)}
             />
           </div>
-          <div className="space-y-1.5">
-            <Label className="text-xs font-semibold">Điểm mạnh</Label>
-            <textarea
-              className="w-full rounded-md border bg-white px-3 py-2 text-sm min-h-[60px] resize-y focus:outline-none focus:ring-2 focus:ring-ring"
-              placeholder="Những điểm tốt của học viên..."
-              value={strengths}
-              onChange={(e) => setStrengths(e.target.value)}
-            />
-          </div>
-          <div className="space-y-1.5">
-            <Label className="text-xs font-semibold">Cần cải thiện</Label>
-            <textarea
-              className="w-full rounded-md border bg-white px-3 py-2 text-sm min-h-[60px] resize-y focus:outline-none focus:ring-2 focus:ring-ring"
-              placeholder="Những điểm học viên cần cải thiện..."
-              value={areasForImprovement}
-              onChange={(e) => setAreasForImprovement(e.target.value)}
-            />
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label className="text-[13px] font-bold text-emerald-700 flex items-center gap-1.5">
+                <span className="text-[16px]">✨</span> Điểm mạnh
+              </Label>
+              <textarea
+                className="w-full rounded-xl border border-emerald-100 bg-emerald-50/30 px-4 py-3 text-[13px] leading-relaxed min-h-[80px] resize-y focus:outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/10 transition-all placeholder:text-emerald-700/40"
+                placeholder="Điều học viên đã làm rất tốt..."
+                value={strengths}
+                onChange={(e) => setStrengths(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-[13px] font-bold text-orange-700 flex items-center gap-1.5">
+                <span className="text-[16px]">💡</span> Cần cải thiện
+              </Label>
+              <textarea
+                className="w-full rounded-xl border border-orange-100 bg-orange-50/30 px-4 py-3 text-[13px] leading-relaxed min-h-[80px] resize-y focus:outline-none focus:border-orange-400 focus:ring-4 focus:ring-orange-500/10 transition-all placeholder:text-orange-700/40"
+                placeholder="Những mặt học viên cần chú ý khắc phục..."
+                value={areasForImprovement}
+                onChange={(e) => setAreasForImprovement(e.target.value)}
+              />
+            </div>
           </div>
         </Card>
 
-        <Button className="w-full" onClick={handleSubmit} disabled={submitting}>
+        <Button className="w-full h-12 rounded-xl bg-[#16a34a] hover:bg-[#15803d] text-white font-bold text-[14px] shadow-sm tracking-wide gap-2 mb-8" onClick={handleSubmit} disabled={submitting}>
           {submitting ? (
-            <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Đang gửi...</>
+            <><Loader2 className="h-5 w-5 animate-spin" /> Hệ thống đang lưu đánh giá...</>
           ) : (
-            <><Send className="h-4 w-4 mr-2" />Gửi đánh giá</>
+            <><Send className="h-4 w-4" /> Gửi kết quả chấm điểm</>
           )}
         </Button>
       </div>

@@ -8,9 +8,9 @@ interface Props {
 
 export function ExamProgressBar({ currentPart, currentQuestionIndex, partConfig }: Props) {
   const finalConfig = {
-    part1: partConfig?.[1] || 12,
-    part2: partConfig?.[2] || 1,
-    part3: partConfig?.[3] || 6,
+    part1: partConfig?.[1] ?? 12,
+    part2: partConfig?.[2] ?? 1,
+    part3: partConfig?.[3] ?? 6,
   };
 
   const calculateProgress = (part: number, qIdx: number): number => {

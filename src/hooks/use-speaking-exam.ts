@@ -30,6 +30,7 @@ export function useSpeakingExam() {
   const [examState, setExamState] = useState<ExamState>('IDLE');
   const [isWsConnected, setIsWsConnected] = useState(false);
   const [currentQuestion, setCurrentQuestion] = useState<QuestionEvent | null>(null);
+  const [resumedQuestionIndex, setResumedQuestionIndex] = useState<number | undefined>();
   const [cueCard, setCueCard] = useState<CueCardEvent | null>(null);
   const [evaluation, setEvaluation] = useState<EvaluationEvent | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -126,6 +127,9 @@ export function useSpeakingExam() {
           break;
 
         case 'resume_exam':
+          if (msg.questionIndex !== undefined) {
+             setResumedQuestionIndex(msg.questionIndex);
+          }
           if (msg.part === 2) {
             setCueCard(msg.currentQuestion);
             setExamState('PART2_PREP');
@@ -306,6 +310,8 @@ export function useSpeakingExam() {
     error,
     isWsConnected,
     isAudioPlaying: isAudioPlaying,
+    resumedQuestionIndex,
+    clearResumedQuestionIndex: () => setResumedQuestionIndex(undefined),
     connect,
     startExam,
     sendTranscript,

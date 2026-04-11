@@ -63,6 +63,7 @@ export interface ResumeEvent {
   state: ExamState;
   part: number;
   currentQuestion: any;
+  questionIndex?: number;
 }
 
 export type ServerMessage =

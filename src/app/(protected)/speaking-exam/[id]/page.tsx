@@ -119,7 +119,12 @@ export default function SpeakingExamPage({ params }: Props) {
       const part = exam.currentQuestion.partNumber;
       const qId = exam.currentQuestion.questionId;
 
-      if (!seenQuestionsRef.current.has(qId)) {
+      if (exam.resumedQuestionIndex !== undefined) {
+        setCurrentPart(part);
+        setCurrentQuestionIndex(exam.resumedQuestionIndex);
+        exam.clearResumedQuestionIndex();
+        seenQuestionsRef.current.add(qId);
+      } else if (!seenQuestionsRef.current.has(qId)) {
         seenQuestionsRef.current.add(qId);
         
         setCurrentPart((prevPart) => {
@@ -139,7 +144,7 @@ export default function SpeakingExamPage({ params }: Props) {
         });
       }
     }
-  }, [exam.currentQuestion?.questionId]);
+  }, [exam.currentQuestion?.questionId, exam.resumedQuestionIndex, exam.clearResumedQuestionIndex]);
 
   // When Part 2 starts (from backend cue_card event), show intro and update progress bar
   useEffect(() => {

@@ -126,12 +126,15 @@ export function useSpeakingExam() {
           break;
 
         case 'resume_exam':
-          setExamState(msg.state);
           if (msg.part === 2) {
             setCueCard(msg.currentQuestion);
+            setExamState('PART2_PREP');
           } else {
             currentQuestionRef.current = msg.currentQuestion;
             setCurrentQuestion(msg.currentQuestion);
+            pendingTextRef.current = msg.currentQuestion.text;
+            setExamState('AUDIO_PLAYING');
+            speakWithBrowserTTS(msg.currentQuestion.text);
           }
           break;
 

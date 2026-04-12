@@ -110,6 +110,7 @@ export function ListeningPracticeView({
           submitted={submitted}
           textAnswers={textAnswers}
           onTextAnswer={onTextAnswer}
+          examMode={true}
         />
       );
     }

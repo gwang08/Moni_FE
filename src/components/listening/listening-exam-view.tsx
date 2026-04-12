@@ -113,7 +113,7 @@ export function ListeningExamView({
           submitted={submitted}
           textAnswers={textAnswers}
           onTextAnswer={onTextAnswer}
-          examMode
+          examMode={true}
           questionPositionById={group.questions.reduce((acc, q) => {
             acc[q.id] = q.position;
             return acc;

@@ -97,6 +97,11 @@ function EntryCard({ entry }: { entry: UnifiedEntry }) {
               <Bot className="h-2.5 w-2.5" /> AI
             </span>
           )}
+          {entry.status === 'Đang làm' && !entry.id.startsWith('writing-sub-') && (
+            <span className="text-[10px] px-1.5 py-0.5 rounded font-medium bg-orange-100 text-orange-700 animate-pulse">
+              Đang làm
+            </span>
+          )}
           {entry.id.startsWith('writing-sub-') && entry.status && (
             <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${
               entry.status === 'Đã chấm' ? 'bg-green-100 text-green-700' :
@@ -162,10 +167,12 @@ function toUnifiedAttempt(a: AttemptHistory, skill: string): UnifiedEntry {
     if (a.skill === 'LISTENING') bandScore = getListeningBand(a.score, a.totalQuestions);
   }
 
+  const isInProgress = !a.submittedAt;
+
   return {
     id: `${skill}-${a.attemptId}`,
     title: normalizedTitle,
-    date: a.submittedAt,
+    date: a.submittedAt ?? a.startedAt ?? new Date().toISOString(),
     score: a.score,
     total: a.totalQuestions,
     percentage,
@@ -174,6 +181,7 @@ function toUnifiedAttempt(a: AttemptHistory, skill: string): UnifiedEntry {
     source: 'ai',
     testMode: a.testMode ?? 'PRACTICE',
     bandScore,
+    status: isInProgress ? 'Đang làm' : undefined,
   };
 }
 

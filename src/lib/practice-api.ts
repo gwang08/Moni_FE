@@ -50,7 +50,8 @@ export interface AttemptHistory {
   score: number;
   totalQuestions: number;
   elapsedSeconds: number;
-  submittedAt: string;
+  startedAt: string | null;
+  submittedAt: string | null;
 }
 
 export async function getAttemptHistory(): Promise<AttemptHistory[]> {

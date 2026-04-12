@@ -9,6 +9,9 @@ export type WritingEvaluationStatus = 'PENDING' | 'SUBMITTED' | 'PROCESSING' | '
 export interface WritingSubmission {
   submissionId: number;
   testId: number | null;
+  stimulusId: number | null;
+  testTitle?: string | null;
+  stimulusTitle?: string | null;
   taskType: WritingTaskType;
   wordCount: number | null;
   evaluationStatus: WritingEvaluationStatus;

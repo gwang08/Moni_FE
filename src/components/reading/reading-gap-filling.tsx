@@ -161,7 +161,7 @@ function ExamInlineGapInput({ questionId, userAnswer, submitted, correctAnswer, 
 }
 
 /** IELTS-style sentence gap-filling for exam mode */
-function IELTSBoxedGapFilling({ questions, submitted, textAnswers, onTextAnswer, questionPositionById = {} }: {
+function IELTSBoxedGapFilling({ questions, submitted, textAnswers, onTextAnswer, questionPositionById = {}, onLocateEvidence, examMode = false }: {
   questions: QuestionDetail[];
   submitted: boolean;
   textAnswers: Record<number, string>;
@@ -333,7 +333,7 @@ function GapQuestion({ question, displayPosition, userAnswer, submitted, onTextA
               />
             </>
           )}
-        </div>
+        </p>
 
         {submitted && (
           <div className="mt-4 pt-4 border-t border-gray-200 space-y-3">

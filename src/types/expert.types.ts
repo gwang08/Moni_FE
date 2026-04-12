@@ -32,6 +32,8 @@ export interface ScoringSession {
   startedAt?: string;
   endedAt?: string;
   testId?: number;
+  testTitle?: string | null;
+  stimulusTitle?: string | null;
   writingSubmissionId?: number;
   submittedAt?: string;
   recordingUrl?: string;

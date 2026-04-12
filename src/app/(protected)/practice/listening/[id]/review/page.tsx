@@ -214,9 +214,9 @@ export default function ListeningReviewPage({ params }: Props) {
               let parsedTranscript: any[] = [];
               if (Array.isArray(stimulus.transcript)) {
                 parsedTranscript = stimulus.transcript;
-              } else if (typeof stimulus.transcript === 'string' && stimulus.transcript.trim()) {
+              } else if (stimulus && 'transcript' in stimulus && typeof (stimulus as any).transcript === 'string' && (stimulus as any).transcript.trim()) {
                 try {
-                  parsedTranscript = JSON.parse(stimulus.transcript);
+                  parsedTranscript = JSON.parse((stimulus as any).transcript);
                 } catch {
                   // Ignore
                 }

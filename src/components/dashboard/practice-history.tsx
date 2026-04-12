@@ -189,9 +189,20 @@ function toUnifiedWritingSub(s: WritingSubmission): UnifiedEntry {
   const statusLabel = s.evaluationStatus === 'COMPLETED' ? 'Đã chấm'
     : s.evaluationStatus === 'PROCESSING' ? 'Đang chấm'
     : 'Chưa chấm';
+  
+  // Use test title or stimulus title, fallback to task type
+  let title: string;
+  if (s.testTitle && s.testTitle.trim()) {
+    title = s.testTitle;
+  } else if (s.stimulusTitle && s.stimulusTitle.trim()) {
+    title = s.stimulusTitle;
+  } else {
+    title = `Writing ${s.taskType === 'TASK_1' ? 'Task 1' : 'Task 2'}`;
+  }
+  
   return {
     id: `writing-sub-${s.submissionId}`,
-    title: `Writing ${s.taskType === 'TASK_1' ? 'Task 1' : 'Task 2'}`,
+    title: title,
     date: s.submittedAt,
     score: 0,
     total: 0,
@@ -204,9 +215,19 @@ function toUnifiedWritingSub(s: WritingSubmission): UnifiedEntry {
 }
 
 function toUnifiedSession(s: ScoringSession): UnifiedEntry {
+  // Use test title or stimulus title, fallback to session ID
+  let title: string;
+  if (s.testTitle && s.testTitle.trim()) {
+    title = s.testTitle;
+  } else if (s.stimulusTitle && s.stimulusTitle.trim()) {
+    title = s.stimulusTitle;
+  } else {
+    title = `Phiên #${s.id} — ${s.expertDisplayName}`;
+  }
+  
   return {
     id: `expert-${s.id}`,
-    title: `Phiên #${s.id} — ${s.expertDisplayName}`,
+    title: title,
     date: s.createdAt ?? new Date().toISOString(),
     score: 0,
     total: 0,

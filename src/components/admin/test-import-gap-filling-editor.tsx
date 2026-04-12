@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Trash2, Plus, MousePointerClick, PenLine, Undo2 } from 'lucide-react';
+import { Trash2, Plus, MousePointerClick, PenLine, Undo2, Wand2 } from 'lucide-react';
 import { EvidenceList } from '@/components/admin/evidence-list';
 import type { QuestionRequest } from '@/types/admin.types';
 
@@ -130,6 +130,29 @@ function isQuestionIncomplete(question: QuestionRequest) {
   return !extractAnswer(question).trim();
 }
 
+/**
+ * Strip table/cell wrappers from pasted HTML (e.g. from Google Docs).
+ * Extracts inner content of cells and returns clean block-level HTML.
+ */
+function cleanHtml(html: string): string {
+  // Parse in a DOMParser-like way using regex sufficient for this case.
+  // Extract all <td> inner content and join them, then clean up empty tags.
+  const tdContents: string[] = [];
+  const tdRegex = /<td[^>]*>([\s\S]*?)<\/td>/gi;
+  let match;
+  while ((match = tdRegex.exec(html)) !== null) {
+    const inner = match[1].trim();
+    if (inner && inner !== '<p></p>' && inner !== '<p><br></p>') {
+      tdContents.push(inner);
+    }
+  }
+  // If we extracted table content, use it; otherwise return original
+  if (tdContents.length > 0) {
+    return tdContents.join('');
+  }
+  return html;
+}
+
 /** Render groupContent HTML replacing __ with a numbered gap pill for the select-mode preview */
 function renderPreviewHtml(html: string, answers: string[]): string {
   let gapIndex = 0;
@@ -170,6 +193,7 @@ export function GapFillingEditor({
       attributes: {
         class: 'prose prose-sm max-w-none min-h-[150px] focus:outline-none px-4 py-3 bg-white',
       },
+      transformPastedHTML: (html) => cleanHtml(html),
     },
     onUpdate: ({ editor: ed }) => {
       const nextContent = ed.getHTML();
@@ -178,6 +202,16 @@ export function GapFillingEditor({
       commit(nextContent, nextQuestions);
     },
   });
+
+  /** Clean up table wrapper in existing content */
+  const handleCleanContent = useCallback(() => {
+    if (!editor) return;
+    const currentHtml = editor.getHTML();
+    const cleaned = cleanHtml(currentHtml);
+    if (cleaned !== currentHtml) {
+      editor.commands.setContent(cleaned, { emitUpdate: true });
+    }
+  }, [editor]);
 
   // Sync external content changes
   useEffect(() => {
@@ -324,10 +358,21 @@ export function GapFillingEditor({
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <label className="block text-[10px] font-medium uppercase tracking-wide text-gray-400">Đề bài</label>
-            <Button type="button" size="sm" variant="outline" className="h-7 gap-1 border-dashed text-xs" onClick={addGapAtCursor}>
-              <Plus className="h-3 w-3" />
-              Thêm gap tại cursor
-            </Button>
+            <div className="flex items-center gap-1">
+              <Button
+                type="button" size="sm" variant="ghost"
+                className="h-7 gap-1 text-xs text-orange-500 hover:text-orange-700 hover:bg-orange-50"
+                onClick={handleCleanContent}
+                title="Xóa table wrapper (thường xảy ra khi paste từ Google Docs)"
+              >
+                <Wand2 className="h-3 w-3" />
+                Làm sạch HTML
+              </Button>
+              <Button type="button" size="sm" variant="outline" className="h-7 gap-1 border-dashed text-xs" onClick={addGapAtCursor}>
+                <Plus className="h-3 w-3" />
+                Thêm gap tại cursor
+              </Button>
+            </div>
           </div>
           <div className="rounded-md border border-input bg-white overflow-hidden shadow-sm">
             {editor && <RichTextToolbar editor={editor} />}

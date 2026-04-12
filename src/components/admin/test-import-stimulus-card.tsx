@@ -18,6 +18,22 @@ import { RichTextToolbar } from '@/components/admin/rich-text-toolbar';
 import type { StimulusRequest } from '@/types/admin.types';
 import { useEffect } from 'react';
 
+function cleanHtml(html: string): string {
+  const tdContents: string[] = [];
+  const tdRegex = /<td[^>]*>([\s\S]*?)<\/td>/gi;
+  let match;
+  while ((match = tdRegex.exec(html)) !== null) {
+    const inner = match[1].trim();
+    if (inner && inner !== '<p></p>' && inner !== '<p><br></p>') {
+      tdContents.push(inner);
+    }
+  }
+  if (tdContents.length > 0) {
+    return tdContents.join('');
+  }
+  return html;
+}
+
 interface Props {
   stimulus: StimulusRequest;
   onChange: (updated: StimulusRequest) => void;
@@ -51,6 +67,7 @@ export function StimulusCard({ stimulus, onChange }: Props) {
       attributes: {
         class: 'prose prose-sm max-w-none h-full min-h-full flex-1 focus:outline-none',
       },
+      transformPastedHTML: (html) => cleanHtml(html),
     },
     onUpdate: ({ editor: ed }) => {
       onChange({ ...stimulus, content: ed.getHTML() });

@@ -281,6 +281,7 @@ function ParagraphGapFilling({ groupContent, questions, submitted, textAnswers, 
   const sortedQuestions = useMemo(() => [...questions].sort((a, b) => a.position - b.position), [questions]);
   const [mounted, setMounted] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const [portalTargets, setPortalTargets] = useState<Array<{ element: HTMLElement; question: QuestionDetail }>>([]);
   const isHtml = /<[a-z][\s\S]*>/i.test(groupContent);
 
   const processedHtml = useMemo(() => {
@@ -294,17 +295,25 @@ function ParagraphGapFilling({ groupContent, questions, submitted, textAnswers, 
 
   useEffect(() => {
     setMounted(true);
-  }, []);
+    if (!isHtml || !containerRef.current) return;
+
+    // Scan the DOM for placeholders and link them to questions
+    const found: typeof portalTargets = [];
+    sortedQuestions.forEach((q, index) => {
+      const el = containerRef.current?.querySelector(`[data-gap-index="${index}"]`);
+      if (el instanceof HTMLElement) {
+        found.push({ element: el, question: q });
+      }
+    });
+    setPortalTargets(found);
+  }, [processedHtml, sortedQuestions, isHtml]);
 
   if (isHtml) {
     return (
       <div className={`bg-white p-5 text-gray-900 leading-8 [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:list-decimal [&_ol]:pl-6 [&_strong]:font-bold [&_em]:italic [&_h1]:text-xl [&_h1]:font-bold [&_h2]:text-lg [&_h2]:font-bold [&_h3]:text-base [&_h3]:font-bold [&_table]:w-full [&_table]:my-4 [&_table]:border-collapse [&_th]:border [&_th]:border-gray-300 [&_th]:p-2 [&_td]:border [&_td]:border-gray-300 [&_td]:p-2 [&_td_p]:m-0`}>
         <div ref={containerRef} dangerouslySetInnerHTML={{ __html: processedHtml }} />
         
-        {mounted && containerRef.current && sortedQuestions.map((question, index) => {
-          const domElement = containerRef.current!.querySelector(`[data-gap-index="${index}"]`);
-          if (!domElement) return null;
-          
+        {mounted && portalTargets.map(({ element, question }) => {
           const displayNum = questionPositionById[question.id] ?? question.position;
           const correctAnswer = question.options.find(o => o.isCorrect)?.content ?? '';
           const userAnswer = textAnswers[question.id] ?? '';
@@ -320,7 +329,7 @@ function ParagraphGapFilling({ groupContent, questions, submitted, textAnswers, 
                 onTextAnswer={onTextAnswer}
               />
             </React.Fragment>,
-            domElement
+            element
           );
         })}
 
@@ -439,12 +448,11 @@ export function ListeningGapFilling({
   questionPositionById = {},
   examMode,
 }: Props) {
-  const sentenceQs = questions.filter(q => q.content.trim());
-  const paragraphQs = questions.filter(q => !q.content.trim());
+  // Detect if groupContent exists and has placeholders
+  const hasGroupContent = !!groupContent && groupContent.includes('__');
 
-  const hasHtmlGroupContent = !!groupContent && /\<[a-z][\s\S]*\>/i.test(groupContent);
-
-  if (hasHtmlGroupContent) {
+  // ── NEW: If groupContent has placeholders, ALWAYS use ParagraphGapFilling for ALL questions ──
+  if (hasGroupContent) {
     return (
       <div className="space-y-4">
         {imageUrl && (
@@ -466,29 +474,71 @@ export function ListeningGapFilling({
     );
   }
 
-  return (
-    <div className="space-y-4">
-      {imageUrl && (
-        <div className="rounded-lg p-3 mb-4 bg-white border border-gray-200">
-          <img src={imageUrl} alt="Diagram" className="max-w-full h-auto rounded" />
-        </div>
-      )}
+  // ── LEGACY: For groups without passage (just list of questions) ──
+  if (examMode) {
+    return (
+      <div className="space-y-4">
+        {imageUrl && (
+          <div className="rounded-lg p-3 mb-4 bg-white border border-gray-200">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={imageUrl} alt="Diagram" className="max-w-full h-auto rounded" loading="lazy" />
+          </div>
+        )}
 
-      {/* Use inline sentence gaps for exam mode or sentence questions */}
-      {examMode || sentenceQs.length > 0 ? (
         <IELTSBoxedGapFilling
-          questions={sentenceQs.length > 0 ? sentenceQs : questions}
+          questions={questions}
           submitted={submitted}
           textAnswers={textAnswers}
           onTextAnswer={onTextAnswer}
           questionPositionById={questionPositionById}
         />
-      ) : null}
 
-      {groupContent && paragraphQs.length > 0 && (
+        {/* Fallback - should not happen if hasGroupContent is true above */}
+        {groupContent && (
+          <ParagraphGapFilling
+            groupContent={groupContent}
+            questions={questions}
+            submitted={submitted}
+            textAnswers={textAnswers}
+            onTextAnswer={onTextAnswer}
+            questionPositionById={questionPositionById}
+            examMode={examMode}
+          />
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {imageUrl && (
+        <div className="rounded-lg p-3">
+          <img
+            src={imageUrl}
+            alt="Diagram"
+            className="max-w-full h-auto rounded"
+            loading="lazy"
+          />
+        </div>
+      )}
+
+      {/* Sentence questions */}
+      {questions.map(question => (
+        <GapQuestion
+          key={question.id}
+          question={question}
+          displayPosition={questionPositionById[question.id] ?? question.position}
+          userAnswer={textAnswers[question.id] ?? ''}
+          submitted={submitted}
+          onTextAnswer={onTextAnswer}
+        />
+      ))}
+
+      {/* Paragraph with inline gaps */}
+      {groupContent && (
         <ParagraphGapFilling
           groupContent={groupContent}
-          questions={paragraphQs}
+          questions={questions}
           submitted={submitted}
           textAnswers={textAnswers}
           onTextAnswer={onTextAnswer}

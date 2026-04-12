@@ -333,12 +333,12 @@ function ParagraphGapFilling({ groupContent, questions, submitted, textAnswers, 
 // A robust approach to replace TipTap HTML with portal targets
   const [mounted, setMounted] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const [portalTargets, setPortalTargets] = useState<Array<{ element: HTMLElement; question: QuestionDetail }>>([]);
   const isHtml = /<[a-z][\s\S]*>/i.test(groupContent);
 
   const processedHtml = useMemo(() => {
     if (!isHtml) return groupContent;
     let gapIndex = 0;
-    // Replace 2 or more underscores with a span that portal can attach to
     return groupContent.replace(/__+/g, () => {
       const currentIdx = gapIndex++;
       return `<span data-gap-index="${currentIdx}" class="inline-gap-portal inline-flex items-baseline mx-1"></span>`;
@@ -347,17 +347,25 @@ function ParagraphGapFilling({ groupContent, questions, submitted, textAnswers, 
 
   useEffect(() => {
     setMounted(true);
-  }, []);
+    if (!isHtml || !containerRef.current) return;
+
+    // Scan the DOM for placeholders and link them to questions
+    const found: typeof portalTargets = [];
+    sortedQuestions.forEach((q, index) => {
+      const el = containerRef.current?.querySelector(`[data-gap-index="${index}"]`);
+      if (el instanceof HTMLElement) {
+        found.push({ element: el, question: q });
+      }
+    });
+    setPortalTargets(found);
+  }, [processedHtml, sortedQuestions, isHtml]);
 
   if (isHtml) {
     return (
       <div className={`bg-white p-4 ${examMode ? 'text-[13px] leading-7' : 'text-sm leading-8'} text-gray-900 [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:list-decimal [&_ol]:pl-6 [&_strong]:font-bold [&_em]:italic [&_h1]:text-xl [&_h1]:font-bold [&_h2]:text-lg [&_h2]:font-bold [&_h3]:text-base [&_h3]:font-bold [&_table]:w-full [&_table]:my-4 [&_table]:border-collapse [&_th]:border [&_th]:border-gray-300 [&_th]:p-2 [&_td]:border [&_td]:border-gray-300 [&_td]:p-2 [&_td_p]:m-0`}>
         <div ref={containerRef} dangerouslySetInnerHTML={{ __html: processedHtml }} />
         
-        {mounted && containerRef.current && sortedQuestions.map((question, index) => {
-          const domElement = containerRef.current!.querySelector(`[data-gap-index="${index}"]`);
-          if (!domElement) return null;
-          
+        {mounted && portalTargets.map(({ element, question }) => {
           const displayNum = questionPositionById[question.id] ?? question.position;
           const correctAnswer = question.options.find(o => o.isCorrect)?.content ?? '';
           const userAnswer = textAnswers[question.id] ?? '';
@@ -373,7 +381,7 @@ function ParagraphGapFilling({ groupContent, questions, submitted, textAnswers, 
                 onTextAnswer={onTextAnswer}
               />
             </React.Fragment>,
-            domElement
+            element
           );
         })}
       </div>
@@ -437,17 +445,12 @@ export function ReadingGapFilling({
   onLocateEvidence,
   examMode,
 }: Props) {
-  // Detect if groupContent is TipTap HTML (new format)
-  const hasHtmlGroupContent = !!groupContent && /\<[a-z][\s\S]*\>/i.test(groupContent);
+  // Detect if groupContent exists and has placeholders
+  const hasGroupContent = !!groupContent && groupContent.includes('__');
 
-  // Sentence questions: have content (with {{answer}} or text)
-  // Paragraph questions: empty content OR tagged with gapMode='paragraph'
-  const sentenceQs = questions.filter(q => q.content.trim());
-  const paragraphQs = questions.filter(q => !q.content.trim());
-
-  // ── NEW: TipTap HTML group content → always use ParagraphGapFilling for ALL questions ──
+  // ── NEW: If groupContent has placeholders, ALWAYS use ParagraphGapFilling for ALL questions ──
   // (the passage HTML has __ for every gap, so we match by position order)
-  if (hasHtmlGroupContent) {
+  if (hasGroupContent) {
     return (
       <div className="space-y-4">
         {imageUrl && (
@@ -470,8 +473,8 @@ export function ReadingGapFilling({
     );
   }
 
-  // ── LEGACY: For exam mode with sentence questions, use inline sentence gaps ──
-  if (examMode && sentenceQs.length > 0) {
+  // ── LEGACY: For groups without passage (just list of sentences) ──
+  if (examMode) {
     return (
       <div className="space-y-4">
         {imageUrl && (
@@ -488,18 +491,18 @@ export function ReadingGapFilling({
         )}
 
         <IELTSBoxedGapFilling
-          questions={sentenceQs}
+          questions={questions}
           submitted={submitted}
           textAnswers={textAnswers}
           onTextAnswer={onTextAnswer}
           questionPositionById={questionPositionById}
         />
 
-        {/* Paragraph with inline gaps */}
-        {groupContent && paragraphQs.length > 0 && (
+        {/* Fallback - should not happen if hasGroupContent is true above */}
+        {groupContent && (
           <ParagraphGapFilling
             groupContent={groupContent}
-            questions={paragraphQs}
+            questions={questions}
             submitted={submitted}
             textAnswers={textAnswers}
             onTextAnswer={onTextAnswer}
@@ -528,7 +531,7 @@ export function ReadingGapFilling({
       )}
 
       {/* Sentence questions */}
-      {sentenceQs.map(question => (
+      {questions.map(question => (
         <GapQuestion
           key={question.id}
           question={question}
@@ -542,10 +545,10 @@ export function ReadingGapFilling({
       ))}
 
       {/* Paragraph with inline gaps */}
-      {groupContent && paragraphQs.length > 0 && (
+      {groupContent && (
         <ParagraphGapFilling
           groupContent={groupContent}
-          questions={paragraphQs}
+          questions={questions}
           submitted={submitted}
           textAnswers={textAnswers}
           onTextAnswer={onTextAnswer}

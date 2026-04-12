@@ -1,6 +1,6 @@
 'use client';
 import { CheckCircle2, XCircle } from 'lucide-react';
-import React, { useEffect, useRef, useState, useMemo } from 'react';
+import React, { useEffect, useRef, useState, useMemo, useId } from 'react';
 import { createPortal } from 'react-dom';
 import type { QuestionDetail } from '@/types/test.types';
 
@@ -23,8 +23,13 @@ function isAnswerCorrect(userAnswer: string, correctContent: string): boolean {
 /** Parse question content with {{answer}} marker into parts */
 function parseGapContent(content: string): { before: string; answer: string; after: string } | null {
   const match = content.match(/^([\s\S]*?)\{\{(.+?)\}\}([\s\S]*)$/);
-  if (!match) return null;
-  return { before: match[1], answer: match[2], after: match[3] };
+  if (match) return { before: match[1], answer: match[2], after: match[3] };
+
+  // Fallback to matching literal underscores (e.g. ___)
+  const underMatch = content.match(/^([\s\S]*?)_{2,}([\s\S]*)$/);
+  if (underMatch) return { before: underMatch[1], answer: '', after: underMatch[2] };
+
+  return null;
 }
 
 /** IELTS-style inline gap input for exam mode */
@@ -274,75 +279,38 @@ function ParagraphGapFilling({ groupContent, questions, submitted, textAnswers, 
   examMode?: boolean;
 }) {
   const sortedQuestions = useMemo(() => [...questions].sort((a, b) => a.position - b.position), [questions]);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [portals, setPortals] = useState<Array<{ id: string; element: HTMLElement; questionIndex: number }>>([]);
-
+  const [mounted, setMounted] = useState(false);
+  const componentId = useId();
   const isHtml = /<[a-z][\s\S]*>/i.test(groupContent);
 
-  useEffect(() => {
-    if (!isHtml || !containerRef.current) return;
-    
-    const container = containerRef.current;
-
-    // Always start from a clean slate to support StrictMode and re-runs
-    container.innerHTML = groupContent;
-
-    const newPortals: typeof portals = [];
+  const processedHtml = useMemo(() => {
+    if (!isHtml) return groupContent;
     let gapIndex = 0;
-
-    const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT, null);
-    const textNodes: Text[] = [];
-    let node;
-    while ((node = walker.nextNode())) {
-      textNodes.push(node as Text);
-    }
-
-    textNodes.forEach((textNode) => {
-      const text = textNode.nodeValue || '';
-      if (!text.includes('__')) return;
-
-      const fragment = document.createDocumentFragment();
-      const parts = text.split(/(__+)/);
-
-      parts.forEach(part => {
-        if (/^__+$/.test(part)) {
-          const span = document.createElement('span');
-          span.className = 'inline-gap-portal inline-flex items-baseline mx-1';
-          fragment.appendChild(span);
-          
-          newPortals.push({
-            id: `gap-${gapIndex}`,
-            element: span,
-            questionIndex: gapIndex
-          });
-          gapIndex++;
-        } else if (part) {
-          fragment.appendChild(document.createTextNode(part));
-        }
-      });
-
-      textNode.parentNode?.replaceChild(fragment, textNode);
+    return groupContent.replace(/__+/g, () => {
+      const currentIdx = gapIndex++;
+      return `<span id="listening-inline-gap-${componentId}-${currentIdx}" class="inline-gap-portal inline-flex items-baseline mx-1"></span>`;
     });
+  }, [groupContent, isHtml, componentId]);
 
-    // Intentionally no data-processed attribute
-    setPortals(newPortals);
-  }, [groupContent, isHtml]);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   if (isHtml) {
     return (
       <div className={`bg-white p-5 text-gray-900 leading-8 [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:list-decimal [&_ol]:pl-6 [&_strong]:font-bold [&_em]:italic [&_h1]:text-xl [&_h1]:font-bold [&_h2]:text-lg [&_h2]:font-bold [&_h3]:text-base [&_h3]:font-bold [&_table]:w-full [&_table]:my-4 [&_table]:border-collapse [&_th]:border [&_th]:border-gray-300 [&_th]:p-2 [&_td]:border [&_td]:border-gray-300 [&_td]:p-2 [&_td_p]:m-0`}>
-        <div ref={containerRef} dangerouslySetInnerHTML={{ __html: groupContent }} />
+        <div dangerouslySetInnerHTML={{ __html: processedHtml }} />
         
-        {portals.map((portal) => {
-          const question = sortedQuestions[portal.questionIndex];
-          if (!question) return null;
+        {mounted && sortedQuestions.map((question, index) => {
+          const domElement = document.getElementById(`listening-inline-gap-${componentId}-${index}`);
+          if (!domElement) return null;
           
           const displayNum = questionPositionById[question.id] ?? question.position;
           const correctAnswer = question.options.find(o => o.isCorrect)?.content ?? '';
           const userAnswer = textAnswers[question.id] ?? '';
 
           return createPortal(
-            <React.Fragment key={portal.id}>
+            <React.Fragment key={question.id}>
               <ExamInlineGapInput
                 questionId={question.id}
                 userAnswer={userAnswer}
@@ -352,7 +320,7 @@ function ParagraphGapFilling({ groupContent, questions, submitted, textAnswers, 
                 onTextAnswer={onTextAnswer}
               />
             </React.Fragment>,
-            portal.element
+            domElement
           );
         })}
 

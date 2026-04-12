@@ -50,20 +50,20 @@ function ExamInlineGapInput({ questionId, userAnswer, submitted, correctAnswer, 
 
   if (!submitted) {
     return (
-      <span className="relative inline-block align-middle" style={{ minWidth: `${minLength}px`, width: isBlank ? `${minLength}px` : `${inputWidth}px`, maxWidth: '400px' }}>
+      <span className="relative inline-block align-middle mx-1" style={{ minWidth: `${minLength}px`, width: isBlank ? `${minLength}px` : `${inputWidth}px`, maxWidth: '400px' }}>
         <input
           type="text"
           value={userAnswer}
           disabled={submitted}
           onChange={e => onTextAnswer(questionId, e.target.value)}
-          className={`w-full rounded-sm border bg-white px-2 text-center text-sm font-normal text-gray-900 focus:outline-none focus:ring-2 transition-all ${
-            hasAnswer ? 'border-blue-600 bg-white' : 'border-gray-300 focus:border-blue-600 focus:ring-blue-200'
+          className={`w-full rounded border-2 bg-white px-2 text-center text-sm font-semibold text-gray-900 shadow-sm focus:outline-none focus:ring-2 transition-all ${
+            hasAnswer ? 'border-blue-500 shadow-blue-50' : 'border-gray-300 focus:border-blue-600 focus:ring-blue-100'
           }`}
-          style={{ height: '20px', lineHeight: '20px' }}
+          style={{ height: '26px', lineHeight: '26px' }}
           placeholder=""
         />
         {!submitted && isBlank && displayNumber != null && (
-          <span className="pointer-events-none absolute inset-0 flex items-center justify-center text-sm font-bold text-gray-900" style={{ lineHeight: '20px' }}>
+          <span className="pointer-events-none absolute inset-0 flex items-center justify-center text-xs font-bold text-blue-600/70" style={{ lineHeight: '26px' }}>
             {displayNumber}
           </span>
         )}
@@ -295,7 +295,7 @@ function ParagraphGapFilling({ groupContent, questions, submitted, textAnswers, 
     let gapIndex = 0;
     const html = groupContent.replace(/_{2,}/g, () => {
       console.log("👉 Replace gap index (Listening):", gapIndex);
-      return `<span data-gap-index="${gapIndex++}" class="inline-gap-portal inline-flex items-baseline mx-1"></span>`;
+      return `<span data-gap-index="${gapIndex++}" class="inline-gap-portal inline-flex items-center border border-transparent min-w-[60px] min-h-[26px]"></span>`;
     });
     console.log("Processed HTML (Listening):", html);
     return html;

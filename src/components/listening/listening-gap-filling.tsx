@@ -234,11 +234,12 @@ function GapQuestion({ question, displayPosition, userAnswer, submitted, onTextA
         {parsed ? (
           <>
             {parsed.before}
-            <InlineGapInput
+            <ExamInlineGapInput
               questionId={question.id}
               userAnswer={userAnswer}
               submitted={submitted}
               correctAnswer={correctAnswer}
+              displayNumber={displayPosition}
               onTextAnswer={onTextAnswer}
             />
             {parsed.after}
@@ -247,11 +248,12 @@ function GapQuestion({ question, displayPosition, userAnswer, submitted, onTextA
           <>
             <span className="font-bold mr-2">{displayPosition}.</span>
             {question.content}
-            <InlineGapInput
+            <ExamInlineGapInput
               questionId={question.id}
               userAnswer={userAnswer}
               submitted={submitted}
               correctAnswer={correctAnswer}
+              displayNumber={displayPosition}
               onTextAnswer={onTextAnswer}
             />
           </>
@@ -341,27 +343,14 @@ function ParagraphGapFilling({ groupContent, questions, submitted, textAnswers, 
 
           return createPortal(
             <React.Fragment key={portal.id}>
-              {examMode ? (
-                <ExamInlineGapInput
-                  questionId={question.id}
-                  userAnswer={userAnswer}
-                  submitted={submitted}
-                  correctAnswer={correctAnswer}
-                  displayNumber={displayNum}
-                  onTextAnswer={onTextAnswer}
-                />
-              ) : (
-                <>
-                  <strong className="text-blue-600 text-[13px] mr-1">{displayNum}</strong>
-                  <InlineGapInput 
-                    questionId={question.id} 
-                    userAnswer={userAnswer} 
-                    submitted={submitted}
-                    correctAnswer={correctAnswer} 
-                    onTextAnswer={onTextAnswer} 
-                  />
-                </>
-              )}
+              <ExamInlineGapInput
+                questionId={question.id}
+                userAnswer={userAnswer}
+                submitted={submitted}
+                correctAnswer={correctAnswer}
+                displayNumber={displayNum}
+                onTextAnswer={onTextAnswer}
+              />
             </React.Fragment>,
             portal.element
           );
@@ -419,7 +408,6 @@ function ParagraphGapFilling({ groupContent, questions, submitted, textAnswers, 
     const userAnswer = textAnswers[question.id] ?? '';
     rendered.push(
       <span key={`q-${gapIndex}`} id={`question-${question.id}`} className="inline-flex items-baseline gap-1 mx-0.5">
-        {examMode ? (
           <ExamInlineGapInput
             questionId={question.id}
             userAnswer={userAnswer}
@@ -428,13 +416,6 @@ function ParagraphGapFilling({ groupContent, questions, submitted, textAnswers, 
             displayNumber={displayNum}
             onTextAnswer={onTextAnswer}
           />
-        ) : (
-          <>
-            <strong className="text-blue-600">{displayNum}</strong>
-            <InlineGapInput questionId={question.id} userAnswer={userAnswer} submitted={submitted}
-              correctAnswer={correctAnswer} onTextAnswer={onTextAnswer} />
-          </>
-        )}
       </span>
     );
     lastIndex = match.index! + match[0].length;

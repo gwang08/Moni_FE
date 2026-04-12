@@ -268,6 +268,11 @@ function GapQuestion({ question, displayPosition, userAnswer, submitted, onTextA
   );
 }
 
+/** A stable wrapper for HTML that doesn't re-render unless content changes */
+const StaticHtml = React.memo(({ html, containerRef, className }: { html: string; containerRef: React.RefObject<HTMLDivElement>; className: string }) => (
+  <div ref={containerRef} className={className} dangerouslySetInnerHTML={{ __html: html }} />
+));
+
 /** Render groupContent paragraph with inline blanks */
 function ParagraphGapFilling({ groupContent, questions, submitted, textAnswers, onTextAnswer, questionPositionById = {}, examMode }: {
   groupContent: string;
@@ -279,59 +284,46 @@ function ParagraphGapFilling({ groupContent, questions, submitted, textAnswers, 
   examMode?: boolean;
 }) {
   const sortedQuestions = useMemo(() => [...questions].sort((a, b) => a.position - b.position), [questions]);
-  
-  console.log("===== GAP DEBUG (Listening) =====");
-  console.log("Raw groupContent:", groupContent);
-  console.log("Gap count (__):", (groupContent.match(/_{2,}/g) ?? []).length);
-  console.log("Questions count:", questions.length);
-
   const [mounted, setMounted] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const [portalTargets, setPortalTargets] = useState<Array<{ element: HTMLElement; question: QuestionDetail }>>([]);
   const isHtml = /<[a-z][\s\S]*>/i.test(groupContent);
-
   const processedHtml = useMemo(() => {
     if (!isHtml) return groupContent;
     let gapIndex = 0;
-    const html = groupContent.replace(/_{2,}/g, () => {
-      console.log("👉 Replace gap index (Listening):", gapIndex);
-      return `<span data-gap-index="${gapIndex++}" class="inline-gap-portal inline-flex items-center border border-transparent min-w-[60px] min-h-[26px]"></span>`;
+    return groupContent.replace(/_{2,}/g, () => {
+      const currentIdx = gapIndex++;
+      return `<span data-gap-index="${currentIdx}" class="inline-gap-portal inline-flex items-center min-w-[80px] min-h-[28px] mx-1"></span>`;
     });
-    console.log("Processed HTML (Listening):", html);
-    return html;
   }, [groupContent, isHtml]);
 
   useEffect(() => {
     setMounted(true);
     if (!isHtml || !containerRef.current) return;
 
-    console.log("===== PORTAL SCAN (Listening) =====");
     const found: typeof portalTargets = [];
-
     sortedQuestions.forEach((q, index) => {
       const el = containerRef.current?.querySelector(`[data-gap-index="${index}"]`);
-      
-      console.log("Check gap", index, {
-        found: !!el,
-        questionId: q.id,
-        element: el,
-      });
-
       if (el instanceof HTMLElement) {
         found.push({ element: el, question: q });
       }
     });
 
-    console.log("Portal targets found (Listening):", found.length);
-    setPortalTargets(found);
+    if (found.length > 0) {
+      setPortalTargets(found);
+    }
   }, [processedHtml, sortedQuestions, isHtml]);
 
-  console.log("Final portalTargets (Listening):", portalTargets);
-
   if (isHtml) {
+    const containerClasses = `bg-white p-5 text-gray-900 leading-8 [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:list-decimal [&_ol]:pl-6 [&_strong]:font-bold [&_em]:italic [&_h1]:text-xl [&_h1]:font-bold [&_h2]:text-lg [&_h2]:font-bold [&_h3]:text-base [&_h3]:font-bold [&_table]:w-full [&_table]:my-4 [&_table]:border-collapse [&_th]:border [&_th]:border-gray-300 [&_th]:p-2 [&_td]:border [&_td]:border-gray-300 [&_td]:p-2 [&_td_p]:m-0`;
+    
     return (
-      <div className={`bg-white p-5 text-gray-900 leading-8 [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:list-decimal [&_ol]:pl-6 [&_strong]:font-bold [&_em]:italic [&_h1]:text-xl [&_h1]:font-bold [&_h2]:text-lg [&_h2]:font-bold [&_h3]:text-base [&_h3]:font-bold [&_table]:w-full [&_table]:my-4 [&_table]:border-collapse [&_th]:border [&_th]:border-gray-300 [&_th]:p-2 [&_td]:border [&_td]:border-gray-300 [&_td]:p-2 [&_td_p]:m-0`}>
-        <div ref={containerRef} dangerouslySetInnerHTML={{ __html: processedHtml }} />
+      <div className="relative">
+        <StaticHtml 
+          html={processedHtml} 
+          containerRef={containerRef} 
+          className={containerClasses}
+        />
         
         {mounted && portalTargets.map(({ element, question }) => {
           const displayNum = questionPositionById[question.id] ?? question.position;

@@ -310,7 +310,7 @@ function GapQuestion({ question, displayPosition, userAnswer, submitted, onTextA
   );
 }
 
-/** Render groupContent paragraph with inline blanks replacing number patterns */
+/** Render groupContent (HTML from TipTap) with inline blanks replacing __ markers */
 function ParagraphGapFilling({ groupContent, questions, submitted, textAnswers, onTextAnswer, questionPositionById = {}, onLocateEvidence, examMode = false }: {
   groupContent: string;
   questions: QuestionDetail[];
@@ -321,28 +321,63 @@ function ParagraphGapFilling({ groupContent, questions, submitted, textAnswers, 
   onLocateEvidence?: (evidence: string) => void;
   examMode?: boolean;
 }) {
-  // Sort questions by position to match gap order in content
   const sortedQuestions = [...questions].sort((a, b) => a.position - b.position);
 
-  // Find all gap patterns:
-  // "[1]___" (new click-to-gap format), "1...", "10 ……….", "2…", "11 __"
+  // Detect whether groupContent is HTML (from TipTap) or legacy plain text
+  const isHtml = /<[a-z][\s\S]*>/i.test(groupContent);
+
+  if (isHtml) {
+    // Split the raw HTML string on every __ occurrence (preserving HTML tags)
+    const parts = groupContent.split(/(__+)/);
+    let gapIndex = 0;
+    const nodes: React.ReactNode[] = [];
+
+    parts.forEach((part, i) => {
+      if (/^__+$/.test(part)) {
+        // This part is a gap token
+        const question = sortedQuestions[gapIndex];
+        if (question) {
+          const displayNum = questionPositionById[question.id] ?? question.position;
+          const correctAnswer = question.options.find(o => o.isCorrect)?.content ?? '';
+          const userAnswer = textAnswers[question.id] ?? '';
+          nodes.push(
+            <span key={`q-${gapIndex}`} id={`question-${question.id}`} className="inline-flex items-baseline gap-0.5 mx-0.5">
+              <strong className="text-blue-600 text-[13px]">{displayNum}</strong>
+              <GapInput questionId={question.id} userAnswer={userAnswer} submitted={submitted}
+                correctAnswer={correctAnswer} onTextAnswer={onTextAnswer} compact />
+            </span>
+          );
+        }
+        gapIndex += 1;
+      } else if (part) {
+        // Plain HTML segment — render safely
+        nodes.push(
+          <span key={`h-${i}`} dangerouslySetInnerHTML={{ __html: part }} />
+        );
+      }
+    });
+
+    return (
+      <div className={`bg-white p-4 ${examMode ? 'text-[13px] leading-7' : 'text-sm leading-8'} text-gray-900 [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:list-decimal [&_ol]:pl-6 [&_strong]:font-bold [&_em]:italic [&_h1]:text-xl [&_h1]:font-bold [&_h2]:text-lg [&_h2]:font-bold [&_h3]:text-base [&_h3]:font-bold`}>
+        {nodes}
+      </div>
+    );
+  }
+
+  // ── Legacy plain-text format with [N]___ or numeric patterns ──
   const pattern = /\[(\d+)\]_{2,}|(\d+)\s*(?:\.{2,}|…+|_{2,})/g;
   const matches = [...groupContent.matchAll(pattern)];
   const rendered: React.ReactNode[] = [];
   let lastIndex = 0;
 
-  // Map gaps by ORDER of appearance → question by sorted index
   matches.forEach((match, gapIndex) => {
-    const question = sortedQuestions[gapIndex]; // match by order, not by number
-
+    const question = sortedQuestions[gapIndex];
     if (!question) return;
 
-    // Add text before this match
     if (match.index! > lastIndex) {
       rendered.push(<span key={`t-${lastIndex}`}>{groupContent.slice(lastIndex, match.index!)}</span>);
     }
 
-    // Display the global position number (from remapped question)
     const displayNum = questionPositionById[question.id] ?? question.position;
     const correctAnswer = question.options.find(o => o.isCorrect)?.content ?? '';
     const userAnswer = textAnswers[question.id] ?? '';
@@ -356,7 +391,6 @@ function ParagraphGapFilling({ groupContent, questions, submitted, textAnswers, 
     lastIndex = match.index! + match[0].length;
   });
 
-  // Add remaining text
   if (lastIndex < groupContent.length) {
     rendered.push(<span key={`t-${lastIndex}`}>{groupContent.slice(lastIndex)}</span>);
   }
@@ -367,6 +401,9 @@ function ParagraphGapFilling({ groupContent, questions, submitted, textAnswers, 
     </div>
   );
 }
+
+
+
 
 export function ReadingGapFilling({
   questions,

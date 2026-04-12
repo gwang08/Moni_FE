@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { BookOpen, Pencil, Headphones, Mic, Search, CheckCircle, Users, Play, Clock } from 'lucide-react';
+import { toMinutes } from '@/lib/duration-utils';
 import { getAllActiveSessions, type ExamSession } from '@/lib/exam-api';
 import { SkeletonCard } from '@/components/ui/skeleton';
 import { QuestionTypeFilter, QUESTION_TYPE_LABELS } from '@/components/practice/question-type-filter';
@@ -447,7 +448,7 @@ function PracticePage() {
                       <h3 className="font-semibold text-gray-800 mb-1 line-clamp-2">{exercise.title}</h3>
                       <div className="flex items-center gap-2 text-xs text-gray-400">
                         {(exercise.questionCount ?? 0) > 0 && <span>{exercise.questionCount} câu hỏi</span>}
-                        {exercise.duration && exercise.skill !== 'listening' && exercise.skill !== 'speaking' && <span>· {exercise.duration} phút</span>}
+                        {exercise.duration && exercise.skill !== 'listening' && exercise.skill !== 'speaking' && <span>· {toMinutes(exercise.duration)} phút</span>}
                       </div>
                     </div>
                     {/* Hover overlay */}

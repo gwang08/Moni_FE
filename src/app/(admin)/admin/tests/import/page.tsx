@@ -138,13 +138,13 @@ export default function TestImportPage() {
         testMode: 'PRACTICE',
         section: basicInfo.section ?? undefined,
         thumbnailUrl,
-        duration: basicInfo.skill === 'WRITING' 
-          ? (basicInfo.section === 1 ? 20 * 60 : 40 * 60) 
-          : basicInfo.skill === 'LISTENING' 
-            ? Math.ceil(listeningAudioDuration) + 60 
+        duration: basicInfo.skill === 'WRITING'
+          ? (basicInfo.section === 1 ? 20 : 40)
+          : basicInfo.skill === 'LISTENING'
+            ? Math.ceil(listeningAudioDuration / 60) + 1
             : basicInfo.skill === 'SPEAKING'
-              ? speakingDuration
-              : 60 * 60,
+              ? Math.ceil(speakingDuration / 60)
+              : 60,
         stimuli: stimuli.map((s, i) => ({
           ...s,
           title: s.title || `Passage ${i + 1}`,

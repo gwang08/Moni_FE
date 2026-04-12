@@ -18,6 +18,7 @@ import { useAuthStore } from '@/store/auth-store';
 import { useTestDetail } from '@/hooks/use-test-detail';
 import { useElapsedTimer } from '@/hooks/use-elapsed-timer';
 import { useCountdownTimer } from '@/hooks/use-countdown-timer';
+import { toMinutes } from '@/lib/duration-utils';
 import { useExamSession } from '@/hooks/use-exam-session';
 import { submitWriting } from '@/lib/ai-api';
 import type { WritingTaskType } from '@/types/writing.types';
@@ -77,7 +78,7 @@ export default function WritingExercisePage({ params }: Props) {
 
   const examSession = useExamSession(Number(id), isExamMode);
   const countdownTimer = useCountdownTimer(
-    testDetail?.duration && testDetail.duration > 0 ? testDetail.duration : 60,
+    testDetail?.duration && testDetail.duration > 0 ? toMinutes(testDetail.duration) : 60,
     submitted || !isExamMode,
     () => {
       if (!submitted && handleSubmitRef.current) {

@@ -26,9 +26,10 @@ const TEST_TYPE_LABELS: Record<string, string> = {
 };
 const SKILLS_WITH_TEST_TYPE = ['READING', 'WRITING'];
 
+import { toMinutes as toMin } from '@/lib/duration-utils';
 const toMinutes = (duration?: number | null) => {
-  if (!duration || duration <= 0) return '';
-  return String(duration >= 300 ? Math.round(duration / 60) : duration);
+  const m = toMin(duration);
+  return m > 0 ? String(m) : '';
 };
 
 const normalizeStatus = (value?: string | null) => ((value || '').toUpperCase() === 'HIDDEN' ? 'HIDDEN' : 'PUBLISHED');

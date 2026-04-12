@@ -1,5 +1,5 @@
 'use client';
-import { CheckCircle2, XCircle } from 'lucide-react';
+import { CheckCircle2, XCircle, Lightbulb, Target } from 'lucide-react';
 import { useEffect, useRef, useState, useMemo, useId } from 'react';
 import { createPortal } from 'react-dom';
 import React from 'react';
@@ -137,28 +137,22 @@ function ExamInlineGapInput({ questionId, userAnswer, submitted, correctAnswer, 
   
   return (
     <span className={`inline-block border-b-2 pb-0.5 ${underlineColor}`}>
-      <span className="inline-flex items-baseline gap-0 align-baseline">
+      <span className="inline-flex items-baseline gap-1 align-baseline">
         {wrong ? (
-          // Wrong answer: show red strikethrough
-          <span className="text-sm font-medium text-red-700 line-through px-1">
-            {userAnswer}
+          <span className="inline-flex items-baseline gap-1 px-1 text-sm font-medium">
+            <span className="text-red-600">{userAnswer}</span>
+            <span className="text-gray-500 px-0.5">→</span>
+            <span className="text-green-600">{primaryCorrect}</span>
           </span>
         ) : isBlank ? (
-          // Blank: show X mark in gray
-          <span className="inline-flex items-center justify-center w-[32px] h-5 text-gray-400 text-sm">
-            ✕
+          <span className="inline-flex items-baseline gap-1 px-1 text-sm font-medium">
+            <span className="text-gray-400 font-bold">✕</span>
+            <span className="text-gray-500 px-0.5">→</span>
+            <span className="text-green-600">{primaryCorrect}</span>
           </span>
         ) : (
-          // Correct: show in dark
-          <span className="text-sm font-medium text-gray-900 px-1">
+          <span className="text-sm font-medium text-green-600 px-1">
             {userAnswer}
-          </span>
-        )}
-        
-        {/* Show correct answer inline when wrong or blank */}
-        {!correct && (
-          <span className="text-sm font-semibold text-green-600 px-1">
-            {primaryCorrect}
           </span>
         )}
       </span>
@@ -177,6 +171,7 @@ function IELTSBoxedGapFilling({ questions, submitted, textAnswers, onTextAnswer,
   examMode?: boolean;
 }) {
   const sortedQuestions = [...questions].sort((a, b) => a.position - b.position);
+  const [expandedMap, setExpandedMap] = useState<Record<number, boolean>>({});
 
   // Helper to replace {{answer}} with ________
   const formatContent = (content: string) => {
@@ -220,6 +215,73 @@ function IELTSBoxedGapFilling({ questions, submitted, textAnswers, onTextAnswer,
           );
         })}
       </div>
+
+      {/* Show results after submit */}
+      {submitted && (
+        <div className="mt-4 pt-4 border-t border-gray-200 space-y-3">
+          {sortedQuestions.map((q) => {
+            const userAnswer = textAnswers[q.id] ?? '';
+            const correctAnswer = q.options.find(o => o.isCorrect)?.content ?? '';
+            const correct = isAnswerCorrect(userAnswer, correctAnswer);
+            const wrong = userAnswer.trim() !== '' && !correct;
+            const displayPosition = questionPositionById[q.id] ?? q.position;
+            const primaryCorrect = correctAnswer.split('|')[0];
+
+            return (
+              <div key={q.id} className={`flex flex-col gap-2 text-xs px-3 py-2 rounded-lg ${
+                correct ? 'bg-green-50' : wrong ? 'bg-red-50' : 'bg-gray-50'
+              }`}>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-gray-900 min-w-[20px]">{displayPosition}.</span>
+                    {correct ? (
+                      <><CheckCircle2 className="h-4 w-4 text-gray-900" /><span className="text-gray-900 font-semibold">Đúng</span></>
+                    ) : wrong ? (
+                      <><XCircle className="h-4 w-4 text-gray-700" /><span className="text-gray-800">Đáp án: <strong className="text-green-600">{primaryCorrect}</strong>
+                        {correctAnswer.includes('|') && <span className="text-gray-500 font-normal"> (hoặc: {correctAnswer.split('|').slice(1).join(', ')})</span>}
+                      </span></>
+                    ) : (
+                      <span className="text-gray-500 italic">Chưa trả lời — Đáp án: <strong className="text-green-600">{primaryCorrect}</strong></span>
+                    )}
+                  </div>
+                  {q.explanation && (
+                    <div className="flex items-center gap-2">
+                      {q.explanation.text && (
+                        <button onClick={() => setExpandedMap(prev => ({...prev, [q.id]: !prev[q.id]}))} className={`p-1.5 rounded-md transition-colors ${expandedMap[q.id] ? 'bg-yellow-100 text-yellow-700' : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'}`} title="Giải thích">
+                          <Lightbulb className="h-4 w-4" />
+                        </button>
+                      )}
+                      {q.explanation.evidence && onLocateEvidence && (
+                        <button onClick={() => {
+                           const evidenceStr = q.explanation?.evidence || '';
+                           const chunks = evidenceStr.split('\\n---\\n').filter((e: string) => e.trim());
+                           if (chunks.length > 0) onLocateEvidence(chunks[0].trim());
+                        }} className="p-1.5 rounded-md bg-white text-blue-600 hover:bg-blue-50 transition-colors border border-gray-200" title="Định vị dẫn chứng">
+                          <Target className="h-4 w-4" />
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+                {expandedMap[q.id] && q.explanation?.text && (
+                  <div className="mt-1 pt-2 border-t border-gray-200/50 text-gray-700">
+                    <strong>Giải thích:</strong> {q.explanation.text}
+                    {q.explanation.evidence && (
+                      <div className="mt-1 space-y-1">
+                        {q.explanation.evidence.split('\\n---\\n').filter((e: string) => e.trim()).map((chunk: string, i: number) => (
+                          <p key={i} className="text-xs text-gray-600 bg-black/5 px-2 py-1 flex items-start gap-1">
+                            <span>Dẫn chứng {i + 1}:</span> <span>&ldquo;{chunk.trim()}&rdquo;</span>
+                          </p>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
@@ -232,6 +294,7 @@ function GapQuestion({ question, displayPosition, userAnswer, submitted, onTextA
   onLocateEvidence?: (evidence: string) => void;
   examMode?: boolean;
 }) {
+  const [showExp, setShowExp] = useState(false);
   const correctAnswer = question.options.find(o => o.isCorrect)?.content ?? '';
   const primaryCorrect = correctAnswer.split('|')[0];
   const parsed = parseGapContent(question.content);
@@ -257,9 +320,75 @@ function GapQuestion({ question, displayPosition, userAnswer, submitted, onTextA
               {parsed.after}
             </>
           ) : (
-            question.content
+            <>
+              <span className="font-bold mr-2">{displayPosition}.</span>
+              {question.content}
+              <ExamInlineGapInput
+                questionId={question.id}
+                userAnswer={userAnswer}
+                submitted={submitted}
+                correctAnswer={correctAnswer}
+                displayNumber={displayPosition}
+                onTextAnswer={onTextAnswer}
+              />
+            </>
           )}
-        </p>
+        </div>
+
+        {submitted && (
+          <div className="mt-4 pt-4 border-t border-gray-200 space-y-3">
+            <div className={`flex flex-col gap-2 text-xs px-3 py-2 rounded-lg ${
+              correct ? 'bg-green-50' : wrong ? 'bg-red-50' : 'bg-gray-50'
+            }`}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-gray-900 min-w-[20px]">{displayPosition}.</span>
+                  {correct ? (
+                    <><CheckCircle2 className="h-4 w-4 text-gray-900" /><span className="text-gray-900 font-semibold">Đúng</span></>
+                  ) : wrong ? (
+                    <><XCircle className="h-4 w-4 text-gray-700" /><span className="text-gray-800">Đáp án: <strong className="text-green-600">{primaryCorrect}</strong>
+                      {correctAnswer.includes('|') && <span className="text-gray-500 font-normal"> (hoặc: {correctAnswer.split('|').slice(1).join(', ')})</span>}
+                    </span></>
+                  ) : (
+                    <span className="text-gray-500 italic">Chưa trả lời — Đáp án: <strong className="text-green-600">{primaryCorrect}</strong></span>
+                  )}
+                </div>
+                {question.explanation && (
+                  <div className="flex items-center gap-2">
+                    {question.explanation.text && (
+                      <button onClick={() => setShowExp(!showExp)} className={`p-1.5 rounded-md transition-colors ${showExp ? 'bg-yellow-100 text-yellow-700' : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'}`} title="Giải thích">
+                        <Lightbulb className="h-4 w-4" />
+                      </button>
+                    )}
+                    {question.explanation.evidence && onLocateEvidence && (
+                      <button onClick={() => {
+                         const evidenceStr = question.explanation?.evidence || '';
+                         const chunks = evidenceStr.split('\\n---\\n').filter((e: string) => e.trim());
+                         if (chunks.length > 0) onLocateEvidence(chunks[0].trim());
+                      }} className="p-1.5 rounded-md bg-white text-blue-600 hover:bg-blue-50 transition-colors border border-gray-200" title="Định vị dẫn chứng">
+                        <Target className="h-4 w-4" />
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+              {showExp && question.explanation?.text && (
+                <div className="mt-1 pt-2 border-t border-gray-200/50 text-gray-700">
+                  <strong>Giải thích:</strong> {question.explanation.text}
+                  {question.explanation.evidence && (
+                    <div className="mt-1 space-y-1">
+                      {question.explanation.evidence.split('\\n---\\n').filter((e: string) => e.trim()).map((chunk: string, i: number) => (
+                        <p key={i} className="text-xs text-gray-600 bg-black/5 px-2 py-1 flex items-start gap-1">
+                          <span>Dẫn chứng {i + 1}:</span> <span>&ldquo;{chunk.trim()}&rdquo;</span>
+                        </p>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -338,6 +467,7 @@ function ParagraphGapFilling({ groupContent, questions, submitted, textAnswers, 
   const [mounted, setMounted] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const [portalTargets, setPortalTargets] = useState<Array<{ element: HTMLElement; question: QuestionDetail }>>([]);
+  const [expandedMap, setExpandedMap] = useState<Record<number, boolean>>({});
   const isHtml = /<[a-z][\s\S]*>/i.test(groupContent);
 
   const processedHtml = useMemo(() => {
@@ -396,6 +526,73 @@ function ParagraphGapFilling({ groupContent, questions, submitted, textAnswers, 
             element
           );
         })}
+
+        {/* Show results after submit */}
+        {submitted && (
+          <div className="mt-4 pt-4 border-t border-gray-200 space-y-3">
+            {sortedQuestions.map((q) => {
+              const userAnswer = textAnswers[q.id] ?? '';
+              const correctAnswer = q.options.find(o => o.isCorrect)?.content ?? '';
+              const correct = isAnswerCorrect(userAnswer, correctAnswer);
+              const wrong = userAnswer.trim() !== '' && !correct;
+              const displayPosition = questionPositionById[q.id] ?? q.position;
+              const primaryCorrect = correctAnswer.split('|')[0];
+
+              return (
+                <div key={q.id} className={`flex flex-col gap-2 text-xs px-3 py-2 rounded-lg ${
+                  correct ? 'bg-green-50' : wrong ? 'bg-red-50' : 'bg-gray-50'
+                }`}>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-gray-900 min-w-[20px]">{displayPosition}.</span>
+                      {correct ? (
+                        <><CheckCircle2 className="h-4 w-4 text-gray-900" /><span className="text-gray-900 font-semibold">Đúng</span></>
+                      ) : wrong ? (
+                        <><XCircle className="h-4 w-4 text-gray-700" /><span className="text-gray-800">Đáp án: <strong className="text-green-600">{primaryCorrect}</strong>
+                          {correctAnswer.includes('|') && <span className="text-gray-500 font-normal"> (hoặc: {correctAnswer.split('|').slice(1).join(', ')})</span>}
+                        </span></>
+                      ) : (
+                        <span className="text-gray-500 italic">Chưa trả lời — Đáp án: <strong className="text-green-600">{primaryCorrect}</strong></span>
+                      )}
+                    </div>
+                    {q.explanation && (
+                      <div className="flex items-center gap-2">
+                        {q.explanation.text && (
+                          <button onClick={() => setExpandedMap(prev => ({...prev, [q.id]: !prev[q.id]}))} className={`p-1.5 rounded-md transition-colors ${expandedMap[q.id] ? 'bg-yellow-100 text-yellow-700' : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'}`} title="Giải thích">
+                            <Lightbulb className="h-4 w-4" />
+                          </button>
+                        )}
+                        {q.explanation.evidence && onLocateEvidence && (
+                          <button onClick={() => {
+                             const evidenceStr = q.explanation?.evidence || '';
+                             const chunks = evidenceStr.split('\\n---\\n').filter((e: string) => e.trim());
+                             if (chunks.length > 0) onLocateEvidence(chunks[0].trim());
+                          }} className="p-1.5 rounded-md bg-white text-blue-600 hover:bg-blue-50 transition-colors border border-gray-200" title="Định vị dẫn chứng">
+                            <Target className="h-4 w-4" />
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  {expandedMap[q.id] && q.explanation?.text && (
+                    <div className="mt-1 pt-2 border-t border-gray-200/50 text-gray-700">
+                      <strong>Giải thích:</strong> {q.explanation.text}
+                      {q.explanation.evidence && (
+                        <div className="mt-1 space-y-1">
+                          {q.explanation.evidence.split('\\n---\\n').filter((e: string) => e.trim()).map((chunk: string, i: number) => (
+                            <p key={i} className="text-xs text-gray-600 bg-black/5 px-2 py-1 flex items-start gap-1">
+                              <span>Dẫn chứng {i + 1}:</span> <span>&ldquo;{chunk.trim()}&rdquo;</span>
+                            </p>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     );
   }

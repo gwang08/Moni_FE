@@ -210,33 +210,56 @@ export default function ListeningReviewPage({ params }: Props) {
           {/* Transcript panel - always visible for listening */}
           <div className="w-1/2 overflow-y-auto p-4 space-y-1" data-transcript>
             <h4 className="text-sm font-semibold text-gray-700 mb-3 sticky top-0 bg-white py-1 z-10">Transcript</h4>
-            {stimulus.transcript && stimulus.transcript.length > 0 ? (
-              stimulus.transcript.map((seg, i) => {
-                const mins = Math.floor(seg.startTime / 60);
-                const secs = Math.floor(seg.startTime % 60);
-                const ts = `${mins}:${secs.toString().padStart(2, '0')}`;
+            {(() => {
+              let parsedTranscript: any[] = [];
+              if (Array.isArray(stimulus.transcript)) {
+                parsedTranscript = stimulus.transcript;
+              } else if (typeof stimulus.transcript === 'string' && stimulus.transcript.trim()) {
+                try {
+                  parsedTranscript = JSON.parse(stimulus.transcript);
+                } catch {
+                  // Ignore
+                }
+              }
+
+              if (parsedTranscript.length > 0) {
+                return parsedTranscript.map((seg, i) => {
+                  const startTime = Number(seg.startTime) || 0;
+                  const mins = Math.floor(startTime / 60);
+                  const secs = Math.floor(startTime % 60);
+                  const ts = `${mins}:${secs.toString().padStart(2, '0')}`;
+                  return (
+                    <button
+                      key={seg.id || i}
+                      type="button"
+                      data-start-time={startTime}
+                      onClick={() => {
+                        if (audioRef.current) {
+                          audioRef.current.currentTime = startTime;
+                          audioRef.current.play().catch(() => {});
+                        }
+                      }}
+                      className="w-full text-left px-3 py-2 text-sm rounded-lg hover:bg-violet-50 transition-colors group"
+                    >
+                      <span className="text-[10px] text-violet-500 font-mono group-hover:text-violet-700 mr-2">{ts}</span>
+                      {seg.speaker && <span className="text-xs font-semibold text-gray-500 mr-1">{seg.speaker}:</span>}
+                      <span className="text-gray-700">{seg.text || seg.content || ''}</span>
+                    </button>
+                  );
+                });
+              }
+
+              if (stimulus.content && stimulus.content.trim()) {
                 return (
-                  <button
-                    key={seg.id || i}
-                    type="button"
-                    data-start-time={seg.startTime}
-                    onClick={() => {
-                      if (audioRef.current) {
-                        audioRef.current.currentTime = seg.startTime;
-                        audioRef.current.play();
-                      }
-                    }}
-                    className="w-full text-left px-3 py-2 rounded-lg hover:bg-violet-50 transition-colors group text-sm"
-                  >
-                    <span className="text-[10px] text-violet-500 font-mono group-hover:text-violet-700 mr-2">{ts}</span>
-                    {seg.speaker && <span className="text-xs font-semibold text-gray-500 mr-1">{seg.speaker}:</span>}
-                    <span className="text-gray-700">{seg.text}</span>
-                  </button>
+                  <div
+                    className="text-gray-700 text-sm leading-relaxed max-w-none"
+                    dangerouslySetInnerHTML={{ __html: stimulus.content }}
+                  />
                 );
-              })
-            ) : (
-              <p className="text-sm text-gray-400 text-center py-8">Chưa có transcript cho bài nghe này.</p>
-            )}
+              }
+
+              return <p className="text-sm text-gray-400 text-center py-8">Chưa có transcript cho bài nghe này.</p>;
+            })()}
           </div>
         </div>
       </div>

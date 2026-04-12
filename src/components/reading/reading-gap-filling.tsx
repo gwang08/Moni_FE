@@ -1,5 +1,8 @@
 'use client';
 import { CheckCircle2, XCircle } from 'lucide-react';
+import { useEffect, useRef, useState, useMemo } from 'react';
+import { createPortal } from 'react-dom';
+import React from 'react';
 import type { QuestionDetail } from '@/types/test.types';
 
 interface Props {
@@ -321,45 +324,92 @@ function ParagraphGapFilling({ groupContent, questions, submitted, textAnswers, 
   onLocateEvidence?: (evidence: string) => void;
   examMode?: boolean;
 }) {
-  const sortedQuestions = [...questions].sort((a, b) => a.position - b.position);
+  const sortedQuestions = useMemo(() => [...questions].sort((a, b) => a.position - b.position), [questions]);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [portals, setPortals] = useState<Array<{ id: string; element: HTMLElement; questionIndex: number }>>([]);
 
   // Detect whether groupContent is HTML (from TipTap) or legacy plain text
   const isHtml = /<[a-z][\s\S]*>/i.test(groupContent);
 
-  if (isHtml) {
-    // Split the raw HTML string on every __ occurrence (preserving HTML tags)
-    const parts = groupContent.split(/(__+)/);
-    let gapIndex = 0;
-    const nodes: React.ReactNode[] = [];
+  useEffect(() => {
+    if (!isHtml || !containerRef.current) return;
+    
+    const container = containerRef.current;
+    if (container.getAttribute('data-processed') === 'true') return;
 
-    parts.forEach((part, i) => {
-      if (/^__+$/.test(part)) {
-        // This part is a gap token
-        const question = sortedQuestions[gapIndex];
-        if (question) {
+    const newPortals: typeof portals = [];
+    let gapIndex = 0;
+
+    // Walk all text nodes inside the container safely
+    const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT, null);
+    const textNodes: Text[] = [];
+    let node;
+    while ((node = walker.nextNode())) {
+      textNodes.push(node as Text);
+    }
+
+    textNodes.forEach((textNode) => {
+      const text = textNode.nodeValue || '';
+      if (!text.includes('__')) return;
+
+      const fragment = document.createDocumentFragment();
+      const parts = text.split(/(__+)/);
+
+      parts.forEach(part => {
+        if (/^__+$/.test(part)) {
+          const span = document.createElement('span');
+          span.className = 'inline-gap-portal inline-flex items-baseline mx-1';
+          fragment.appendChild(span);
+          
+          newPortals.push({
+            id: `gap-${gapIndex}`,
+            element: span,
+            questionIndex: gapIndex
+          });
+          gapIndex++;
+        } else if (part) {
+          fragment.appendChild(document.createTextNode(part));
+        }
+      });
+
+      textNode.parentNode?.replaceChild(fragment, textNode);
+    });
+
+    container.setAttribute('data-processed', 'true');
+    setPortals(newPortals);
+    
+    // We intentionally don't clean up the data-processed flag
+    // because the HTML content strictly only changes when groupContent changes.
+  }, [groupContent, isHtml]);
+
+  if (isHtml) {
+    return (
+      <div className={`bg-white p-4 ${examMode ? 'text-[13px] leading-7' : 'text-sm leading-8'} text-gray-900 [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:list-decimal [&_ol]:pl-6 [&_strong]:font-bold [&_em]:italic [&_h1]:text-xl [&_h1]:font-bold [&_h2]:text-lg [&_h2]:font-bold [&_h3]:text-base [&_h3]:font-bold [&_table]:w-full [&_table]:my-4 [&_table]:border-collapse [&_th]:border [&_th]:border-gray-300 [&_th]:p-2 [&_td]:border [&_td]:border-gray-300 [&_td]:p-2 [&_td_p]:m-0`}>
+        <div ref={containerRef} dangerouslySetInnerHTML={{ __html: groupContent }} />
+        
+        {portals.map((portal) => {
+          const question = sortedQuestions[portal.questionIndex];
+          if (!question) return null;
+          
           const displayNum = questionPositionById[question.id] ?? question.position;
           const correctAnswer = question.options.find(o => o.isCorrect)?.content ?? '';
           const userAnswer = textAnswers[question.id] ?? '';
-          nodes.push(
-            <span key={`q-${gapIndex}`} id={`question-${question.id}`} className="inline-flex items-baseline gap-0.5 mx-0.5">
-              <strong className="text-blue-600 text-[13px]">{displayNum}</strong>
-              <GapInput questionId={question.id} userAnswer={userAnswer} submitted={submitted}
-                correctAnswer={correctAnswer} onTextAnswer={onTextAnswer} compact />
-            </span>
-          );
-        }
-        gapIndex += 1;
-      } else if (part) {
-        // Plain HTML segment — render safely
-        nodes.push(
-          <span key={`h-${i}`} dangerouslySetInnerHTML={{ __html: part }} />
-        );
-      }
-    });
 
-    return (
-      <div className={`bg-white p-4 ${examMode ? 'text-[13px] leading-7' : 'text-sm leading-8'} text-gray-900 [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:list-decimal [&_ol]:pl-6 [&_strong]:font-bold [&_em]:italic [&_h1]:text-xl [&_h1]:font-bold [&_h2]:text-lg [&_h2]:font-bold [&_h3]:text-base [&_h3]:font-bold`}>
-        {nodes}
+          return createPortal(
+            <React.Fragment>
+              <strong className="text-blue-600 text-[13px] mr-1">{displayNum}</strong>
+              <GapInput 
+                questionId={question.id} 
+                userAnswer={userAnswer} 
+                submitted={submitted}
+                correctAnswer={correctAnswer} 
+                onTextAnswer={onTextAnswer} 
+                compact 
+              />
+            </React.Fragment>,
+            portal.element
+          );
+        })}
       </div>
     );
   }

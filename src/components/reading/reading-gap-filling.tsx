@@ -319,11 +319,18 @@ function GapQuestion({ question, displayPosition, userAnswer, submitted, onTextA
 }
 
 /** A stable wrapper for HTML that doesn't re-render unless content changes */
-const StaticHtml = React.memo(({ html, containerRef, className }: { html: string; containerRef: React.RefObject<HTMLDivElement>; className: string }) => (
-  <div ref={containerRef} className={className} dangerouslySetInnerHTML={{ __html: html }} />
+const StaticHtml = React.memo(({ html, containerRef, className }: { html: string; containerRef: React.RefObject<HTMLDivElement | null>; className: string }) => (
+  <div ref={containerRef as any} className={className} dangerouslySetInnerHTML={{ __html: html }} />
 ));
 
 /** Render groupContent (HTML from TipTap) with inline blanks replacing __ markers */
+function ParagraphGapFilling({ groupContent, questions, submitted, textAnswers, onTextAnswer, questionPositionById = {}, onLocateEvidence, examMode = false }: {
+  groupContent: string;
+  questions: QuestionDetail[];
+  submitted: boolean;
+  textAnswers: Record<number, string>;
+  onTextAnswer: (questionId: number, text: string) => void;
+  questionPositionById?: Record<number, number>;
   onLocateEvidence?: (evidence: string) => void;
   examMode?: boolean;
 }) {

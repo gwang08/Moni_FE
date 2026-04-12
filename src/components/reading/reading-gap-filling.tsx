@@ -416,12 +416,40 @@ export function ReadingGapFilling({
   onLocateEvidence,
   examMode,
 }: Props) {
+  // Detect if groupContent is TipTap HTML (new format)
+  const hasHtmlGroupContent = !!groupContent && /\<[a-z][\s\S]*\>/i.test(groupContent);
+
   // Sentence questions: have content (with {{answer}} or text)
   // Paragraph questions: empty content OR tagged with gapMode='paragraph'
   const sentenceQs = questions.filter(q => q.content.trim());
   const paragraphQs = questions.filter(q => !q.content.trim());
 
-  // For exam mode with sentence questions, use inline sentence gaps
+  // ── NEW: TipTap HTML group content → always use ParagraphGapFilling for ALL questions ──
+  // (the passage HTML has __ for every gap, so we match by position order)
+  if (hasHtmlGroupContent) {
+    return (
+      <div className="space-y-4">
+        {imageUrl && (
+          <div className="rounded-lg p-3 bg-white border border-gray-200">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={imageUrl} alt="Diagram" className="max-w-full h-auto rounded" loading="lazy" />
+          </div>
+        )}
+        <ParagraphGapFilling
+          groupContent={groupContent!}
+          questions={questions}
+          submitted={submitted}
+          textAnswers={textAnswers}
+          onTextAnswer={onTextAnswer}
+          questionPositionById={questionPositionById}
+          onLocateEvidence={onLocateEvidence}
+          examMode={examMode}
+        />
+      </div>
+    );
+  }
+
+  // ── LEGACY: For exam mode with sentence questions, use inline sentence gaps ──
   if (examMode && sentenceQs.length > 0) {
     return (
       <div className="space-y-4">

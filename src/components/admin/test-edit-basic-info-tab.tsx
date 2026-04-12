@@ -24,7 +24,7 @@ const TEST_TYPE_LABELS: Record<string, string> = {
   ACADEMIC: 'Academic',
   GENERAL_TRAINING: 'General Training',
 };
-const SKILLS_WITH_TEST_TYPE = ['READING'];
+const SKILLS_WITH_TEST_TYPE = ['READING', 'WRITING'];
 
 const toMinutes = (duration?: number | null) => {
   if (!duration || duration <= 0) return '';

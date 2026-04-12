@@ -165,6 +165,17 @@ export interface AdminRevenueDashboardResponse {
   expertSpeakingJobs: number;
   totalExpertCredits: number;
   totalExpertJobs: number;
+  
+  // Missing workload metrics: AI
+  aiWritingJobs?: number;
+  aiSpeakingJobs?: number;
+  totalAiJobs?: number;
+
+  // Additional Operation metrics
+  totalTests?: number;
+  totalUsers?: number;
+  newUsers?: number;
+  
   dailyRevenue: DailyRevenue[];
   dailyExpertJobs: DailyExpertJobs[];
 }
@@ -178,4 +189,6 @@ export interface DailyExpertJobs {
   date: string;
   writingJobs: number;
   speakingJobs: number;
+  aiWritingJobs?: number;
+  aiSpeakingJobs?: number;
 }

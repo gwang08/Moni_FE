@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { Coins, FileText } from 'lucide-react';
+import { BookOpen, Bot, Coins, FileText, UserPlus, Users } from 'lucide-react';
 import { SkeletonCard } from '@/components/ui/skeleton';
 import { useQuery } from '@tanstack/react-query';
 import { getAdminRevenueDashboard } from '@/lib/admin-api';
@@ -68,21 +68,17 @@ export default function AdminDashboardPage() {
     startDate: initialFrom,
     endDate: initialTo,
   });
-  const [appliedRevenueRange, setAppliedRevenueRange] = useState<DateRange>({
-    startDate: initialFrom,
-    endDate: initialTo,
-  });
 
   const {
     data: currentData,
     isLoading: isCurrentLoading,
     error: currentError,
   } = useQuery({
-    queryKey: ['admin', 'dashboard', 'revenue', appliedRevenueRange.startDate, appliedRevenueRange.endDate],
+    queryKey: ['admin', 'dashboard', 'revenue', revenueRange.startDate, revenueRange.endDate],
     queryFn: () =>
       getAdminRevenueDashboard({
-        fromDate: appliedRevenueRange.startDate,
-        toDate: appliedRevenueRange.endDate,
+        fromDate: revenueRange.startDate,
+        toDate: revenueRange.endDate,
       }),
   });
 
@@ -96,8 +92,8 @@ export default function AdminDashboardPage() {
     });
 
     // Get all dates in range and fill missing dates with 0
-    const startDate = new Date(appliedRevenueRange.startDate);
-    const endDate = new Date(appliedRevenueRange.endDate);
+    const startDate = new Date(revenueRange.startDate);
+    const endDate = new Date(revenueRange.endDate);
     const allDates: string[] = [];
     
     const currentDate = new Date(startDate);
@@ -112,7 +108,7 @@ export default function AdminDashboardPage() {
       fullDate: date,
       revenue: revenueMap.get(date) ?? 0,
     }));
-  }, [currentData, appliedRevenueRange]);
+  }, [currentData, revenueRange]);
 
   const isLoading = isCurrentLoading;
   const hasError = Boolean(currentError);
@@ -137,33 +133,55 @@ export default function AdminDashboardPage() {
     <div>
       <AdminHeader title="Tổng quan" />
       <div className="space-y-6 p-6">
-        {/* Revenue Section - Top */}
-        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-          <div className="mb-4 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Coins className="h-5 w-5 text-emerald-600" />
-              <h3 className="text-lg font-semibold text-gray-800">Doanh thu nạp tiền</h3>
-            </div>
-          </div>
-
-          {/* Date Range Filter */}
-          <div className="mb-6 max-w-md">
+        {/* Date Range Filter (Global for dashboard) */}
+        <div className="flex items-center gap-4 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+          <span className="text-sm font-semibold text-gray-700">Bộ lọc thời gian:</span>
+          <div className="w-64">
             <DateRangePicker
-              label="Khoảng thời gian"
               value={revenueRange}
               onChange={setRevenueRange}
             />
           </div>
+        </div>
 
-          <button
-            type="button"
-            onClick={() => setAppliedRevenueRange(revenueRange)}
-            className="mb-4 h-10 rounded-md bg-blue-600 px-4 text-sm font-medium text-white transition-colors hover:bg-blue-700"
-          >
-            Xem kết quả
-          </button>
+        {/* Platform Overview */}
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+          <div className="flex items-center gap-4 rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+            <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-blue-50">
+              <Users className="h-6 w-6 text-blue-600" />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-gray-500">Người dùng tương tác</p>
+              <h4 className="text-2xl font-bold text-gray-900">{isLoading ? '-' : currentData?.totalUsers ?? '0'}</h4>
+            </div>
+          </div>
+          <div className="flex items-center gap-4 rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+            <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-emerald-50">
+              <UserPlus className="h-6 w-6 text-emerald-600" />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-gray-500">Đăng ký mới</p>
+              <h4 className="text-2xl font-bold text-gray-900">{isLoading ? '-' : currentData?.newUsers ?? '0'}</h4>
+            </div>
+          </div>
+          <div className="flex items-center gap-4 rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+            <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-purple-50">
+              <BookOpen className="h-6 w-6 text-purple-600" />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-gray-500">Lượt làm đề</p>
+              <h4 className="text-2xl font-bold text-gray-900">{isLoading ? '-' : currentData?.totalTests ?? '0'}</h4>
+            </div>
+          </div>
+        </div>
 
-          {/* Revenue Stats */}
+        {/* Revenue Section */}
+        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+          <div className="mb-6 flex items-center gap-3">
+            <Coins className="h-5 w-5 text-emerald-600" />
+            <h3 className="text-lg font-semibold text-gray-800">Doanh thu</h3>
+          </div>
+
           <div className="mb-6 grid grid-cols-2 gap-4 md:grid-cols-4">
             <div className="rounded-lg bg-emerald-50 p-4">
               <p className="text-sm text-gray-600">Doanh thu</p>
@@ -250,21 +268,29 @@ export default function AdminDashboardPage() {
           ) : (
             <div className="space-y-4">
               {/* Summary Stats */}
-              <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+              <div className="grid grid-cols-2 gap-4 md:grid-cols-4 lg:grid-cols-6">
                 <div className="rounded-lg bg-orange-50 p-4">
-                  <p className="text-sm text-gray-600">Writing</p>
+                  <p className="text-sm font-medium text-gray-600">Expert Writing</p>
                   <p className="text-2xl font-bold text-orange-600">{currentData?.expertWritingJobs ?? 0}</p>
                 </div>
                 <div className="rounded-lg bg-pink-50 p-4">
-                  <p className="text-sm text-gray-600">Speaking</p>
+                  <p className="text-sm font-medium text-gray-600">Expert Speaking</p>
                   <p className="text-2xl font-bold text-pink-600">{currentData?.expertSpeakingJobs ?? 0}</p>
                 </div>
                 <div className="rounded-lg bg-blue-50 p-4">
-                  <p className="text-sm text-gray-600">Tổng bài chấm</p>
-                  <p className="text-2xl font-bold text-blue-600">{currentData?.totalExpertJobs ?? 0}</p>
+                  <p className="text-sm font-medium text-gray-600 flex items-center gap-1"><Bot className="h-3 w-3"/> AI Writing</p>
+                  <p className="text-2xl font-bold text-blue-600">{currentData?.aiWritingJobs ?? 0}</p>
+                </div>
+                <div className="rounded-lg bg-indigo-50 p-4">
+                  <p className="text-sm font-medium text-gray-600 flex items-center gap-1"><Bot className="h-3 w-3"/> AI Speaking</p>
+                  <p className="text-2xl font-bold text-indigo-600">{currentData?.aiSpeakingJobs ?? 0}</p>
+                </div>
+                <div className="rounded-lg border-l-4 border-blue-500 bg-gray-50 p-4">
+                  <p className="text-sm font-medium text-gray-600">Tổng bài chấm</p>
+                  <p className="text-2xl font-bold text-gray-900">{(currentData?.totalExpertJobs ?? 0) + (currentData?.totalAiJobs ?? 0)}</p>
                 </div>
                 <div className="rounded-lg bg-purple-50 p-4">
-                  <p className="text-sm text-gray-600">Tổng Credits</p>
+                  <p className="text-sm font-medium text-gray-600">Credit đã chi trả</p>
                   <p className="text-2xl font-bold text-purple-600">{currentData?.totalExpertCredits ?? 0}</p>
                 </div>
               </div>
@@ -279,8 +305,10 @@ export default function AdminDashboardPage() {
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={currentData.dailyExpertJobs.map(d => ({
                         date: new Date(d.date).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' }),
-                        writingJobs: d.writingJobs,
-                        speakingJobs: d.speakingJobs,
+                        expWriting: d.writingJobs,
+                        expSpeaking: d.speakingJobs,
+                        aiWriting: d.aiWritingJobs ?? 0,
+                        aiSpeaking: d.aiSpeakingJobs ?? 0,
                       }))} margin={{ top: 20, right: 30, left: 0, bottom: 0 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
                         <XAxis
@@ -304,13 +332,20 @@ export default function AdminDashboardPage() {
                         boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
                       }}
                       formatter={(value: number, name: string) => {
-                        const label = name === 'writingJobs' ? 'Writing' : 'Speaking';
-                        return [`${value} bài`, label];
+                        const labels: Record<string, string> = {
+                          expWriting: 'Expert Writing',
+                          expSpeaking: 'Expert Speaking',
+                          aiWriting: 'AI Writing',
+                          aiSpeaking: 'AI Speaking',
+                        };
+                        return [`${value} bài`, labels[name] || name];
                       }}
                       labelFormatter={(label) => `Ngày: ${label}`}
                     />
-                        <Bar dataKey="writingJobs" name="Writing" fill="#f97316" radius={[4, 4, 0, 0]} />
-                        <Bar dataKey="speakingJobs" name="Speaking" fill="#ec4899" radius={[4, 4, 0, 0]} />
+                        <Bar dataKey="expWriting" stackId="exp" name="Expert Writing" fill="#f97316" radius={[4, 4, 0, 0]} />
+                        <Bar dataKey="expSpeaking" stackId="exp" name="Expert Speaking" fill="#ec4899" radius={[4, 4, 0, 0]} />
+                        <Bar dataKey="aiWriting" stackId="ai" name="AI Writing" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                        <Bar dataKey="aiSpeaking" stackId="ai" name="AI Speaking" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
@@ -320,8 +355,7 @@ export default function AdminDashboardPage() {
               {/* Date Range Info */}
               <div className="mt-4 rounded-lg bg-gray-50 p-4">
                 <p className="text-sm text-gray-600">
-                  <span className="font-medium">Khoảng thời gian: </span>
-                  {new Date(appliedRevenueRange.startDate).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })} - {new Date(appliedRevenueRange.endDate).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                  {new Date(revenueRange.startDate).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })} - {new Date(revenueRange.endDate).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })}
                 </p>
               </div>
             </div>

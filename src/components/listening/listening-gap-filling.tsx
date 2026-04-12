@@ -1,8 +1,23 @@
 'use client';
-import { CheckCircle2, XCircle, Lightbulb, Target } from 'lucide-react';
+import { CheckCircle2, XCircle, Lightbulb } from 'lucide-react';
 import React, { useEffect, useRef, useState, useMemo, useId } from 'react';
 import { createPortal } from 'react-dom';
 import type { QuestionDetail } from '@/types/test.types';
+
+// Custom Target/Aim icon component - bullseye style
+function TargetIcon({ className = 'h-4 w-4' }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10" />
+      <circle cx="12" cy="12" r="6" />
+      <circle cx="12" cy="12" r="2" />
+      <line x1="12" y1="2" x2="12" y2="6" />
+      <line x1="12" y1="18" x2="12" y2="22" />
+      <line x1="2" y1="12" x2="6" y2="12" />
+      <line x1="18" y1="12" x2="22" y2="12" />
+    </svg>
+  );
+}
 
 interface Props {
   questions: QuestionDetail[];

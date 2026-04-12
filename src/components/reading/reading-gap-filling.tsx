@@ -1,9 +1,24 @@
 'use client';
-import { CheckCircle2, XCircle, Lightbulb, Target } from 'lucide-react';
+import { CheckCircle2, XCircle, Lightbulb } from 'lucide-react';
 import { useEffect, useRef, useState, useMemo, useId } from 'react';
 import { createPortal } from 'react-dom';
 import React from 'react';
 import type { QuestionDetail } from '@/types/test.types';
+
+// Custom Target/Aim icon component - bullseye style
+function TargetIcon({ className = 'h-4 w-4' }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10" />
+      <circle cx="12" cy="12" r="6" />
+      <circle cx="12" cy="12" r="2" />
+      <line x1="12" y1="2" x2="12" y2="6" />
+      <line x1="12" y1="18" x2="12" y2="22" />
+      <line x1="2" y1="12" x2="6" y2="12" />
+      <line x1="18" y1="12" x2="22" y2="12" />
+    </svg>
+  );
+}
 
 interface Props {
   questions: QuestionDetail[];
@@ -239,9 +254,28 @@ function IELTSBoxedGapFilling({ questions, submitted, textAnswers, onTextAnswer,
                     ) : wrong ? (
                       <><XCircle className="h-4 w-4 text-gray-700" /><span className="text-gray-800">Đáp án: <strong className="text-green-600">{primaryCorrect}</strong>
                         {correctAnswer.includes('|') && <span className="text-gray-500 font-normal"> (hoặc: {correctAnswer.split('|').slice(1).join(', ')})</span>}
+                        {q.explanation?.evidence && onLocateEvidence && (
+                          <button onClick={() => {
+                             const evidenceStr = q.explanation?.evidence || '';
+                             const chunks = evidenceStr.split('\\n---\\n').filter((e: string) => e.trim());
+                             if (chunks.length > 0) onLocateEvidence(chunks[0].trim());
+                          }} className="inline-flex items-center ml-2 p-0.5 rounded hover:bg-gray-200 transition-colors text-gray-600" title="Định vị dẫn chứng">
+                            <TargetIcon className="h-3.5 w-3.5" />
+                          </button>
+                        )}
                       </span></>
                     ) : (
-                      <span className="text-gray-500 italic">Chưa trả lời — Đáp án: <strong className="text-green-600">{primaryCorrect}</strong></span>
+                      <span className="text-gray-500 italic">Chưa trả lời — Đáp án: <strong className="text-green-600">{primaryCorrect}</strong>
+                        {q.explanation?.evidence && onLocateEvidence && (
+                          <button onClick={() => {
+                             const evidenceStr = q.explanation?.evidence || '';
+                             const chunks = evidenceStr.split('\\n---\\n').filter((e: string) => e.trim());
+                             if (chunks.length > 0) onLocateEvidence(chunks[0].trim());
+                          }} className="inline-flex items-center ml-2 p-0.5 rounded hover:bg-gray-200 transition-colors text-gray-600" title="Định vị dẫn chứng">
+                            <TargetIcon className="h-3.5 w-3.5" />
+                          </button>
+                        )}
+                      </span>
                     )}
                   </div>
                   {q.explanation && (
@@ -249,15 +283,6 @@ function IELTSBoxedGapFilling({ questions, submitted, textAnswers, onTextAnswer,
                       {q.explanation.text && (
                         <button onClick={() => setExpandedMap(prev => ({...prev, [q.id]: !prev[q.id]}))} className={`p-1.5 rounded-md transition-colors ${expandedMap[q.id] ? 'bg-yellow-100 text-yellow-700' : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'}`} title="Giải thích">
                           <Lightbulb className="h-4 w-4" />
-                        </button>
-                      )}
-                      {q.explanation.evidence && onLocateEvidence && (
-                        <button onClick={() => {
-                           const evidenceStr = q.explanation?.evidence || '';
-                           const chunks = evidenceStr.split('\\n---\\n').filter((e: string) => e.trim());
-                           if (chunks.length > 0) onLocateEvidence(chunks[0].trim());
-                        }} className="p-1.5 rounded-md bg-white text-blue-600 hover:bg-blue-50 transition-colors border border-gray-200" title="Định vị dẫn chứng">
-                          <Target className="h-4 w-4" />
                         </button>
                       )}
                     </div>
@@ -348,9 +373,28 @@ function GapQuestion({ question, displayPosition, userAnswer, submitted, onTextA
                   ) : wrong ? (
                     <><XCircle className="h-4 w-4 text-gray-700" /><span className="text-gray-800">Đáp án: <strong className="text-green-600">{primaryCorrect}</strong>
                       {correctAnswer.includes('|') && <span className="text-gray-500 font-normal"> (hoặc: {correctAnswer.split('|').slice(1).join(', ')})</span>}
+                      {question.explanation?.evidence && onLocateEvidence && (
+                        <button onClick={() => {
+                           const evidenceStr = question.explanation?.evidence || '';
+                           const chunks = evidenceStr.split('\\n---\\n').filter((e: string) => e.trim());
+                           if (chunks.length > 0) onLocateEvidence(chunks[0].trim());
+                        }} className="inline-flex items-center ml-2 p-0.5 rounded hover:bg-gray-200 transition-colors text-gray-600" title="Định vị dẫn chứng">
+                          <TargetIcon className="h-3.5 w-3.5" />
+                        </button>
+                      )}
                     </span></>
                   ) : (
-                    <span className="text-gray-500 italic">Chưa trả lời — Đáp án: <strong className="text-green-600">{primaryCorrect}</strong></span>
+                    <span className="text-gray-500 italic">Chưa trả lời — Đáp án: <strong className="text-green-600">{primaryCorrect}</strong>
+                      {question.explanation?.evidence && onLocateEvidence && (
+                        <button onClick={() => {
+                           const evidenceStr = question.explanation?.evidence || '';
+                           const chunks = evidenceStr.split('\\n---\\n').filter((e: string) => e.trim());
+                           if (chunks.length > 0) onLocateEvidence(chunks[0].trim());
+                        }} className="inline-flex items-center ml-2 p-0.5 rounded hover:bg-gray-200 transition-colors text-gray-600" title="Định vị dẫn chứng">
+                          <TargetIcon className="h-3.5 w-3.5" />
+                        </button>
+                      )}
+                    </span>
                   )}
                 </div>
                 {question.explanation && (
@@ -358,15 +402,6 @@ function GapQuestion({ question, displayPosition, userAnswer, submitted, onTextA
                     {question.explanation.text && (
                       <button onClick={() => setShowExp(!showExp)} className={`p-1.5 rounded-md transition-colors ${showExp ? 'bg-yellow-100 text-yellow-700' : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'}`} title="Giải thích">
                         <Lightbulb className="h-4 w-4" />
-                      </button>
-                    )}
-                    {question.explanation.evidence && onLocateEvidence && (
-                      <button onClick={() => {
-                         const evidenceStr = question.explanation?.evidence || '';
-                         const chunks = evidenceStr.split('\\n---\\n').filter((e: string) => e.trim());
-                         if (chunks.length > 0) onLocateEvidence(chunks[0].trim());
-                      }} className="p-1.5 rounded-md bg-white text-blue-600 hover:bg-blue-50 transition-colors border border-gray-200" title="Định vị dẫn chứng">
-                        <Target className="h-4 w-4" />
                       </button>
                     )}
                   </div>
@@ -550,9 +585,28 @@ function ParagraphGapFilling({ groupContent, questions, submitted, textAnswers, 
                       ) : wrong ? (
                         <><XCircle className="h-4 w-4 text-gray-700" /><span className="text-gray-800">Đáp án: <strong className="text-green-600">{primaryCorrect}</strong>
                           {correctAnswer.includes('|') && <span className="text-gray-500 font-normal"> (hoặc: {correctAnswer.split('|').slice(1).join(', ')})</span>}
+                          {q.explanation?.evidence && onLocateEvidence && (
+                            <button onClick={() => {
+                               const evidenceStr = q.explanation?.evidence || '';
+                               const chunks = evidenceStr.split('\\n---\\n').filter((e: string) => e.trim());
+                               if (chunks.length > 0) onLocateEvidence(chunks[0].trim());
+                            }} className="inline-flex items-center ml-2 p-0.5 rounded hover:bg-gray-200 transition-colors text-gray-600" title="Định vị dẫn chứng">
+                              <TargetIcon className="h-3.5 w-3.5" />
+                            </button>
+                          )}
                         </span></>
                       ) : (
-                        <span className="text-gray-500 italic">Chưa trả lời — Đáp án: <strong className="text-green-600">{primaryCorrect}</strong></span>
+                        <span className="text-gray-500 italic">Chưa trả lời — Đáp án: <strong className="text-green-600">{primaryCorrect}</strong>
+                          {q.explanation?.evidence && onLocateEvidence && (
+                            <button onClick={() => {
+                               const evidenceStr = q.explanation?.evidence || '';
+                               const chunks = evidenceStr.split('\\n---\\n').filter((e: string) => e.trim());
+                               if (chunks.length > 0) onLocateEvidence(chunks[0].trim());
+                            }} className="inline-flex items-center ml-2 p-0.5 rounded hover:bg-gray-200 transition-colors text-gray-600" title="Định vị dẫn chứng">
+                              <TargetIcon className="h-3.5 w-3.5" />
+                            </button>
+                          )}
+                        </span>
                       )}
                     </div>
                     {q.explanation && (
@@ -560,15 +614,6 @@ function ParagraphGapFilling({ groupContent, questions, submitted, textAnswers, 
                         {q.explanation.text && (
                           <button onClick={() => setExpandedMap(prev => ({...prev, [q.id]: !prev[q.id]}))} className={`p-1.5 rounded-md transition-colors ${expandedMap[q.id] ? 'bg-yellow-100 text-yellow-700' : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'}`} title="Giải thích">
                             <Lightbulb className="h-4 w-4" />
-                          </button>
-                        )}
-                        {q.explanation.evidence && onLocateEvidence && (
-                          <button onClick={() => {
-                             const evidenceStr = q.explanation?.evidence || '';
-                             const chunks = evidenceStr.split('\\n---\\n').filter((e: string) => e.trim());
-                             if (chunks.length > 0) onLocateEvidence(chunks[0].trim());
-                          }} className="p-1.5 rounded-md bg-white text-blue-600 hover:bg-blue-50 transition-colors border border-gray-200" title="Định vị dẫn chứng">
-                            <Target className="h-4 w-4" />
                           </button>
                         )}
                       </div>

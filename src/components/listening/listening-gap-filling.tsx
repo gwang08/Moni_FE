@@ -281,7 +281,9 @@ function ParagraphGapFilling({ groupContent, questions, submitted, textAnswers, 
     if (!isHtml || !containerRef.current) return;
     
     const container = containerRef.current;
-    if (container.getAttribute('data-processed') === 'true') return;
+
+    // Always start from a clean slate to support StrictMode and re-runs
+    container.innerHTML = groupContent;
 
     const newPortals: typeof portals = [];
     let gapIndex = 0;
@@ -320,7 +322,7 @@ function ParagraphGapFilling({ groupContent, questions, submitted, textAnswers, 
       textNode.parentNode?.replaceChild(fragment, textNode);
     });
 
-    container.setAttribute('data-processed', 'true');
+    // Intentionally no data-processed attribute
     setPortals(newPortals);
   }, [groupContent, isHtml]);
 
@@ -338,7 +340,7 @@ function ParagraphGapFilling({ groupContent, questions, submitted, textAnswers, 
           const userAnswer = textAnswers[question.id] ?? '';
 
           return createPortal(
-            <React.Fragment>
+            <React.Fragment key={portal.id}>
               {examMode ? (
                 <ExamInlineGapInput
                   questionId={question.id}

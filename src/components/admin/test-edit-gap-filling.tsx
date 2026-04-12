@@ -107,12 +107,19 @@ function MultiAnswerInput({ answer, onChange }: { answer: string; onChange: (v: 
   );
 }
 
-/** Render HTML replacing [N]___ markers with styled gap pills */
-function renderPassageHtml(text: string, items: { answer: string }[]): string {
-  return text.replace(/\[(\d+)\]_{2,}/g, (_, num) => {
-    const rIdx = parseInt(num, 10) - 1;
-    const answer = items[rIdx]?.answer ?? '';
-    return `<span style="display:inline-flex;align-items:baseline;gap:2px;margin:0 2px"><strong style="color:#2563eb;font-size:13px">${num}</strong><span style="display:inline-block;min-width:80px;border-bottom:2px solid #9ca3af;text-align:center;color:#16a34a;font-size:12px;padding:0 4px;font-weight:600">${answer || '___'}</span></span>`;
+/** Render HTML replacing [N]___ or ___ markers with styled gap pills resembling exam input */
+function renderPassageHtml(text: string, items: { answer: string; position: number }[]): string {
+  let counter = 0;
+  return text.replace(/\[(\d+)\]_{2,}|_{2,}/g, (match, numMatch) => {
+    const rIdx = numMatch ? parseInt(numMatch, 10) - 1 : counter;
+    const item = items[rIdx];
+    const displayNumber = item ? item.position : (numMatch ? parseInt(numMatch, 10) : counter + 1);
+    counter++;
+    const answer = item?.answer ?? '';
+    const isBlank = !answer;
+    
+    // Renders a box like in the exam (white box, border, centered number if empty)
+    return `<span style="display:inline-flex;align-items:center;justify-content:center;min-width:60px;height:24px;border:1px solid #d1d5db;border-radius:2px;background:#fff;margin:0 4px;font-size:13px;font-weight:600;color:#111827;box-shadow:inset 0 1px 2px rgba(0,0,0,0.05);padding:0 8px;vertical-align:middle;">${isBlank ? displayNumber : answer}</span>`;
   });
 }
 

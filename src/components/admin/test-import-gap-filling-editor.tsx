@@ -160,10 +160,10 @@ function renderPreviewHtml(html: string, answers: string[]): string {
     const num = gapIndex + 1;
     const answer = answers[gapIndex]?.trim() ?? '';
     gapIndex += 1;
-    if (answer) {
-      return `<span style="display:inline-flex;align-items:baseline;gap:2px;margin:0 2px"><strong style="color:#2563eb;font-size:13px">${num}</strong><span style="display:inline-block;min-width:70px;border-bottom:2px solid #9ca3af;text-align:center;color:#16a34a;font-size:12px;padding:0 4px;font-weight:600">${answer}</span></span>`;
-    }
-    return `<span style="display:inline-flex;align-items:baseline;gap:2px;margin:0 2px"><strong style="color:#2563eb;font-size:13px">${num}</strong><span style="display:inline-block;min-width:70px;border-bottom:2px solid #9ca3af;text-align:center;color:#9ca3af;font-size:12px;padding:0 4px">___</span></span>`;
+    const isBlank = !answer;
+    
+    // Renders a box like in the exam (white box, border, centered number if empty)
+    return `<span style="display:inline-flex;align-items:center;justify-content:center;min-width:60px;height:24px;border:1px solid #d1d5db;border-radius:2px;background:#fff;margin:0 4px;font-size:13px;font-weight:600;color:#111827;box-shadow:inset 0 1px 2px rgba(0,0,0,0.05);padding:0 8px;vertical-align:middle;">${isBlank ? num : answer}</span>`;
   });
 }
 

@@ -324,16 +324,15 @@ const StaticHtml = React.memo(({ html, containerRef, className }: { html: string
 ));
 
 /** Render groupContent (HTML from TipTap) with inline blanks replacing __ markers */
-function ParagraphGapFilling({ groupContent, questions, submitted, textAnswers, onTextAnswer, questionPositionById = {}, onLocateEvidence, examMode = false }: {
-  groupContent: string;
-  questions: QuestionDetail[];
-  submitted: boolean;
-  textAnswers: Record<number, string>;
-  onTextAnswer: (questionId: number, text: string) => void;
-  questionPositionById?: Record<number, number>;
   onLocateEvidence?: (evidence: string) => void;
   examMode?: boolean;
 }) {
+  const sortedQuestions = useMemo(() => [...questions].sort((a, b) => a.position - b.position), [questions]);
+  const [mounted, setMounted] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [portalTargets, setPortalTargets] = useState<Array<{ element: HTMLElement; question: QuestionDetail }>>([]);
+  const isHtml = /<[a-z][\s\S]*>/i.test(groupContent);
+
   const processedHtml = useMemo(() => {
     if (!isHtml) return groupContent;
     let gapIndex = 0;

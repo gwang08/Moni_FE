@@ -397,15 +397,28 @@ function ParagraphGapFilling({ groupContent, questions, submitted, textAnswers, 
 
           return createPortal(
             <React.Fragment>
-              <strong className="text-blue-600 text-[13px] mr-1">{displayNum}</strong>
-              <GapInput 
-                questionId={question.id} 
-                userAnswer={userAnswer} 
-                submitted={submitted}
-                correctAnswer={correctAnswer} 
-                onTextAnswer={onTextAnswer} 
-                compact 
-              />
+              {examMode ? (
+                <ExamInlineGapInput
+                  questionId={question.id}
+                  userAnswer={userAnswer}
+                  submitted={submitted}
+                  correctAnswer={correctAnswer}
+                  displayNumber={displayNum}
+                  onTextAnswer={onTextAnswer}
+                />
+              ) : (
+                <>
+                  <strong className="text-blue-600 text-[13px] mr-1">{displayNum}</strong>
+                  <GapInput 
+                    questionId={question.id} 
+                    userAnswer={userAnswer} 
+                    submitted={submitted}
+                    correctAnswer={correctAnswer} 
+                    onTextAnswer={onTextAnswer} 
+                    compact 
+                  />
+                </>
+              )}
             </React.Fragment>,
             portal.element
           );

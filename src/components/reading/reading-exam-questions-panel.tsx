@@ -6,6 +6,7 @@ import { ReadingQuestionMcq } from '@/components/reading/reading-question-mcq';
 import { ReadingMatchingPills } from '@/components/reading/reading-matching-pills';
 import { ReadingMatchingInformation } from '@/components/reading/reading-matching-information';
 import { ReadingMatchingFeature } from '@/components/reading/reading-matching-feature';
+import { ReadingGapFilling } from '@/components/reading/reading-gap-filling';
 
 interface Props {
   stimulus: StimulusDetail;
@@ -20,105 +21,7 @@ interface Props {
 
 const GAP_TYPES = ['GAP_FILLING', 'DIAGRAM_LABEL'];
 
-/** IELTS-style inline gap input for exam mode */
-function ExamInlineGapInput({
-  questionId,
-  userAnswer,
-  submitted,
-  displayNumber,
-  onTextAnswer,
-}: {
-  questionId: number;
-  userAnswer: string;
-  submitted: boolean;
-  displayNumber?: number;
-  onTextAnswer: (questionId: number, text: string) => void;
-}) {
-  // Calculate input width based on content
-  const minLength = 80;
-  const charWidth = 8;
-  const inputWidth = Math.max(minLength, userAnswer.length * charWidth + 32);
-  const isBlank = userAnswer.trim().length === 0;
 
-  return (
-    <span className="relative inline-block align-middle" style={{ minWidth: `${minLength}px`, width: isBlank ? `${minLength}px` : `${inputWidth}px`, maxWidth: '400px' }}>
-      <input
-        type="text"
-        value={userAnswer}
-        disabled={submitted}
-        onChange={(e) => onTextAnswer(questionId, e.target.value)}
-        className="w-full rounded-sm border border-gray-400 bg-white px-2 text-center text-sm font-normal text-gray-900 focus:border-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-200"
-        style={{ height: '20px', lineHeight: '20px' }}
-        placeholder=""
-      />
-      {!submitted && isBlank && displayNumber != null && (
-        <span className="pointer-events-none absolute inset-0 flex items-center justify-center text-sm font-bold text-gray-900" style={{ lineHeight: '20px' }}>
-          {displayNumber}
-        </span>
-      )}
-    </span>
-  );
-}
-
-/** IELTS-style sentence gap-filling for exam mode */
-function IELTSGapFillingBox({
-  questions,
-  submitted,
-  textAnswers,
-  onTextAnswer,
-  questionPositionById = {},
-}: {
-  questions: QuestionDetail[];
-  submitted: boolean;
-  textAnswers: Record<number, string>;
-  onTextAnswer: (questionId: number, text: string) => void;
-  questionPositionById?: Record<number, number>;
-}) {
-  const sortedQuestions = [...questions].sort((a, b) => a.position - b.position);
-
-  // Helper to replace {{answer}} with ________
-  const formatContent = (content: string) => {
-    return content.replace(/\{\{.*?\}\}/g, '__________');
-  };
-
-  return (
-    <div className="bg-white py-4">
-      <div className="space-y-2">
-        {sortedQuestions.map((q) => {
-          const userAnswer = textAnswers[q.id] ?? '';
-          return (
-            <div key={q.id} id={`question-${q.id}`} className="py-1 border-b border-gray-100 last:border-0">
-              <p className="text-sm text-gray-800 font-normal leading-7">
-                {(() => {
-                  const parsed = q.content.match(/^([\s\S]*?)\{\{(.+?)\}\}([\s\S]*)$/);
-                  if (!parsed) {
-                    return formatContent(q.content);
-                  }
-
-                  const displayNumber = questionPositionById[q.id] ?? q.position;
-
-                  return (
-                    <>
-                      {parsed[1]}
-                      <ExamInlineGapInput
-                        questionId={q.id}
-                        userAnswer={userAnswer}
-                        submitted={submitted}
-                        displayNumber={displayNumber}
-                        onTextAnswer={onTextAnswer}
-                      />
-                      {parsed[3]}
-                    </>
-                  );
-                })()}
-              </p>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
 
 /** IELTS-style MCQ questions in boxed layout for exam mode */
 function IELTSMCQBox({
@@ -245,27 +148,16 @@ export function ReadingExamQuestionsPanel({
 
             {/* Question content in boxed layout */}
             {isGapType ? (
-              <div className="space-y-4">
-                {group.imageUrl && (
-                  <div className="rounded-lg border border-gray-200 bg-white p-3">
-                    {/* Use plain <img> so remote diagram URLs work without Next image host config. */}
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={group.imageUrl}
-                      alt="Diagram"
-                      className="max-w-full h-auto rounded"
-                      loading="lazy"
-                    />
-                  </div>
-                )}
-                <IELTSGapFillingBox
-                  questions={groupQuestions}
-                  submitted={submitted}
-                  textAnswers={textAnswers}
-                  onTextAnswer={onTextAnswer || (() => {})}
-                  questionPositionById={questionMeta.questionPositionById}
-                />
-              </div>
+              <ReadingGapFilling
+                questions={groupQuestions}
+                groupContent={group.groupContent}
+                imageUrl={group.imageUrl}
+                submitted={submitted}
+                textAnswers={textAnswers}
+                onTextAnswer={onTextAnswer || (() => {})}
+                questionPositionById={questionMeta.questionPositionById}
+                examMode
+              />
             ) : isMatchingHeadings ? (
               <div className="bg-white p-5">
                 <ReadingMatchingPills

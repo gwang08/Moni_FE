@@ -259,20 +259,26 @@ function PracticePage() {
       // Filter by topic - skip for now as we need tag name mapping
       // TODO: Implement topic filtering when tag mapping is available
     }
-    // Filter completed/not
+    // Filter completed/not — in-progress tests (active session) always show in "Bài chưa làm"
     if (!isAdminPreview) {
       if (showCompleted) {
-        list = list.filter((e) => completedExercises.includes(e.id));
+        list = list.filter((e) => completedExercises.includes(e.id) && !activeSessions.has(Number(e.id)));
       } else {
-        list = list.filter((e) => !completedExercises.includes(e.id));
+        list = list.filter((e) => !completedExercises.includes(e.id) || activeSessions.has(Number(e.id)));
       }
     }
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
       list = list.filter((e) => e.title.toLowerCase().includes(q) || e.description.toLowerCase().includes(q));
     }
+    // In-progress tests (active session) float to the top
+    list.sort((a, b) => {
+      const aActive = activeSessions.has(Number(a.id)) ? 1 : 0;
+      const bActive = activeSessions.has(Number(b.id)) ? 1 : 0;
+      return bActive - aActive;
+    });
     return list;
-  }, [exercises, activeMode, activeTestType, activeQuestionType, activeSkill, activePassage, writingFilters.type, showCompleted, searchQuery, completedExercises, isAdminPreview]);
+  }, [exercises, activeMode, activeTestType, activeQuestionType, activeSkill, activePassage, writingFilters.type, showCompleted, searchQuery, completedExercises, isAdminPreview, activeSessions]);
 
   const handleStartExercise = (exercise: Exercise) => {
     requireAuth(() => {

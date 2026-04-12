@@ -279,6 +279,12 @@ function ParagraphGapFilling({ groupContent, questions, submitted, textAnswers, 
   examMode?: boolean;
 }) {
   const sortedQuestions = useMemo(() => [...questions].sort((a, b) => a.position - b.position), [questions]);
+  
+  console.log("===== GAP DEBUG (Listening) =====");
+  console.log("Raw groupContent:", groupContent);
+  console.log("Gap count (__):", (groupContent.match(/_{2,}/g) ?? []).length);
+  console.log("Questions count:", questions.length);
+
   const [mounted, setMounted] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const [portalTargets, setPortalTargets] = useState<Array<{ element: HTMLElement; question: QuestionDetail }>>([]);
@@ -287,26 +293,40 @@ function ParagraphGapFilling({ groupContent, questions, submitted, textAnswers, 
   const processedHtml = useMemo(() => {
     if (!isHtml) return groupContent;
     let gapIndex = 0;
-    return groupContent.replace(/__+/g, () => {
-      const currentIdx = gapIndex++;
-      return `<span data-gap-index="${currentIdx}" class="inline-gap-portal inline-flex items-baseline mx-1"></span>`;
+    const html = groupContent.replace(/_{2,}/g, () => {
+      console.log("👉 Replace gap index (Listening):", gapIndex);
+      return `<span data-gap-index="${gapIndex++}" class="inline-gap-portal inline-flex items-baseline mx-1"></span>`;
     });
+    console.log("Processed HTML (Listening):", html);
+    return html;
   }, [groupContent, isHtml]);
 
   useEffect(() => {
     setMounted(true);
     if (!isHtml || !containerRef.current) return;
 
-    // Scan the DOM for placeholders and link them to questions
+    console.log("===== PORTAL SCAN (Listening) =====");
     const found: typeof portalTargets = [];
+
     sortedQuestions.forEach((q, index) => {
       const el = containerRef.current?.querySelector(`[data-gap-index="${index}"]`);
+      
+      console.log("Check gap", index, {
+        found: !!el,
+        questionId: q.id,
+        element: el,
+      });
+
       if (el instanceof HTMLElement) {
         found.push({ element: el, question: q });
       }
     });
+
+    console.log("Portal targets found (Listening):", found.length);
     setPortalTargets(found);
   }, [processedHtml, sortedQuestions, isHtml]);
+
+  console.log("Final portalTargets (Listening):", portalTargets);
 
   if (isHtml) {
     return (

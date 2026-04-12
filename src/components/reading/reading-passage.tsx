@@ -4,7 +4,7 @@ import { useReadingStore } from '@/store/reading-store';
 import { useRef, useMemo, useState, useCallback, useEffect } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
-import HighlightExt from '@tiptap/extension-highlight';
+import { HighlightMark, NoteIconNode } from '@/components/reading/tiptap-highlight-extensions';
 import { VocabPopup } from '@/components/reading/vocab-popup';
 import { ReadingWordLookupPopup } from '@/components/reading/reading-word-lookup-popup';
 import { SentenceTranslationPopup } from '@/components/reading/sentence-translation-popup';
@@ -37,7 +37,8 @@ function getWordAtPoint(x: number, y: number): { word: string; node: Node; range
 /** TipTap extensions for read-only passage rendering (selection handled by ProseMirror) */
 const PASSAGE_EXTENSIONS = [
   StarterKit.configure({ heading: false }),
-  HighlightExt.configure({ multicolor: true }),
+  HighlightMark,
+  NoteIconNode,
 ];
 
 interface Props {

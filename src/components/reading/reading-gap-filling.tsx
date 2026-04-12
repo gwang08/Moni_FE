@@ -332,7 +332,7 @@ function ParagraphGapFilling({ groupContent, questions, submitted, textAnswers, 
   const sortedQuestions = useMemo(() => [...questions].sort((a, b) => a.position - b.position), [questions]);
 // A robust approach to replace TipTap HTML with portal targets
   const [mounted, setMounted] = useState(false);
-  const componentId = useId();
+  const containerRef = useRef<HTMLDivElement>(null);
   const isHtml = /<[a-z][\s\S]*>/i.test(groupContent);
 
   const processedHtml = useMemo(() => {
@@ -341,9 +341,9 @@ function ParagraphGapFilling({ groupContent, questions, submitted, textAnswers, 
     // Replace 2 or more underscores with a span that portal can attach to
     return groupContent.replace(/__+/g, () => {
       const currentIdx = gapIndex++;
-      return `<span id="inline-gap-portal-${componentId}-${currentIdx}" class="inline-gap-portal inline-flex items-baseline mx-1"></span>`;
+      return `<span data-gap-index="${currentIdx}" class="inline-gap-portal inline-flex items-baseline mx-1"></span>`;
     });
-  }, [groupContent, isHtml, componentId]);
+  }, [groupContent, isHtml]);
 
   useEffect(() => {
     setMounted(true);
@@ -352,10 +352,10 @@ function ParagraphGapFilling({ groupContent, questions, submitted, textAnswers, 
   if (isHtml) {
     return (
       <div className={`bg-white p-4 ${examMode ? 'text-[13px] leading-7' : 'text-sm leading-8'} text-gray-900 [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:list-decimal [&_ol]:pl-6 [&_strong]:font-bold [&_em]:italic [&_h1]:text-xl [&_h1]:font-bold [&_h2]:text-lg [&_h2]:font-bold [&_h3]:text-base [&_h3]:font-bold [&_table]:w-full [&_table]:my-4 [&_table]:border-collapse [&_th]:border [&_th]:border-gray-300 [&_th]:p-2 [&_td]:border [&_td]:border-gray-300 [&_td]:p-2 [&_td_p]:m-0`}>
-        <div dangerouslySetInnerHTML={{ __html: processedHtml }} />
+        <div ref={containerRef} dangerouslySetInnerHTML={{ __html: processedHtml }} />
         
-        {mounted && sortedQuestions.map((question, index) => {
-          const domElement = document.getElementById(`inline-gap-portal-${componentId}-${index}`);
+        {mounted && containerRef.current && sortedQuestions.map((question, index) => {
+          const domElement = containerRef.current!.querySelector(`[data-gap-index="${index}"]`);
           if (!domElement) return null;
           
           const displayNum = questionPositionById[question.id] ?? question.position;

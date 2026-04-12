@@ -24,7 +24,10 @@ interface Props {
 }
 
 const EDITOR_EXTENSIONS = [
-  StarterKit,
+  StarterKit.configure({
+    bulletList: { HTMLAttributes: { class: 'list-disc pl-6 space-y-1 my-2' } },
+    orderedList: { HTMLAttributes: { class: 'list-decimal pl-6 space-y-1 my-2' } },
+  }),
   Placeholder.configure({ placeholder: 'Nhập nội dung đoạn văn / bài nghe...' }),
   Underline,
   Subscript,

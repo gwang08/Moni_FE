@@ -36,7 +36,10 @@ interface Props {
 }
 
 const EDITOR_EXTENSIONS = [
-  StarterKit,
+  StarterKit.configure({
+    bulletList: { HTMLAttributes: { class: 'list-disc pl-6 space-y-1 my-2' } },
+    orderedList: { HTMLAttributes: { class: 'list-decimal pl-6 space-y-1 my-2' } },
+  }),
   Placeholder.configure({ placeholder: '📝 Nhập nội dung và bấm "Thêm gap" (hoặc gõ __) để đánh dấu chỗ trống...' }),
   Underline,
   Subscript,
@@ -217,8 +220,8 @@ export function GapFillingEditor({
   };
 
   return (
-    <div className="space-y-3">
-      <div className="sticky top-0 z-30 rounded-lg border border-gray-200 bg-white/95 p-2 shadow-sm backdrop-blur">
+    <div className="space-y-3 relative">
+      <div className="rounded-lg border border-gray-200 bg-white p-2 shadow-sm">
         <div className="flex flex-wrap items-center gap-2">
           <span className="inline-flex items-center rounded-full bg-violet-600 px-3 py-1 text-xs font-semibold text-white">Gap Filling</span>
           <span className="inline-flex items-center rounded-full border border-violet-200 bg-violet-50 px-3 py-1 text-xs font-medium text-violet-700">

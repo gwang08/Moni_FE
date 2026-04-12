@@ -36,15 +36,27 @@ function buildTextToHtmlMap(html: string): number[] {
   return map;
 }
 
-/** Inject highlight <mark> tags into HTML using precise text offsets */
+/**
+ * Inject highlight <mark> tags into HTML using precise text offsets.
+ *
+ * Each highlight is split into two point-insertions (open at start, close at end).
+ * All insertions are collected then applied in descending position order so that
+ * lower-position inserts never slice through tags inserted at higher positions —
+ * this prevents broken HTML when highlights overlap or one contains another.
+ */
 export function injectHighlights(html: string, highlights: Highlight[]): string {
   if (!highlights.length) return html;
 
   const map = buildTextToHtmlMap(html);
-  const sorted = [...highlights].sort((a, b) => b.startOffset - a.startOffset);
-  let result = html;
 
-  for (const hl of sorted) {
+  // priority decides ordering when two insertions share the same position:
+  // higher priority is iterated first → ends up further RIGHT in the final string
+  // (because each insert pushes earlier inserts rightward).
+  // We want order: prevClose, newOpen at a shared boundary, so opens get higher priority.
+  type Insertion = { pos: number; text: string; priority: number };
+  const insertions: Insertion[] = [];
+
+  for (const hl of highlights) {
     const start = map[hl.startOffset];
     const end = map[hl.endOffset];
     if (start === undefined || end === undefined || start >= end) continue;
@@ -55,7 +67,15 @@ export function injectHighlights(html: string, highlights: Highlight[]): string 
     const style = COLOR_CLASSES[hl.color] || COLOR_CLASSES.yellow;
     const openTag = `<mark data-hl-id="${hl.id}" style="${style}; border-radius: 2px; padding: 0 2px; cursor: pointer;">`;
 
-    result = result.slice(0, start) + openTag + result.slice(start, end) + '</mark>' + noteIcon + result.slice(end);
+    insertions.push({ pos: start, text: openTag, priority: 1 });
+    insertions.push({ pos: end, text: '</mark>' + noteIcon, priority: 0 });
+  }
+
+  insertions.sort((a, b) => b.pos - a.pos || b.priority - a.priority);
+
+  let result = html;
+  for (const ins of insertions) {
+    result = result.slice(0, ins.pos) + ins.text + result.slice(ins.pos);
   }
 
   return result;

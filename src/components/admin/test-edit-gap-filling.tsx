@@ -1,15 +1,31 @@
 'use client';
 
-import { useRef, useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Loader2, Save, ChevronDown, ChevronUp, MousePointerClick, Undo2, Plus, Trash2 } from 'lucide-react';
+import { Loader2, Save, ChevronDown, ChevronUp, MousePointerClick, Undo2, Plus, Trash2, PenLine, Wand2 } from 'lucide-react';
 import { EvidenceList } from '@/components/admin/evidence-list';
 import { GapSentenceInput, extractAnswer } from '@/components/admin/gap-sentence-input';
 import { batchUpdateQuestions, updateQuestionGroupContent } from '@/lib/admin-api';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
 import type { QuestionDetail } from '@/types/test.types';
+
+// TipTap imports
+import { useEditor, EditorContent } from '@tiptap/react';
+import StarterKit from '@tiptap/starter-kit';
+import Placeholder from '@tiptap/extension-placeholder';
+import Underline from '@tiptap/extension-underline';
+import TextAlign from '@tiptap/extension-text-align';
+import LinkExtension from '@tiptap/extension-link';
+import Subscript from '@tiptap/extension-subscript';
+import Superscript from '@tiptap/extension-superscript';
+import Highlight from '@tiptap/extension-highlight';
+import { Table as TableExtension } from '@tiptap/extension-table';
+import TableRow from '@tiptap/extension-table-row';
+import TableCell from '@tiptap/extension-table-cell';
+import TableHeader from '@tiptap/extension-table-header';
+import { RichTextToolbar } from '@/components/admin/rich-text-toolbar';
 
 interface Props {
   questions: QuestionDetail[];
@@ -19,6 +35,38 @@ interface Props {
   pendingEvidence: string | null;
   onAssignEvidence: () => void;
   onEvidenceChange: (questionId: number, evidence: string) => void;
+}
+
+const EDITOR_EXTENSIONS = [
+  StarterKit.configure({
+    bulletList: { HTMLAttributes: { class: 'list-disc pl-6 space-y-1 my-2' } },
+    orderedList: { HTMLAttributes: { class: 'list-decimal pl-6 space-y-1 my-2' } },
+  }),
+  Placeholder.configure({ placeholder: 'Nhập nội dung đoạn văn...' }),
+  Underline,
+  Subscript,
+  Superscript,
+  Highlight.configure({ multicolor: true }),
+  TextAlign.configure({ types: ['heading', 'paragraph', 'listItem'] }),
+  LinkExtension.configure({ openOnClick: false }),
+  TableExtension.configure({ resizable: true }),
+  TableRow,
+  TableCell,
+  TableHeader,
+];
+
+/** Strip Google Docs / Word table wrappers from pasted HTML */
+function cleanHtml(html: string): string {
+  const tdContents: string[] = [];
+  const tdRegex = /<td[^>]*>([\s\S]*?)<\/td>/gi;
+  let match;
+  while ((match = tdRegex.exec(html)) !== null) {
+    const inner = match[1].trim();
+    if (inner && inner !== '<p></p>' && inner !== '<p><br></p>') {
+      tdContents.push(inner);
+    }
+  }
+  return tdContents.length > 0 ? tdContents.join('') : html;
 }
 
 /** Sentence questions have content with text; paragraph questions have empty content */
@@ -59,6 +107,15 @@ function MultiAnswerInput({ answer, onChange }: { answer: string; onChange: (v: 
   );
 }
 
+/** Render HTML replacing [N]___ markers with styled gap pills */
+function renderPassageHtml(text: string, items: { answer: string }[]): string {
+  return text.replace(/\[(\d+)\]_{2,}/g, (_, num) => {
+    const rIdx = parseInt(num, 10) - 1;
+    const answer = items[rIdx]?.answer ?? '';
+    return `<span style="display:inline-flex;align-items:baseline;gap:2px;margin:0 2px"><strong style="color:#2563eb;font-size:13px">${num}</strong><span style="display:inline-block;min-width:80px;border-bottom:2px solid #9ca3af;text-align:center;color:#16a34a;font-size:12px;padding:0 4px;font-weight:600">${answer || '___'}</span></span>`;
+  });
+}
+
 export function TestEditGapFilling({
   questions, groupId, groupContent: initialGroupContent, testId,
   pendingEvidence, onAssignEvidence, onEvidenceChange,
@@ -66,7 +123,8 @@ export function TestEditGapFilling({
   const queryClient = useQueryClient();
   const [collapsed, setCollapsed] = useState<Set<number>>(new Set());
   const [saving, setSaving] = useState(false);
-  const [gapMode, setGapMode] = useState(false);
+  // 'edit' = TipTap editor, 'select' = bôi chọn tạo gap
+  const [passageMode, setPassageMode] = useState<'edit' | 'select'>('edit');
   const passageRef = useRef<HTMLDivElement>(null);
 
   const [groupContentValue, setGroupContentValue] = useState(initialGroupContent ?? '');
@@ -87,6 +145,44 @@ export function TestEditGapFilling({
   const paragraphItems = items.filter(it => !isSentenceQ(it));
   const realIndex = (item: typeof items[0]) => items.indexOf(item);
 
+  // ── TipTap editor for the passage ──
+  const editor = useEditor({
+    extensions: EDITOR_EXTENSIONS,
+    content: groupContentValue,
+    immediatelyRender: false,
+    editorProps: {
+      attributes: {
+        class: 'prose prose-sm max-w-none min-h-[120px] focus:outline-none px-4 py-3 bg-white',
+      },
+      transformPastedHTML: (html) => cleanHtml(html),
+    },
+    onUpdate: ({ editor: ed }) => {
+      setGroupContentValue(ed.getHTML());
+    },
+  });
+
+  // Sync when groupContentValue changes externally (e.g. after select-mode gap creation)
+  useEffect(() => {
+    if (!editor) return;
+    const currentHtml = editor.getHTML();
+    if (groupContentValue !== currentHtml) {
+      editor.commands.setContent(groupContentValue, { emitUpdate: false });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [groupContentValue]);
+
+  useEffect(() => {
+    return () => { editor?.destroy(); };
+  }, [editor]);
+
+  const handleCleanContent = useCallback(() => {
+    if (!editor) return;
+    const cleaned = cleanHtml(editor.getHTML());
+    if (cleaned !== editor.getHTML()) {
+      editor.commands.setContent(cleaned, { emitUpdate: true });
+    }
+  }, [editor]);
+
   const toggleCollapsed = (idx: number) => {
     setCollapsed(prev => { const n = new Set(prev); n.has(idx) ? n.delete(idx) : n.add(idx); return n; });
   };
@@ -96,7 +192,7 @@ export function TestEditGapFilling({
     if (questions[idx]) onEvidenceChange(questions[idx].id, ev ?? '');
   };
 
-  // --- Paragraph: click-to-gap ---
+  // ── Select-to-gap (same logic as before, works on the preview div) ──
   const handleCreateGap = useCallback(() => {
     const sel = window.getSelection();
     if (!sel || sel.isCollapsed || !passageRef.current) return;
@@ -129,17 +225,10 @@ export function TestEditGapFilling({
     const marker = `[${rIdx + 1}]___`;
     setGroupContentValue(prev => prev.replace(marker, lastItem.answer));
     setItems(prev => prev.filter((_, i) => i !== rIdx));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [paragraphItems, items]);
 
-  const renderPassageHtml = useCallback((text: string) => {
-    return text.replace(/\[(\d+)\]_{2,}/g, (_, num) => {
-      const rIdx = parseInt(num, 10) - 1;
-      const answer = items[rIdx]?.answer ?? '';
-      return `<span style="display:inline-flex;align-items:baseline;gap:2px;margin:0 2px"><strong style="color:#2563eb;font-size:13px">${num}</strong><span style="display:inline-block;min-width:80px;border-bottom:2px solid #9ca3af;text-align:center;color:#16a34a;font-size:12px;padding:0 4px;font-weight:600">${answer || '___'}</span></span>`;
-    });
-  }, [items]);
-
-  // --- Save ---
+  // ── Save ──
   const handleSaveAll = async () => {
     setSaving(true);
     try {
@@ -167,56 +256,84 @@ export function TestEditGapFilling({
 
   return (
     <div className="space-y-3">
-      {/* === PARAGRAPH SECTION (only if groupContent exists) === */}
+      {/* ── PASSAGE SECTION ── */}
       {initialGroupContent !== undefined && (
         <div className="space-y-2">
+          {/* Mode toggle bar */}
           <div className="flex items-center gap-2 flex-wrap">
-            <Button type="button" size="sm" variant={gapMode ? 'default' : 'outline'}
-              className={`text-xs h-7 gap-1 ${gapMode ? 'bg-violet-600 hover:bg-violet-700' : ''}`}
-              onClick={() => setGapMode(!gapMode)}>
-              <MousePointerClick className="h-3 w-3" />
-              {gapMode ? 'Đang đánh dấu...' : 'Đánh dấu gap'}
+            <Button
+              type="button" size="sm"
+              variant={passageMode === 'edit' ? 'default' : 'outline'}
+              className={`text-xs h-7 gap-1 ${passageMode === 'edit' ? 'bg-blue-600 hover:bg-blue-700' : ''}`}
+              onClick={() => setPassageMode('edit')}
+            >
+              <PenLine className="h-3 w-3" />
+              Soạn thảo
             </Button>
-            {gapMode && <p className="text-[10px] text-violet-600 font-medium">Quét chọn từ → bấm &quot;Tạo gap&quot;</p>}
-            {paragraphItems.length > 0 && (
+            <Button
+              type="button" size="sm"
+              variant={passageMode === 'select' ? 'default' : 'outline'}
+              className={`text-xs h-7 gap-1 ${passageMode === 'select' ? 'bg-violet-600 hover:bg-violet-700' : ''}`}
+              onClick={() => setPassageMode('select')}
+            >
+              <MousePointerClick className="h-3 w-3" />
+              Đánh dấu gap
+            </Button>
+
+            {passageMode === 'edit' && (
+              <Button
+                type="button" size="sm" variant="ghost"
+                className="text-xs h-7 gap-1 text-orange-500 hover:text-orange-700 hover:bg-orange-50"
+                onClick={handleCleanContent}
+                title="Xóa table wrapper khi paste từ Google Docs"
+              >
+                <Wand2 className="h-3 w-3" />
+                Làm sạch HTML
+              </Button>
+            )}
+
+            {passageMode === 'select' && (
+              <p className="text-[10px] text-violet-600 font-medium">Quét chọn từ → bấm &quot;Tạo gap&quot;</p>
+            )}
+
+            {paragraphItems.length > 0 && passageMode === 'select' && (
               <Button type="button" size="sm" variant="ghost" className="text-xs h-7 gap-1 text-gray-400 ml-auto" onClick={handleUndoLastGap}>
                 <Undo2 className="h-3 w-3" /> Hoàn tác
               </Button>
             )}
           </div>
 
-          {groupContentValue.trim() ? (
-            <div className="relative">
-              <div ref={passageRef}
-                className={`rounded-lg border px-4 py-3 text-sm leading-7 select-text ${gapMode ? 'border-violet-300 bg-violet-50/30 cursor-text' : 'border-gray-200 bg-gray-50'}`}
-                dangerouslySetInnerHTML={{ __html: renderPassageHtml(groupContentValue) }}
-              />
-              {gapMode && (
-                <div className="absolute -bottom-1 right-2">
-                  <Button type="button" size="sm" className="h-7 text-xs gap-1 bg-violet-600 hover:bg-violet-700 shadow-lg"
-                    onMouseDown={e => { e.preventDefault(); handleCreateGap(); }}>
-                    <MousePointerClick className="h-3 w-3" /> Tạo gap
-                  </Button>
-                </div>
-              )}
+          {/* EDIT mode: TipTap editor */}
+          {passageMode === 'edit' && (
+            <div className="rounded-md border border-input bg-white overflow-hidden shadow-sm">
+              {editor && <RichTextToolbar editor={editor} />}
+              <EditorContent editor={editor} />
             </div>
-          ) : (
-            <textarea value={groupContentValue} onChange={e => setGroupContentValue(e.target.value)}
-              placeholder="Dán đoạn văn gốc đầy đủ vào đây."
-              rows={5} className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-y" />
           )}
 
-          {groupContentValue.trim() && (
-            <details className="text-[10px]">
-              <summary className="text-gray-400 cursor-pointer hover:text-gray-600">Sửa text thô</summary>
-              <textarea value={groupContentValue} onChange={e => setGroupContentValue(e.target.value)} rows={4}
-                className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-xs font-mono focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-y" />
-            </details>
+          {/* SELECT mode: read-only rendered preview for gap selection */}
+          {passageMode === 'select' && (
+            <div className="relative pb-4">
+              <div
+                ref={passageRef}
+                className="rounded-lg border border-violet-200 bg-violet-50/30 px-4 py-3 text-sm leading-7 select-text cursor-text"
+                dangerouslySetInnerHTML={{ __html: renderPassageHtml(groupContentValue, items) }}
+              />
+              <div className="absolute bottom-0 right-2">
+                <Button
+                  type="button" size="sm"
+                  className="h-7 text-xs gap-1 bg-violet-600 hover:bg-violet-700 shadow-lg"
+                  onMouseDown={e => { e.preventDefault(); handleCreateGap(); }}
+                >
+                  <MousePointerClick className="h-3 w-3" /> Tạo gap
+                </Button>
+              </div>
+            </div>
           )}
         </div>
       )}
 
-      {/* === ALL QUESTIONS LIST === */}
+      {/* ── QUESTIONS LIST ── */}
       {items.length > 0 && (
         <div className="rounded-lg border border-gray-200 overflow-hidden divide-y divide-gray-100">
           {items.map((item) => {

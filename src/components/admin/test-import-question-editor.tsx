@@ -11,6 +11,7 @@ import { FillOptions } from '@/components/admin/test-import-question-options-fil
 import { MatchingSharedOptions } from '@/components/admin/test-import-question-options-matching-shared';
 import { EvidenceList } from '@/components/admin/evidence-list';
 import type { OptionRequest, QuestionRequest, QuestionTypeCode } from '@/types/admin.types';
+import { useEffect, useRef } from 'react';
 
 interface Props {
   question: QuestionRequest;
@@ -55,6 +56,16 @@ export function QuestionEditor({
       ...question,
       explanation: { ...question.explanation, evidence: ev },
     });
+
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    const textarea = textareaRef.current;
+    if (textarea) {
+      textarea.style.height = 'auto';
+      textarea.style.height = `${textarea.scrollHeight}px`;
+    }
+  }, [question.explanation?.text]);
 
   return (
     <div className="group space-y-2 rounded-lg border border-gray-200 bg-white p-3">
@@ -105,11 +116,11 @@ export function QuestionEditor({
         <div>
           <Label className="mb-0.5 block text-xs text-gray-500">Giải thích</Label>
           <textarea
+            ref={textareaRef}
             value={question.explanation?.text ?? ''}
             onChange={(e) => onChange({ ...question, explanation: { ...question.explanation, text: e.target.value || undefined } })}
             placeholder="Tại sao đáp án này đúng?"
-            rows={2}
-            className="w-full resize-none rounded-md border border-input bg-background px-2 py-1.5 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="w-full shrink-0 overflow-hidden rounded-md border border-input bg-background px-2 py-1.5 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           />
         </div>
         <EvidenceList evidence={question.explanation?.evidence} pendingEvidence={pendingEvidence} onAssign={onAssignEvidence} onChange={handleEvidenceChange} />

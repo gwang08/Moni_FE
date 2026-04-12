@@ -15,9 +15,13 @@ interface Props {
   sublabel?: string;
   /** Hide the upload icon (default: false) */
   hideIcon?: boolean;
+  /** Custom icon component */
+  icon?: React.ReactNode;
+  /** Custom class for the outer container */
+  className?: string;
 }
 
-export function MediaUploadZone({ onUploaded, onFileSelected, label, sublabel, hideIcon }: Props) {
+export function MediaUploadZone({ onUploaded, onFileSelected, label, sublabel, hideIcon, icon, className }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
@@ -74,9 +78,9 @@ export function MediaUploadZone({ onUploaded, onFileSelected, label, sublabel, h
       onDragOver={e => { e.preventDefault(); setDragging(true); }}
       onDragLeave={() => setDragging(false)}
       onClick={() => !uploading && inputRef.current?.click()}
-      className={`border-2 border-dashed rounded-xl p-10 text-center cursor-pointer transition-colors mb-6 ${
+      className={`border-2 border-dashed rounded-xl p-10 text-center cursor-pointer transition-colors flex flex-col items-center justify-center ${
         dragging ? 'border-blue-500 bg-blue-50' : 'border-gray-300 hover:border-gray-400 bg-gray-50'
-      }`}
+      } ${className}`}
     >
       <input ref={inputRef} type="file" className="hidden" onChange={onFileChange} />
       {uploading ? (
@@ -86,10 +90,10 @@ export function MediaUploadZone({ onUploaded, onFileSelected, label, sublabel, h
         </div>
       ) : (
         <div className="flex flex-col items-center gap-2">
-          {!hideIcon && <Upload className="h-8 w-8 text-gray-400" />}
-          <p className={`text-sm font-medium ${label ? 'text-blue-600' : 'text-gray-600'}`}>{label || 'Kéo thả file hoặc nhấn để chọn'}</p>
+          {!hideIcon && (icon || <Upload className="h-8 w-8 text-gray-400" />)}
+          <p className="text-sm font-medium text-gray-600">{label || 'Kéo thả file hoặc nhấn để chọn'}</p>
           {sublabel && <p className="text-xs text-gray-400">{sublabel}</p>}
-          {!sublabel && <p className="text-xs text-gray-400">Hỗ trợ ảnh, video, audio và tài liệu</p>}
+          {sublabel === undefined && <p className="text-xs text-gray-400">Hỗ trợ ảnh, video, audio và tài liệu</p>}
         </div>
       )}
       {error && <p className="text-red-500 text-sm mt-2">{error}</p>}

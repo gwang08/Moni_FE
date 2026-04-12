@@ -4,7 +4,7 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Highlighter } from 'lucide-react';
 import { EvidenceList } from '@/components/admin/evidence-list';
-import { useCallback, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 
 interface Props {
   explanation?: { text?: string; evidence?: string };
@@ -30,17 +30,27 @@ export function QuestionExplanation({ explanation, stimulusContent, onChange }: 
     }
   }, [explanation, onChange]);
 
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    const textarea = textareaRef.current;
+    if (textarea) {
+      textarea.style.height = 'auto';
+      textarea.style.height = `${textarea.scrollHeight}px`;
+    }
+  }, [explanation?.text]);
+
   return (
     <div className="space-y-3 border-l border-gray-200 pl-4">
       {/* Giải thích */}
       <div>
         <Label className="mb-1 block text-xs font-medium text-gray-600">Giải thích đáp án</Label>
         <textarea
+          ref={textareaRef}
           value={explanation?.text ?? ''}
           onChange={e => update('text', e.target.value)}
           placeholder="Tại sao đáp án này đúng?"
-          rows={3}
-          className="w-full rounded-md border border-input bg-background px-3 py-2 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-none"
+          className="w-full shrink-0 overflow-hidden rounded-md border border-input bg-background px-3 py-2 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         />
       </div>
 

@@ -157,11 +157,11 @@ function MCQReviewSection({ position, isSkipped, isCorrect, correctOption, expla
                 {explanation.evidence && onLocateEvidence && (
                   <button
                     type="button"
-                    className="w-5 h-5 rounded-full bg-violet-100 hover:bg-violet-200 flex items-center justify-center text-violet-600"
+                    className="w-6 h-6 rounded-full flex items-center justify-center hover:bg-gray-100 transition-colors"
                     title={`Highlight dẫn chứng câu ${position}`}
                     onClick={() => onLocateEvidence(explanation?.evidence ?? '')}
                   >
-                    <Eye className="h-3.5 w-3.5" />
+                    <Eye className="h-4 w-4 text-gray-900" strokeWidth={2.5} />
                   </button>
                 )}
               </span>
@@ -180,11 +180,11 @@ function MCQReviewSection({ position, isSkipped, isCorrect, correctOption, expla
                 {explanation.evidence && onLocateEvidence && (
                   <button
                     type="button"
-                    className="w-5 h-5 rounded-full bg-violet-100 hover:bg-violet-200 flex items-center justify-center text-violet-600"
+                    className="w-6 h-6 rounded-full flex items-center justify-center hover:bg-gray-100 transition-colors"
                     title={`Highlight dẫn chứng câu ${position}`}
                     onClick={() => onLocateEvidence(explanation?.evidence ?? '')}
                   >
-                    <Eye className="h-3.5 w-3.5" />
+                    <Eye className="h-4 w-4 text-gray-900" strokeWidth={2.5} />
                   </button>
                 )}
               </span>
@@ -204,11 +204,11 @@ function MCQReviewSection({ position, isSkipped, isCorrect, correctOption, expla
                   {explanation.evidence && onLocateEvidence && (
                     <button
                       type="button"
-                      className="w-5 h-5 rounded-full bg-violet-100 hover:bg-violet-200 flex items-center justify-center text-violet-600"
+                      className="w-6 h-6 rounded-full flex items-center justify-center hover:bg-gray-100 transition-colors"
                       title={`Highlight dẫn chứng câu ${position}`}
                       onClick={() => onLocateEvidence(explanation?.evidence ?? '')}
                     >
-                      <Eye className="h-3.5 w-3.5" />
+                      <Eye className="h-4 w-4 text-gray-900" strokeWidth={2.5} />
                     </button>
                   )}
                 </span>

@@ -125,7 +125,7 @@ export const ListeningPracticeAudioPlayer = forwardRef<HTMLAudioElement, Props>(
   if (!audioUrl) return null;
 
   return (
-    <div className="shrink-0 bg-red-50 border-t border-red-200/60">
+    <div className="shrink-0" style={{ backgroundColor: '#FFF5F2', borderTop: '1px solid #F5D5C8' }}>
       {/* Progress bar */}
       <div className="relative w-full h-1 bg-gray-200 cursor-pointer group">
         <input
@@ -137,12 +137,12 @@ export const ListeningPracticeAudioPlayer = forwardRef<HTMLAudioElement, Props>(
           className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
         />
         <div
-          className="absolute left-0 top-0 h-full bg-red-600 rounded-r transition-all"
-          style={{ width: `${duration ? (currentTime / duration) * 100 : 0}%` }}
+          className="absolute left-0 top-0 h-full rounded-r transition-all"
+          style={{ width: `${duration ? (currentTime / duration) * 100 : 0}%`, backgroundColor: '#D55223' }}
         />
         <div
-          className="absolute top-1/2 -translate-y-1/2 w-3 h-3 bg-red-600 rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"
-          style={{ left: `calc(${duration ? (currentTime / duration) * 100 : 0}% - 6px)` }}
+          className="absolute top-1/2 -translate-y-1/2 w-3 h-3 rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"
+          style={{ left: `calc(${duration ? (currentTime / duration) * 100 : 0}% - 6px)`, backgroundColor: '#D55223' }}
         />
       </div>
 
@@ -172,7 +172,8 @@ export const ListeningPracticeAudioPlayer = forwardRef<HTMLAudioElement, Props>(
               step={0.05}
               value={isMuted ? 0 : volume}
               onChange={handleVolumeChange}
-              className="w-20 h-1 accent-red-600 cursor-pointer"
+              className="w-20 h-1 cursor-pointer"
+              style={{ accentColor: '#D55223' }}
             />
           </div>
         </div>
@@ -181,7 +182,10 @@ export const ListeningPracticeAudioPlayer = forwardRef<HTMLAudioElement, Props>(
         <div className="flex items-center gap-3">
           <button
             onClick={() => skip(-5)}
-            className="w-9 h-9 flex items-center justify-center rounded-full text-gray-700 hover:bg-red-100 transition-colors"
+            className="w-9 h-9 flex items-center justify-center rounded-full text-gray-700 transition-colors relative"
+            style={{ '--tw-ring-color': 'transparent' } as React.CSSProperties}
+            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#F5D5C8')}
+            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
             title="Lùi 5 giây"
           >
             <RotateCcw className="h-5 w-5" />
@@ -190,7 +194,10 @@ export const ListeningPracticeAudioPlayer = forwardRef<HTMLAudioElement, Props>(
 
           <button
             onClick={togglePlay}
-            className="w-12 h-12 flex items-center justify-center rounded-full bg-red-600 text-white hover:bg-red-700 transition-colors shadow-lg"
+            className="w-12 h-12 flex items-center justify-center rounded-full text-white transition-colors shadow-lg"
+            style={{ backgroundColor: '#D55223' }}
+            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#C2471D')}
+            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#D55223')}
           >
             {isPlaying ? (
               <Pause className="h-6 w-6 fill-white" />
@@ -201,7 +208,10 @@ export const ListeningPracticeAudioPlayer = forwardRef<HTMLAudioElement, Props>(
 
           <button
             onClick={() => skip(5)}
-            className="w-9 h-9 flex items-center justify-center rounded-full text-gray-700 hover:bg-red-100 transition-colors relative"
+            className="w-9 h-9 flex items-center justify-center rounded-full text-gray-700 transition-colors relative"
+            style={{ '--tw-ring-color': 'transparent' } as React.CSSProperties}
+            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#F5D5C8')}
+            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
             title="Tiến 5 giây"
           >
             <RotateCw className="h-5 w-5" />
@@ -225,9 +235,19 @@ export const ListeningPracticeAudioPlayer = forwardRef<HTMLAudioElement, Props>(
                 <button
                   key={rate}
                   onClick={() => changePlaybackRate(rate)}
-                  className={`w-full px-4 py-2 text-sm text-left hover:bg-red-50 transition-colors ${
-                    playbackRate === rate ? 'text-red-600 font-semibold bg-red-50' : 'text-gray-700'
+                  className={`w-full px-4 py-2 text-sm text-left transition-colors ${
+                    playbackRate === rate ? 'font-semibold' : 'text-gray-700'
                   }`}
+                  style={{
+                    color: playbackRate === rate ? '#D55223' : undefined,
+                    backgroundColor: playbackRate === rate ? '#FFF5F2' : undefined,
+                  }}
+                  onMouseEnter={(e) => {
+                    if (playbackRate !== rate) e.currentTarget.style.backgroundColor = '#FFF5F2';
+                  }}
+                  onMouseLeave={(e) => {
+                    if (playbackRate !== rate) e.currentTarget.style.backgroundColor = 'transparent';
+                  }}
                 >
                   {rate}x
                 </button>

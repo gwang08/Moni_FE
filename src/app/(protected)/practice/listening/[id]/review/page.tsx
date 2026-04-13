@@ -10,6 +10,8 @@ import { ListeningReviewPanel } from '@/components/listening/listening-review-pa
 import { ListeningPracticeAudioPlayer } from '@/components/listening/listening-practice-audio-player';
 import { useTestDetail } from '@/hooks/use-test-detail';
 import { getAttemptResult } from '@/lib/practice-api';
+import type { TranscriptSegment } from '@/types/listening.types';
+import type { StimulusDetail } from '@/types/test.types';
 
 interface ResultData {
   attemptId?: number;
@@ -22,6 +24,108 @@ interface ResultData {
 
 interface Props {
   params: Promise<{ id: string }>;
+}
+
+type TranscriptLike = TranscriptSegment & { content?: string };
+
+function normalizeText(value: string) {
+  return value.toLowerCase().replace(/\s+/g, ' ').trim();
+}
+
+function splitEvidenceChunks(evidence: string) {
+  return evidence
+    .split(/\n---\n|\r?\n/)
+    .map((chunk) => chunk.trim())
+    .filter(Boolean);
+}
+
+function findTranscriptMatches(segments: TranscriptSegment[], evidenceChunks: string[]) {
+  const matches: Array<{ chunkIndex: number; segmentIndex: number }> = [];
+
+  evidenceChunks.forEach((chunk, chunkIndex) => {
+    const normalizedChunk = normalizeText(chunk);
+    if (normalizedChunk.length < 2) return;
+
+    const phrase = normalizedChunk.length > 20
+      ? normalizedChunk.split(/\s+/).slice(0, 5).join(' ')
+      : normalizedChunk;
+
+    const segmentIndex = segments.findIndex((segment) => {
+      const segmentText = normalizeText(segment.text || segment.speaker || '');
+      if (!segmentText) return false;
+      if (segmentText.includes(normalizedChunk)) return true;
+      return phrase.length > 10 && segmentText.includes(phrase);
+    });
+
+    if (segmentIndex >= 0) {
+      matches.push({ chunkIndex, segmentIndex });
+    }
+  });
+
+  return matches.sort((a, b) => a.chunkIndex - b.chunkIndex);
+}
+
+function isChunkMatched(text: string, chunk: string) {
+  if (chunk.length < 2) return false;
+  if (text.includes(chunk)) return true;
+  if (chunk.length > 20) {
+    const words = chunk.split(/\s+/).slice(0, 5).join(' ');
+    return words.length > 10 && text.includes(words);
+  }
+  return false;
+}
+
+function getActiveContentSegmentIndex(container: HTMLDivElement, currentTime: number, audioDuration: number) {
+  const segmentNodes = Array.from(container.querySelectorAll<HTMLElement>('[data-transcript-segment]'));
+  if (segmentNodes.length > 0) {
+    for (let i = 0; i < segmentNodes.length; i++) {
+      const startTime = Number(segmentNodes[i].dataset.startTime);
+      const endTime = Number(segmentNodes[i].dataset.endTime);
+      if (Number.isFinite(startTime) && Number.isFinite(endTime)) {
+        if (currentTime >= startTime && currentTime < endTime) return i;
+      }
+    }
+    return Math.max(0, Math.min(segmentNodes.length - 1, Math.floor((currentTime / Math.max(1, audioDuration)) * segmentNodes.length)));
+  }
+
+  const paragraphs = Array.from(container.querySelectorAll<HTMLElement>('p'));
+  if (paragraphs.length === 0) return null;
+
+  const ratio = Number.isFinite(audioDuration) && audioDuration > 0 ? currentTime / audioDuration : 0;
+  return Math.max(0, Math.min(paragraphs.length - 1, Math.floor(ratio * paragraphs.length)));
+}
+
+function seekAudioToTranscriptTarget(audio: HTMLAudioElement | null, target: HTMLElement) {
+  if (!audio) return;
+
+  const directStart = Number(target.dataset.startTime);
+  if (Number.isFinite(directStart)) {
+    try {
+      audio.pause();
+      audio.currentTime = Math.max(0, directStart);
+      void audio.play().catch(() => {});
+    } catch (error) {
+      console.error('Failed to seek audio before play:', error);
+    }
+    return;
+  }
+
+  const container = target.closest('[data-transcript-panel]');
+  if (!container) return;
+  const items = Array.from(container.querySelectorAll<HTMLElement>('[data-transcript-segment], p'));
+  const idx = items.indexOf(target);
+  if (idx < 0) return;
+
+  const duration = audio.duration || 0;
+  const ratio = items.length > 1 ? idx / (items.length - 1) : 0;
+  const estimated = Math.max(0, duration > 0 ? Math.min(duration - 0.1, duration * ratio) : 0);
+  try {
+    audio.pause();
+    audio.currentTime = estimated;
+    void audio.play().catch(() => {});
+  } catch (error) {
+    console.error('Failed to seek audio before play:', error);
+  }
 }
 
 export default function ListeningReviewPage({ params }: Props) {
@@ -103,7 +207,7 @@ export default function ListeningReviewPage({ params }: Props) {
         }),
       })),
     };
-  }, [rawStimulus, explanationsJson]);
+  }, [rawStimulus, explanationsJson]) as StimulusDetail | null;
 
   // Audio time update handler for transcript highlighting
   useEffect(() => {
@@ -113,16 +217,8 @@ export default function ListeningReviewPage({ params }: Props) {
     const handleTimeUpdate = () => {
       const currentTime = audio.currentTime;
       // Find the active segment based on current time
-      let parsedTranscript: any[] = [];
-      if (Array.isArray(stimulus.transcript)) {
-        parsedTranscript = stimulus.transcript;
-      } else if (stimulus && 'transcript' in stimulus && typeof (stimulus as any).transcript === 'string' && (stimulus as any).transcript.trim()) {
-        try {
-          parsedTranscript = JSON.parse((stimulus as any).transcript);
-        } catch {
-          // Ignore
-        }
-      }
+      if (!stimulus) return;
+      const parsedTranscript: TranscriptLike[] = Array.isArray(stimulus.transcript) ? stimulus.transcript : [];
 
       if (parsedTranscript.length > 0) {
         // Find the segment that contains the current time
@@ -148,6 +244,24 @@ export default function ListeningReviewPage({ params }: Props) {
           if (activeButton) {
             activeButton.scrollIntoView({ behavior: 'smooth', block: 'center' });
           }
+        }
+        return;
+      }
+
+      if (transcriptRef.current) {
+        const activeContentIdx = getActiveContentSegmentIndex(transcriptRef.current, currentTime, audio.duration || 0);
+        const contentSegments = Array.from(transcriptRef.current.querySelectorAll<HTMLElement>('[data-transcript-segment], p'));
+        contentSegments.forEach((el, idx) => {
+          const isActive = activeContentIdx === idx;
+          el.classList.toggle('text-green-700', isActive);
+          el.classList.toggle('font-medium', isActive);
+          if (!isActive) {
+            el.classList.remove('text-green-700', 'font-medium');
+          }
+        });
+        if (activeContentIdx !== null) {
+          const activeNode = contentSegments[activeContentIdx];
+          activeNode?.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
       }
     };
@@ -221,19 +335,20 @@ export default function ListeningReviewPage({ params }: Props) {
   
           <div className="flex-1 flex overflow-hidden">
             {/* Transcript panel - Now on the LEFT */}
-            <div ref={transcriptRef} className="w-1/2 overflow-y-auto p-4 space-y-1 border-r" data-transcript>
-              <h4 className="text-sm font-semibold text-gray-700 mb-3 sticky top-0 bg-white py-1 z-10">Transcript</h4>
+            <div
+              ref={transcriptRef}
+              className="w-1/2 overflow-y-auto p-4 space-y-3 border-r"
+              data-transcript
+              data-transcript-panel
+              onClick={(e) => {
+                const target = e.target instanceof HTMLElement ? e.target.closest<HTMLElement>('[data-transcript-segment], p, button[data-segment-idx]') : null;
+                if (!target) return;
+                if (target.tagName === 'BUTTON') return;
+                seekAudioToTranscriptTarget(audioRef.current, target);
+              }}
+            >
               {(() => {
-                let parsedTranscript: any[] = [];
-                if (Array.isArray(stimulus.transcript)) {
-                  parsedTranscript = stimulus.transcript;
-                } else if (stimulus && 'transcript' in stimulus && typeof (stimulus as any).transcript === 'string' && (stimulus as any).transcript.trim()) {
-                  try {
-                    parsedTranscript = JSON.parse((stimulus as any).transcript);
-                  } catch {
-                    // Ignore
-                  }
-                }
+                const parsedTranscript: TranscriptLike[] = Array.isArray(stimulus.transcript) ? stimulus.transcript : [];
   
                 if (parsedTranscript.length > 0) {
                   return parsedTranscript.map((seg, i) => {
@@ -256,15 +371,15 @@ export default function ListeningReviewPage({ params }: Props) {
                             audioRef.current.play().catch(() => {});
                           }
                         }}
-                        className={`w-full text-left px-3 py-2 text-sm rounded-lg transition-colors group ${
-                          isActive 
-                            ? 'bg-violet-100 ring-2 ring-violet-400 text-violet-900' 
-                            : 'hover:bg-violet-50'
+                        className={`w-full text-left px-3 py-3 text-sm rounded-lg transition-colors group leading-relaxed ${
+                          isActive
+                            ? 'text-green-900'
+                            : 'hover:text-green-700'
                         }`}
                       >
-                        <span className={`text-[10px] font-mono mr-2 ${isActive ? 'text-violet-700' : 'text-violet-500 group-hover:text-violet-700'}`}>{ts}</span>
-                        {seg.speaker && <span className={`text-xs font-semibold mr-1 ${isActive ? 'text-violet-700' : 'text-gray-500'}`}>{seg.speaker}:</span>}
-                        <span className={isActive ? 'font-medium' : 'text-gray-700'}>{seg.text || seg.content || ''}</span>
+                        <span className={`text-[10px] font-mono mr-2 ${isActive ? 'text-green-700' : 'text-gray-500 group-hover:text-green-700'}`}>{ts}</span>
+                        {seg.speaker && <span className={`text-xs font-semibold mr-1 ${isActive ? 'text-green-700' : 'text-gray-500'}`}>{seg.speaker}:</span>}
+                        <span className={isActive ? 'font-medium text-green-900' : 'text-gray-700'}>{seg.text || seg.content || ''}</span>
                       </button>
                     );
                   });
@@ -273,7 +388,7 @@ export default function ListeningReviewPage({ params }: Props) {
                 if (stimulus.content && stimulus.content.trim()) {
                   return (
                     <div
-                      className="text-gray-700 text-sm leading-relaxed max-w-none"
+                      className="text-gray-700 text-sm leading-relaxed max-w-none [&_p]:cursor-pointer [&_p]:transition-colors [&_p:hover]:text-green-700"
                       dangerouslySetInnerHTML={{ __html: stimulus.content }}
                     />
                   );
@@ -293,75 +408,114 @@ export default function ListeningReviewPage({ params }: Props) {
                   if (!evidence) return;
                   const container = document.querySelector('[data-transcript]');
                   if (!container) return;
-                  
-                  // Clear previous highlights
-                  container.querySelectorAll('.ring-amber-400').forEach((el) => {
-                    el.classList.remove('bg-amber-100', 'ring-2', 'ring-amber-400');
-                  });
-                  
-                  const targets = container.querySelectorAll<HTMLElement>('[data-start-time], p, li, span');
-                  const chunks = evidence.split(/\n---\n|\r?\n/).map(c => c.trim().toLowerCase()).filter(Boolean);
+                  const chunks = splitEvidenceChunks(evidence);
                   if (chunks.length === 0) return;
-  
-                  let matchFound = false;
-                  for (let i = 0; i < targets.length; i++) {
-                    const el = targets[i];
-                    const rawText = (el.textContent || '');
-                    const text = rawText.toLowerCase().replace(/\s+/g, ' ');
-                    
-                    const matched = chunks.some(chunk => {
-                      const cleanChunk = chunk.replace(/\s+/g, ' ');
-                      if (cleanChunk.length < 2) return false;
-                      if (text.includes(cleanChunk)) return true;
-                      if (cleanChunk.length > 20) {
-                        const words = cleanChunk.split(/\s+/).slice(0, 5).join(' ');
-                        if (words.length > 10 && text.includes(words)) return true;
-                      }
-                      return false;
+
+                  const transcriptSegments = Array.isArray(stimulus.transcript) ? stimulus.transcript : [];
+                  const matchedSegments = transcriptSegments.length > 0
+                    ? findTranscriptMatches(transcriptSegments, chunks)
+                    : [];
+
+                  if (matchedSegments.length > 0) {
+                    const firstMatch = matchedSegments[0];
+                    const firstSegment = transcriptSegments[firstMatch.segmentIndex];
+                    const audio = audioRef.current;
+
+                    container.querySelectorAll('.bg-amber-100, .ring-2, .ring-amber-400').forEach((el) => {
+                      el.classList.remove('bg-amber-100', 'ring-2', 'ring-amber-400', 'rounded-sm');
                     });
-  
-                  if (matched) {
-                    matchFound = true;
-                    console.log('Match found in element!', rawText);
-                    
-                    // Resolve startTime
-                    let startTime: number | null = null;
-                    
-                    // 1. Try to find timestamp in the matched element OR its preceding siblings
-                    let searchIdx = i;
-                    while (searchIdx >= 0) {
-                      const searchEl = targets[searchIdx];
-                      const sTime = Number(searchEl.dataset.startTime);
-                      if (Number.isFinite(sTime)) {
-                        startTime = sTime;
-                        console.log('Found startTime from dataset:', startTime, 'at index', searchIdx);
-                        break;
+
+                    matchedSegments.forEach(({ segmentIndex }) => {
+                      const segmentEl = container.querySelector<HTMLElement>(`[data-segment-idx="${segmentIndex}"]`);
+                      if (!segmentEl) return;
+                      segmentEl.classList.add('bg-amber-100', 'ring-2', 'ring-amber-400', 'rounded-sm');
+                    });
+
+                    const activeElement = container.querySelector<HTMLElement>(`[data-segment-idx="${firstMatch.segmentIndex}"]`);
+                    activeElement?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+                    if (audio && Number.isFinite(firstSegment?.startTime)) {
+                      const startTime = Math.max(0, Number(firstSegment.startTime) || 0);
+                      try {
+                        audio.pause();
+                        audio.currentTime = startTime;
+                      } catch (error) {
+                        console.error('Failed to seek audio before play:', error);
                       }
-                      const tMatch = (searchEl.textContent || '').match(/(\d{1,2}):(\d{2})/);
-                      if (tMatch) {
-                        startTime = parseInt(tMatch[1], 10) * 60 + parseInt(tMatch[2], 10);
-                        console.log('Found startTime from text match:', startTime, 'at index', searchIdx);
-                        break;
-                      }
-                      searchIdx--;
+                      void audio.play().catch((err) => console.error('Play failed:', err));
                     }
-  
-                    if (startTime !== null && audioRef.current) {
-                      console.log('Jumping to audio time:', startTime);
-                      audioRef.current.currentTime = startTime;
-                      setTimeout(() => {
-                        console.log('Triggering audio play...');
-                        audioRef.current?.play().catch(err => console.error('Play failed:', err));
-                      }, 100);
-                    } else {
-                      console.log('Could not resolve startTime for jump.');
-                    }
-                    
-                    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    el.classList.add('bg-amber-100', 'ring-2', 'ring-amber-400', 'rounded-sm');
-                    setTimeout(() => el.classList.remove('bg-amber-100', 'ring-2', 'ring-amber-400', 'rounded-sm'), 10000);
-                    break;
+                    return;
                   }
+
+                  const targets = container.querySelectorAll<HTMLElement>('[data-start-time], p, li, span');
+                  const normalizedChunks = chunks.map(normalizeText).filter(Boolean);
+                  if (normalizedChunks.length === 0) return;
+                  const matchedTargetIndexes: number[] = [];
+                  normalizedChunks.forEach((chunk) => {
+                    const matchedIdx = Array.from(targets).findIndex((target) => {
+                      const text = normalizeText(target.textContent || '');
+                      return isChunkMatched(text, chunk);
+                    });
+                    if (matchedIdx >= 0) matchedTargetIndexes.push(matchedIdx);
+                  });
+
+                  if (matchedTargetIndexes.length === 0) return;
+
+                  const uniqueIndexes = Array.from(new Set(matchedTargetIndexes)).sort((a, b) => a - b);
+                  const firstIdx = matchedTargetIndexes[0];
+
+                  container.querySelectorAll('.bg-amber-100, .ring-2, .ring-amber-400').forEach((el) => {
+                    el.classList.remove('bg-amber-100', 'ring-2', 'ring-amber-400', 'rounded-sm');
+                  });
+
+                  uniqueIndexes.forEach((idx) => {
+                    const target = targets[idx];
+                    target?.classList.add('bg-amber-100', 'ring-2', 'ring-amber-400', 'rounded-sm');
+                  });
+
+                  const firstTarget = targets[firstIdx];
+                  firstTarget?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                  uniqueIndexes.forEach((idx) => {
+                    const target = targets[idx];
+                    if (!target) return;
+                    setTimeout(() => {
+                      target.classList.remove('bg-amber-100', 'ring-2', 'ring-amber-400', 'rounded-sm');
+                    }, 10000);
+                  });
+
+                  let startTime: number | null = null;
+                  let searchIdx = firstIdx;
+                  while (searchIdx >= 0) {
+                    const searchEl = targets[searchIdx];
+                    const sTime = Number(searchEl.dataset.startTime);
+                    if (Number.isFinite(sTime)) {
+                      startTime = sTime;
+                      break;
+                    }
+                    const tMatch = (searchEl.textContent || '').match(/(\d{1,2}):(\d{2})/);
+                    if (tMatch) {
+                      startTime = parseInt(tMatch[1], 10) * 60 + parseInt(tMatch[2], 10);
+                      break;
+                    }
+                    searchIdx--;
+                  }
+
+                  // Fallback estimate when transcript has no timestamps.
+                  if (startTime === null && audioRef.current && Number.isFinite(audioRef.current.duration) && audioRef.current.duration > 0) {
+                    const ratio = targets.length > 1 ? firstIdx / (targets.length - 1) : 0;
+                    startTime = Math.max(0, Math.min(audioRef.current.duration - 0.1, audioRef.current.duration * ratio));
+                  }
+
+                  if (audioRef.current) {
+                    try {
+                      audioRef.current.pause();
+                      if (startTime !== null) {
+                        audioRef.current.currentTime = startTime;
+                      }
+                    } catch (error) {
+                      console.error('Failed to seek audio before play:', error);
+                    }
+                    void audioRef.current.play().catch((err) => console.error('Play failed:', err));
                   }
                 }}
               />

@@ -24,12 +24,17 @@ const emptyStimulus = (section: number): StimulusRequest => ({
   questionGroups: [],
 });
 
-/** Convert transcript segments to plain HTML for the TipTap editor */
-function segmentsToHtml(segments: { text: string; speaker?: string }[]): string {
+/** Convert transcript segments to HTML for the TipTap editor */
+function segmentsToHtml(segments: { text: string; speaker?: string; startTime?: number; endTime?: number }[]): string {
   return segments
     .map((seg) => {
       const speaker = seg.speaker ? `<strong>${seg.speaker}:</strong> ` : '';
-      return `<p>${speaker}${seg.text}</p>`;
+      const attrs = [
+        'data-transcript-segment="true"',
+        Number.isFinite(seg.startTime) ? `data-start-time="${seg.startTime}"` : '',
+        Number.isFinite(seg.endTime) ? `data-end-time="${seg.endTime}"` : '',
+      ].filter(Boolean).join(' ');
+      return `<p ${attrs}>${speaker}${seg.text}</p>`;
     })
     .join('');
 }

@@ -77,11 +77,16 @@ function isGroupIncomplete(group: QuestionGroupRequest) {
   });
 }
 
-function segmentsToHtml(segments: { text: string; speaker?: string }[]): string {
+function segmentsToHtml(segments: { text: string; speaker?: string; startTime?: number; endTime?: number }[]): string {
   return segments
     .map((seg) => {
       const speaker = seg.speaker ? `<strong>${seg.speaker}:</strong> ` : '';
-      return `<p>${speaker}${seg.text}</p>`;
+      const attrs = [
+        'data-transcript-segment="true"',
+        Number.isFinite(seg.startTime) ? `data-start-time="${seg.startTime}"` : '',
+        Number.isFinite(seg.endTime) ? `data-end-time="${seg.endTime}"` : '',
+      ].filter(Boolean).join(' ');
+      return `<p ${attrs}>${speaker}${seg.text}</p>`;
     })
     .join('');
 }

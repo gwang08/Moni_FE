@@ -5,9 +5,9 @@ import { createPortal } from 'react-dom';
 import type { QuestionDetail } from '@/types/test.types';
 
 // Custom Target/Aim icon component - bullseye style
-function TargetIcon({ className = 'h-4 w-4' }: { className?: string }) {
+function TargetIcon({ className = 'h-4 w-4', strokeWidth = 2 }: { className?: string; strokeWidth?: number }) {
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round">
       <circle cx="12" cy="12" r="10" />
       <circle cx="12" cy="12" r="6" />
       <circle cx="12" cy="12" r="2" />
@@ -121,10 +121,10 @@ function ExamInlineGapInput({ questionId, userAnswer, submitted, correctAnswer, 
               e.stopPropagation();
               onLocateEvidence?.(evidence);
             }}
-            className="w-5 h-5 rounded-full bg-violet-100 hover:bg-violet-200 flex items-center justify-center text-violet-600 transition-colors ml-1 shrink-0 cursor-pointer"
+            className="w-6 h-6 rounded-full flex items-center justify-center hover:bg-gray-100 transition-colors ml-1 shrink-0 cursor-pointer"
             title="Xem dẫn chứng"
           >
-            <TargetIcon className="h-3.5 w-3.5" />
+            <TargetIcon className="h-4 w-4 text-gray-900" strokeWidth={2.5} />
           </button>
         )}
       </span>

@@ -106,9 +106,6 @@ function SlotCard({ slot, onClick, locked }: { slot: DailySlotResponse; onClick:
       <div className="absolute left-1/2 -translate-x-1/2 bottom-[calc(100%+8px)] w-[max-content] max-w-[220px] bg-gray-900/95 backdrop-blur-sm text-white text-[11px] sm:text-xs rounded-lg py-2 px-3 opacity-0 invisible group-hover/slot:opacity-100 group-hover/slot:visible transition-all duration-200 z-[60] shadow-xl pointer-events-none border border-gray-800">
         <div className="font-medium whitespace-pre-wrap leading-snug">
           {formattedTitle}
-          {slot.totalQuestions != null && (
-            <span className="text-gray-400 ml-1.5 font-normal">({slot.totalQuestions} câu)</span>
-          )}
         </div>
         <div className="absolute w-2 h-2 bg-gray-900/95 rotate-45 left-1/2 -translate-x-1/2 -bottom-1 border-b border-r border-gray-800"></div>
       </div>

@@ -1,7 +1,23 @@
 'use client';
 
-import { CheckCircle2, Square, CheckSquare } from 'lucide-react';
+import { CheckCircle2, Square, CheckSquare, Lightbulb } from 'lucide-react';
+import { useState } from 'react';
 import type { OptionDetail } from '@/types/test.types';
+
+// Custom Target/Aim icon component - bullseye style
+function TargetIcon({ className = 'h-4 w-4', strokeWidth = 2 }: { className?: string; strokeWidth?: number }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10" />
+      <circle cx="12" cy="12" r="6" />
+      <circle cx="12" cy="12" r="2" />
+      <line x1="12" y1="2" x2="12" y2="6" />
+      <line x1="12" y1="18" x2="12" y2="22" />
+      <line x1="2" y1="12" x2="6" y2="12" />
+      <line x1="18" y1="12" x2="22" y2="12" />
+    </svg>
+  );
+}
 
 interface Props {
   questionId: number;
@@ -58,7 +74,6 @@ export function ReadingQuestionMcq({ questionId, position, content, options, sel
                   className="h-4 w-4 accent-blue-600 text-blue-600 border-gray-400 focus:ring-blue-600"
                 />
                 <span className={`text-sm font-normal leading-tight ${isSelected ? 'font-medium' : ''}`}>
-                  {option.label && <strong className="mr-1">{option.label}.</strong>}
                   {option.content}
                 </span>
               </label>
@@ -66,28 +81,8 @@ export function ReadingQuestionMcq({ questionId, position, content, options, sel
           })}
         </div>
 
-        {submitted && !hasAnswer && (
-          <p className="mt-3 text-xs text-gray-500 italic">Chưa trả lời</p>
-        )}
-
-        {submitted && explanation?.text && (
-          <div className="mt-4 pt-3 border-t border-gray-200">
-            <p className="text-xs text-gray-600">
-              <strong>Giải thích:</strong> {explanation.text}
-            </p>
-            {explanation.evidence && (
-              <div className="space-y-1 mt-1">
-                {explanation.evidence.split('\n---\n').filter((e: string) => e.trim()).map((chunk: string, i: number) => (
-                  <p key={i}
-                    className={`text-xs text-gray-700 bg-gray-100 px-2 py-1 rounded ${onLocateEvidence ? 'cursor-pointer hover:bg-gray-200' : ''}`}
-                    onClick={() => onLocateEvidence?.(chunk.trim())}
-                  >
-                    Dẫn chứng {i + 1}: &ldquo;{chunk.trim()}&rdquo;
-                  </p>
-                ))}
-              </div>
-            )}
-          </div>
+        {submitted && explanation && (explanation.text || explanation.evidence) && (
+          <ExplanationSection explanation={explanation} onLocateEvidence={onLocateEvidence} />
         )}
       </div>
     );
@@ -151,7 +146,6 @@ export function ReadingQuestionMcq({ questionId, position, content, options, sel
                 </span>
               )}
               <span>
-                {option.label && <strong className="mr-1">{option.label}.</strong>}
                 {option.content}
               </span>
             </button>
@@ -159,28 +153,57 @@ export function ReadingQuestionMcq({ questionId, position, content, options, sel
         })}
       </div>
 
-      {submitted && explanation?.text && (
-        <div className="mt-3 pt-3 border-t border-gray-200">
-          <p className="text-xs text-gray-600">
-            <strong>Giải thích:</strong> {explanation.text}
-          </p>
-          {explanation.evidence && (
-            <div className="space-y-1 mt-1">
-              {explanation.evidence.split('\n---\n').filter((e: string) => e.trim()).map((chunk: string, i: number) => (
-                <p key={i}
-                  className={`text-xs text-gray-700 bg-gray-100 px-2 py-1 rounded ${onLocateEvidence ? 'cursor-pointer hover:bg-gray-200' : ''}`}
-                  onClick={() => onLocateEvidence?.(chunk.trim())}
-                >
-                  Dẫn chứng {i + 1}: &ldquo;{chunk.trim()}&rdquo;
-                </p>
-              ))}
-            </div>
-          )}
-        </div>
+      {submitted && explanation && (explanation.text || explanation.evidence) && (
+        <ExplanationSection explanation={explanation} onLocateEvidence={onLocateEvidence} />
       )}
+    </div>
+  );
+}
 
-      {submitted && !hasAnswer && (
-        <p className="mt-2 text-xs text-gray-500 italic">Chưa trả lời</p>
+/** Reusable explanation section with toggleable explanation text */
+function ExplanationSection({ explanation, onLocateEvidence }: {
+  explanation: { text?: string; evidence?: string };
+  onLocateEvidence?: (evidence: string) => void;
+}) {
+  const [showExplanation, setShowExplanation] = useState(false);
+
+  // Remove "Câu X - Giải thích đáp án" prefix from explanation text
+  const cleanExplanation = explanation.text?.replace(/^Câu\s+\d+\s*[-–—]\s*Giải thích đáp án\s*/i, '') || explanation.text;
+
+  return (
+    <div className="mt-4 pt-3 border-t border-gray-200">
+      <div className="flex items-center gap-2">
+        {explanation.evidence && onLocateEvidence && (
+          <button
+            type="button"
+            onClick={() => {
+              const evidenceStr = explanation.evidence || '';
+              const chunks = evidenceStr.split('\n---\n').filter((e: string) => e.trim());
+              if (chunks.length > 0) onLocateEvidence(chunks[0].trim());
+            }}
+            className="w-6 h-6 rounded-full flex items-center justify-center hover:bg-gray-100 transition-colors cursor-pointer"
+            title="Xem dẫn chứng"
+          >
+            <TargetIcon className="h-4 w-4 text-gray-900" strokeWidth={2} />
+          </button>
+        )}
+        {explanation.text && (
+          <button
+            type="button"
+            onClick={() => setShowExplanation(!showExplanation)}
+            className={`w-6 h-6 rounded-full flex items-center justify-center transition-colors cursor-pointer ${
+              showExplanation ? 'bg-yellow-200 hover:bg-yellow-300' : 'bg-yellow-100 hover:bg-yellow-200'
+            }`}
+            title="Xem giải thích"
+          >
+            <Lightbulb className={`h-4 w-4 ${showExplanation ? 'text-yellow-800' : 'text-yellow-700'}`} />
+          </button>
+        )}
+      </div>
+      {showExplanation && cleanExplanation && (
+        <div className="mt-2 text-sm text-gray-700 bg-gray-50 rounded px-3 py-2">
+          {cleanExplanation}
+        </div>
       )}
     </div>
   );

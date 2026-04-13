@@ -1,9 +1,10 @@
 'use client';
 
 import { use, useEffect, useRef, useState } from 'react';
+import type { ReactNode } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Clock } from 'lucide-react';
+import { ArrowRight, CheckCircle2, Clock, RotateCcw, XCircle, CircleDashed } from 'lucide-react';
 import { SkeletonResult } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { ReadingScoreDonut } from '@/components/reading/reading-score-donut';
@@ -116,88 +117,145 @@ export default function ListeningResultPage({ params }: Props) {
   const totalSkipped = groupStats.reduce((s, g) => s + g.skipped, 0);
   const isFullTest = testDetail.testMode === 'FULL_TEST';
   const listeningBand = getListeningBand(totalCorrect, totalQuestions);
+  const accuracy = totalQuestions > 0 ? (totalCorrect / totalQuestions) * 100 : 0;
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-8 space-y-8">
-      {/* Header */}
-      <div className="text-center space-y-1">
-        <p className="text-sm text-muted-foreground">Kết quả làm bài</p>
-        <h1 className="text-2xl font-bold">{testDetail.title}</h1>
-        <p className="text-sm text-muted-foreground flex items-center justify-center gap-1">
-          <Clock className="h-3.5 w-3.5" />
-          Thời gian: {formatTime(resultData.elapsedSeconds)}
-        </p>
-      </div>
-
-      {/* Score section */}
-      <div className="flex flex-col sm:flex-row items-center gap-8 bg-white border rounded-xl p-6">
-        <ReadingScoreDonut correct={totalCorrect} wrong={totalWrong} total={totalQuestions} />
-        <div className="space-y-2 text-sm">
-          {isFullTest && (
-            <p className="flex gap-3 items-center">
-              <span className="text-violet-600 font-semibold">IELTS Band:</span>
-              <span className="font-bold text-violet-700 text-base">{listeningBand.toFixed(1)}</span>
-            </p>
-          )}
-          <p className="flex gap-3">
-            <span className="text-green-600 font-semibold">Đúng:</span>
-            <span className="font-bold text-green-700">{totalCorrect} câu</span>
-          </p>
-          <p className="flex gap-3">
-            <span className="text-red-500 font-semibold">Sai:</span>
-            <span className="font-bold text-red-600">{totalWrong} câu</span>
-          </p>
-          <p className="flex gap-3">
-            <span className="text-gray-500 font-semibold">Bỏ qua:</span>
-            <span className="font-bold text-gray-600">{totalSkipped} câu</span>
+    <div className="min-h-[calc(100vh-56px)] bg-slate-50/80">
+      <div className="mx-auto max-w-4xl px-4 py-10 space-y-8">
+        {/* Header */}
+        <div className="text-center space-y-1">
+          <p className="text-sm text-slate-500">Kết quả làm bài</p>
+          <h1 className="text-3xl font-semibold tracking-tight text-slate-900">{testDetail.title}</h1>
+          <p className="text-sm text-slate-500 inline-flex items-center justify-center gap-1">
+            <Clock className="h-3.5 w-3.5" />
+            Thời gian: {formatTime(resultData.elapsedSeconds)}
           </p>
         </div>
-      </div>
 
-      {/* CTA: Review */}
-      <div className="text-center">
-        <Link href={`/practice/listening/${id}/review`}>
-          <Button size="lg" className="bg-green-600 hover:bg-green-700">
-            Xem giải thích chi tiết
-          </Button>
-        </Link>
-      </div>
+        {/* Summary card */}
+        <section className="overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-[0_16px_40px_rgba(15,23,42,0.08)]">
+          <div className="grid gap-0 lg:grid-cols-[260px_1fr]">
+            <div className="flex items-center justify-center bg-gradient-to-br from-slate-50 to-white px-6 py-8 lg:border-r lg:border-slate-100">
+              <ReadingScoreDonut correct={totalCorrect} wrong={totalWrong} total={totalQuestions} />
+            </div>
 
-      {/* Stats table */}
-      <div className="bg-white border rounded-xl overflow-hidden">
-        <div className="px-4 py-3 border-b">
-          <h2 className="font-semibold">Bảng dữ liệu chi tiết</h2>
-        </div>
-        <table className="w-full text-sm">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="text-left px-4 py-2 font-medium text-gray-600">Loại câu hỏi</th>
-              <th className="text-center px-4 py-2 font-medium text-gray-600">Số câu</th>
-              <th className="text-center px-4 py-2 font-medium text-green-600">Đúng</th>
-              <th className="text-center px-4 py-2 font-medium text-red-500">Sai</th>
-              <th className="text-center px-4 py-2 font-medium text-gray-500">Bỏ qua</th>
-            </tr>
-          </thead>
-          <tbody>
-            {groupStats.map((g, i) => (
-              <tr key={i} className="border-t">
-                <td className="px-4 py-2">{g.typeLabel}</td>
-                <td className="text-center px-4 py-2">{g.total}</td>
-                <td className="text-center px-4 py-2 font-semibold text-green-600">{g.correct}</td>
-                <td className="text-center px-4 py-2 font-semibold text-red-500">{g.wrong}</td>
-                <td className="text-center px-4 py-2 text-gray-500">{g.skipped}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            <div className="flex flex-col justify-between gap-6 px-6 py-6 lg:px-8">
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                <SummaryCard
+                  icon={<CircleDashed className="h-4 w-4 text-slate-500" />}
+                  label="Câu hỏi"
+                  value={String(totalQuestions)}
+                  tone="slate"
+                />
+                <SummaryCard
+                  icon={<CheckCircle2 className="h-4 w-4 text-emerald-500" />}
+                  label="Câu đúng"
+                  value={String(totalCorrect)}
+                  tone="emerald"
+                />
+                <SummaryCard
+                  icon={<XCircle className="h-4 w-4 text-rose-500" />}
+                  label="Câu sai"
+                  value={String(totalWrong)}
+                  tone="rose"
+                />
+                <SummaryCard
+                  icon={<RotateCcw className="h-4 w-4 text-sky-500" />}
+                  label="Đã bỏ qua"
+                  value={String(totalSkipped)}
+                  tone="sky"
+                />
+              </div>
 
-      {/* Back button */}
-      <div className="text-center">
-        <Link href="/practice?skill=listening">
-          <Button variant="outline">Quay lại danh sách</Button>
-        </Link>
+              <div className="flex flex-col gap-3 sm:flex-row">
+                <Button asChild size="lg" className="h-12 w-full rounded-2xl bg-green-600 px-6 text-sm font-semibold shadow-sm hover:bg-green-700 sm:flex-1">
+                  <Link href={`/practice/listening/${id}/review`}>
+                    <ArrowRight className="h-4 w-4" />
+                    Xem giải thích chi tiết
+                  </Link>
+                </Button>
+                <Button asChild size="lg" variant="outline" className="h-12 w-full rounded-2xl px-6 text-sm font-semibold sm:flex-1">
+                  <Link href={`/practice/listening/${id}`}>
+                    <RotateCcw className="h-4 w-4" />
+                    Làm lại bài thi
+                  </Link>
+                </Button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Stats table */}
+        <section className="overflow-hidden rounded-[24px] border border-slate-200 bg-white shadow-[0_12px_32px_rgba(15,23,42,0.06)]">
+          <div className="border-b border-slate-100 bg-slate-50/80 px-5 py-4">
+            <h2 className="font-semibold text-slate-900">Phân tích chi tiết</h2>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-white">
+                <tr className="border-b border-slate-100">
+                  <th className="text-left px-5 py-3 font-semibold text-slate-400 uppercase tracking-wide text-xs">Loại câu hỏi</th>
+                  <th className="text-center px-5 py-3 font-semibold text-slate-400 uppercase tracking-wide text-xs">Tổng</th>
+                  <th className="text-center px-5 py-3 font-semibold text-emerald-600 uppercase tracking-wide text-xs">Đúng</th>
+                  <th className="text-center px-5 py-3 font-semibold text-rose-500 uppercase tracking-wide text-xs">Sai</th>
+                  <th className="text-center px-5 py-3 font-semibold text-slate-400 uppercase tracking-wide text-xs">Bỏ qua</th>
+                  <th className="text-center px-5 py-3 font-semibold text-indigo-500 uppercase tracking-wide text-xs">Độ chính xác</th>
+                </tr>
+              </thead>
+              <tbody>
+                {groupStats.map((g, i) => {
+                  const rowAccuracy = g.total > 0 ? (g.correct / g.total) * 100 : 0;
+                  return (
+                    <tr key={i} className="border-b border-slate-100 last:border-b-0">
+                      <td className="px-5 py-4 font-medium text-slate-700">{g.typeLabel}</td>
+                      <td className="px-5 py-4 text-center text-slate-600">{g.total}</td>
+                      <td className="px-5 py-4 text-center font-semibold text-emerald-600">{g.correct}</td>
+                      <td className="px-5 py-4 text-center font-semibold text-rose-500">{g.wrong}</td>
+                      <td className="px-5 py-4 text-center text-slate-500">{g.skipped}</td>
+                      <td className="px-5 py-4 text-center font-semibold text-indigo-500">{rowAccuracy.toFixed(1)}%</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        {isFullTest && (
+          <div className="text-center text-sm text-slate-500">
+            IELTS Band: <span className="font-semibold text-slate-900">{listeningBand.toFixed(1)}</span>
+          </div>
+        )}
       </div>
+    </div>
+  );
+}
+
+function SummaryCard({
+  icon,
+  label,
+  value,
+  tone,
+}: {
+  icon: ReactNode;
+  label: string;
+  value: string;
+  tone: 'slate' | 'emerald' | 'rose' | 'sky';
+}) {
+  const toneStyles: Record<'slate' | 'emerald' | 'rose' | 'sky', string> = {
+    slate: 'bg-slate-50 border-slate-200',
+    emerald: 'bg-emerald-50 border-emerald-100',
+    rose: 'bg-rose-50 border-rose-100',
+    sky: 'bg-sky-50 border-sky-100',
+  };
+
+  return (
+    <div className={`rounded-2xl border p-4 ${toneStyles[tone]}`}>
+      <div className="mb-3 inline-flex h-9 w-9 items-center justify-center rounded-xl bg-white shadow-sm ring-1 ring-black/5">
+        {icon}
+      </div>
+      <div className="text-2xl font-semibold text-slate-900">{value}</div>
+      <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">{label}</div>
     </div>
   );
 }

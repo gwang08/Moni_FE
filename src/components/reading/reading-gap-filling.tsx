@@ -84,7 +84,7 @@ function GapInput({ questionId, userAnswer, submitted, correctAnswer, onTextAnsw
   // Submitted - show inline with correct answer, wrapped with underline
   const underlineColor = wrong ? 'border-red-500' : 'border-gray-300';
   const isBlank = userAnswer.trim().length === 0;
-  
+
   return (
     <span className={`inline-block border-b-2 pb-0.5 ${underlineColor}`}>
       <span className="inline-flex items-baseline gap-0 align-baseline">
@@ -96,7 +96,7 @@ function GapInput({ questionId, userAnswer, submitted, correctAnswer, onTextAnsw
         }`}>
           {isBlank ? '✕' : userAnswer}
         </span>
-        
+
         {/* Show correct answer inline when wrong or blank */}
         {!correct && (
           <span className={`text-sm font-semibold text-green-600 ${compact ? 'text-sm' : 'text-base'}`}>
@@ -109,15 +109,22 @@ function GapInput({ questionId, userAnswer, submitted, correctAnswer, onTextAnsw
 }
 
 /** IELTS-style inline gap input for exam mode */
-function ExamInlineGapInput({ questionId, userAnswer, submitted, correctAnswer, displayNumber, onTextAnswer }: {
+function ExamInlineGapInput({ questionId, userAnswer, submitted, correctAnswer, displayNumber, onTextAnswer, onLocateEvidence, evidence, explanationText }: {
   questionId: number; userAnswer: string; submitted: boolean; correctAnswer: string; displayNumber?: number;
   onTextAnswer: (questionId: number, text: string) => void;
+  onLocateEvidence?: (evidence: string) => void;
+  evidence?: string;
+  explanationText?: string;
 }) {
+  const [showExplanation, setShowExplanation] = useState(false);
   const correct = submitted && isAnswerCorrect(userAnswer, correctAnswer);
   const wrong = submitted && userAnswer.trim() !== '' && !isAnswerCorrect(userAnswer, correctAnswer);
   const hasAnswer = userAnswer.trim().length > 0;
   const isBlank = userAnswer.trim().length === 0;
   const primaryCorrect = correctAnswer.split('|')[0];
+
+  // Remove "Câu X - Giải thích đáp án" prefix from explanation text
+  const cleanExplanation = explanationText?.replace(/^Câu\s+\d+\s*[-–—]\s*Giải thích đáp án\s*/i, '') || explanationText;
 
   // Calculate input width based on content
   const minLength = 80;
@@ -149,10 +156,10 @@ function ExamInlineGapInput({ questionId, userAnswer, submitted, correctAnswer, 
 
   // Submitted - show inline with correct answer only (no duplicate)
   const underlineColor = wrong ? 'border-red-500' : 'border-gray-300';
-  
+
   return (
     <span className={`inline-block border-b-2 pb-0.5 ${underlineColor}`}>
-      <span className="inline-flex items-baseline gap-1 align-baseline">
+      <span className="inline-flex items-center gap-1 align-baseline">
         {wrong ? (
           <span className="inline-flex items-baseline gap-1 px-1 text-sm font-medium">
             <span className="text-red-600">{userAnswer}</span>
@@ -166,11 +173,51 @@ function ExamInlineGapInput({ questionId, userAnswer, submitted, correctAnswer, 
             <span className="text-green-600">{primaryCorrect}</span>
           </span>
         ) : (
-          <span className="text-sm font-medium text-green-600 px-1">
+          <span className="inline-flex items-center gap-1 px-1 text-sm font-medium text-green-600">
             {userAnswer}
           </span>
         )}
+
+        {submitted && (
+          <span className="inline-flex items-center gap-1 ml-1 shrink-0">
+            {evidence && onLocateEvidence && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onLocateEvidence?.(evidence);
+                }}
+                className="w-6 h-6 rounded-full flex items-center justify-center hover:bg-gray-100 transition-colors cursor-pointer"
+                title="Xem dẫn chứng"
+              >
+                <TargetIcon className="h-4 w-4 text-gray-900" strokeWidth={2} />
+              </button>
+            )}
+            {explanationText && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setShowExplanation(!showExplanation);
+                }}
+                className={`w-6 h-6 rounded-full flex items-center justify-center transition-colors cursor-pointer ${
+                  showExplanation ? 'bg-yellow-200 hover:bg-yellow-300' : 'bg-yellow-100 hover:bg-yellow-200'
+                }`}
+                title="Xem giải thích"
+              >
+                <Lightbulb className={`h-4 w-4 ${showExplanation ? 'text-yellow-800' : 'text-yellow-700'}`} />
+              </button>
+            )}
+          </span>
+        )}
       </span>
+      {showExplanation && cleanExplanation && (
+        <div className="mt-2 text-sm text-gray-700 bg-gray-50 rounded px-3 py-2 w-full">
+          {cleanExplanation}
+        </div>
+      )}
     </span>
   );
 }
@@ -220,6 +267,9 @@ function IELTSBoxedGapFilling({ questions, submitted, textAnswers, onTextAnswer,
                         correctAnswer={correctAnswer}
                         displayNumber={questionPositionById[q.id] ?? q.position}
                         onTextAnswer={onTextAnswer}
+                        onLocateEvidence={onLocateEvidence}
+                        evidence={q.explanation?.evidence}
+                        explanationText={q.explanation?.text}
                       />
                       {parsed.after}
                     </>
@@ -230,83 +280,6 @@ function IELTSBoxedGapFilling({ questions, submitted, textAnswers, onTextAnswer,
           );
         })}
       </div>
-
-      {/* Show results after submit */}
-      {submitted && (
-        <div className="mt-4 pt-4 border-t border-gray-200 space-y-3">
-          {sortedQuestions.map((q) => {
-            const userAnswer = textAnswers[q.id] ?? '';
-            const correctAnswer = q.options.find(o => o.isCorrect)?.content ?? '';
-            const correct = isAnswerCorrect(userAnswer, correctAnswer);
-            const wrong = userAnswer.trim() !== '' && !correct;
-            const displayPosition = questionPositionById[q.id] ?? q.position;
-            const primaryCorrect = correctAnswer.split('|')[0];
-
-            return (
-              <div key={q.id} className={`flex flex-col gap-2 text-xs px-3 py-2 rounded-lg ${
-                correct ? 'bg-green-50' : wrong ? 'bg-red-50' : 'bg-gray-50'
-              }`}>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="font-bold text-gray-900 min-w-[20px]">{displayPosition}.</span>
-                    {correct ? (
-                      <><CheckCircle2 className="h-4 w-4 text-gray-900" /><span className="text-gray-900 font-semibold">Đúng</span></>
-                    ) : wrong ? (
-                      <><XCircle className="h-4 w-4 text-gray-700" /><span className="text-gray-800">Đáp án: <strong className="text-green-600">{primaryCorrect}</strong>
-                        {correctAnswer.includes('|') && <span className="text-gray-500 font-normal"> (hoặc: {correctAnswer.split('|').slice(1).join(', ')})</span>}
-                        {q.explanation?.evidence && onLocateEvidence && (
-                          <button onClick={() => {
-                             const evidenceStr = q.explanation?.evidence || '';
-                             const chunks = evidenceStr.split('\\n---\\n').filter((e: string) => e.trim());
-                             if (chunks.length > 0) onLocateEvidence(chunks[0].trim());
-                          }} className="inline-flex items-center ml-2 p-0.5 rounded hover:bg-gray-200 transition-colors text-gray-600" title="Định vị dẫn chứng">
-                            <TargetIcon className="h-3.5 w-3.5" />
-                          </button>
-                        )}
-                      </span></>
-                    ) : (
-                      <span className="text-gray-500 italic">Chưa trả lời — Đáp án: <strong className="text-green-600">{primaryCorrect}</strong>
-                        {q.explanation?.evidence && onLocateEvidence && (
-                          <button onClick={() => {
-                             const evidenceStr = q.explanation?.evidence || '';
-                             const chunks = evidenceStr.split('\\n---\\n').filter((e: string) => e.trim());
-                             if (chunks.length > 0) onLocateEvidence(chunks[0].trim());
-                          }} className="inline-flex items-center ml-2 p-0.5 rounded hover:bg-gray-200 transition-colors text-gray-600" title="Định vị dẫn chứng">
-                            <TargetIcon className="h-3.5 w-3.5" />
-                          </button>
-                        )}
-                      </span>
-                    )}
-                  </div>
-                  {q.explanation && (
-                    <div className="flex items-center gap-2">
-                      {q.explanation.text && (
-                        <button onClick={() => setExpandedMap(prev => ({...prev, [q.id]: !prev[q.id]}))} className={`p-1.5 rounded-md transition-colors ${expandedMap[q.id] ? 'bg-yellow-100 text-yellow-700' : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'}`} title="Giải thích">
-                          <Lightbulb className="h-4 w-4" />
-                        </button>
-                      )}
-                    </div>
-                  )}
-                </div>
-                {expandedMap[q.id] && q.explanation?.text && (
-                  <div className="mt-1 pt-2 border-t border-gray-200/50 text-gray-700">
-                    <strong>Giải thích:</strong> {q.explanation.text}
-                    {q.explanation.evidence && (
-                      <div className="mt-1 space-y-1">
-                        {q.explanation.evidence.split('\\n---\\n').filter((e: string) => e.trim()).map((chunk: string, i: number) => (
-                          <p key={i} className="text-xs text-gray-600 bg-black/5 px-2 py-1 flex items-start gap-1">
-                            <span>Dẫn chứng {i + 1}:</span> <span>&ldquo;{chunk.trim()}&rdquo;</span>
-                          </p>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      )}
     </div>
   );
 }
@@ -341,6 +314,9 @@ function GapQuestion({ question, displayPosition, userAnswer, submitted, onTextA
                 correctAnswer={correctAnswer}
                 displayNumber={displayPosition}
                 onTextAnswer={onTextAnswer}
+                onLocateEvidence={onLocateEvidence}
+                evidence={question.explanation?.evidence}
+                explanationText={question.explanation?.text}
               />
               {parsed.after}
             </>
@@ -355,75 +331,13 @@ function GapQuestion({ question, displayPosition, userAnswer, submitted, onTextA
                 correctAnswer={correctAnswer}
                 displayNumber={displayPosition}
                 onTextAnswer={onTextAnswer}
+                onLocateEvidence={onLocateEvidence}
+                evidence={question.explanation?.evidence}
+                explanationText={question.explanation?.text}
               />
             </>
           )}
         </p>
-
-        {submitted && (
-          <div className="mt-4 pt-4 border-t border-gray-200 space-y-3">
-            <div className={`flex flex-col gap-2 text-xs px-3 py-2 rounded-lg ${
-              correct ? 'bg-green-50' : wrong ? 'bg-red-50' : 'bg-gray-50'
-            }`}>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="font-bold text-gray-900 min-w-[20px]">{displayPosition}.</span>
-                  {correct ? (
-                    <><CheckCircle2 className="h-4 w-4 text-gray-900" /><span className="text-gray-900 font-semibold">Đúng</span></>
-                  ) : wrong ? (
-                    <><XCircle className="h-4 w-4 text-gray-700" /><span className="text-gray-800">Đáp án: <strong className="text-green-600">{primaryCorrect}</strong>
-                      {correctAnswer.includes('|') && <span className="text-gray-500 font-normal"> (hoặc: {correctAnswer.split('|').slice(1).join(', ')})</span>}
-                      {question.explanation?.evidence && onLocateEvidence && (
-                        <button onClick={() => {
-                           const evidenceStr = question.explanation?.evidence || '';
-                           const chunks = evidenceStr.split('\\n---\\n').filter((e: string) => e.trim());
-                           if (chunks.length > 0) onLocateEvidence(chunks[0].trim());
-                        }} className="inline-flex items-center ml-2 p-0.5 rounded hover:bg-gray-200 transition-colors text-gray-600" title="Định vị dẫn chứng">
-                          <TargetIcon className="h-3.5 w-3.5" />
-                        </button>
-                      )}
-                    </span></>
-                  ) : (
-                    <span className="text-gray-500 italic">Chưa trả lời — Đáp án: <strong className="text-green-600">{primaryCorrect}</strong>
-                      {question.explanation?.evidence && onLocateEvidence && (
-                        <button onClick={() => {
-                           const evidenceStr = question.explanation?.evidence || '';
-                           const chunks = evidenceStr.split('\\n---\\n').filter((e: string) => e.trim());
-                           if (chunks.length > 0) onLocateEvidence(chunks[0].trim());
-                        }} className="inline-flex items-center ml-2 p-0.5 rounded hover:bg-gray-200 transition-colors text-gray-600" title="Định vị dẫn chứng">
-                          <TargetIcon className="h-3.5 w-3.5" />
-                        </button>
-                      )}
-                    </span>
-                  )}
-                </div>
-                {question.explanation && (
-                  <div className="flex items-center gap-2">
-                    {question.explanation.text && (
-                      <button onClick={() => setShowExp(!showExp)} className={`p-1.5 rounded-md transition-colors ${showExp ? 'bg-yellow-100 text-yellow-700' : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'}`} title="Giải thích">
-                        <Lightbulb className="h-4 w-4" />
-                      </button>
-                    )}
-                  </div>
-                )}
-              </div>
-              {showExp && question.explanation?.text && (
-                <div className="mt-1 pt-2 border-t border-gray-200/50 text-gray-700">
-                  <strong>Giải thích:</strong> {question.explanation.text}
-                  {question.explanation.evidence && (
-                    <div className="mt-1 space-y-1">
-                      {question.explanation.evidence.split('\\n---\\n').filter((e: string) => e.trim()).map((chunk: string, i: number) => (
-                        <p key={i} className="text-xs text-gray-600 bg-black/5 px-2 py-1 flex items-start gap-1">
-                          <span>Dẫn chứng {i + 1}:</span> <span>&ldquo;{chunk.trim()}&rdquo;</span>
-                        </p>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
       </div>
     );
   }
@@ -445,6 +359,9 @@ function GapQuestion({ question, displayPosition, userAnswer, submitted, onTextA
               correctAnswer={correctAnswer}
               displayNumber={displayPosition}
               onTextAnswer={onTextAnswer}
+              onLocateEvidence={onLocateEvidence}
+              evidence={question.explanation?.evidence}
+              explanationText={question.explanation?.text}
             />
             {parsed.after}
           </>
@@ -458,26 +375,13 @@ function GapQuestion({ question, displayPosition, userAnswer, submitted, onTextA
               correctAnswer={correctAnswer}
               displayNumber={displayPosition}
               onTextAnswer={onTextAnswer}
+              onLocateEvidence={onLocateEvidence}
+              evidence={question.explanation?.evidence}
+              explanationText={question.explanation?.text}
             />
           </>
         )}
       </div>
-
-      {submitted && question.explanation?.text && (
-        <div className="mt-2 ml-5 pt-2 border-t border-gray-200">
-          <p className="text-xs text-gray-600"><strong>Giải thích:</strong> {question.explanation.text}</p>
-          {question.explanation.evidence && (
-            <div className="space-y-1 mt-1">
-              {question.explanation.evidence.split('\n---\n').filter((e: string) => e.trim()).map((chunk: string, i: number) => (
-                <p key={i} className={`text-xs text-gray-700 bg-gray-100 px-2 py-1 rounded ${onLocateEvidence ? 'cursor-pointer hover:bg-gray-200' : ''}`}
-                  onClick={() => onLocateEvidence?.(chunk.trim())}>
-                  Dẫn chứng {i + 1}: &ldquo;{chunk.trim()}&rdquo;
-                </p>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
     </div>
   );
 }
@@ -502,7 +406,6 @@ function ParagraphGapFilling({ groupContent, questions, submitted, textAnswers, 
   const [mounted, setMounted] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const [portalTargets, setPortalTargets] = useState<Array<{ element: HTMLElement; question: QuestionDetail }>>([]);
-  const [expandedMap, setExpandedMap] = useState<Record<number, boolean>>({});
   const isHtml = /<[a-z][\s\S]*>/i.test(groupContent);
 
   const processedHtml = useMemo(() => {
@@ -533,15 +436,15 @@ function ParagraphGapFilling({ groupContent, questions, submitted, textAnswers, 
 
   if (isHtml) {
     const containerClasses = `bg-white p-4 ${examMode ? 'text-[13px] leading-7' : 'text-sm leading-8'} text-gray-900 [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:list-decimal [&_ol]:pl-6 [&_strong]:font-bold [&_em]:italic [&_h1]:text-xl [&_h1]:font-bold [&_h2]:text-lg [&_h2]:font-bold [&_h3]:text-base [&_h3]:font-bold [&_table]:w-full [&_table]:my-4 [&_table]:border-collapse [&_th]:border [&_th]:border-gray-300 [&_th]:p-2 [&_td]:border [&_td]:border-gray-300 [&_td]:p-2 [&_td_p]:m-0`;
-    
+
     return (
       <div className="relative">
-        <StaticHtml 
-          html={processedHtml} 
-          containerRef={containerRef} 
+        <StaticHtml
+          html={processedHtml}
+          containerRef={containerRef}
           className={containerClasses}
         />
-        
+
         {mounted && portalTargets.map(({ element, question }) => {
           const displayNum = questionPositionById[question.id] ?? question.position;
           const correctAnswer = question.options.find(o => o.isCorrect)?.content ?? '';
@@ -556,88 +459,14 @@ function ParagraphGapFilling({ groupContent, questions, submitted, textAnswers, 
                 correctAnswer={correctAnswer}
                 displayNumber={displayNum}
                 onTextAnswer={onTextAnswer}
+                onLocateEvidence={onLocateEvidence}
+                evidence={question.explanation?.evidence}
+                explanationText={question.explanation?.text}
               />
             </React.Fragment>,
             element
           );
         })}
-
-        {/* Show results after submit */}
-        {submitted && (
-          <div className="mt-4 pt-4 border-t border-gray-200 space-y-3">
-            {sortedQuestions.map((q) => {
-              const userAnswer = textAnswers[q.id] ?? '';
-              const correctAnswer = q.options.find(o => o.isCorrect)?.content ?? '';
-              const correct = isAnswerCorrect(userAnswer, correctAnswer);
-              const wrong = userAnswer.trim() !== '' && !correct;
-              const displayPosition = questionPositionById[q.id] ?? q.position;
-              const primaryCorrect = correctAnswer.split('|')[0];
-
-              return (
-                <div key={q.id} className={`flex flex-col gap-2 text-xs px-3 py-2 rounded-lg ${
-                  correct ? 'bg-green-50' : wrong ? 'bg-red-50' : 'bg-gray-50'
-                }`}>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold text-gray-900 min-w-[20px]">{displayPosition}.</span>
-                      {correct ? (
-                        <><CheckCircle2 className="h-4 w-4 text-gray-900" /><span className="text-gray-900 font-semibold">Đúng</span></>
-                      ) : wrong ? (
-                        <><XCircle className="h-4 w-4 text-gray-700" /><span className="text-gray-800">Đáp án: <strong className="text-green-600">{primaryCorrect}</strong>
-                          {correctAnswer.includes('|') && <span className="text-gray-500 font-normal"> (hoặc: {correctAnswer.split('|').slice(1).join(', ')})</span>}
-                          {q.explanation?.evidence && onLocateEvidence && (
-                            <button onClick={() => {
-                               const evidenceStr = q.explanation?.evidence || '';
-                               const chunks = evidenceStr.split('\\n---\\n').filter((e: string) => e.trim());
-                               if (chunks.length > 0) onLocateEvidence(chunks[0].trim());
-                            }} className="inline-flex items-center ml-2 p-0.5 rounded hover:bg-gray-200 transition-colors text-gray-600" title="Định vị dẫn chứng">
-                              <TargetIcon className="h-3.5 w-3.5" />
-                            </button>
-                          )}
-                        </span></>
-                      ) : (
-                        <span className="text-gray-500 italic">Chưa trả lời — Đáp án: <strong className="text-green-600">{primaryCorrect}</strong>
-                          {q.explanation?.evidence && onLocateEvidence && (
-                            <button onClick={() => {
-                               const evidenceStr = q.explanation?.evidence || '';
-                               const chunks = evidenceStr.split('\\n---\\n').filter((e: string) => e.trim());
-                               if (chunks.length > 0) onLocateEvidence(chunks[0].trim());
-                            }} className="inline-flex items-center ml-2 p-0.5 rounded hover:bg-gray-200 transition-colors text-gray-600" title="Định vị dẫn chứng">
-                              <TargetIcon className="h-3.5 w-3.5" />
-                            </button>
-                          )}
-                        </span>
-                      )}
-                    </div>
-                    {q.explanation && (
-                      <div className="flex items-center gap-2">
-                        {q.explanation.text && (
-                          <button onClick={() => setExpandedMap(prev => ({...prev, [q.id]: !prev[q.id]}))} className={`p-1.5 rounded-md transition-colors ${expandedMap[q.id] ? 'bg-yellow-100 text-yellow-700' : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'}`} title="Giải thích">
-                            <Lightbulb className="h-4 w-4" />
-                          </button>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                  {expandedMap[q.id] && q.explanation?.text && (
-                    <div className="mt-1 pt-2 border-t border-gray-200/50 text-gray-700">
-                      <strong>Giải thích:</strong> {q.explanation.text}
-                      {q.explanation.evidence && (
-                        <div className="mt-1 space-y-1">
-                          {q.explanation.evidence.split('\\n---\\n').filter((e: string) => e.trim()).map((chunk: string, i: number) => (
-                            <p key={i} className="text-xs text-gray-600 bg-black/5 px-2 py-1 flex items-start gap-1">
-                              <span>Dẫn chứng {i + 1}:</span> <span>&ldquo;{chunk.trim()}&rdquo;</span>
-                            </p>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        )}
       </div>
     );
   }
@@ -660,14 +489,17 @@ function ParagraphGapFilling({ groupContent, questions, submitted, textAnswers, 
     const correctAnswer = question.options.find(o => o.isCorrect)?.content ?? '';
     const userAnswer = textAnswers[question.id] ?? '';
     rendered.push(
-      <span key={`q-${gapIndex}`} id={`question-${question.id}`} className="inline-flex items-baseline gap-0.5 mx-0.5">
-        <ExamInlineGapInput 
-          questionId={question.id} 
-          userAnswer={userAnswer} 
+      <span key={`q-${gapIndex}`} id={`question-${question.id}`} className="inline-flex items-baseline gap-1 mx-0.5">
+        <ExamInlineGapInput
+          questionId={question.id}
+          userAnswer={userAnswer}
           submitted={submitted}
-          correctAnswer={correctAnswer} 
+          correctAnswer={correctAnswer}
           onTextAnswer={onTextAnswer}
           displayNumber={displayNum}
+          onLocateEvidence={onLocateEvidence}
+          evidence={question.explanation?.evidence}
+          explanationText={question.explanation?.text}
         />
       </span>
     );

@@ -49,17 +49,22 @@ function parseGapContent(content: string): { before: string; answer: string; aft
 }
 
 /** IELTS-style inline gap input for exam mode */
-function ExamInlineGapInput({ questionId, userAnswer, submitted, correctAnswer, displayNumber, onTextAnswer, onLocateEvidence, evidence }: {
+function ExamInlineGapInput({ questionId, userAnswer, submitted, correctAnswer, displayNumber, onTextAnswer, onLocateEvidence, evidence, explanationText }: {
   questionId: number; userAnswer: string; submitted: boolean; correctAnswer: string; displayNumber?: number;
   onTextAnswer: (questionId: number, text: string) => void;
   onLocateEvidence?: (evidence: string) => void;
   evidence?: string;
+  explanationText?: string;
 }) {
+  const [showExplanation, setShowExplanation] = useState(false);
   const correct = submitted && isAnswerCorrect(userAnswer, correctAnswer);
   const wrong = submitted && userAnswer.trim() !== '' && !isAnswerCorrect(userAnswer, correctAnswer);
   const hasAnswer = userAnswer.trim().length > 0;
   const isBlank = userAnswer.trim().length === 0;
   const primaryCorrect = correctAnswer.split('|')[0];
+
+  // Remove "Câu X - Giải thích đáp án" prefix from explanation text
+  const cleanExplanation = explanationText?.replace(/^Câu\s+\d+\s*[-–—]\s*Giải thích đáp án\s*/i, '') || explanationText;
 
   // Calculate input width based on content
   const minLength = 80;
@@ -91,7 +96,7 @@ function ExamInlineGapInput({ questionId, userAnswer, submitted, correctAnswer, 
 
   // Submitted - show inline with correct answer only (no duplicate)
   const underlineColor = wrong ? 'border-red-500' : 'border-gray-300';
-  
+
   return (
     <span className={`inline-block border-b-2 pb-0.5 ${underlineColor}`}>
       <span className="inline-flex items-center gap-1 align-baseline">
@@ -112,22 +117,47 @@ function ExamInlineGapInput({ questionId, userAnswer, submitted, correctAnswer, 
             {userAnswer}
           </span>
         )}
-        
-        {submitted && evidence && onLocateEvidence && (
-          <button
-            type="button"
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              onLocateEvidence?.(evidence);
-            }}
-            className="w-6 h-6 rounded-full flex items-center justify-center hover:bg-gray-100 transition-colors ml-1 shrink-0 cursor-pointer"
-            title="Xem dẫn chứng"
-          >
-            <TargetIcon className="h-4 w-4 text-gray-900" strokeWidth={2.5} />
-          </button>
+
+        {submitted && (
+          <span className="inline-flex items-center gap-1 ml-1 shrink-0">
+            {evidence && onLocateEvidence && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onLocateEvidence?.(evidence);
+                }}
+                className="w-6 h-6 rounded-full flex items-center justify-center hover:bg-gray-100 transition-colors cursor-pointer"
+                title="Xem dẫn chứng"
+              >
+                <TargetIcon className="h-4 w-4 text-gray-900" strokeWidth={2} />
+              </button>
+            )}
+            {explanationText && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setShowExplanation(!showExplanation);
+                }}
+                className={`w-6 h-6 rounded-full flex items-center justify-center transition-colors cursor-pointer ${
+                  showExplanation ? 'bg-yellow-200 hover:bg-yellow-300' : 'bg-yellow-100 hover:bg-yellow-200'
+                }`}
+                title="Xem giải thích"
+              >
+                <Lightbulb className={`h-4 w-4 ${showExplanation ? 'text-yellow-800' : 'text-yellow-700'}`} />
+              </button>
+            )}
+          </span>
         )}
       </span>
+      {showExplanation && cleanExplanation && (
+        <div className="mt-2 text-sm text-gray-700 bg-gray-50 rounded px-3 py-2 w-full">
+          {cleanExplanation}
+        </div>
+      )}
     </span>
   );
 }
@@ -210,6 +240,7 @@ function IELTSBoxedGapFilling({ questions, submitted, textAnswers, onTextAnswer,
                         onTextAnswer={onTextAnswer}
                         onLocateEvidence={onLocateEvidence}
                         evidence={q.explanation?.evidence}
+                        explanationText={q.explanation?.text}
                       />
                       {parsed.after}
                     </>
@@ -254,6 +285,7 @@ function GapQuestion({ question, displayPosition, userAnswer, submitted, onTextA
               onTextAnswer={onTextAnswer}
               onLocateEvidence={onLocateEvidence}
               evidence={question.explanation?.evidence}
+              explanationText={question.explanation?.text}
             />
             {parsed.after}
           </>
@@ -270,6 +302,7 @@ function GapQuestion({ question, displayPosition, userAnswer, submitted, onTextA
               onTextAnswer={onTextAnswer}
               onLocateEvidence={onLocateEvidence}
               evidence={question.explanation?.evidence}
+              explanationText={question.explanation?.text}
             />
           </>
         )}
@@ -353,6 +386,7 @@ function ParagraphGapFilling({ groupContent, questions, submitted, textAnswers, 
                 onTextAnswer={onTextAnswer}
                 onLocateEvidence={onLocateEvidence}
                 evidence={question.explanation?.evidence}
+                explanationText={question.explanation?.text}
               />
             </React.Fragment>,
             element
@@ -391,6 +425,7 @@ function ParagraphGapFilling({ groupContent, questions, submitted, textAnswers, 
             onTextAnswer={onTextAnswer}
             onLocateEvidence={onLocateEvidence}
             evidence={question.explanation?.evidence}
+            explanationText={question.explanation?.text}
           />
       </span>
     );

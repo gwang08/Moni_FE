@@ -1,15 +1,15 @@
 'use client';
 
 import { useState } from 'react';
-import { Upload, Link2, Loader2, X } from 'lucide-react';
-import { MediaUploadZone } from '@/components/admin/media-upload-zone';
+import { Music, Loader2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface Props {
   onUploaded: (url: string) => void;
+  onFileSelected?: (file: File, previewUrl: string) => void;
 }
 
-export function AudioUploadSection({ onUploaded }: Props) {
+export function AudioUploadSection({ onUploaded, onFileSelected }: Props) {
   const [showUrlInput, setShowUrlInput] = useState(false);
   const [urlInput, setUrlInput] = useState('');
   const [validating, setValidating] = useState(false);
@@ -29,33 +29,25 @@ export function AudioUploadSection({ onUploaded }: Props) {
     }
   };
 
-  return (
-    <div className="relative flex-1">
-      {/* Main upload area */}
-      <MediaUploadZone
-        onUploaded={onUploaded}
-        icon={<Upload className="h-12 w-12 text-gray-400" />}
-        label="Thêm audio"
-        sublabel="Kéo thả hoặc nhấn để chọn file"
-        className="flex-1"
-      />
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-      {/* URL input trigger */}
-      <div className="mt-3 text-center">
-        <button
-          type="button"
-          onClick={() => setShowUrlInput(!showUrlInput)}
-          className="inline-flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-700 hover:underline transition-colors"
-        >
-          <Link2 className="h-3 w-3" />
-          hoặc Thêm bằng URL
-        </button>
-      </div>
+    if (onFileSelected) {
+      const previewUrl = URL.createObjectURL(file);
+      onFileSelected(file, previewUrl);
+      return;
+    }
 
-      {/* URL input popup */}
-      {showUrlInput && (
-        <div className="absolute inset-x-4 top-1/2 -translate-y-1/2 z-10 rounded-xl border border-gray-200 bg-white shadow-lg p-4">
-          <div className="flex items-center justify-between mb-3">
+    // Direct upload mode
+    onUploaded(URL.createObjectURL(file));
+  };
+
+  if (showUrlInput) {
+    return (
+      <div className="flex flex-1 items-center justify-center p-8">
+        <div className="w-full max-w-md rounded-xl border border-gray-200 bg-white shadow-lg p-6">
+          <div className="flex items-center justify-between mb-4">
             <span className="text-sm font-medium text-gray-700">Nhập URL audio</span>
             <button
               type="button"
@@ -68,7 +60,7 @@ export function AudioUploadSection({ onUploaded }: Props) {
               <X className="h-4 w-4" />
             </button>
           </div>
-          <div className="space-y-2">
+          <div className="space-y-3">
             <input
               type="url"
               value={urlInput}
@@ -80,6 +72,7 @@ export function AudioUploadSection({ onUploaded }: Props) {
                   handleUrlSubmit();
                 }
               }}
+              autoFocus
             />
             <Button
               type="button"
@@ -92,14 +85,54 @@ export function AudioUploadSection({ onUploaded }: Props) {
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
               ) : (
                 <>
-                  <Link2 className="h-3.5 w-3.5" />
+                  <Music className="h-3.5 w-3.5" />
                   Sử dụng URL này
                 </>
               )}
             </Button>
           </div>
         </div>
-      )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-1 items-center justify-center p-8">
+      <div className="text-center">
+        {/* Audio icon */}
+        <div className="mb-4">
+          <Music className="h-12 w-12 text-gray-400 mx-auto" />
+        </div>
+
+        {/* Upload options */}
+        <div className="space-y-2">
+          <label className="block">
+            <span className="text-base font-medium text-blue-600 hover:text-blue-700 cursor-pointer">
+              <input
+                type="file"
+                accept="audio/*"
+                className="hidden"
+                onChange={handleFileChange}
+              />
+              Thêm audio
+            </span>
+          </label>
+
+          <p className="text-sm text-gray-400">hoặc</p>
+
+          <button
+            type="button"
+            onClick={() => setShowUrlInput(true)}
+            className="text-base font-medium text-blue-600 hover:text-blue-700 hover:underline"
+          >
+            Thêm từ URL
+          </button>
+        </div>
+
+        <p className="mt-3 text-xs text-gray-400">
+          Hỗ trợ MP3, WAV, M4A
+        </p>
+      </div>
     </div>
   );
 }

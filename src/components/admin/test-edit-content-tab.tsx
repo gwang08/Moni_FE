@@ -858,17 +858,48 @@ export const TestEditContentTab = forwardRef<TestEditContentHandle, Props>(funct
 
           <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 [scrollbar-gutter:stable]">
             {test.skill === 'LISTENING' && editingPassage ? (
-              <div className="mb-3 space-y-2">
-                <label className="text-xs font-medium text-gray-600">Audio</label>
+              <div className="mb-3">
+                <label className="text-xs font-medium text-gray-600 mb-2 block">Audio</label>
                 {audioUrlEdit ? (
-                  <div className="space-y-1">
+                  <div className="space-y-2">
                     <audio controls src={audioUrlEdit} className="h-8 w-full" />
                     <button type="button" onClick={() => setAudioUrlEdit('')} className="text-xs text-red-500 hover:text-red-700">
                       Xóa audio
                     </button>
                   </div>
                 ) : (
-                  <AudioUploadSection onUploaded={(url) => setAudioUrlEdit(url)} />
+                  <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+                    <div className="flex items-center gap-4">
+                      <label className="cursor-pointer">
+                        <span className="text-sm font-medium text-blue-600 hover:text-blue-700">
+                          <input
+                            type="file"
+                            accept="audio/*"
+                            className="hidden"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                const url = URL.createObjectURL(file);
+                                setAudioUrlEdit(url);
+                              }
+                            }}
+                          />
+                          Thêm audio
+                        </span>
+                      </label>
+                      <span className="text-sm text-gray-400">hoặc</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const url = prompt('Nhập URL audio:');
+                          if (url?.trim()) setAudioUrlEdit(url.trim());
+                        }}
+                        className="text-sm font-medium text-blue-600 hover:text-blue-700 hover:underline"
+                      >
+                        Thêm từ URL
+                      </button>
+                    </div>
+                  </div>
                 )}
               </div>
             ) : null}

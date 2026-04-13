@@ -36,6 +36,7 @@ import { applyHighlights, type EvidenceEntry } from '@/components/admin/test-edi
 import { TestEditWritingContent } from '@/components/admin/test-edit-writing-content';
 import { TestEditSpeakingContent } from '@/components/admin/test-edit-speaking-content';
 import { MediaUploadZone } from '@/components/admin/media-upload-zone';
+import { AudioUploadSection } from '@/components/admin/audio-upload-section';
 import {
   batchUpdateQuestions,
   updateQuestionGroupContent,
@@ -858,16 +859,16 @@ export const TestEditContentTab = forwardRef<TestEditContentHandle, Props>(funct
           <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 [scrollbar-gutter:stable]">
             {test.skill === 'LISTENING' && editingPassage ? (
               <div className="mb-3 space-y-2">
-                <label className="text-xs font-medium text-gray-600">Audio URL</label>
+                <label className="text-xs font-medium text-gray-600">Audio</label>
                 {audioUrlEdit ? (
                   <div className="space-y-1">
                     <audio controls src={audioUrlEdit} className="h-8 w-full" />
                     <button type="button" onClick={() => setAudioUrlEdit('')} className="text-xs text-red-500 hover:text-red-700">
-                      Xoa audio
+                      Xóa audio
                     </button>
                   </div>
                 ) : (
-                  <MediaUploadZone onUploaded={(url) => setAudioUrlEdit(url)} />
+                  <AudioUploadSection onUploaded={(url) => setAudioUrlEdit(url)} />
                 )}
               </div>
             ) : null}

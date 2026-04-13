@@ -14,12 +14,6 @@ interface FlashcardViewerProps {
   onReview?: (quality: number) => void;
 }
 
-const REVIEW_BUTTONS = [
-  { label: 'Quên', quality: 1, className: 'border-red-300 text-red-600 hover:bg-red-50' },
-  { label: 'Khó', quality: 3, className: 'border-orange-300 text-orange-600 hover:bg-orange-50' },
-  { label: 'Tốt', quality: 4, className: 'border-green-300 text-green-600 hover:bg-green-50' },
-  { label: 'Dễ', quality: 5, className: 'border-blue-300 text-blue-600 hover:bg-blue-50' },
-];
 
 export function FlashcardViewer({ word, detail, loadingDetail, flipped, onFlip, onReview }: FlashcardViewerProps) {
   const playAudio = (e: React.MouseEvent) => {
@@ -120,20 +114,23 @@ export function FlashcardViewer({ word, detail, loadingDetail, flipped, onFlip, 
         </div>
       </div>
 
-      {/* SR review buttons */}
+      {/* Review buttons - show after flipping */}
       {onReview && flipped && (
-        <div className="flex gap-2 justify-center">
-          {REVIEW_BUTTONS.map(({ label, quality, className }) => (
-            <Button
-              key={quality}
-              variant="outline"
-              size="sm"
-              className={`flex-1 max-w-[80px] font-medium ${className}`}
-              onClick={(e) => handleReview(e, quality)}
-            >
-              {label}
-            </Button>
-          ))}
+        <div className="flex gap-3 justify-center">
+          <Button
+            variant="outline"
+            className="flex-1 py-6 text-base font-semibold border-rose-300 text-rose-600 hover:bg-rose-50 hover:border-rose-400 rounded-2xl transition-all active:scale-95"
+            onClick={(e) => handleReview(e, 1)}
+          >
+            <span className="mr-2 text-lg">🤔</span> Chưa biết
+          </Button>
+          <Button
+            variant="outline"
+            className="flex-1 py-6 text-base font-semibold border-emerald-300 text-emerald-600 hover:bg-emerald-50 hover:border-emerald-400 rounded-2xl transition-all active:scale-95"
+            onClick={(e) => handleReview(e, 5)}
+          >
+            <span className="mr-2 text-lg">👍</span> Đã biết
+          </Button>
         </div>
       )}
     </div>

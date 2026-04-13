@@ -299,18 +299,23 @@ export function TargetScores() {
           <div className="flex flex-col gap-2">
             <PlacementGenerateLoading open={generating} />
             
-            {!hasScores && (
+            {/* Warning message logic */}
+            {(tourStep > 0 && tourStep < 3) ? (
+              <div className="flex items-center gap-1.5 text-xs text-blue-600 bg-blue-50 px-2.5 py-1.5 rounded-md border border-blue-100 italic">
+                <span>ℹ️ Đang trong quá trình thiết lập lộ trình...</span>
+              </div>
+            ) : (!hasScores && (
               <div className="flex items-center gap-1.5 text-xs text-amber-600 bg-amber-50 px-2.5 py-1.5 rounded-md border border-amber-100">
                 <span className="text-sm">⚠️</span>
-                <span>Vui lòng thiết lập <b>Mục tiêu điểm số</b> (và Ngày thi nếu có) để mở khoá bài Đánh giá năng lực.</span>
+                <span>Vui lòng thiết lập <b>Mục tiêu điểm số</b> để mở khoá bài Đánh giá năng lực.</span>
               </div>
-            )}
+            ))}
             
             <button
               onClick={handleStartTest}
-              disabled={generating || !hasScores}
+              disabled={generating || (tourStep > 0 ? tourStep !== 3 : !hasScores)}
               className={`w-full text-center text-sm font-medium py-2 border border-dashed rounded-lg transition-colors ${
-                !hasScores
+                (tourStep > 0 ? tourStep !== 3 : !hasScores)
                   ? 'text-gray-400 border-gray-200 bg-gray-50 cursor-not-allowed opacity-70'
                   : 'text-orange-500 hover:text-orange-600 border-orange-300 hover:bg-orange-50'
               } disabled:opacity-50`}

@@ -7,6 +7,7 @@ import { ArrowLeft } from 'lucide-react';
 import { SkeletonPractice } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { ListeningReviewPanel } from '@/components/listening/listening-review-panel';
+import { ListeningPracticeAudioPlayer } from '@/components/listening/listening-practice-audio-player';
 import { useTestDetail } from '@/hooks/use-test-detail';
 import { getAttemptResult } from '@/lib/practice-api';
 
@@ -178,186 +179,195 @@ export default function ListeningReviewPage({ params }: Props) {
   }
 
   return (
-    <div className="h-[calc(100vh-56px)] flex flex-col">
-      {/* Header */}
-      <div className="bg-white border-b px-4 py-3 flex items-center gap-3 shrink-0">
-        <Link href={`/practice/listening/${id}/result`}>
-          <Button variant="ghost" size="icon"><ArrowLeft className="h-5 w-5" /></Button>
-        </Link>
-        <div>
-          <h1 className="font-bold">{testDetail.title}</h1>
-          <p className="text-xs text-muted-foreground">Xem giải thích chi tiết</p>
+      <div className="h-[calc(100vh-56px)] flex flex-col">
+        {/* Header */}
+        <div className="bg-white border-b px-4 py-3 flex items-center gap-3 shrink-0">
+          <Link href={`/practice/listening/${id}/result`}>
+            <Button variant="ghost" size="icon"><ArrowLeft className="h-5 w-5" /></Button>
+          </Link>
+          <div>
+            <h1 className="font-bold">{testDetail.title}</h1>
+            <p className="text-xs text-muted-foreground">Xem giải thích chi tiết</p>
+          </div>
         </div>
-      </div>
-
-      {stimuli.length > 1 && (
-        <div className="bg-white border-b px-4 py-2 flex items-center gap-2 overflow-x-auto">
-          {stimuli.map((s, index) => (
-            <button
-              key={s.id}
-              onClick={() => setActiveStimulusIdx(index)}
-              className={`px-3 py-1.5 text-xs rounded-full font-medium transition-colors whitespace-nowrap ${
-                index === safeActiveStimulusIdx
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
-            >
-              Section {s.section ?? index + 1}
-            </button>
-          ))}
-        </div>
-      )}
-
-      {/* Audio player + Transcript + Review panel */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Audio player */}
-        {stimulus.mediaUrl && (
-          <div className="px-6 py-3 bg-violet-50 border-b">
-            <audio ref={audioRef} controls src={stimulus.mediaUrl} className="w-full h-10" />
+  
+        {stimuli.length > 1 && (
+          <div className="bg-white border-b px-4 py-2 flex items-center gap-2 overflow-x-auto">
+            {stimuli.map((s, index) => (
+              <button
+                key={s.id}
+                onClick={() => setActiveStimulusIdx(index)}
+                className={`px-3 py-1.5 text-xs rounded-full font-medium transition-colors whitespace-nowrap ${
+                  index === safeActiveStimulusIdx
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                Section {s.section ?? index + 1}
+              </button>
+            ))}
           </div>
         )}
-
-        <div className="flex-1 flex overflow-hidden">
-          {/* Review panel (answers) */}
-          <div className="w-1/2 border-r overflow-hidden">
-            <ListeningReviewPanel
-              stimulus={stimulus}
-              answers={resultData.answers}
-              textAnswers={resultData.textAnswers}
-              onLocateEvidence={(evidence) => {
-                if (!evidence) return;
-                const container = document.querySelector('[data-transcript]');
-                if (!container) return;
-                
-                // Clear previous highlights
-                container.querySelectorAll('.ring-amber-400').forEach((el) => {
-                  el.classList.remove('bg-amber-100', 'ring-2', 'ring-amber-400');
-                });
-                
-                const targets = container.querySelectorAll<HTMLElement>('[data-start-time], p, li, span');
-                
-                // Split by common separators and clean up
-                const chunks = evidence.split(/\n---\n|\r?\n/).map(c => c.trim().toLowerCase()).filter(Boolean);
-                
-                if (chunks.length === 0) return;
-
-                let matchFound = false;
-                // Try matching each transcript segment
-                for (const el of targets) {
-                  const rawText = (el.textContent || '');
-                  const text = rawText.toLowerCase().replace(/\s+/g, ' ');
-                  
-                  const matched = chunks.some(chunk => {
-                    const cleanChunk = chunk.replace(/\s+/g, ' ');
-                    if (cleanChunk.length < 2) return false;
-                    
-                    // Try full match
-                    if (text.includes(cleanChunk)) return true;
-                    
-                    // Try progressive matching
-                    if (cleanChunk.length > 20) {
-                      const words = cleanChunk.split(/\s+/).slice(0, 5).join(' ');
-                      if (words.length > 10 && text.includes(words)) return true;
-                    }
-                    return false;
+  
+        {/* Audio player + Panels */}
+        <div className="flex-1 flex flex-col overflow-hidden">
+          {/* Practice-style Audio player */}
+          {stimulus.mediaUrl && (
+            <ListeningPracticeAudioPlayer 
+              ref={audioRef}
+              audioUrl={stimulus.mediaUrl}
+            />
+          )}
+  
+          <div className="flex-1 flex overflow-hidden">
+            {/* Transcript panel - Now on the LEFT */}
+            <div ref={transcriptRef} className="w-1/2 overflow-y-auto p-4 space-y-1 border-r" data-transcript>
+              <h4 className="text-sm font-semibold text-gray-700 mb-3 sticky top-0 bg-white py-1 z-10">Transcript</h4>
+              {(() => {
+                let parsedTranscript: any[] = [];
+                if (Array.isArray(stimulus.transcript)) {
+                  parsedTranscript = stimulus.transcript;
+                } else if (stimulus && 'transcript' in stimulus && typeof (stimulus as any).transcript === 'string' && (stimulus as any).transcript.trim()) {
+                  try {
+                    parsedTranscript = JSON.parse((stimulus as any).transcript);
+                  } catch {
+                    // Ignore
+                  }
+                }
+  
+                if (parsedTranscript.length > 0) {
+                  return parsedTranscript.map((seg, i) => {
+                    const startTime = Number(seg.startTime) || 0;
+                    const mins = Math.floor(startTime / 60);
+                    const secs = Math.floor(startTime % 60);
+                    const ts = `${mins}:${secs.toString().padStart(2, '0')}`;
+                    const isActive = activeSegmentIdx === i;
+                    return (
+                      <button
+                        key={seg.id || i}
+                        type="button"
+                        data-segment-idx={i}
+                        data-start-time={startTime}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          if (audioRef.current) {
+                            audioRef.current.currentTime = startTime;
+                            audioRef.current.play().catch(() => {});
+                          }
+                        }}
+                        className={`w-full text-left px-3 py-2 text-sm rounded-lg transition-colors group ${
+                          isActive 
+                            ? 'bg-violet-100 ring-2 ring-violet-400 text-violet-900' 
+                            : 'hover:bg-violet-50'
+                        }`}
+                      >
+                        <span className={`text-[10px] font-mono mr-2 ${isActive ? 'text-violet-700' : 'text-violet-500 group-hover:text-violet-700'}`}>{ts}</span>
+                        {seg.speaker && <span className={`text-xs font-semibold mr-1 ${isActive ? 'text-violet-700' : 'text-gray-500'}`}>{seg.speaker}:</span>}
+                        <span className={isActive ? 'font-medium' : 'text-gray-700'}>{seg.text || seg.content || ''}</span>
+                      </button>
+                    );
                   });
+                }
+  
+                if (stimulus.content && stimulus.content.trim()) {
+                  return (
+                    <div
+                      className="text-gray-700 text-sm leading-relaxed max-w-none"
+                      dangerouslySetInnerHTML={{ __html: stimulus.content }}
+                    />
+                  );
+                }
+  
+                return <p className="text-sm text-gray-400 text-center py-8">Chưa có transcript cho bài nghe này.</p>;
+              })()}
+            </div>
 
+            {/* Review panel (answers) - Now on the RIGHT */}
+            <div className="w-1/2 overflow-hidden bg-gray-50">
+              <ListeningReviewPanel
+                stimulus={stimulus}
+                answers={resultData.answers}
+                textAnswers={resultData.textAnswers}
+                onLocateEvidence={(evidence) => {
+                  if (!evidence) return;
+                  const container = document.querySelector('[data-transcript]');
+                  if (!container) return;
+                  
+                  // Clear previous highlights
+                  container.querySelectorAll('.ring-amber-400').forEach((el) => {
+                    el.classList.remove('bg-amber-100', 'ring-2', 'ring-amber-400');
+                  });
+                  
+                  const targets = container.querySelectorAll<HTMLElement>('[data-start-time], p, li, span');
+                  const chunks = evidence.split(/\n---\n|\r?\n/).map(c => c.trim().toLowerCase()).filter(Boolean);
+                  if (chunks.length === 0) return;
+  
+                  let matchFound = false;
+                  for (let i = 0; i < targets.length; i++) {
+                    const el = targets[i];
+                    const rawText = (el.textContent || '');
+                    const text = rawText.toLowerCase().replace(/\s+/g, ' ');
+                    
+                    const matched = chunks.some(chunk => {
+                      const cleanChunk = chunk.replace(/\s+/g, ' ');
+                      if (cleanChunk.length < 2) return false;
+                      if (text.includes(cleanChunk)) return true;
+                      if (cleanChunk.length > 20) {
+                        const words = cleanChunk.split(/\s+/).slice(0, 5).join(' ');
+                        if (words.length > 10 && text.includes(words)) return true;
+                      }
+                      return false;
+                    });
+  
                   if (matched) {
                     matchFound = true;
+                    console.log('Match found in element!', rawText);
                     
-                    // 1. Audio Jump
-                    let startTime = Number(el.dataset.startTime);
+                    // Resolve startTime
+                    let startTime: number | null = null;
                     
-                    // If no data-start-time, try to parse from text (e.g. "1:20" or "[1:20]")
-                    if (!Number.isFinite(startTime)) {
-                      const timeMatch = rawText.match(/(\d{1,2}):(\d{2})/);
-                      if (timeMatch) {
-                        startTime = parseInt(timeMatch[1], 10) * 60 + parseInt(timeMatch[2], 10);
+                    // 1. Try to find timestamp in the matched element OR its preceding siblings
+                    let searchIdx = i;
+                    while (searchIdx >= 0) {
+                      const searchEl = targets[searchIdx];
+                      const sTime = Number(searchEl.dataset.startTime);
+                      if (Number.isFinite(sTime)) {
+                        startTime = sTime;
+                        console.log('Found startTime from dataset:', startTime, 'at index', searchIdx);
+                        break;
                       }
+                      const tMatch = (searchEl.textContent || '').match(/(\d{1,2}):(\d{2})/);
+                      if (tMatch) {
+                        startTime = parseInt(tMatch[1], 10) * 60 + parseInt(tMatch[2], 10);
+                        console.log('Found startTime from text match:', startTime, 'at index', searchIdx);
+                        break;
+                      }
+                      searchIdx--;
                     }
-
-                    if (Number.isFinite(startTime) && audioRef.current) {
+  
+                    if (startTime !== null && audioRef.current) {
+                      console.log('Jumping to audio time:', startTime);
                       audioRef.current.currentTime = startTime;
                       setTimeout(() => {
-                        audioRef.current?.play().catch(() => {});
-                      }, 10);
+                        console.log('Triggering audio play...');
+                        audioRef.current?.play().catch(err => console.error('Play failed:', err));
+                      }, 100);
+                    } else {
+                      console.log('Could not resolve startTime for jump.');
                     }
                     
-                    // 2. Highlighting & Scroll
                     el.scrollIntoView({ behavior: 'smooth', block: 'center' });
                     el.classList.add('bg-amber-100', 'ring-2', 'ring-amber-400', 'rounded-sm');
                     setTimeout(() => el.classList.remove('bg-amber-100', 'ring-2', 'ring-amber-400', 'rounded-sm'), 10000);
                     break;
                   }
-                }
-              }}
-            />
-          </div>
-
-          {/* Transcript panel - always visible for listening */}
-          <div ref={transcriptRef} className="w-1/2 overflow-y-auto p-4 space-y-1" data-transcript>
-            <h4 className="text-sm font-semibold text-gray-700 mb-3 sticky top-0 bg-white py-1 z-10">Transcript</h4>
-            {(() => {
-              let parsedTranscript: any[] = [];
-              if (Array.isArray(stimulus.transcript)) {
-                parsedTranscript = stimulus.transcript;
-              } else if (stimulus && 'transcript' in stimulus && typeof (stimulus as any).transcript === 'string' && (stimulus as any).transcript.trim()) {
-                try {
-                  parsedTranscript = JSON.parse((stimulus as any).transcript);
-                } catch {
-                  // Ignore
-                }
-              }
-
-              if (parsedTranscript.length > 0) {
-                return parsedTranscript.map((seg, i) => {
-                  const startTime = Number(seg.startTime) || 0;
-                  const mins = Math.floor(startTime / 60);
-                  const secs = Math.floor(startTime % 60);
-                  const ts = `${mins}:${secs.toString().padStart(2, '0')}`;
-                  const isActive = activeSegmentIdx === i;
-                  return (
-                    <button
-                      key={seg.id || i}
-                      type="button"
-                      data-segment-idx={i}
-                      data-start-time={startTime}
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        if (audioRef.current) {
-                          audioRef.current.currentTime = startTime;
-                          audioRef.current.play().catch(() => {});
-                        }
-                      }}
-                      className={`w-full text-left px-3 py-2 text-sm rounded-lg transition-colors group ${
-                        isActive 
-                          ? 'bg-violet-100 ring-2 ring-violet-400 text-violet-900' 
-                          : 'hover:bg-violet-50'
-                      }`}
-                    >
-                      <span className={`text-[10px] font-mono mr-2 ${isActive ? 'text-violet-700' : 'text-violet-500 group-hover:text-violet-700'}`}>{ts}</span>
-                      {seg.speaker && <span className={`text-xs font-semibold mr-1 ${isActive ? 'text-violet-700' : 'text-gray-500'}`}>{seg.speaker}:</span>}
-                      <span className={isActive ? 'font-medium' : 'text-gray-700'}>{seg.text || seg.content || ''}</span>
-                    </button>
-                  );
-                });
-              }
-
-              if (stimulus.content && stimulus.content.trim()) {
-                return (
-                  <div
-                    className="text-gray-700 text-sm leading-relaxed max-w-none"
-                    dangerouslySetInnerHTML={{ __html: stimulus.content }}
-                  />
-                );
-              }
-
-              return <p className="text-sm text-gray-400 text-center py-8">Chưa có transcript cho bài nghe này.</p>;
-            })()}
+                  }
+                }}
+              />
+            </div>
           </div>
         </div>
       </div>
-    </div>
-  );
-}
+    );
+  }

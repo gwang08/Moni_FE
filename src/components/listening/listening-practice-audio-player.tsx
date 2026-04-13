@@ -1,6 +1,4 @@
-'use client';
-
-import { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useRef, useState, useCallback, forwardRef, useImperativeHandle } from 'react';
 import { Play, Pause, RotateCcw, RotateCw, Volume2, VolumeX, Gauge } from 'lucide-react';
 
 interface Props {
@@ -9,8 +7,10 @@ interface Props {
 
 const PLAYBACK_RATES = [0.5, 0.75, 1, 1.25, 1.5, 2];
 
-export function ListeningPracticeAudioPlayer({ audioUrl }: Props) {
+export const ListeningPracticeAudioPlayer = forwardRef<HTMLAudioElement, Props>(({ audioUrl }, ref) => {
   const audioRef = useRef<HTMLAudioElement>(null);
+  useImperativeHandle(ref, () => audioRef.current!);
+  
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -27,18 +27,31 @@ export function ListeningPracticeAudioPlayer({ audioUrl }: Props) {
     const handleTimeUpdate = () => setCurrentTime(audio.currentTime);
     const handleMetadata = () => setDuration(audio.duration);
     const handleEnded = () => setIsPlaying(false);
-    const handleError = () => setIsPlaying(false);
+    const handleError = () => {
+      setIsPlaying(false);
+    };
+    const handlePlay = () => setIsPlaying(true);
+    const handlePause = () => setIsPlaying(false);
 
     audio.addEventListener('timeupdate', handleTimeUpdate);
     audio.addEventListener('loadedmetadata', handleMetadata);
     audio.addEventListener('ended', handleEnded);
     audio.addEventListener('error', handleError);
+    audio.addEventListener('play', handlePlay);
+    audio.addEventListener('pause', handlePause);
+
+    // Initial state
+    setIsPlaying(!audio.paused);
+    setCurrentTime(audio.currentTime);
+    if (audio.duration) setDuration(audio.duration);
 
     return () => {
       audio.removeEventListener('timeupdate', handleTimeUpdate);
       audio.removeEventListener('loadedmetadata', handleMetadata);
       audio.removeEventListener('ended', handleEnded);
       audio.removeEventListener('error', handleError);
+      audio.removeEventListener('play', handlePlay);
+      audio.removeEventListener('pause', handlePause);
     };
   }, [audioUrl]);
 
@@ -60,21 +73,19 @@ export function ListeningPracticeAudioPlayer({ audioUrl }: Props) {
     try {
       if (isPlaying) {
         audio.pause();
-        setIsPlaying(false);
       } else {
         await audio.play();
-        setIsPlaying(true);
       }
     } catch {
       console.error('Failed to play audio');
     }
-  }, [isPlaying]);
+  }, [isPlaying, audioRef]);
 
   const skip = useCallback((seconds: number) => {
     const audio = audioRef.current;
     if (!audio) return;
     audio.currentTime = Math.max(0, Math.min(duration, audio.currentTime + seconds));
-  }, [duration]);
+  }, [duration, audioRef]);
 
   const handleSeek = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const audio = audioRef.current;
@@ -82,27 +93,27 @@ export function ListeningPracticeAudioPlayer({ audioUrl }: Props) {
     const time = parseFloat(e.target.value);
     audio.currentTime = time;
     setCurrentTime(time);
-  }, []);
+  }, [audioRef]);
 
   const handleVolumeChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const vol = parseFloat(e.target.value);
     setVolume(vol);
     if (audioRef.current) audioRef.current.volume = vol;
     setIsMuted(vol === 0);
-  }, []);
+  }, [audioRef]);
 
   const toggleMute = useCallback(() => {
     if (audioRef.current) {
       audioRef.current.muted = !isMuted;
       setIsMuted(!isMuted);
     }
-  }, [isMuted]);
+  }, [isMuted, audioRef]);
 
   const changePlaybackRate = useCallback((rate: number) => {
     setPlaybackRate(rate);
     if (audioRef.current) audioRef.current.playbackRate = rate;
     setShowSpeedMenu(false);
-  }, []);
+  }, [audioRef]);
 
   const formatTime = (time: number) => {
     if (!isFinite(time)) return '00:00';
@@ -229,4 +240,6 @@ export function ListeningPracticeAudioPlayer({ audioUrl }: Props) {
       <audio ref={audioRef} src={audioUrl} preload="metadata" className="hidden" />
     </div>
   );
-}
+});
+
+ListeningPracticeAudioPlayer.displayName = 'ListeningPracticeAudioPlayer';

@@ -29,20 +29,34 @@ export default function TestDetailPage() {
   const handleSaveAll = async () => {
     setSaving(true);
     try {
+      // Step 1: Save basic info
       if (!basicInfoRef.current) {
         toast.error('Không thể lưu thông tin cơ bản');
         return;
       }
 
       const basicSaved = await basicInfoRef.current.save();
-      if (!basicSaved) return;
+      if (!basicSaved) {
+        toast.error('Lưu thông tin cơ bản thất bại');
+        return;
+      }
 
-      const contentSaved = await contentRef.current?.saveAll();
-      if (contentSaved === false) return;
+      // Step 2: Save content (passage, question groups, questions)
+      if (!contentRef.current) {
+        toast.error('Không thể lưu nội dung bài thi');
+        return;
+      }
+
+      const contentSaved = await contentRef.current.saveAll();
+      if (contentSaved === false) {
+        toast.error('Lưu nội dung bài thi thất bại');
+        return;
+      }
 
       toast.success('Đã lưu toàn bộ thay đổi');
-    } catch {
-      toast.error('Lưu thất bại');
+    } catch (error) {
+      console.error('Save error:', error);
+      toast.error('Lưu thất bại: ' + (error instanceof Error ? error.message : 'Lỗi không xác định'));
     } finally {
       setSaving(false);
     }

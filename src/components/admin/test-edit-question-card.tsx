@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useImperativeHandle, useRef, useState, forwardRef } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ChevronDown, ChevronRight } from 'lucide-react';
@@ -15,6 +15,11 @@ import { useQueryClient } from '@tanstack/react-query';
 import type { QuestionDetail } from '@/types/test.types';
 import type { QuestionTypeCode, OptionRequest } from '@/types/admin.types';
 
+export interface TestEditQuestionCardHandle {
+  save: () => Promise<boolean>;
+  flush: () => void;
+}
+
 interface Props {
   question: QuestionDetail;
   questionTypeCode: QuestionTypeCode;
@@ -25,7 +30,10 @@ interface Props {
   onEvidenceChange: (evidence: string) => void;
 }
 
-export function TestEditQuestionCard({ question, questionTypeCode, displayPosition, testId, pendingEvidence, onAssignEvidence, onEvidenceChange }: Props) {
+export const TestEditQuestionCard = forwardRef<TestEditQuestionCardHandle, Props>(function TestEditQuestionCard(
+  { question, questionTypeCode, displayPosition, testId, pendingEvidence, onAssignEvidence, onEvidenceChange },
+  ref
+) {
   const queryClient = useQueryClient();
   const [expanded, setExpanded] = useState(true);
   const [content, setContent] = useState(question.content);
@@ -41,12 +49,52 @@ export function TestEditQuestionCard({ question, questionTypeCode, displayPositi
   const isGapType = questionTypeCode === 'GAP_FILLING';
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastSavedRef = useRef('');
+  const isDirtyRef = useRef(false);
 
   const handleEvidenceChange = (ev: string | undefined) => {
     const nextEvidence = ev ?? '';
     setEvidence(nextEvidence);
     onEvidenceChange(nextEvidence);
   };
+
+  const saveQuestion = async (): Promise<boolean> => {
+    const snapshot = JSON.stringify({ content, options, explanationText, evidence });
+    if (snapshot === lastSavedRef.current && !isDirtyRef.current) return true;
+
+    // Clear any pending auto-save timer
+    if (saveTimerRef.current) {
+      clearTimeout(saveTimerRef.current);
+      saveTimerRef.current = null;
+    }
+
+    try {
+      await updateQuestion(String(question.id), {
+        content,
+        options,
+        explanation: {
+          text: explanationText || undefined,
+          evidence: evidence || undefined,
+        },
+      });
+      lastSavedRef.current = snapshot;
+      isDirtyRef.current = false;
+      queryClient.invalidateQueries({ queryKey: ['admin', 'test', testId] });
+      return true;
+    } catch {
+      toast.error(`Lưu câu ${displayPosition ?? question.position} thất bại`);
+      return false;
+    }
+  };
+
+  useImperativeHandle(ref, () => ({
+    save: saveQuestion,
+    flush: () => {
+      if (saveTimerRef.current) {
+        clearTimeout(saveTimerRef.current);
+        saveTimerRef.current = null;
+      }
+    },
+  }));
 
   useEffect(() => {
     const snapshot = JSON.stringify({
@@ -63,25 +111,14 @@ export function TestEditQuestionCard({ question, questionTypeCode, displayPositi
 
     if (snapshot === lastSavedRef.current) return;
 
+    isDirtyRef.current = true;
+
     if (saveTimerRef.current) {
       clearTimeout(saveTimerRef.current);
     }
 
     saveTimerRef.current = setTimeout(async () => {
-      try {
-        await updateQuestion(String(question.id), {
-          content,
-          options,
-          explanation: {
-            text: explanationText || undefined,
-            evidence: evidence || undefined,
-          },
-        });
-        lastSavedRef.current = snapshot;
-        queryClient.invalidateQueries({ queryKey: ['admin', 'test', testId] });
-      } catch {
-        toast.error('Lưu thất bại');
-      }
+      await saveQuestion();
     }, 700);
 
     return () => {
@@ -155,4 +192,4 @@ export function TestEditQuestionCard({ question, questionTypeCode, displayPositi
       )}
     </div>
   );
-}
+});

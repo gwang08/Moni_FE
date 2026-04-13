@@ -21,7 +21,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { RichTextToolbar } from '@/components/admin/rich-text-toolbar';
-import { TestEditQuestionCard } from '@/components/admin/test-edit-question-card';
+import { TestEditQuestionCard, type TestEditQuestionCardHandle } from '@/components/admin/test-edit-question-card';
 import { TestEditAddQuestionForm } from '@/components/admin/test-edit-add-question-form';
 import { TestEditMatchingHeadings } from '@/components/admin/test-edit-matching-headings';
 import { TestEditMatchingInformation } from '@/components/admin/test-edit-matching-information';
@@ -336,6 +336,7 @@ export const TestEditContentTab = forwardRef<TestEditContentHandle, Props>(funct
   const rightScrollRef = useRef<HTMLDivElement>(null);
   const passageRef = useRef<HTMLDivElement>(null);
   const groupRefs = useRef<Record<number, HTMLElement | null>>({});
+  const questionCardRefs = useRef<Record<number, TestEditQuestionCardHandle | null>>({});
 
   const stimulus = test.stimuli[activeStimulus];
 
@@ -461,6 +462,25 @@ export const TestEditContentTab = forwardRef<TestEditContentHandle, Props>(funct
 
     let ok = true;
     let changed = false;
+
+    // First, flush all pending auto-save timers in question cards
+    const questionIds = Object.keys(questionCardRefs.current);
+    for (const qId of questionIds) {
+      const cardRef = questionCardRefs.current[Number(qId)];
+      if (cardRef?.flush) {
+        cardRef.flush();
+      }
+    }
+
+    // Save all question cards
+    for (const qId of questionIds) {
+      const cardRef = questionCardRefs.current[Number(qId)];
+      if (cardRef) {
+        const saved = await cardRef.save();
+        if (!saved) ok = false;
+        else changed = true;
+      }
+    }
 
     const passageDirty = passageEdit !== (stimulus.content || '') || audioUrlEdit !== (stimulus.mediaUrl || '');
     if (passageDirty) {
@@ -1123,6 +1143,7 @@ export const TestEditContentTab = forwardRef<TestEditContentHandle, Props>(funct
                                 }}
                               >
                                 <TestEditQuestionCard
+                                  ref={(el) => { questionCardRefs.current[question.id] = el; }}
                                   question={question}
                                   questionTypeCode={typeCode}
                                   displayPosition={questionDisplayPositions.get(question.id)}

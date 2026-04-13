@@ -5,6 +5,7 @@ import { GripVertical, Highlighter, Loader2, Maximize, Minimize, Minus, Music, P
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { MediaUploadZone } from '@/components/admin/media-upload-zone';
+import { AudioUploadSection } from '@/components/admin/audio-upload-section';
 import { StimulusCard } from '@/components/admin/test-import-stimulus-card';
 import { QuestionGroupEditor } from '@/components/admin/test-import-question-group-editor';
 import { transcribeByUrl } from '@/lib/admin-api';
@@ -548,13 +549,7 @@ export function TestImportStep3({ skill, stimuli, onChange, onNext, onBack, onAu
             <div className="flex min-h-full flex-col rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
               {skill === 'LISTENING' && !stimulus.mediaUrl ? (
                 <div className="flex flex-1 items-stretch">
-                  <MediaUploadZone
-                    onUploaded={handleListeningUpload}
-                    icon={<Music className="h-12 w-12 text-gray-400" />}
-                    label="Thêm audio"
-                    sublabel=""
-                    className="flex-1"
-                  />
+                  <AudioUploadSection onUploaded={handleListeningUpload} />
                 </div>
               ) : (
                 <>

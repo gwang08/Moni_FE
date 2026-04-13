@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
 import { SkeletonPractice } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
-import { ReadingReviewPanel } from '@/components/reading/reading-review-panel';
+import { ListeningReviewPanel } from '@/components/listening/listening-review-panel';
 import { useTestDetail } from '@/hooks/use-test-detail';
 import { getAttemptResult } from '@/lib/practice-api';
 
@@ -220,39 +220,73 @@ export default function ListeningReviewPage({ params }: Props) {
         <div className="flex-1 flex overflow-hidden">
           {/* Review panel (answers) */}
           <div className="w-1/2 border-r overflow-hidden">
-            <ReadingReviewPanel
+            <ListeningReviewPanel
               stimulus={stimulus}
               answers={resultData.answers}
               textAnswers={resultData.textAnswers}
               onLocateEvidence={(evidence) => {
+                if (!evidence) return;
                 const container = document.querySelector('[data-transcript]');
                 if (!container) return;
+                
                 // Clear previous highlights
                 container.querySelectorAll('.ring-amber-400').forEach((el) => {
                   el.classList.remove('bg-amber-100', 'ring-2', 'ring-amber-400');
                 });
-                const buttons = container.querySelectorAll<HTMLButtonElement>('button[data-start-time]');
-                const chunks = evidence.split('\n---\n').map(c => c.trim().toLowerCase()).filter(Boolean);
-                // Try matching each transcript segment — use progressive word matching
-                for (const btn of buttons) {
-                  const text = (btn.textContent || '').toLowerCase();
+                
+                const targets = container.querySelectorAll<HTMLElement>('[data-start-time], p, li, span');
+                
+                // Split by common separators and clean up
+                const chunks = evidence.split(/\n---\n|\r?\n/).map(c => c.trim().toLowerCase()).filter(Boolean);
+                
+                if (chunks.length === 0) return;
+
+                let matchFound = false;
+                // Try matching each transcript segment
+                for (const el of targets) {
+                  const rawText = (el.textContent || '');
+                  const text = rawText.toLowerCase().replace(/\s+/g, ' ');
+                  
                   const matched = chunks.some(chunk => {
-                    // Try full match first
-                    if (text.includes(chunk)) return true;
-                    // Try first few words (at least 4 words)
-                    const words = chunk.split(/\s+/).slice(0, 6).join(' ');
-                    if (words.length > 10 && text.includes(words)) return true;
+                    const cleanChunk = chunk.replace(/\s+/g, ' ');
+                    if (cleanChunk.length < 2) return false;
+                    
+                    // Try full match
+                    if (text.includes(cleanChunk)) return true;
+                    
+                    // Try progressive matching
+                    if (cleanChunk.length > 20) {
+                      const words = cleanChunk.split(/\s+/).slice(0, 5).join(' ');
+                      if (words.length > 10 && text.includes(words)) return true;
+                    }
                     return false;
                   });
+
                   if (matched) {
-                    const startTime = Number(btn.dataset.startTime ?? '0');
-                    if (audioRef.current) {
-                      audioRef.current.currentTime = Number.isFinite(startTime) ? startTime : 0;
-                      void audioRef.current.play().catch(() => {});
+                    matchFound = true;
+                    
+                    // 1. Audio Jump
+                    let startTime = Number(el.dataset.startTime);
+                    
+                    // If no data-start-time, try to parse from text (e.g. "1:20" or "[1:20]")
+                    if (!Number.isFinite(startTime)) {
+                      const timeMatch = rawText.match(/(\d{1,2}):(\d{2})/);
+                      if (timeMatch) {
+                        startTime = parseInt(timeMatch[1], 10) * 60 + parseInt(timeMatch[2], 10);
+                      }
                     }
-                    btn.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    btn.classList.add('bg-amber-100', 'ring-2', 'ring-amber-400');
-                    setTimeout(() => btn.classList.remove('bg-amber-100', 'ring-2', 'ring-amber-400'), 5000);
+
+                    if (Number.isFinite(startTime) && audioRef.current) {
+                      audioRef.current.currentTime = startTime;
+                      setTimeout(() => {
+                        audioRef.current?.play().catch(() => {});
+                      }, 10);
+                    }
+                    
+                    // 2. Highlighting & Scroll
+                    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    el.classList.add('bg-amber-100', 'ring-2', 'ring-amber-400', 'rounded-sm');
+                    setTimeout(() => el.classList.remove('bg-amber-100', 'ring-2', 'ring-amber-400', 'rounded-sm'), 10000);
                     break;
                   }
                 }
@@ -288,7 +322,9 @@ export default function ListeningReviewPage({ params }: Props) {
                       type="button"
                       data-segment-idx={i}
                       data-start-time={startTime}
-                      onClick={() => {
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
                         if (audioRef.current) {
                           audioRef.current.currentTime = startTime;
                           audioRef.current.play().catch(() => {});

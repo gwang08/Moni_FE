@@ -1,5 +1,6 @@
 'use client';
 
+import { Lightbulb, Eye, CheckCircle2, XCircle } from 'lucide-react';
 import type { OptionDetail } from '@/types/test.types';
 
 interface Props {
@@ -13,6 +14,7 @@ interface Props {
   submitted: boolean;
   explanation?: { text?: string; evidence?: string };
   onAnswer: (questionId: number, optionId: number) => void;
+  onLocateEvidence?: (evidence: string) => void;
   examMode?: boolean;
 }
 
@@ -28,6 +30,7 @@ export function ListeningQuestionMcq({
   submitted,
   explanation,
   onAnswer,
+  onLocateEvidence,
   examMode = false,
 }: Props) {
   const selected = multiple ? (selectedIds ?? []) : (selectedId != null ? [selectedId] : []);
@@ -78,7 +81,11 @@ export function ListeningQuestionMcq({
     );
   }
 
-  // Non-exam mode rendering
+  // Non-exam mode rendering (review mode)
+  const correctOption = options.find(o => o.isCorrect);
+  const isCorrect = selectedId != null && correctOption?.id === selectedId;
+  const isSkipped = selectedId == null;
+
   return (
     <div id={`question-${questionId}`} className="mb-4">
       <div className="flex items-start gap-2 mb-3">
@@ -112,9 +119,104 @@ export function ListeningQuestionMcq({
         })}
       </div>
 
-      {submitted && !hasAnswer && (
-        <p className="mt-2 text-xs text-gray-500 italic ml-2">Chưa trả lời</p>
+      {submitted && (
+        <MCQReviewSection
+          position={position}
+          isSkipped={isSkipped}
+          isCorrect={isCorrect}
+          correctOption={correctOption}
+          explanation={explanation}
+          onLocateEvidence={onLocateEvidence}
+        />
       )}
+    </div>
+  );
+}
+
+/** Separate component for MCQ review section */
+function MCQReviewSection({ position, isSkipped, isCorrect, correctOption, explanation, onLocateEvidence }: {
+  position: number;
+  isSkipped: boolean;
+  isCorrect: boolean;
+  correctOption: OptionDetail | undefined;
+  explanation?: { text?: string; evidence?: string };
+  onLocateEvidence?: (evidence: string) => void;
+}) {
+  return (
+    <div className="mt-4 pt-4 border-t border-gray-200">
+      <div className="flex items-center gap-2 flex-wrap">
+        <span className="font-bold text-gray-900 min-w-[20px]">{position}.</span>
+        {isSkipped && (
+          <span className="text-gray-500 italic">
+            Chưa trả lời — Đáp án: <strong className="text-green-600">{correctOption?.content}</strong>
+            {explanation && (
+              <span className="inline-flex items-center gap-1 ml-1">
+                {explanation.text && (
+                  <Lightbulb className="h-4 w-4 text-yellow-600" />
+                )}
+                {explanation.evidence && onLocateEvidence && (
+                  <button
+                    type="button"
+                    className="w-5 h-5 rounded-full bg-violet-100 hover:bg-violet-200 flex items-center justify-center text-violet-600"
+                    title={`Highlight dẫn chứng câu ${position}`}
+                    onClick={() => onLocateEvidence(explanation?.evidence ?? '')}
+                  >
+                    <Eye className="h-3.5 w-3.5" />
+                  </button>
+                )}
+              </span>
+            )}
+          </span>
+        )}
+        {!isSkipped && isCorrect && (
+          <span className="flex items-center gap-2">
+            <CheckCircle2 className="h-4 w-4 text-gray-900" />
+            <span className="text-gray-900 font-semibold">Đúng</span>
+            {explanation && (
+              <span className="inline-flex items-center gap-1 ml-1">
+                {explanation.text && (
+                  <Lightbulb className="h-4 w-4 text-yellow-600" />
+                )}
+                {explanation.evidence && onLocateEvidence && (
+                  <button
+                    type="button"
+                    className="w-5 h-5 rounded-full bg-violet-100 hover:bg-violet-200 flex items-center justify-center text-violet-600"
+                    title={`Highlight dẫn chứng câu ${position}`}
+                    onClick={() => onLocateEvidence(explanation?.evidence ?? '')}
+                  >
+                    <Eye className="h-3.5 w-3.5" />
+                  </button>
+                )}
+              </span>
+            )}
+          </span>
+        )}
+        {!isSkipped && !isCorrect && (
+          <span className="flex items-center gap-2">
+            <XCircle className="h-4 w-4 text-gray-700" />
+            <span className="text-gray-800">
+              Đáp án: <strong className="text-green-600">{correctOption?.content}</strong>
+              {explanation && (
+                <span className="inline-flex items-center gap-1 ml-1">
+                  {explanation.text && (
+                    <Lightbulb className="h-4 w-4 text-yellow-600" />
+                  )}
+                  {explanation.evidence && onLocateEvidence && (
+                    <button
+                      type="button"
+                      className="w-5 h-5 rounded-full bg-violet-100 hover:bg-violet-200 flex items-center justify-center text-violet-600"
+                      title={`Highlight dẫn chứng câu ${position}`}
+                      onClick={() => onLocateEvidence(explanation?.evidence ?? '')}
+                    >
+                      <Eye className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </span>
+              )}
+            </span>
+          </span>
+        )}
+      </div>
     </div>
   );
 }

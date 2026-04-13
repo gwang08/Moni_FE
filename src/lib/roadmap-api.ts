@@ -1,6 +1,7 @@
 import { apiClient } from '@/lib/api-client';
 import type { ApiResponse } from '@/types/auth.types';
 import type { LearnerRoadmapInsights, RoadmapGoal } from '@/types/roadmap.types';
+import type { VocabWord, QuizResponse } from '@/types/vocab.types';
 
 export async function getRoadmapGoals(): Promise<RoadmapGoal[]> {
   const res = await apiClient.get<ApiResponse<RoadmapGoal[]>>(
@@ -82,6 +83,23 @@ export async function getWeeklyPlanHistory(): Promise<WeeklyPlanSummary[]> {
 export async function getMonthlyAssessment(): Promise<MonthlyAssessmentResponse | null> {
   const res = await apiClient.get<ApiResponse<MonthlyAssessmentResponse>>(
     '/api/v1/learner/weekly-plan/monthly-assessment',
+    true
+  );
+  return res.result ?? null;
+}
+
+export async function startVocabLearning(slotId: number): Promise<VocabWord[]> {
+  const res = await apiClient.post<ApiResponse<VocabWord[]>>(
+    `/api/v1/learner/weekly-plan/slots/${slotId}/vocab-start`,
+    {},
+    true
+  );
+  return res.result ?? [];
+}
+
+export async function getVocabQuiz(slotId: number): Promise<QuizResponse | null> {
+  const res = await apiClient.get<ApiResponse<QuizResponse>>(
+    `/api/v1/learner/weekly-plan/slots/${slotId}/vocab-test`,
     true
   );
   return res.result ?? null;

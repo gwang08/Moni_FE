@@ -8,8 +8,11 @@ import { QuizSetup } from '@/components/vocabulary/quiz-setup';
 import { QuizQuestionCard } from '@/components/vocabulary/quiz-question-card';
 import { QuizResult } from '@/components/vocabulary/quiz-result';
 import { generateQuiz } from '@/lib/vocab-api';
+import { getVocabQuiz, completeSlot } from '@/lib/roadmap-api';
 import { QuizQuestion } from '@/types/vocab.types';
 import { toast } from 'sonner';
+import { useSearchParams } from 'next/navigation';
+import { useEffect, useRef } from 'react';
 
 type Screen = 'setup' | 'quiz' | 'result';
 
@@ -26,6 +29,42 @@ export default function QuizPage() {
   const [currentIdx, setCurrentIdx] = useState(0);
   const [score, setScore] = useState(0);
   const [wrongAnswers, setWrongAnswers] = useState<WrongAnswer[]>([]);
+  const [activeSlotId, setActiveSlotId] = useState<number | null>(null);
+
+  const searchParams = useSearchParams();
+  const initialized = useRef(false);
+
+  useEffect(() => {
+    const slotIdx = searchParams.get('slotId');
+    if (slotIdx && !initialized.current) {
+      initialized.current = true;
+      const sId = parseInt(slotIdx);
+      setActiveSlotId(sId);
+      loadRoadmapQuiz(sId);
+    }
+  }, [searchParams]);
+
+  const loadRoadmapQuiz = async (slotId: number) => {
+    setLoading(true);
+    try {
+      const res = await getVocabQuiz(slotId);
+      if (!res || !res.questions.length) {
+        toast.error('Không tìm thấy từ vựng cho bài kiểm tra này.');
+        setScreen('setup');
+        return;
+      }
+      setQuestions(res.questions);
+      setCurrentIdx(0);
+      setScore(0);
+      setWrongAnswers([]);
+      setScreen('quiz');
+    } catch (err) {
+      toast.error('Lỗi khi tải bài thi từ vựng');
+      setScreen('setup');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleStart = async (params: {
     source: string;
@@ -62,6 +101,13 @@ export default function QuizPage() {
 
     if (currentIdx + 1 >= questions.length) {
       setScreen('result');
+      // If this was a roadmap test, mark it as complete
+      if (activeSlotId) {
+        // We set score and total to DONE. For vocab test, score can be percentage?
+        // Let's just mark it done.
+        completeSlot(activeSlotId, score + (selectedIndex === question.correctIndex ? 1 : 0), questions.length)
+          .catch(() => console.error("Failed to complete vocab slot"));
+      }
     } else {
       setCurrentIdx((i) => i + 1);
     }

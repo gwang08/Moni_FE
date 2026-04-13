@@ -56,15 +56,13 @@ function ProgressBar({ value, max, label, color }: {
 export function VocabReviewStats() {
   const [dueCount, setDueCount] = useState(0);
   const [stats, setStats] = useState<ReviewStats | null>(null);
-  const [listCount, setListCount] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    Promise.all([getDueReview(), getReviewStats(), getMyLists()])
-      .then(([due, s, lists]) => {
+    Promise.all([getDueReview(), getReviewStats()])
+      .then(([due, s]) => {
         setDueCount(due.length);
         setStats(s);
-        setListCount(lists.length);
       })
       .catch(() => { })
       .finally(() => setLoading(false));
@@ -82,8 +80,8 @@ export function VocabReviewStats() {
 
   const mastered = stats?.masteredCount ?? 0;
   const totalSaved = stats?.totalSaved ?? 0;
-  const reviewedToday = stats?.reviewedToday ?? 0;
-  const activeWords = totalSaved - mastered;
+  const learningCount = stats?.learningCount ?? 0;
+  const listCount = stats?.listsCount ?? 0;
 
   return (
     <div className="col-span-full bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
@@ -128,7 +126,7 @@ export function VocabReviewStats() {
           />
           <StatBox
             icon={<BookOpen className="h-6 w-6 text-blue-600" />}
-            value={activeWords}
+            value={learningCount}
             label="Đang học"
             color="bg-blue-50 text-blue-600"
           />
@@ -160,13 +158,13 @@ export function VocabReviewStats() {
               color="bg-emerald-500"
             />
             <ProgressBar
-              value={activeWords}
-              max={totalSaved}
+              value={learningCount}
+              max={totalSaved + learningCount}
               label="Đang học"
               color="bg-blue-500"
             />
             <ProgressBar
-              value={reviewedToday}
+              value={0}
               max={Math.max(dueCount, 1)}
               label="Đã ôn hôm nay"
               color="bg-amber-500"
@@ -186,17 +184,11 @@ export function VocabReviewStats() {
                 </p>
                 <p className="text-[10px] text-gray-500 mt-0.5">Tỷ lệ thành thạo</p>
               </div>
-              <div className="rounded-xl bg-gray-50 p-3 text-center">
-                <p className="text-lg font-bold text-gray-900">
-                  {dueCount > 0 ? Math.round((reviewedToday / dueCount) * 100) : 0}%
-                </p>
-                <p className="text-[10px] text-gray-500 mt-0.5">Hoàn thành ôn tập</p>
-              </div>
               <div className="rounded-xl bg-gray-50 p-3 text-center col-span-2">
                 <p className="text-sm text-gray-600">
                   {dueCount === 0
                     ? '🎉 Không có từ nào cần ôn hôm nay!'
-                    : `📚 Còn ${dueCount - reviewedToday} từ cần ôn hôm nay`}
+                    : `📚 Còn ${dueCount} từ cần ôn hôm nay`}
                 </p>
               </div>
             </div>
@@ -204,8 +196,6 @@ export function VocabReviewStats() {
         </div>
 
         {/* Bottom CTA */}
-        {dueCount > reviewedToday && (
-          <div className="mt-6 pt-5 border-t border-gray-100">
             <Link
               href="/vocabulary/review"
               className="flex items-center justify-center gap-2 w-full py-3 rounded-xl
@@ -215,8 +205,6 @@ export function VocabReviewStats() {
               <BookOpen className="h-4 w-4" />
               Bắt đầu ôn tập ngay
             </Link>
-          </div>
-        )}
       </div>
     </div>
   );

@@ -1,6 +1,6 @@
 export type TaskType = 'PLACEMENT_TEST' | 'PRACTICE_STIMULUS' | 'MINI_TEST';
 export type TaskStatus = 'TODO' | 'DONE' | 'LOCKED';
-export type RoadmapSkill = 'READING' | 'LISTENING' | 'WRITING' | 'SPEAKING';
+export type RoadmapSkill = 'READING' | 'LISTENING' | 'WRITING' | 'SPEAKING' | 'VOCABULARY';
 
 export interface RoadmapTask {
   id: number;
@@ -76,7 +76,7 @@ export interface LearnerRoadmapInsights {
 // Weekly Plan Types (new system)
 // =====================================================================
 
-export type SlotTaskType = 'PRACTICE' | 'ASSESSMENT';
+export type SlotTaskType = 'PRACTICE' | 'ASSESSMENT' | 'VOCAB_LEARN' | 'VOCAB_TEST';
 export type SlotStatus = 'TODO' | 'DONE';
 export type PerformanceVerdict = 'IMPROVED' | 'STABLE' | 'DECLINED';
 
@@ -92,6 +92,7 @@ export interface DailySlotResponse {
   status: SlotStatus;
   score: number | null;
   totalQuestions: number | null;
+  referenceMetadata: string | null;
 }
 
 export interface WeeklyPlanResponse {

@@ -6,10 +6,18 @@ import {
   BookOpen, Check, Clock, Lock, TrendingUp, TrendingDown, Minus, Trophy,
   Sparkles, ArrowRight,
 } from 'lucide-react';
-import { getWeeklyPlan } from '@/lib/roadmap-api';
+import { getWeeklyPlan, startVocabLearning } from '@/lib/roadmap-api';
 import { SkeletonCard } from '@/components/ui/skeleton';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { toast } from 'sonner';
 import type { WeeklyPlanResponse, DailySlotResponse, RoadmapSkill, PerformanceVerdict } from '@/types/roadmap.types';
+import type { VocabWord } from '@/types/vocab.types';
 
 function formatStimulusTitle(title: string | null | undefined, skill: RoadmapSkill, isAssessment: boolean) {
   if (!title) return isAssessment ? 'Bài đánh giá kỹ năng' : 'Bài luyện tập';
@@ -19,6 +27,9 @@ function formatStimulusTitle(title: string | null | undefined, skill: RoadmapSki
   if (skill === 'LISTENING') formattedTitle = formattedTitle.replace(/^Passage\s+/i, 'Section ');
   else if (skill === 'WRITING') formattedTitle = formattedTitle.replace(/^Passage\s+/i, 'Task ');
   else if (skill === 'SPEAKING') formattedTitle = formattedTitle.replace(/^Passage\s+/i, 'Part ');
+  else if (skill === 'VOCABULARY') {
+    return formattedTitle || 'Ôn tập từ vựng';
+  }
 
   return formattedTitle;
 }
@@ -30,6 +41,7 @@ const SKILL_STYLE: Record<RoadmapSkill, { bg: string; text: string; border: stri
   LISTENING: { bg: 'bg-purple-50', text: 'text-purple-700', border: 'border-purple-200', dot: 'bg-purple-500' },
   WRITING: { bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200', dot: 'bg-emerald-500' },
   SPEAKING: { bg: 'bg-orange-50', text: 'text-orange-700', border: 'border-orange-200', dot: 'bg-orange-500' },
+  VOCABULARY: { bg: 'bg-rose-50', text: 'text-rose-700', border: 'border-rose-200', dot: 'bg-rose-500' },
 };
 
 const VERDICT_CONFIG: Record<PerformanceVerdict, { icon: typeof TrendingUp; label: string; color: string }> = {
@@ -59,7 +71,8 @@ function SlotCard({ slot, onClick, locked }: { slot: DailySlotResponse; onClick:
   const style = SKILL_STYLE[slot.skill];
   const isDone = slot.status === 'DONE';
   const isAssessment = slot.taskType === 'ASSESSMENT';
-  const hasLink = slot.testId != null || slot.stimulusId != null;
+  const isVocab = slot.skill === 'VOCABULARY';
+  const hasLink = slot.testId != null || slot.stimulusId != null || isVocab;
   const isDisabled = locked || (!hasLink && !isDone);
 
   const formattedTitle = formatStimulusTitle(slot.stimulusTitle, slot.skill, isAssessment);
@@ -119,6 +132,8 @@ export function LearningRoadmap() {
   const [loading, setLoading] = useState(true);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [activeSlot, setActiveSlot] = useState<DailySlotResponse | null>(null);
+  const [learnedWords, setLearnedWords] = useState<VocabWord[]>([]);
+  const [showVocabModal, setShowVocabModal] = useState(false);
   const fetchedRef = useRef(false);
 
   const fetchPlan = async () => {
@@ -181,6 +196,12 @@ export function LearningRoadmap() {
   const handleSlotClick = (slot: DailySlotResponse) => {
     if (slot.status === 'DONE') return;
 
+    if (slot.skill === 'VOCABULARY') {
+      setActiveSlot(slot);
+      setConfirmOpen(true);
+      return;
+    }
+
     const id = slot.testId ?? slot.stimulusId;
     if (!id) return;
 
@@ -188,9 +209,28 @@ export function LearningRoadmap() {
     setConfirmOpen(true);
   };
 
-  const handleConfirmPractice = () => {
+  const handleConfirmPractice = async () => {
     if (!activeSlot) return;
     
+    // Special handling for Vocab
+    if (activeSlot.skill === 'VOCABULARY') {
+      if (activeSlot.taskType === 'VOCAB_LEARN') {
+        try {
+          const words = await startVocabLearning(activeSlot.id);
+          if (words.length > 0) {
+            setLearnedWords(words);
+            setShowVocabModal(true);
+            fetchPlan(); // Refresh roadmap status
+          }
+        } catch (err) {
+          toast.error('Không khởi tạo được task học từ vựng');
+        }
+      } else if (activeSlot.taskType === 'VOCAB_TEST') {
+        router.push(`/vocabulary/quiz?slotId=${activeSlot.id}`);
+      }
+      return;
+    }
+
     const id = activeSlot.testId ?? activeSlot.stimulusId;
     if (!id) return;
 
@@ -365,6 +405,46 @@ export function LearningRoadmap() {
         variant="default"
         onConfirm={handleConfirmPractice}
       />
+
+      <Dialog open={showVocabModal} onOpenChange={setShowVocabModal}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-xl">
+              <Sparkles className="h-6 w-6 text-amber-500" />
+              15 từ vựng mới cho ngày hôm nay
+            </DialogTitle>
+          </DialogHeader>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+            {learnedWords.map((v, idx) => (
+              <div key={idx} className="p-4 rounded-xl border border-gray-100 bg-gray-50/50 hover:bg-white hover:border-indigo-100 transition-all">
+                <div className="flex items-center justify-between mb-1">
+                  <h4 className="font-bold text-indigo-700">{v.word}</h4>
+                  <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-600 uppercase">
+                    {v.pos}
+                  </span>
+                </div>
+                {v.phonetic && <p className="text-xs text-gray-400 font-mono mb-2">{v.phonetic}</p>}
+                <p className="text-sm text-gray-800 font-medium mb-1">{v.meaning}</p>
+                {v.definition && <p className="text-[11px] text-gray-500 line-clamp-2 italic mb-2">"{v.definition}"</p>}
+                {v.example && (
+                  <div className="mt-2 text-[11px] bg-white p-2 rounded-lg border border-gray-100">
+                    <span className="font-semibold text-gray-400 uppercase text-[9px] block mb-1">Ví dụ</span>
+                    <p className="text-gray-600 italic">...{v.example}...</p>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+          <div className="mt-6 flex justify-end">
+            <button
+              onClick={() => setShowVocabModal(false)}
+              className="px-6 py-2 bg-indigo-600 text-white rounded-xl font-semibold hover:bg-indigo-700 transition-colors"
+            >
+              Đã hiểu, bắt đầu ôn luyện
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

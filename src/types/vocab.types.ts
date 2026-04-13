@@ -1,4 +1,4 @@
-export type VocabSourceType = 'MANUAL' | 'READING_PASSAGE' | 'DICTIONARY_LOOKUP' | 'LISTENING_PASSAGE' | 'WRITING_EXERCISE' | 'SPEAKING_EXERCISE';
+export type VocabSourceType = 'MANUAL' | 'READING_PASSAGE' | 'DICTIONARY_LOOKUP' | 'LISTENING_PASSAGE' | 'WRITING_EXERCISE' | 'SPEAKING_EXERCISE' | 'ROADMAP_SYSTEM';
 
 export interface VocabWord {
   id: number;
@@ -86,7 +86,8 @@ export interface ReviewStats {
   totalSaved: number;
   dueToday: number;
   masteredCount: number;
-  reviewedToday: number;
+  listsCount: number;
+  learningCount: number;
 }
 
 export interface WordMatchPair {

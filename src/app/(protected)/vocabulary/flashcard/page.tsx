@@ -160,7 +160,7 @@ export default function FlashcardPage() {
         {stats && (
           <div className="grid grid-cols-2 gap-4 max-w-xs mx-auto">
             <div className="rounded-xl border bg-blue-50 p-4">
-              <p className="text-2xl font-bold text-blue-600">{stats.reviewedToday}</p>
+              <p className="text-2xl font-bold text-blue-600">{reviewedCount}</p>
               <p className="text-xs text-gray-500 mt-1">Đã ôn hôm nay</p>
             </div>
             <div className="rounded-xl border bg-emerald-50 p-4">

@@ -273,7 +273,7 @@ export const TestEditContentTab = forwardRef<TestEditContentHandle, Props>(funct
   ref
 ) {
   const testId = String(test.id);
-  const { handleDeleteQuestion, pendingDelete, confirmDelete, cancelDelete } = useTestEditMutations(testId);
+  const { handleDeleteQuestion, handleDeleteGroup, pendingDelete, confirmDelete, cancelDelete } = useTestEditMutations(testId);
   const queryClient = useQueryClient();
 
   const [activeStimulus, setActiveStimulus] = useState(0);
@@ -1056,6 +1056,24 @@ export const TestEditContentTab = forwardRef<TestEditContentHandle, Props>(funct
                               <AlertTriangle className="h-3 w-3" /> Chưa hoàn chỉnh
                             </span>
                           )}
+                          <div className="ml-auto flex items-center gap-1">
+                            <button
+                              type="button"
+                              onClick={() => setEditingGroupId(group.id)}
+                              className="inline-flex h-6 w-6 items-center justify-center rounded text-gray-400 hover:text-blue-600 hover:bg-blue-50"
+                              title="Chỉnh sửa nhóm"
+                            >
+                              <Pencil className="h-3.5 w-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteGroup(group.id)}
+                              className="inline-flex h-6 w-6 items-center justify-center rounded text-gray-400 hover:text-red-600 hover:bg-red-50"
+                              title="Xóa nhóm câu hỏi"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
                         </div>
                         {group.instruction && <p className="mt-2 text-xs italic text-gray-500">{group.instruction}</p>}
                       </div>
@@ -1228,8 +1246,20 @@ export const TestEditContentTab = forwardRef<TestEditContentHandle, Props>(funct
         onOpenChange={(open) => {
           if (!open) cancelDelete();
         }}
-        title={pendingDelete?.type === 'group' ? 'Delete question group?' : 'Delete question?'}
-        description={pendingDelete?.type === 'group' ? 'All questions in this group will be deleted.' : 'This question will be deleted permanently.'}
+        title={
+          pendingDelete?.type === 'group'
+            ? 'Xác nhận xóa nhóm câu hỏi?'
+            : pendingDelete?.type === 'question'
+              ? 'Xác nhận xóa câu hỏi?'
+              : 'Xác nhận xóa phần thi?'
+        }
+        description={
+          pendingDelete?.type === 'group'
+            ? 'Tất cả câu hỏi trong nhóm này sẽ bị xóa. Hành động này không thể hoàn tác.'
+            : pendingDelete?.type === 'question'
+              ? 'Câu hỏi này sẽ bị xóa vĩnh viễn. Hành động này không thể hoàn tác.'
+              : 'Phần thi này sẽ bị xóa khỏi bài thi. Hành động này không thể hoàn tác.'
+        }
         variant="destructive"
         onConfirm={confirmDelete}
       />

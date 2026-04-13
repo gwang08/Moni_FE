@@ -13,6 +13,7 @@ import { toast } from 'sonner';
 
 export default function NotebookListDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const searchParams = useSearchParams();
   const router = useRouter();
   const [selectedWord, setSelectedWord] = useState<VocabWord | null>(null);
   const [wordDetail, setWordDetail] = useState<VocabDetail | null>(null);
@@ -58,15 +59,22 @@ export default function NotebookListDetailPage() {
 
   useEffect(() => {
     const load = async () => {
-      const listId = Number(id);
+      let listId: number | null = Number(id);
+      const isSystemMode = id === 'system';
+      const statusFilter = searchParams.get('status') || undefined;
+
       console.log('[NotebookDetail] ===== START =====');
-      console.log('[NotebookDetail] Loading list with ID:', listId);
+      console.log('[NotebookDetail] Loading list with ID:', listId, 'or system mode:', isSystemMode, statusFilter);
       
-      if (isNaN(listId)) { 
+      if (!isSystemMode && isNaN(listId)) { 
         console.error('[NotebookDetail] Invalid list ID');
         setNotFound(true); 
         setLoading(false); 
         return; 
+      }
+      
+      if (isSystemMode) {
+        listId = null;
       }
       
       let page: any = { content: [], totalElements: 0, totalPages: 0 };
@@ -109,8 +117,8 @@ export default function NotebookListDetailPage() {
       // Step 2: Fetch words
       console.log('[NotebookDetail] Step 2: Fetching words...');
       try {
-        console.log('[NotebookDetail] Calling getMyWords(0,', pageSize, ',', listId, ')');
-        page = await getMyWords(0, pageSize, listId);
+        console.log('[NotebookDetail] Calling getMyWords(0,', pageSize, ',', listId, statusFilter, ')');
+        page = await getMyWords(0, pageSize, listId, undefined, statusFilter);
         console.log('[NotebookDetail] ✓ Words fetched successfully:');
         console.log('[NotebookDetail]   - content.length:', page.content.length);
         console.log('[NotebookDetail]   - totalElements:', page.totalElements);
@@ -131,13 +139,35 @@ export default function NotebookListDetailPage() {
       }
       
       // Step 3: Create placeholder if no metadata
-      if (!currentCollection) {
+        let systemTitle = 'Sổ hệ thống';
+        let systemIcon = '📁';
+        let systemDesc = 'Danh sách từ thuộc hệ thống';
+        if (isSystemMode && statusFilter) {
+          if (statusFilter === 'draft') {
+            systemTitle = 'Sổ từ biết tuốt';
+            systemDesc = 'Từ ghim nhưng chưa học, sẽ xuất hiện ở vòng lặp hằng ngày';
+            systemIcon = '📖';
+          } else if (statusFilter === 'active') {
+            systemTitle = 'Sổ tay nhắc lại';
+            systemDesc = 'Từ đang trong chu kỳ ôn tập (spaced repetition)';
+            systemIcon = '🔄';
+          } else if (statusFilter === 'mastered') {
+            systemTitle = 'Sổ tay Master';
+            systemDesc = 'Từ đã thành thạo, không cần ôn thường xuyên';
+            systemIcon = '⭐';
+          } else if (statusFilter === 'manual') {
+            systemTitle = 'Sổ từ của tôi';
+            systemDesc = 'Từ tự nhập thủ công';
+            systemIcon = '📝';
+          }
+        }
+        
         console.log('[NotebookDetail] Step 3: Creating placeholder metadata');
         currentCollection = {
-          id: listId,
-          title: 'Danh sách',
-          icon: '📁',
-          description: null,
+          id: listId || -1,
+          title: isSystemMode ? systemTitle : 'Danh sách',
+          icon: isSystemMode ? systemIcon : '📁',
+          description: isSystemMode ? systemDesc : null,
           type: 'CUSTOM',
           isDefault: false,
           wordCount: page.totalElements || 0,
@@ -163,10 +193,15 @@ export default function NotebookListDetailPage() {
 
   const loadPage = async (page: number) => {
     try {
-      const listId = Number(id);
-      if (isNaN(listId)) return;
+      let listId: number | null = Number(id);
+      const isSystemMode = id === 'system';
+      const statusFilter = searchParams.get('status') || undefined;
+
+      if (!isSystemMode && isNaN(listId)) return;
+      if (isSystemMode) listId = null;
+
       setLoading(true);
-      const pageData = await getMyWords(page, pageSize, listId);
+      const pageData = await getMyWords(page, pageSize, listId, undefined, statusFilter);
       setWords(pageData.content);
       setCurrentPage(page);
       setTotalPages(pageData.totalPages);
@@ -201,9 +236,11 @@ export default function NotebookListDetailPage() {
       await deleteWord(wordToDelete.id);
       toast.success(`Đã xóa từ "${wordToDelete.word}"`);
       // Reload current page to update the list
-      const listId = Number(id);
-      if (isNaN(listId)) return;
-      const pageData = await getMyWords(currentPage, pageSize, listId);
+      let listId: number | null = Number(id);
+      if (id === 'system') listId = null;
+      if (listId !== null && isNaN(listId)) return;
+      const statusFilter = searchParams.get('status') || undefined;
+      const pageData = await getMyWords(currentPage, pageSize, listId, undefined, statusFilter);
       setWords(pageData.content);
       setTotalPages(pageData.totalPages);
       setTotalElements(pageData.totalElements);
@@ -277,10 +314,13 @@ export default function NotebookListDetailPage() {
   // Add word handlers
   const refreshWords = async () => {
     try {
-      const listId = Number(id);
-      if (isNaN(listId)) return;
+      let listId: number | null = Number(id);
+      if (id === 'system') listId = null;
+      if (listId !== null && isNaN(listId)) return;
+      const statusFilter = searchParams.get('status') || undefined;
+
       setLoading(true);
-      const pageData = await getMyWords(0, pageSize, listId);
+      const pageData = await getMyWords(0, pageSize, listId, undefined, statusFilter);
       setWords(pageData.content);
       setCurrentPage(0);
       setTotalPages(pageData.totalPages);

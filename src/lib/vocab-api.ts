@@ -83,12 +83,14 @@ export async function translateSentence(text: string): Promise<SentenceTranslate
 export async function getMyWords(
   page = 0,
   size = 20,
-  listId?: number,
+  listId?: number | null,
   search?: string,
+  status?: string,
 ): Promise<Page<VocabWord>> {
   const params = new URLSearchParams({ page: String(page), size: String(size) });
   if (listId != null) params.set('listId', String(listId));
   if (search) params.set('search', search);
+  if (status) params.set('status', status.toUpperCase());
   const res = await apiClient.get<ApiResponse<Page<VocabWord>>>(`/api/v1/vocab/my-words?${params}`, true);
   if (!res.result) throw new Error('Không thể tải từ vựng');
   return res.result;

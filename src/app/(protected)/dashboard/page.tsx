@@ -15,6 +15,7 @@ import { PlacementDialog } from '@/components/dashboard/placement-dialog';
 import { LearningRoadmap } from '@/components/dashboard/learning-roadmap';
 import { RoadmapInsights } from '@/components/dashboard/roadmap-insights';
 import { useUserStore } from '@/store/user-store';
+import { useTourStore } from '@/store/tour-store';
 import { getPlacementResult } from '@/lib/placement-api';
 import { apiClient } from '@/lib/api-client';
 import type { ApiResponse } from '@/types/auth.types';
@@ -44,6 +45,7 @@ export default function DashboardPage() {
   const setTargetScore = useUserStore((s) => s.setTargetScore);
   const setExamDate = useUserStore((s) => s.setExamDate);
   const refreshProfile = useAuthStore((s) => s.refreshProfile);
+  const tourStep = useTourStore((s) => s.step);
   const [showPlacementDialog, setShowPlacementDialog] = useState(false);
   const fetchedRef = useRef(false);
 
@@ -104,7 +106,12 @@ export default function DashboardPage() {
   }, [hydrated]);
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 relative">
+      {/* Tour Overlay */}
+      {tourStep > 0 && (
+        <div className="fixed inset-0 bg-black/60 z-40 transition-opacity duration-300" />
+      )}
+
       <div className="max-w-6xl mx-auto px-4 py-8">
         {/* Page Header */}
         <div className="mb-8">

@@ -14,6 +14,7 @@ import { toast } from 'sonner';
 import { generatePlacement } from '@/lib/placement-api';
 import { PlacementGenerateLoading } from '@/components/placement/placement-generate-loading';
 import { ChibiMascot, ChibiAnimationStyles } from '@/components/ui/chibi-mascot';
+import { useTourStore } from '@/store/tour-store';
 
 interface Props {
   open: boolean;
@@ -22,19 +23,14 @@ interface Props {
 
 export function PlacementDialog({ open, onOpenChange }: Props) {
   const router = useRouter();
+  const setStep = useTourStore((s) => s.setStep);
   const [generating, setGenerating] = useState(false);
 
-  const handleStartTest = async () => {
+  const handleStartTour = () => {
     onOpenChange(false);
-    setGenerating(true);
-    try {
-      const pair = await generatePlacement();
-      sessionStorage.setItem('pending-placement-test', JSON.stringify(pair));
-      router.push('/placement');
-    } catch {
-      toast.error('Không thể tạo bài test. Vui lòng thử lại.');
-      setGenerating(false);
-    }
+    setStep(1);
+    // Cuộn lên đầu trang để trải nghiệm mượt hơn
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   return (
@@ -50,21 +46,21 @@ export function PlacementDialog({ open, onOpenChange }: Props) {
 
             <div className="text-center space-y-2">
               <h2 className="text-lg font-bold text-gray-800">
-                Chào bạn! Cùng kiểm tra trình độ nhé 🎓
+                Lên lộ trình học tập 🎓
               </h2>
               <p className="text-sm text-gray-500 leading-relaxed">
-                Làm bài test nhanh để Moni đánh giá trình độ và tạo lộ trình học phù hợp cho bạn nhé!
+                Hoàn thành vài bước thiết lập cơ bản để Moni phác thảo lộ trình học cá nhân hoá dành riêng cho bạn nhé!
               </p>
             </div>
           </div>
 
           <div className="px-6 pb-6 pt-3 space-y-2.5">
             <Button
-              onClick={handleStartTest}
+              onClick={handleStartTour}
               className="w-full bg-gradient-to-r from-orange-400 to-rose-400 hover:from-orange-500 hover:to-rose-500 text-white rounded-2xl h-12 text-sm font-semibold shadow-md hover:shadow-lg transition-all"
             >
               <BookOpen className="h-4 w-4 mr-2" />
-              Làm bài test Reading + Listening
+              Bắt đầu thiết lập
             </Button>
 
             <button

@@ -1,10 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useUserStore } from '@/store/user-store';
+import { useTourStore } from '@/store/tour-store';
 import { apiClient } from '@/lib/api-client';
 import type { ApiResponse } from '@/types/auth.types';
-import { Pencil, Check, X, CalendarDays, Clock } from 'lucide-react';
+import { Pencil, Check, X, CalendarDays, Clock, ArrowRight } from 'lucide-react';
+import { ChibiMascot } from '@/components/ui/chibi-mascot';
 
 function getDaysRemaining(examDate: string | null): number | null {
   if (!examDate) return null;
@@ -26,6 +28,7 @@ function formatDisplayDate(dateStr: string | null): string {
 export function ExamCountdown() {
   const examDate = useUserStore((s) => s.examDate);
   const setExamDate = useUserStore((s) => s.setExamDate);
+  const { step: tourStep, nextStep } = useTourStore();
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState('');
   const [daysRemaining, setDaysRemaining] = useState<number | null>(null);
@@ -48,12 +51,33 @@ export function ExamCountdown() {
     if (draft) {
       apiClient.put<ApiResponse<unknown>>('/users/me', { examDate: draft }, true).catch(() => {});
     }
+    
+    if (tourStep === 2) nextStep();
   };
 
   const cancelEdit = () => setEditing(false);
 
   return (
-    <div id="exam-countdown-section" className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 h-full">
+    <div id="exam-countdown-section" className={`bg-white h-full relative transition-all duration-300 ${tourStep === 2 ? 'z-50 ring-4 ring-orange-400 shadow-2xl rounded-2xl' : 'rounded-2xl shadow-sm border border-gray-100'}`}>
+      
+      {tourStep === 2 && (
+        <div className="absolute top-1/2 -translate-y-1/2 -left-6 -translate-x-full w-64 bg-white p-4 rounded-xl shadow-xl border border-gray-100 z-50 animate-in fade-in slide-in-from-right-4">
+          <div className="flex gap-3 mb-2">
+            <ChibiMascot mood="thinking" size={40} />
+            <div className="font-bold text-gray-800 text-sm">Bước 2/3</div>
+          </div>
+          <p className="text-sm text-gray-600 mb-3">Hãy cập nhật Ngày thi dự kiến của bạn (nếu có). Bạn hoàn toàn có thể bỏ qua bước này!</p>
+          <button 
+            onClick={nextStep}
+            className="w-full flex items-center justify-center gap-1 bg-gray-100 hover:bg-gray-200 text-gray-700 py-1.5 rounded-lg text-xs font-semibold transition-colors"
+          >
+            Bỏ qua bước này
+            <ArrowRight className="h-3 w-3" />
+          </button>
+        </div>
+      )}
+
+      <div className="p-6">
       {/* Header */}
       <div className="flex items-center justify-between mb-5">
         <h3 className="text-base font-semibold text-gray-800">Lịch thi</h3>
@@ -129,6 +153,7 @@ export function ExamCountdown() {
             Hôm nay là ngày thi!
           </div>
         )}
+      </div>
       </div>
     </div>
   );

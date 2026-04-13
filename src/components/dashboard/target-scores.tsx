@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useUserStore } from '@/store/user-store';
 import { calculateOverallScore } from '@/lib/calendar-utils';
 import { generatePlacement, resetPlacement } from '@/lib/placement-api';
+import { useTourStore } from '@/store/tour-store';
 import { apiClient } from '@/lib/api-client';
 import { getRoadmapInsights } from '@/lib/roadmap-api';
 import type { ApiResponse } from '@/types/auth.types';
@@ -44,6 +45,8 @@ export function TargetScores() {
   const placementResult = useUserStore((s) => s.placementResult);
   const examDate = useUserStore((s) => s.examDate);
   const clearPlacementResult = useUserStore((s) => s.clearPlacementResult);
+  
+  const { step: tourStep, nextStep } = useTourStore();
   const [editing, setEditing] = useState(false);
   const [resetting, setResetting] = useState(false);
   const [generating, setGenerating] = useState(false);
@@ -103,6 +106,11 @@ export function TargetScores() {
 
       // Let dashboard panels refetch (roadmap + insights).
       window.dispatchEvent(new Event('roadmap-updated'));
+      
+      // Tour logic: move to next step after setting targets
+      if (tourStep === 1) {
+        nextStep();
+      }
     } catch {
       // Keep UI responsive even if backend update fails.
     }
@@ -166,7 +174,28 @@ export function TargetScores() {
   };
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 h-full">
+    <div className={`bg-white h-full relative transition-all duration-300 ${tourStep === 1 || tourStep === 3 ? 'z-50 ring-4 ring-orange-400 shadow-2xl rounded-2xl' : 'rounded-2xl shadow-sm border border-gray-100'}`}>
+      {tourStep === 1 && (
+        <div className="absolute top-1/2 -translate-y-1/2 -right-6 translate-x-full w-64 bg-white p-4 rounded-xl shadow-xl border border-gray-100 z-50 animate-in fade-in slide-in-from-left-4">
+          <div className="flex gap-3 mb-2">
+            <ChibiMascot mood="excited" size={40} />
+            <div className="font-bold text-gray-800 text-sm">Bước 1/3</div>
+          </div>
+          <p className="text-sm text-gray-600">Hãy bắt đầu bằng cách nhập mục tiêu điểm số từng kỹ năng của bạn nhé. Nhấn vào cây bút để chỉnh sửa!</p>
+        </div>
+      )}
+
+      {tourStep === 3 && (
+        <div className="absolute top-3/4 -translate-y-1/2 -right-6 translate-x-full w-64 bg-white p-4 rounded-xl shadow-xl border border-orange-100 z-50 animate-in fade-in slide-in-from-left-4">
+          <div className="flex gap-3 mb-2">
+            <ChibiMascot mood="excited" size={40} />
+            <div className="font-bold text-gray-800 text-sm">Bước 3/3</div>
+          </div>
+          <p className="text-sm text-gray-600">Bắt đầu thôi! Hãy làm nhanh bài test Đánh giá năng lực để Moni có dữ liệu xếp lộ trình cho bạn nhé!</p>
+        </div>
+      )}
+
+      <div className="p-6">
       {/* Header */}
       <div className="flex items-center justify-between mb-5">
         <h3 className="text-base font-semibold text-gray-800">Mục tiêu của bạn</h3>
@@ -381,6 +410,7 @@ export function TargetScores() {
 
       {/* AI Recommendation dialog */}
       <AiRecommendationDialog open={showAiDialog} onOpenChange={setShowAiDialog} />
+      </div>
     </div>
   );
 }

@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { ArrowDown } from 'lucide-react';
+import { ChibiMascot } from '@/components/ui/chibi-mascot';
 import { useHydration } from '@/hooks/use-hydration';
 import { SkeletonCard } from '@/components/ui/skeleton';
 import { TargetScores } from '@/components/dashboard/target-scores';
@@ -45,7 +47,7 @@ export default function DashboardPage() {
   const setTargetScore = useUserStore((s) => s.setTargetScore);
   const setExamDate = useUserStore((s) => s.setExamDate);
   const refreshProfile = useAuthStore((s) => s.refreshProfile);
-  const tourStep = useTourStore((s) => s.step);
+  const { step: tourStep, setStep: setTourStep } = useTourStore();
   const [showPlacementDialog, setShowPlacementDialog] = useState(false);
   const fetchedRef = useRef(false);
 
@@ -98,8 +100,16 @@ export default function DashboardPage() {
         }
       } catch { /* ignore - localStorage fallback */ }
     }
+    
+    // Check if coming back from Placement Test
+    if (sessionStorage.getItem('showRoadmapTour')) {
+      sessionStorage.removeItem('showRoadmapTour');
+      // Delay slightly to ensure UI is hydrated
+      setTimeout(() => setTourStep(4), 500);
+    } else {
+      fetchPlacement();
+    }
 
-    fetchPlacement();
     fetchProfile();
     refreshProfile(); // Sync credit balance in header
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -109,7 +119,29 @@ export default function DashboardPage() {
     <div className="min-h-screen bg-gray-50 relative">
       {/* Tour Overlay */}
       {tourStep > 0 && (
-        <div className="fixed inset-0 bg-black/60 z-40 transition-opacity duration-300" />
+        <div className="fixed inset-0 bg-black/60 z-40 transition-opacity duration-300 flex flex-col items-center justify-center">
+          {tourStep === 4 && (
+            <div className="flex flex-col items-center animate-in fade-in zoom-in-95 duration-500">
+              <ChibiMascot mood="excited" size={160} />
+              <h2 className="text-3xl font-extrabold text-white mt-6 mb-2 text-center text-shadow-lg">
+                Đã lên lộ trình học tập cho bạn!
+              </h2>
+              <p className="text-orange-100 text-lg mb-12 text-center max-w-md">
+                Kéo xuống một chút để xem điều bất ngờ nhé 👇
+              </p>
+              
+              <button
+                onClick={() => {
+                  document.getElementById('learning-roadmap-section')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                  setTimeout(() => setTourStep(5), 800);
+                }}
+                className="w-16 h-16 rounded-full bg-white text-orange-500 flex items-center justify-center hover:bg-orange-50 hover:scale-110 transition-all shadow-[0_0_40px_rgba(255,255,255,0.4)] animate-bounce"
+              >
+                <ArrowDown className="w-8 h-8" />
+              </button>
+            </div>
+          )}
+        </div>
       )}
 
       <div className="max-w-6xl mx-auto px-4 py-8">

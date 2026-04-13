@@ -1,7 +1,10 @@
 import { create } from 'zustand';
 
 interface TourState {
-  step: number; // 0 = inactive, 1 = goals, 2 = exam date, 3 = placement test
+  // 0 = inactive
+  // 1 = goals, 2 = exam date, 3 = placement test trigger
+  // 4 = intro "Done with placement", 5 = roadmap weekly explanation, 6 = assessment saturday, 7 = monthly assessment
+  step: number;
   setStep: (step: number) => void;
   nextStep: () => void;
   stopTour: () => void;

@@ -94,7 +94,10 @@ export function ResultStep({ result }: Props) {
         </div>
 
         <Button
-          onClick={() => router.push('/dashboard')}
+          onClick={() => {
+            sessionStorage.setItem('showRoadmapTour', 'true');
+            router.push('/dashboard');
+          }}
           className="w-full bg-orange-500 hover:bg-orange-600 text-white rounded-full"
         >
           Quay lại Dashboard

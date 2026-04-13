@@ -16,6 +16,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { toast } from 'sonner';
+import { useTourStore } from '@/store/tour-store';
+import { ChibiMascot } from '@/components/ui/chibi-mascot';
 import type { WeeklyPlanResponse, DailySlotResponse, RoadmapSkill, PerformanceVerdict } from '@/types/roadmap.types';
 import type { VocabWord } from '@/types/vocab.types';
 
@@ -128,6 +130,7 @@ function SlotCard({ slot, onClick, locked }: { slot: DailySlotResponse; onClick:
 
 export function LearningRoadmap() {
   const router = useRouter();
+  const { step: tourStep, nextStep, stopTour } = useTourStore();
   const [plan, setPlan] = useState<WeeklyPlanResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -308,8 +311,77 @@ export function LearningRoadmap() {
   const verdict = plan.previousVerdict ? VERDICT_CONFIG[plan.previousVerdict] : null;
   const VerdictIcon = verdict?.icon;
 
+  const isTourActive = tourStep >= 5 && tourStep <= 7;
+
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-visible relative">
+    <div id="learning-roadmap-section" className={`bg-white rounded-2xl border border-gray-100 shadow-sm relative transition-all duration-500 ${isTourActive ? 'z-50 ring-4 ring-orange-500 shadow-2xl scale-[1.01]' : ''}`}>
+      
+      {/* Tour Step 5: Intro */}
+      {tourStep === 5 && (
+        <div className="absolute -top-6 left-1/2 -translate-x-1/2 -translate-y-full w-80 bg-white p-5 rounded-2xl shadow-xl border border-orange-100 z-50 animate-in fade-in slide-in-from-top-4">
+          <div className="flex gap-3 mb-3">
+            <ChibiMascot mood="excited" size={48} />
+            <div>
+              <div className="font-bold text-gray-800">Bước 1/3</div>
+              <div className="text-orange-600 text-sm font-semibold">Weekly Plan Cá Nhân Hoá</div>
+            </div>
+          </div>
+          <p className="text-sm text-gray-600 mb-4 leading-relaxed">
+            Đây là hệ thống Weekly Plan cực kỳ thông minh của Moni. Khối lượng bài tập và kỹ năng được tự động đo ni đóng giày dựa trên bài đánh giá hiện tại của bạn!
+          </p>
+          <button 
+            onClick={nextStep}
+            className="w-full bg-gradient-to-r from-orange-400 to-rose-400 hover:from-orange-500 hover:to-rose-500 text-white py-2 rounded-xl text-sm font-bold shadow-md transition-all"
+          >
+            Tiếp theo
+          </button>
+        </div>
+      )}
+
+      {/* Tour Step 6: Sat Assessment */}
+      {tourStep === 6 && (
+        <div className="absolute top-1/3 -right-6 translate-x-full w-80 bg-white p-5 rounded-2xl shadow-xl border border-purple-100 z-50 animate-in fade-in slide-in-from-left-4">
+          <div className="flex gap-3 mb-3">
+            <ChibiMascot mood="thinking" size={48} />
+            <div>
+              <div className="font-bold text-gray-800">Bước 2/3</div>
+              <div className="text-purple-600 text-sm font-semibold">Weekly Assessment (Thứ 7)</div>
+            </div>
+          </div>
+          <p className="text-sm text-gray-600 mb-4 leading-relaxed">
+            Đặc biệt: Vào mỗi ngày cuối tuần, lộ trình sẽ yêu cầu bạn làm 1 bài thi Đánh giá năng lực. Điểm số bài thi này sẽ quyết định độ khó của lộ trình cho tuần kế tiếp!
+          </p>
+          <button 
+            onClick={nextStep}
+            className="w-full bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 text-white py-2 rounded-xl text-sm font-bold shadow-md transition-all"
+          >
+            Tiếp theo
+          </button>
+        </div>
+      )}
+
+      {/* Tour Step 7: Monthly Assessment */}
+      {tourStep === 7 && (
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[340px] bg-white p-6 rounded-3xl shadow-[0_0_50px_rgba(0,0,0,0.15)] border-2 border-green-100 z-50 animate-in zoom-in-95 duration-300">
+          <div className="flex flex-col items-center text-center">
+            <ChibiMascot mood="excited" size={80} />
+            <h3 className="font-bold text-gray-800 text-lg mt-3 mb-1">Bước 3/3: Monthly Test</h3>
+            <p className="text-sm text-gray-600 mb-5 leading-relaxed">
+              Ngoài ra, mỗi đầu tháng sẽ có một bài Đánh giá tổng để rà soát sự tiến bộ dài hạn! Hãy bám sát lộ trình nhé, Moni luôn đồng hành cùng bạn!
+            </p>
+            <button 
+              onClick={() => {
+                stopTour();
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              className="w-full bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white py-3 rounded-xl text-base font-bold shadow-lg shadow-green-200 transition-all"
+            >
+              🚀 Bắt đầu học ngay!
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-orange-50/50 to-rose-50/30">
         <div className="flex items-center justify-between gap-3">

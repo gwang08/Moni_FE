@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, forwardRef, useImperativeHandle } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { ChevronDown, ChevronUp, Loader2, Plus, Save, Trash2 } from 'lucide-react';
@@ -11,6 +11,10 @@ import { useQueryClient } from '@tanstack/react-query';
 import { detectParagraphs } from '@/components/admin/test-import-matching-headings-editor';
 import type { QuestionDetail } from '@/types/test.types';
 
+export interface TestEditMatchingInformationHandle {
+  save: () => Promise<boolean>;
+}
+
 interface Props {
   questions: QuestionDetail[];
   passageHtml: string;
@@ -20,7 +24,10 @@ interface Props {
   onEvidenceChange: (questionId: number, evidence: string) => void;
 }
 
-export function TestEditMatchingInformation({ questions, passageHtml, testId, pendingEvidence, onAssignEvidence, onEvidenceChange }: Props) {
+export const TestEditMatchingInformation = forwardRef<TestEditMatchingInformationHandle, Props>(function TestEditMatchingInformation(
+  { questions, passageHtml, testId, pendingEvidence, onAssignEvidence, onEvidenceChange }: Props,
+  ref
+) {
   const queryClient = useQueryClient();
   const paragraphs = detectParagraphs(passageHtml);
   const [expanded, setExpanded] = useState<number | null>(null);
@@ -46,7 +53,7 @@ export function TestEditMatchingInformation({ questions, passageHtml, testId, pe
     if (questions[idx]) onEvidenceChange(questions[idx].id, ev ?? '');
   };
 
-  const handleSaveAll = async () => {
+  const handleSaveAll = async (): Promise<boolean> => {
     setSaving(true);
     try {
       const updates: Record<string, {
@@ -71,12 +78,18 @@ export function TestEditMatchingInformation({ questions, passageHtml, testId, pe
       await batchUpdateQuestions(updates);
       toast.success('Đã lưu tất cả câu Matching Information');
       queryClient.invalidateQueries({ queryKey: ['admin', 'test', testId] });
+      return true;
     } catch {
       toast.error('Lưu thất bại');
+      return false;
     } finally {
       setSaving(false);
     }
   };
+
+  useImperativeHandle(ref, () => ({
+    save: handleSaveAll,
+  }));
 
   if (paragraphs.length === 0) {
     return (
@@ -173,11 +186,7 @@ export function TestEditMatchingInformation({ questions, passageHtml, testId, pe
             </Button>
           )}
         </div>
-        <Button size="sm" onClick={handleSaveAll} disabled={saving}>
-          {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
-          Save all
-        </Button>
       </div>
     </div>
   );
-}
+});

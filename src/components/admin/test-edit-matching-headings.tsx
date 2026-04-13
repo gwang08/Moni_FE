@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, forwardRef, useImperativeHandle } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { ChevronDown, ChevronUp, Loader2, Plus, Save, Trash2 } from 'lucide-react';
@@ -10,6 +10,10 @@ import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
 import { detectParagraphs } from '@/components/admin/test-import-matching-headings-editor';
 import type { QuestionDetail } from '@/types/test.types';
+
+export interface TestEditMatchingHeadingsHandle {
+  save: () => Promise<boolean>;
+}
 
 const ALPHA = (idx: number) => String.fromCharCode(65 + idx); // A, B, C, D...
 
@@ -31,7 +35,10 @@ interface Props {
   onEvidenceChange: (questionId: number, evidence: string) => void;
 }
 
-export function TestEditMatchingHeadings({ questions, passageHtml, testId, pendingEvidence, onAssignEvidence, onEvidenceChange }: Props) {
+export const TestEditMatchingHeadings = forwardRef<TestEditMatchingHeadingsHandle, Props>(function TestEditMatchingHeadings(
+  { questions, passageHtml, testId, pendingEvidence, onAssignEvidence, onEvidenceChange }: Props,
+  ref
+) {
   const queryClient = useQueryClient();
   const paragraphs = detectParagraphs(passageHtml);
   const [expanded, setExpanded] = useState<string | null>(null);
@@ -65,7 +72,7 @@ export function TestEditMatchingHeadings({ questions, passageHtml, testId, pendi
     onEvidenceChange(questionId, ev ?? '');
   };
 
-  const handleSaveAll = async () => {
+  const handleSaveAll = async (): Promise<boolean> => {
     setSaving(true);
     try {
       const updates: Record<string, {
@@ -105,12 +112,18 @@ export function TestEditMatchingHeadings({ questions, passageHtml, testId, pendi
       await batchUpdateQuestions(updates);
       toast.success('Đã lưu tất cả câu matching headings');
       queryClient.invalidateQueries({ queryKey: ['admin', 'test', testId] });
+      return true;
     } catch {
       toast.error('Lưu thất bại');
+      return false;
     } finally {
       setSaving(false);
     }
   };
+
+  useImperativeHandle(ref, () => ({
+    save: handleSaveAll,
+  }));
 
   if (paragraphs.length === 0) {
     return (
@@ -184,11 +197,7 @@ export function TestEditMatchingHeadings({ questions, passageHtml, testId, pendi
         <Button type="button" size="sm" variant="outline" className="text-xs h-7 gap-1" onClick={() => setDistractors(d => [...d, ''])}>
           <Plus className="h-3 w-3" /> Thêm heading
         </Button>
-        <Button size="sm" onClick={handleSaveAll} disabled={saving}>
-          {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
-          Lưu tất cả
-        </Button>
       </div>
     </div>
   );
-}
+});

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, forwardRef, useImperativeHandle } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { ChevronDown, ChevronUp, Loader2, Plus, Save, Trash2 } from 'lucide-react';
@@ -10,6 +10,10 @@ import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
 import type { QuestionDetail } from '@/types/test.types';
 
+export interface TestEditMatchingFeatureHandle {
+  save: () => Promise<boolean>;
+}
+
 interface Props {
   questions: QuestionDetail[];
   testId: string;
@@ -18,7 +22,10 @@ interface Props {
   onEvidenceChange: (questionId: number, evidence: string) => void;
 }
 
-export function TestEditMatchingFeature({ questions, testId, pendingEvidence, onAssignEvidence, onEvidenceChange }: Props) {
+export const TestEditMatchingFeature = forwardRef<TestEditMatchingFeatureHandle, Props>(function TestEditMatchingFeature(
+  { questions, testId, pendingEvidence, onAssignEvidence, onEvidenceChange }: Props,
+  ref
+) {
   const queryClient = useQueryClient();
   const [expanded, setExpanded] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
@@ -59,7 +66,7 @@ export function TestEditMatchingFeature({ questions, testId, pendingEvidence, on
     if (questions[idx]) onEvidenceChange(questions[idx].id, ev ?? '');
   };
 
-  const handleSaveAll = async () => {
+  const handleSaveAll = async (): Promise<boolean> => {
     setSaving(true);
     try {
       const updates: Record<string, {
@@ -86,12 +93,18 @@ export function TestEditMatchingFeature({ questions, testId, pendingEvidence, on
       await batchUpdateQuestions(updates);
       toast.success('Đã lưu tất cả câu Matching Features');
       queryClient.invalidateQueries({ queryKey: ['admin', 'test', testId] });
+      return true;
     } catch {
       toast.error('Lưu thất bại');
+      return false;
     } finally {
       setSaving(false);
     }
   };
+
+  useImperativeHandle(ref, () => ({
+    save: handleSaveAll,
+  }));
 
   return (
     <div className="space-y-3">
@@ -208,11 +221,7 @@ export function TestEditMatchingFeature({ questions, testId, pendingEvidence, on
             </Button>
           )}
         </div>
-        <Button size="sm" onClick={handleSaveAll} disabled={saving}>
-          {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
-          Save all
-        </Button>
       </div>
     </div>
   );
-}
+});

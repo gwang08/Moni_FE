@@ -23,10 +23,10 @@ import { Button } from '@/components/ui/button';
 import { RichTextToolbar } from '@/components/admin/rich-text-toolbar';
 import { TestEditQuestionCard, type TestEditQuestionCardHandle } from '@/components/admin/test-edit-question-card';
 import { TestEditAddQuestionForm } from '@/components/admin/test-edit-add-question-form';
-import { TestEditMatchingHeadings } from '@/components/admin/test-edit-matching-headings';
-import { TestEditMatchingInformation } from '@/components/admin/test-edit-matching-information';
-import { TestEditMatchingFeature } from '@/components/admin/test-edit-matching-feature';
-import { TestEditGapFilling } from '@/components/admin/test-edit-gap-filling';
+import { TestEditMatchingHeadings, type TestEditMatchingHeadingsHandle } from '@/components/admin/test-edit-matching-headings';
+import { TestEditMatchingInformation, type TestEditMatchingInformationHandle } from '@/components/admin/test-edit-matching-information';
+import { TestEditMatchingFeature, type TestEditMatchingFeatureHandle } from '@/components/admin/test-edit-matching-feature';
+import { TestEditGapFilling, type TestEditGapFillingHandle } from '@/components/admin/test-edit-gap-filling';
 import { TestEditAddQuestionGroupForm } from '@/components/admin/test-edit-add-question-group-form';
 import type { TestEditAddQuestionGroupFormHandle } from '@/components/admin/test-edit-add-question-group-form';
 import type { TestEditAddQuestionFormHandle } from '@/components/admin/test-edit-add-question-form';
@@ -337,6 +337,7 @@ export const TestEditContentTab = forwardRef<TestEditContentHandle, Props>(funct
   const passageRef = useRef<HTMLDivElement>(null);
   const groupRefs = useRef<Record<number, HTMLElement | null>>({});
   const questionCardRefs = useRef<Record<number, TestEditQuestionCardHandle | null>>({});
+  const specialGroupRefs = useRef<Record<number, TestEditGapFillingHandle | TestEditMatchingHeadingsHandle | TestEditMatchingInformationHandle | TestEditMatchingFeatureHandle | null>>({});
 
   const stimulus = test.stimuli[activeStimulus];
 
@@ -477,6 +478,17 @@ export const TestEditContentTab = forwardRef<TestEditContentHandle, Props>(funct
       const cardRef = questionCardRefs.current[Number(qId)];
       if (cardRef) {
         const saved = await cardRef.save();
+        if (!saved) ok = false;
+        else changed = true;
+      }
+    }
+
+    // Save all special groups (Gap Filling, Matching types)
+    const specialGroupIds = Object.keys(specialGroupRefs.current);
+    for (const groupId of specialGroupIds) {
+      const groupRef = specialGroupRefs.current[Number(groupId)];
+      if (groupRef?.save) {
+        const saved = await groupRef.save();
         if (!saved) ok = false;
         else changed = true;
       }
@@ -1071,6 +1083,7 @@ export const TestEditContentTab = forwardRef<TestEditContentHandle, Props>(funct
 
                         {isMatchingHeadings ? (
                           <TestEditMatchingHeadings
+                            ref={(el) => { specialGroupRefs.current[group.id] = el; }}
                             questions={group.questions}
                             passageHtml={stimulus.content || ''}
                             testId={testId}
@@ -1080,6 +1093,7 @@ export const TestEditContentTab = forwardRef<TestEditContentHandle, Props>(funct
                           />
                         ) : typeCode === 'MATCHING_INFORMATION' ? (
                           <TestEditMatchingInformation
+                            ref={(el) => { specialGroupRefs.current[group.id] = el; }}
                             questions={group.questions}
                             passageHtml={stimulus.content || ''}
                             testId={testId}
@@ -1089,6 +1103,7 @@ export const TestEditContentTab = forwardRef<TestEditContentHandle, Props>(funct
                           />
                         ) : typeCode === 'MATCHING_FEATURE' ? (
                           <TestEditMatchingFeature
+                            ref={(el) => { specialGroupRefs.current[group.id] = el; }}
                             questions={group.questions}
                             testId={testId}
                             pendingEvidence={pendingEvidence}
@@ -1097,6 +1112,7 @@ export const TestEditContentTab = forwardRef<TestEditContentHandle, Props>(funct
                           />
                         ) : typeCode === 'GAP_FILLING' ? (
                           <TestEditGapFilling
+                            ref={(el) => { specialGroupRefs.current[group.id] = el; }}
                             questions={orderedQuestions}
                             groupId={group.id}
                             groupContent={group.groupContent}

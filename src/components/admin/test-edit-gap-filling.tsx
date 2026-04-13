@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Loader2, Save, ChevronDown, ChevronUp, MousePointerClick, Undo2, Plus, Trash2, PenLine, Wand2 } from 'lucide-react';
@@ -10,6 +10,10 @@ import { batchUpdateQuestions, updateQuestionGroupContent } from '@/lib/admin-ap
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
 import type { QuestionDetail } from '@/types/test.types';
+
+export interface TestEditGapFillingHandle {
+  save: () => Promise<boolean>;
+}
 
 // TipTap imports
 import { useEditor, EditorContent } from '@tiptap/react';
@@ -123,10 +127,13 @@ function renderPassageHtml(text: string, items: { answer: string; position: numb
   });
 }
 
-export function TestEditGapFilling({
-  questions, groupId, groupContent: initialGroupContent, testId,
-  pendingEvidence, onAssignEvidence, onEvidenceChange,
-}: Props) {
+export const TestEditGapFilling = forwardRef<TestEditGapFillingHandle, Props>(function TestEditGapFilling(
+  {
+    questions, groupId, groupContent: initialGroupContent, testId,
+    pendingEvidence, onAssignEvidence, onEvidenceChange,
+  }: Props,
+  ref
+) {
   const queryClient = useQueryClient();
   const [collapsed, setCollapsed] = useState<Set<number>>(new Set());
   const [saving, setSaving] = useState(false);
@@ -254,12 +261,22 @@ export function TestEditGapFilling({
       if (Object.keys(updates).length > 0) await batchUpdateQuestions(updates);
       toast.success('Đã lưu tất cả câu Gap Filling');
       queryClient.invalidateQueries({ queryKey: ['admin', 'test', testId] });
+      return true;
     } catch {
       toast.error('Lưu thất bại');
+      return false;
     } finally {
       setSaving(false);
     }
   };
+
+  const save = async (): Promise<boolean> => {
+    return handleSaveAll();
+  };
+
+  useImperativeHandle(ref, () => ({
+    save,
+  }));
 
   return (
     <div className="space-y-3">
@@ -397,13 +414,6 @@ export function TestEditGapFilling({
           })}
         </div>
       )}
-
-      <div className="flex justify-end">
-        <Button size="sm" onClick={handleSaveAll} disabled={saving}>
-          {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
-          Lưu tất cả
-        </Button>
-      </div>
     </div>
   );
-}
+});

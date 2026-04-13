@@ -139,6 +139,7 @@ export default function NotebookListDetailPage() {
       }
       
       // Step 3: Create placeholder if no metadata
+      if (!currentCollection) {
         let systemTitle = 'Sổ hệ thống';
         let systemIcon = '📁';
         let systemDesc = 'Danh sách từ thuộc hệ thống';
@@ -189,7 +190,7 @@ export default function NotebookListDetailPage() {
       setLoading(false);
     };
     load();
-  }, [id]);
+  }, [id, searchParams]);
 
   const loadPage = async (page: number) => {
     try {

@@ -393,7 +393,7 @@ export function LearningRoadmap() {
       
       {/* Tour Step 5: Intro */}
       {tourStep === 5 && (
-        <div className="absolute -top-6 left-1/2 -translate-x-1/2 -translate-y-full w-80 bg-white p-5 rounded-2xl shadow-xl border border-orange-100 z-50 animate-in fade-in slide-in-from-top-4">
+        <div className="absolute -top-4 left-1/2 -translate-x-1/2 -translate-y-full w-80 bg-white p-5 rounded-2xl shadow-2xl border border-orange-100 z-50 animate-in fade-in slide-in-from-bottom-4 duration-300">
           <div className="flex gap-3 mb-3">
             <ChibiMascot mood="excited" size={48} />
             <div>
@@ -415,7 +415,7 @@ export function LearningRoadmap() {
 
       {/* Tour Step 6: Sat Assessment */}
       {tourStep === 6 && (
-        <div className="absolute top-1/3 -right-6 translate-x-full w-80 bg-white p-5 rounded-2xl shadow-xl border border-purple-100 z-50 animate-in fade-in slide-in-from-left-4">
+        <div className="absolute top-4 right-4 w-72 bg-white p-5 rounded-2xl shadow-2xl border border-purple-100 z-50 animate-in fade-in zoom-in-95 duration-300">
           <div className="flex gap-3 mb-3">
             <ChibiMascot mood="thinking" size={48} />
             <div>

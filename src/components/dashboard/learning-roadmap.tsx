@@ -6,7 +6,7 @@ import {
   BookOpen, Check, Clock, Lock, TrendingUp, TrendingDown, Minus, Trophy,
   Sparkles, ArrowRight,
 } from 'lucide-react';
-import { getWeeklyPlan, startVocabLearning } from '@/lib/roadmap-api';
+import { getWeeklyPlan, startVocabLearning, submitVocabLearning } from '@/lib/roadmap-api';
 import { SkeletonCard } from '@/components/ui/skeleton';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import {
@@ -132,8 +132,15 @@ export function LearningRoadmap() {
   const [loading, setLoading] = useState(true);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [activeSlot, setActiveSlot] = useState<DailySlotResponse | null>(null);
+  
+  // Vocabulary Flashcard learning states
   const [learnedWords, setLearnedWords] = useState<VocabWord[]>([]);
   const [showVocabModal, setShowVocabModal] = useState(false);
+  const [vocabCurrentIdx, setVocabCurrentIdx] = useState(0);
+  const [notLearnedIds, setNotLearnedIds] = useState<number[]>([]);
+  const [learnedIds, setLearnedIds] = useState<number[]>([]);
+  const [vocabSubmitting, setVocabSubmitting] = useState(false);
+
   const fetchedRef = useRef(false);
 
   const fetchPlan = async () => {
@@ -219,8 +226,10 @@ export function LearningRoadmap() {
           const words = await startVocabLearning(activeSlot.id);
           if (words.length > 0) {
             setLearnedWords(words);
+            setVocabCurrentIdx(0);
+            setNotLearnedIds([]);
+            setLearnedIds([]);
             setShowVocabModal(true);
-            fetchPlan(); // Refresh roadmap status
           }
         } catch (err) {
           toast.error('Không khởi tạo được task học từ vựng');
@@ -253,6 +262,47 @@ export function LearningRoadmap() {
         router.push(`/practice/listening/${id}`);
         break;
     }
+  };
+
+  const handleVocabChoice = async (status: 'NOT_LEARNED' | 'LEARNED') => {
+    const currentWord = learnedWords[vocabCurrentIdx];
+    
+    let newNotLearned = notLearnedIds;
+    let newLearned = learnedIds;
+
+    if (status === 'NOT_LEARNED') {
+      newNotLearned = [...notLearnedIds, currentWord.id];
+      setNotLearnedIds(newNotLearned);
+    } else {
+      newLearned = [...learnedIds, currentWord.id];
+      setLearnedIds(newLearned);
+    }
+
+    if (vocabCurrentIdx + 1 < learnedWords.length) {
+      setVocabCurrentIdx(prev => prev + 1);
+    } else {
+      setVocabSubmitting(true);
+      try {
+        await submitVocabLearning(activeSlot!.id, newNotLearned, newLearned);
+        toast.success('Đã lưu từ vựng vào sổ tay!');
+        setShowVocabModal(false);
+        fetchPlan();
+      } catch (err) {
+        toast.error('Lỗi khi lưu kết quả từ vựng');
+      } finally {
+        setVocabSubmitting(false);
+      }
+    }
+  };
+
+  // Prevent accidental close during learning
+  const handleVocabModalChange = (open: boolean) => {
+    if (!open && vocabSubmitting) return; // prevent closing while submitting
+    if (!open && vocabCurrentIdx > 0 && vocabCurrentIdx < learnedWords.length) {
+       toast.error("Vui lòng hoàn thành quá trình học trước khi đóng!");
+       return;
+    }
+    setShowVocabModal(open);
   };
 
   const verdict = plan.previousVerdict ? VERDICT_CONFIG[plan.previousVerdict] : null;
@@ -406,43 +456,80 @@ export function LearningRoadmap() {
         onConfirm={handleConfirmPractice}
       />
 
-      <Dialog open={showVocabModal} onOpenChange={setShowVocabModal}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-xl">
-              <Sparkles className="h-6 w-6 text-amber-500" />
-              15 từ vựng mới cho ngày hôm nay
-            </DialogTitle>
-          </DialogHeader>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-            {learnedWords.map((v, idx) => (
-              <div key={idx} className="p-4 rounded-xl border border-gray-100 bg-gray-50/50 hover:bg-white hover:border-indigo-100 transition-all">
-                <div className="flex items-center justify-between mb-1">
-                  <h4 className="font-bold text-indigo-700">{v.word}</h4>
-                  <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-600 uppercase">
-                    {v.pos}
-                  </span>
+      <Dialog open={showVocabModal} onOpenChange={handleVocabModalChange}>
+        <DialogContent className="max-w-md max-h-[90vh] overflow-hidden p-0 sm:rounded-[24px]">
+          {learnedWords.length > 0 && (
+            <div className="flex flex-col h-full bg-slate-50">
+              <div className="px-6 py-4 flex items-center justify-between border-b border-gray-100 bg-white">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="h-5 w-5 text-amber-500" />
+                  <h3 className="font-semibold text-gray-800">Từ vựng hôm nay</h3>
                 </div>
-                {v.phonetic && <p className="text-xs text-gray-400 font-mono mb-2">{v.phonetic}</p>}
-                <p className="text-sm text-gray-800 font-medium mb-1">{v.meaning}</p>
-                {v.definition && <p className="text-[11px] text-gray-500 line-clamp-2 italic mb-2">"{v.definition}"</p>}
-                {v.example && (
-                  <div className="mt-2 text-[11px] bg-white p-2 rounded-lg border border-gray-100">
-                    <span className="font-semibold text-gray-400 uppercase text-[9px] block mb-1">Ví dụ</span>
-                    <p className="text-gray-600 italic">...{v.example}...</p>
-                  </div>
-                )}
+                <div className="text-sm font-medium text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full">
+                  {vocabCurrentIdx + 1} / {learnedWords.length}
+                </div>
               </div>
-            ))}
-          </div>
-          <div className="mt-6 flex justify-end">
-            <button
-              onClick={() => setShowVocabModal(false)}
-              className="px-6 py-2 bg-indigo-600 text-white rounded-xl font-semibold hover:bg-indigo-700 transition-colors"
-            >
-              Đã hiểu, bắt đầu ôn luyện
-            </button>
-          </div>
+
+              <div className="p-6 flex-1 overflow-y-auto">
+                <div className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100/50 flex flex-col items-center justify-center min-h-[300px] text-center mb-6 relative overflow-hidden">
+                  {/* Decorative faint background element */}
+                  <div className="absolute top-[-20%] right-[-10%] w-32 h-32 bg-indigo-50 rounded-full blur-3xl opacity-50" />
+                  
+                  <span className="text-xs font-bold px-3 py-1 bg-indigo-50 text-indigo-600 rounded-full uppercase tracking-wider mb-4 border border-indigo-100/50">
+                    {learnedWords[vocabCurrentIdx].pos}
+                  </span>
+                  
+                  <h2 className="text-4xl sm:text-5xl font-black text-gray-900 mb-2 tracking-tight">
+                    {learnedWords[vocabCurrentIdx].word}
+                  </h2>
+                  
+                  {learnedWords[vocabCurrentIdx].phonetic && (
+                    <p className="text-indigo-400 font-mono text-base mb-6">
+                      {learnedWords[vocabCurrentIdx].phonetic}
+                    </p>
+                  )}
+                  
+                  <p className="text-lg text-gray-700 font-medium leading-relaxed max-w-[280px]">
+                    {learnedWords[vocabCurrentIdx].meaning}
+                  </p>
+                  
+                  {learnedWords[vocabCurrentIdx].definition && (
+                    <p className="text-sm text-gray-500 mt-3 italic max-w-sm">
+                      "{learnedWords[vocabCurrentIdx].definition}"
+                    </p>
+                  )}
+                  
+                  {learnedWords[vocabCurrentIdx].example && (
+                    <div className="mt-8 bg-slate-50 w-full p-4 rounded-2xl border border-slate-100 text-left">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1.5">Ví dụ áp dụng</span>
+                      <p className="text-slate-600 text-sm">
+                        {learnedWords[vocabCurrentIdx].example}
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    onClick={() => handleVocabChoice('NOT_LEARNED')}
+                    disabled={vocabSubmitting}
+                    className="flex flex-col items-center justify-center p-4 bg-white border border-rose-100/60 rounded-2xl shadow-sm hover:bg-rose-50 hover:border-rose-200 transition-all active:scale-95 disabled:opacity-50"
+                  >
+                    <span className="text-xl mb-1">🤔</span>
+                    <span className="font-semibold text-rose-600 text-sm">Chưa học</span>
+                  </button>
+                  <button
+                    onClick={() => handleVocabChoice('LEARNED')}
+                    disabled={vocabSubmitting}
+                    className="flex flex-col items-center justify-center p-4 bg-white border border-emerald-100/60 rounded-2xl shadow-sm hover:bg-emerald-50 hover:border-emerald-200 transition-all active:scale-95 disabled:opacity-50"
+                  >
+                    <span className="text-xl mb-1">🤩</span>
+                    <span className="font-semibold text-emerald-600 text-sm">Đã học</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>

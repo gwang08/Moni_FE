@@ -29,6 +29,7 @@ export default function QuizPage() {
   const [currentIdx, setCurrentIdx] = useState(0);
   const [score, setScore] = useState(0);
   const [wrongAnswers, setWrongAnswers] = useState<WrongAnswer[]>([]);
+  const [correctWords, setCorrectWords] = useState<string[]>([]);
   const [activeSlotId, setActiveSlotId] = useState<number | null>(null);
 
   const searchParams = useSearchParams();
@@ -57,6 +58,7 @@ export default function QuizPage() {
       setCurrentIdx(0);
       setScore(0);
       setWrongAnswers([]);
+      setCorrectWords([]);
       setScreen('quiz');
     } catch (err) {
       toast.error('Lỗi khi tải bài thi từ vựng');
@@ -83,6 +85,7 @@ export default function QuizPage() {
       setCurrentIdx(0);
       setScore(0);
       setWrongAnswers([]);
+      setCorrectWords([]);
       setScreen('quiz');
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : 'Không thể tạo quiz');
@@ -93,8 +96,15 @@ export default function QuizPage() {
 
   const handleNext = (selectedIndex: number) => {
     const question = questions[currentIdx];
+    
+    // Determine target correctly answered words for payload if this is the last question
+    const finalCorrectWords = selectedIndex === question.correctIndex 
+        ? [...correctWords, question.word] 
+        : correctWords;
+
     if (selectedIndex === question.correctIndex) {
       setScore((s) => s + 1);
+      setCorrectWords(finalCorrectWords);
     } else {
       setWrongAnswers((prev) => [...prev, { question, selectedIndex }]);
     }
@@ -105,7 +115,7 @@ export default function QuizPage() {
       if (activeSlotId) {
         // We set score and total to DONE. For vocab test, score can be percentage?
         // Let's just mark it done.
-        completeSlot(activeSlotId, score + (selectedIndex === question.correctIndex ? 1 : 0), questions.length)
+        completeSlot(activeSlotId, score + (selectedIndex === question.correctIndex ? 1 : 0), questions.length, finalCorrectWords)
           .catch(() => console.error("Failed to complete vocab slot"));
       }
     } else {
@@ -119,6 +129,7 @@ export default function QuizPage() {
     setCurrentIdx(0);
     setScore(0);
     setWrongAnswers([]);
+    setCorrectWords([]);
   };
 
   return (

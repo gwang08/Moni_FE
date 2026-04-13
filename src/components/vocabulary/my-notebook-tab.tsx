@@ -1,11 +1,11 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Plus, Trash2, Loader2, FolderOpen } from 'lucide-react';
+import { Plus, Trash2, Loader2, FolderOpen, BookMarked, RefreshCw, Star, BookOpen } from 'lucide-react';
 import { ChibiMascot, ChibiAnimationStyles } from '@/components/ui/chibi-mascot';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { getMyLists, getMyWords, createList, deleteList } from '@/lib/vocab-api';
+import { getMyLists, createList, deleteList, getReviewStats } from '@/lib/vocab-api';
 import type { VocabCollection } from '@/types/vocab.types';
 import { toast } from 'sonner';
 import { useLoginPrompt } from '@/hooks/use-login-prompt';
@@ -38,6 +38,7 @@ export function MyNotebookTab() {
   const [newListTitle, setNewListTitle] = useState('');
   const [creatingList, setCreatingList] = useState(false);
   const [showNewListInput, setShowNewListInput] = useState(false);
+  const [reviewStats, setReviewStats] = useState<{ toLearn: number; reviewing: number; mastered: number; manual: number } | null>(null);
 
   const loadCollections = useCallback(async () => {
     try {
@@ -51,8 +52,17 @@ export function MyNotebookTab() {
   }, []);
 
   useEffect(() => {
-    if (isLoggedIn) loadCollections();
-    else setLoadingCollections(false);
+    if (isLoggedIn) {
+      loadCollections();
+      getReviewStats().then(s => setReviewStats({
+        toLearn: s.toLearn ?? 0,
+        reviewing: s.reviewing ?? 0,
+        mastered: s.mastered ?? 0,
+        manual: s.manual ?? 0,
+      })).catch(() => {});
+    } else {
+      setLoadingCollections(false);
+    }
   }, [isLoggedIn, loadCollections]);
 
   const handleSelectList = (list: VocabCollection) => {
@@ -134,84 +144,165 @@ export function MyNotebookTab() {
         </Button>
       </div>
 
-      {showNewListInput && (
-        <div className="flex gap-2 p-4 rounded-2xl bg-indigo-50/50 border border-indigo-100">
-          <Input
-            placeholder={T.list_name_placeholder}
-            value={newListTitle}
-            onChange={(e) => setNewListTitle(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleCreateList()}
-            autoFocus
-            className="rounded-xl border-indigo-200 focus:ring-indigo-200"
-          />
-          <Button
-            onClick={handleCreateList}
-            disabled={creatingList || !newListTitle.trim()}
-            className="rounded-xl bg-indigo-600 hover:bg-indigo-700"
+      {/* System Notebooks */}
+      <div className="space-y-3">
+        <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Sổ hệ thống</h3>
+        <div className="grid grid-cols-2 gap-3">
+          {/* Sổ từ của tôi - Manual saved words */}
+          <div
+            onClick={() => router.push('/vocabulary/notebook/system?status=manual')}
+            className="group rounded-2xl border border-indigo-100 bg-gradient-to-br from-indigo-50 to-indigo-50/30 p-5 cursor-pointer hover:shadow-md hover:border-indigo-200 transition-all duration-200"
           >
-            {creatingList ? <Loader2 className="h-4 w-4 animate-spin" /> : T.create}
-          </Button>
-          <Button
-            variant="ghost"
-            onClick={() => { setShowNewListInput(false); setNewListTitle(''); }}
-            className="rounded-xl"
-          >
-            {T.cancel}
-          </Button>
-        </div>
-      )}
-
-      {loadingCollections ? (
-        <div className="flex justify-center py-16">
-          <Loader2 className="h-6 w-6 animate-spin text-indigo-400" />
-        </div>
-      ) : collections.length === 0 ? (
-        <div className="text-center py-16">
-          <ChibiAnimationStyles />
-          <ChibiMascot mood="thinking" size={72} />
-          <p className="text-gray-400 mt-3 font-medium">{T.no_collections}</p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {collections.map((col) => (
-            <div
-              key={col.id}
-              className="group rounded-2xl border border-gray-100 bg-white p-5 sm:p-6
-                shadow-sm hover:shadow-md hover:border-indigo-200 transition-all duration-200
-                cursor-pointer"
-              onClick={() => handleSelectList(col)}
-            >
-              <div className="flex items-start gap-4">
-                <span className="inline-flex items-center justify-center rounded-xl p-3
-                  bg-indigo-50 text-indigo-500 shrink-0">
-                  <FolderOpen className="h-5 w-5" />
-                </span>
-                <div className="flex-1 min-w-0">
-                  <p className="font-bold text-gray-900 text-base
-                    group-hover:text-indigo-600 transition-colors">
-                    {col.title}
-                  </p>
-                  {col.description && (
-                    <p className="text-xs text-gray-500 mt-1 line-clamp-2">{col.description}</p>
-                  )}
-                  <p className="text-sm text-gray-400 font-medium mt-2">
-                    {col.wordCount} {T.word_unit}
-                  </p>
-                </div>
-                {!col.isDefault && (
-                  <button
-                    onClick={(e) => { e.stopPropagation(); handleDeleteList(col); }}
-                    className="shrink-0 p-2 rounded-xl text-gray-300 hover:text-red-500
-                      hover:bg-red-50 transition-all opacity-0 group-hover:opacity-100"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                )}
-              </div>
+            <div className="flex items-center gap-3 mb-3">
+              <span className="inline-flex items-center justify-center rounded-xl p-2.5 bg-indigo-100 text-indigo-600">
+                <BookOpen className="h-5 w-5" />
+              </span>
+              <p className="font-bold text-gray-900 group-hover:text-indigo-600 transition-colors text-sm">Sổ từ của tôi</p>
             </div>
-          ))}
+            <p className="text-xs text-gray-500">Từ tự lưu thủ công</p>
+            <p className="text-2xl font-black text-indigo-600 mt-2">{reviewStats?.manual ?? '—'}</p>
+          </div>
+
+          {/* Sổ từ biết tuốt - DRAFT words */}
+          <div
+            onClick={() => router.push('/vocabulary/notebook/system?status=draft')}
+            className="group rounded-2xl border border-rose-100 bg-gradient-to-br from-rose-50 to-rose-50/30 p-5 cursor-pointer hover:shadow-md hover:border-rose-200 transition-all duration-200"
+          >
+            <div className="flex items-center gap-3 mb-3">
+              <span className="inline-flex items-center justify-center rounded-xl p-2.5 bg-rose-100 text-rose-600">
+                <BookMarked className="h-5 w-5" />
+              </span>
+              <p className="font-bold text-gray-900 group-hover:text-rose-600 transition-colors text-sm">Sổ từ biết tuốt</p>
+            </div>
+            <p className="text-xs text-gray-500">Chưa học — sẽ ôn lại</p>
+            <p className="text-2xl font-black text-rose-500 mt-2">{reviewStats?.toLearn ?? '—'}</p>
+          </div>
+
+          {/* Sổ tay nhắc lại - ACTIVE words */}
+          <div
+            onClick={() => router.push('/vocabulary/notebook/system?status=active')}
+            className="group rounded-2xl border border-amber-100 bg-gradient-to-br from-amber-50 to-amber-50/30 p-5 cursor-pointer hover:shadow-md hover:border-amber-200 transition-all duration-200"
+          >
+            <div className="flex items-center gap-3 mb-3">
+              <span className="inline-flex items-center justify-center rounded-xl p-2.5 bg-amber-100 text-amber-600">
+                <RefreshCw className="h-5 w-5" />
+              </span>
+              <p className="font-bold text-gray-900 group-hover:text-amber-600 transition-colors text-sm">Sổ tay nhắc lại</p>
+            </div>
+            <p className="text-xs text-gray-500">Đang ôn luyện</p>
+            <p className="text-2xl font-black text-amber-500 mt-2">{reviewStats?.reviewing ?? '—'}</p>
+          </div>
+
+          {/* Sổ tay master - MASTERED words */}
+          <div
+            onClick={() => router.push('/vocabulary/notebook/system?status=mastered')}
+            className="group rounded-2xl border border-emerald-100 bg-gradient-to-br from-emerald-50 to-emerald-50/30 p-5 cursor-pointer hover:shadow-md hover:border-emerald-200 transition-all duration-200"
+          >
+            <div className="flex items-center gap-3 mb-3">
+              <span className="inline-flex items-center justify-center rounded-xl p-2.5 bg-emerald-100 text-emerald-600">
+                <Star className="h-5 w-5" />
+              </span>
+              <p className="font-bold text-gray-900 group-hover:text-emerald-600 transition-colors text-sm">Sổ tay Master</p>
+            </div>
+            <p className="text-xs text-gray-500">Từ dã thành thạo</p>
+            <p className="text-2xl font-black text-emerald-500 mt-2">{reviewStats?.mastered ?? '—'}</p>
+          </div>
         </div>
-      )}
+      </div>
+
+      {/* Divider */}
+      <div className="border-t border-gray-100 pt-2 space-y-3">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Sổ cá nhân</h3>
+          <Button
+            size="sm"
+            onClick={() => setShowNewListInput(true)}
+            className="gap-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700"
+          >
+            <Plus className="h-4 w-4" />
+            {T.create_new}
+          </Button>
+        </div>
+
+        {showNewListInput && (
+          <div className="flex gap-2 p-4 rounded-2xl bg-indigo-50/50 border border-indigo-100">
+            <Input
+              placeholder={T.list_name_placeholder}
+              value={newListTitle}
+              onChange={(e) => setNewListTitle(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleCreateList()}
+              autoFocus
+              className="rounded-xl border-indigo-200 focus:ring-indigo-200"
+            />
+            <Button
+              onClick={handleCreateList}
+              disabled={creatingList || !newListTitle.trim()}
+              className="rounded-xl bg-indigo-600 hover:bg-indigo-700"
+            >
+              {creatingList ? <Loader2 className="h-4 w-4 animate-spin" /> : T.create}
+            </Button>
+            <Button
+              variant="ghost"
+              onClick={() => { setShowNewListInput(false); setNewListTitle(''); }}
+              className="rounded-xl"
+            >
+              {T.cancel}
+            </Button>
+          </div>
+        )}
+
+        {loadingCollections ? (
+          <div className="flex justify-center py-10">
+            <Loader2 className="h-6 w-6 animate-spin text-indigo-400" />
+          </div>
+        ) : collections.length === 0 ? (
+          <div className="text-center py-10">
+            <ChibiAnimationStyles />
+            <ChibiMascot mood="thinking" size={72} />
+            <p className="text-gray-400 mt-3 font-medium">{T.no_collections}</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {collections.map((col) => (
+              <div
+                key={col.id}
+                className="group rounded-2xl border border-gray-100 bg-white p-5 sm:p-6
+                  shadow-sm hover:shadow-md hover:border-indigo-200 transition-all duration-200
+                  cursor-pointer"
+                onClick={() => handleSelectList(col)}
+              >
+                <div className="flex items-start gap-4">
+                  <span className="inline-flex items-center justify-center rounded-xl p-3
+                    bg-indigo-50 text-indigo-500 shrink-0">
+                    <FolderOpen className="h-5 w-5" />
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-bold text-gray-900 text-base
+                      group-hover:text-indigo-600 transition-colors">
+                      {col.title}
+                    </p>
+                    {col.description && (
+                      <p className="text-xs text-gray-500 mt-1 line-clamp-2">{col.description}</p>
+                    )}
+                    <p className="text-sm text-gray-400 font-medium mt-2">
+                      {col.wordCount} {T.word_unit}
+                    </p>
+                  </div>
+                  {!col.isDefault && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleDeleteList(col); }}
+                      className="shrink-0 p-2 rounded-xl text-gray-300 hover:text-red-500
+                        hover:bg-red-50 transition-all opacity-0 group-hover:opacity-100"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

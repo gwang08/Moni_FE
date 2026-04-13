@@ -54,11 +54,12 @@ export async function getWeeklyPlan(): Promise<WeeklyPlanResponse | null> {
 export async function completeSlot(
   slotId: number,
   score: number,
-  totalQuestions: number
+  totalQuestions: number,
+  correctWords?: string[]
 ): Promise<void> {
   await apiClient.patch(
     `/api/v1/learner/weekly-plan/slots/${slotId}/complete`,
-    { score, totalQuestions },
+    { score, totalQuestions, correctWords },
     true
   );
 }
@@ -95,6 +96,15 @@ export async function startVocabLearning(slotId: number): Promise<VocabWord[]> {
     true
   );
   return res.result ?? [];
+}
+
+export async function submitVocabLearning(slotId: number, notLearnedIds: number[], learnedIds: number[]): Promise<boolean> {
+  const res = await apiClient.post<ApiResponse<{ status: string }>>(
+    `/api/v1/learner/weekly-plan/slots/${slotId}/vocab-submit-learn`,
+    { notLearnedIds, learnedIds },
+    true
+  );
+  return res.code === 1000;
 }
 
 export async function getVocabQuiz(slotId: number): Promise<QuizResponse | null> {

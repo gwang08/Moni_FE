@@ -88,6 +88,11 @@ export interface ReviewStats {
   masteredCount: number;
   listsCount: number;
   learningCount: number;
+  // Virtual notebook counts
+  toLearn: number;     // DRAFT words (Sổ từ biết tuốt)
+  reviewing: number;   // ACTIVE words (Sổ tay nhắc lại)
+  mastered: number;    // MASTERED words (Sổ tay Master)
+  manual: number;      // MANUAL source words (Sổ từ của tôi)
 }
 
 export interface WordMatchPair {

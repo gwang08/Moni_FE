@@ -139,7 +139,7 @@ export function VocabReviewStats() {
           <StatBox
             icon={<Target className="h-6 w-6 text-violet-600" />}
             value={listCount}
-            label="Danh sách"
+            label="Sổ từ"
             color="bg-violet-50 text-violet-600"
           />
         </div>
@@ -162,12 +162,6 @@ export function VocabReviewStats() {
               max={totalSaved + learningCount}
               label="Đang học"
               color="bg-blue-500"
-            />
-            <ProgressBar
-              value={0}
-              max={Math.max(dueCount, 1)}
-              label="Đã ôn hôm nay"
-              color="bg-amber-500"
             />
           </div>
 

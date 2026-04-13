@@ -8,7 +8,20 @@ import {
 } from 'lucide-react';
 import { getWeeklyPlan } from '@/lib/roadmap-api';
 import { SkeletonCard } from '@/components/ui/skeleton';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import type { WeeklyPlanResponse, DailySlotResponse, RoadmapSkill, PerformanceVerdict } from '@/types/roadmap.types';
+
+function formatStimulusTitle(title: string | null | undefined, skill: RoadmapSkill, isAssessment: boolean) {
+  if (!title) return isAssessment ? 'Bài đánh giá kỹ năng' : 'Bài luyện tập';
+  
+  let formattedTitle = title;
+  
+  if (skill === 'LISTENING') formattedTitle = formattedTitle.replace(/^Passage\s+/i, 'Section ');
+  else if (skill === 'WRITING') formattedTitle = formattedTitle.replace(/^Passage\s+/i, 'Task ');
+  else if (skill === 'SPEAKING') formattedTitle = formattedTitle.replace(/^Passage\s+/i, 'Part ');
+
+  return formattedTitle;
+}
 
 const WEEKDAY_SHORT = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
 
@@ -49,42 +62,52 @@ function SlotCard({ slot, onClick, locked }: { slot: DailySlotResponse; onClick:
   const hasLink = slot.testId != null || slot.stimulusId != null;
   const isDisabled = locked || (!hasLink && !isDone);
 
+  const formattedTitle = formatStimulusTitle(slot.stimulusTitle, slot.skill, isAssessment);
+
   return (
-    <button
-      onClick={onClick}
-      disabled={isDisabled}
-      className={`w-full rounded-xl border px-3 py-2.5 text-left transition-all ${
-        isDone
-          ? `${style.bg} ${style.border} opacity-90`
-          : locked
-            ? 'bg-gray-50 border-gray-100 opacity-50 cursor-not-allowed'
-            : hasLink
-              ? `bg-white border-gray-200 hover:${style.border} hover:shadow-sm cursor-pointer`
-              : 'bg-gray-50 border-gray-100 opacity-60 cursor-not-allowed'
-      }`}
-    >
-      <div className="flex items-center gap-2">
-        <div className={`h-2 w-2 rounded-full flex-shrink-0 ${isDone ? 'bg-green-500' : locked ? 'bg-gray-300' : style.dot}`} />
-        <span className={`text-xs font-semibold ${isDone ? 'text-green-700' : locked ? 'text-gray-400' : style.text}`}>
-          {slot.skill}
-        </span>
-        {isAssessment && (
-          <span className="text-[9px] font-bold uppercase bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded">
-            Đánh giá
+    <div className="relative group/slot">
+      <button
+        onClick={onClick}
+        disabled={isDisabled}
+        className={`w-full rounded-xl border px-3 py-2.5 text-left transition-all ${
+          isDone
+            ? `${style.bg} ${style.border} opacity-90`
+            : locked
+              ? 'bg-gray-50 border-gray-100 opacity-50 cursor-not-allowed'
+              : hasLink
+                ? `bg-white border-gray-200 hover:${style.border} hover:shadow-sm cursor-pointer`
+                : 'bg-gray-50 border-gray-100 opacity-60 cursor-not-allowed'
+        }`}
+      >
+        <div className="flex items-center gap-2">
+          <div className={`h-2 w-2 rounded-full flex-shrink-0 ${isDone ? 'bg-green-500' : locked ? 'bg-gray-300' : style.dot}`} />
+          <span className={`text-xs font-semibold ${isDone ? 'text-green-700' : locked ? 'text-gray-400' : style.text}`}>
+            {slot.skill}
           </span>
-        )}
-        {locked && !isDone && <Lock className="h-3 w-3 text-gray-300 ml-auto flex-shrink-0" />}
-        {isDone && <Check className="h-3.5 w-3.5 text-green-600 ml-auto flex-shrink-0" />}
-      </div>
-      <p className={`text-[11px] mt-1 truncate ${locked && !isDone ? 'text-gray-300' : 'text-gray-500'}`}>
-        {slot.stimulusTitle || (isAssessment ? 'Bài đánh giá kỹ năng' : 'Bài luyện tập')}
-      </p>
-      {isDone && slot.score != null && slot.totalQuestions != null && (
-        <p className="text-[10px] font-mono text-green-700 mt-0.5">
-          {slot.score}/{slot.totalQuestions}
+          {isAssessment && (
+            <span className="text-[9px] font-bold uppercase bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded">
+              Đánh giá
+            </span>
+          )}
+          {locked && !isDone && <Lock className="h-3 w-3 text-gray-300 ml-auto flex-shrink-0" />}
+          {isDone && <Check className="h-3.5 w-3.5 text-green-600 ml-auto flex-shrink-0" />}
+        </div>
+        <p className={`text-[11px] mt-1 truncate ${locked && !isDone ? 'text-gray-300' : 'text-gray-500'}`}>
+          {formattedTitle}
         </p>
-      )}
-    </button>
+        {isDone && slot.score != null && slot.totalQuestions != null && (
+          <p className="text-[10px] font-mono text-green-700 mt-0.5">
+            {slot.score}/{slot.totalQuestions}
+          </p>
+        )}
+      </button>
+
+      {/* Hover Popup */}
+      <div className="absolute left-1/2 -translate-x-1/2 bottom-[calc(100%+8px)] w-[max-content] max-w-[220px] bg-gray-900/95 backdrop-blur-sm text-white text-[11px] sm:text-xs rounded-lg py-2 px-3 opacity-0 invisible group-hover/slot:opacity-100 group-hover:visible transition-all duration-200 z-[60] shadow-xl pointer-events-none border border-gray-800">
+        <div className="font-medium whitespace-pre-wrap leading-snug">{formattedTitle}</div>
+        <div className="absolute w-2 h-2 bg-gray-900/95 rotate-45 left-1/2 -translate-x-1/2 -bottom-1 border-b border-r border-gray-800"></div>
+      </div>
+    </div>
   );
 }
 
@@ -92,6 +115,8 @@ export function LearningRoadmap() {
   const router = useRouter();
   const [plan, setPlan] = useState<WeeklyPlanResponse | null>(null);
   const [loading, setLoading] = useState(true);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [activeSlot, setActiveSlot] = useState<DailySlotResponse | null>(null);
   const fetchedRef = useRef(false);
 
   const fetchPlan = async () => {
@@ -157,11 +182,21 @@ export function LearningRoadmap() {
     const id = slot.testId ?? slot.stimulusId;
     if (!id) return;
 
+    setActiveSlot(slot);
+    setConfirmOpen(true);
+  };
+
+  const handleConfirmPractice = () => {
+    if (!activeSlot) return;
+    
+    const id = activeSlot.testId ?? activeSlot.stimulusId;
+    if (!id) return;
+
     // Route based on skill type
-    switch (slot.skill) {
+    switch (activeSlot.skill) {
       case 'SPEAKING':
-        if (slot.stimulusId) {
-          router.push(`/speaking-exam/${slot.stimulusId}`);
+        if (activeSlot.stimulusId) {
+          router.push(`/speaking-exam/${activeSlot.stimulusId}`);
         } else {
           router.push(`/practice/speaking/${id}`);
         }
@@ -317,6 +352,17 @@ export function LearningRoadmap() {
           <span className="text-[10px] text-gray-400">Tuần {plan.weekInMonth}/4</span>
         </div>
       </div>
+      
+      <ConfirmDialog
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        title="Bạn muốn luyện tập luôn chứ?"
+        description={activeSlot ? `Bạn đang chuẩn bị mở bài ${formatStimulusTitle(activeSlot.stimulusTitle, activeSlot.skill, activeSlot.taskType === 'ASSESSMENT')} (${activeSlot.skill}).` : undefined}
+        confirmText="Ok làm luôn"
+        cancelText="Đợi xíu"
+        variant="default"
+        onConfirm={handleConfirmPractice}
+      />
     </div>
   );
 }

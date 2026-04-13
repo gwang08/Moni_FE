@@ -84,36 +84,44 @@ function SlotCard({ slot, onClick, locked }: { slot: DailySlotResponse; onClick:
       <button
         onClick={onClick}
         disabled={isDisabled}
-        className={`w-full rounded-xl border px-3 py-2.5 text-left transition-all ${
+        className={`w-full rounded-xl border px-2.5 py-2 text-left transition-all relative overflow-hidden ${
           isDone
-            ? `${style.bg} ${style.border} opacity-90`
+            ? `${style.bg} ${style.border} opacity-100 shadow-sm`
             : locked
-              ? 'bg-gray-50 border-gray-100 opacity-50 cursor-not-allowed'
+              ? 'bg-gray-50/50 border-gray-100 opacity-60 cursor-not-allowed'
               : hasLink
-                ? `bg-white border-gray-200 hover:${style.border} hover:shadow-sm cursor-pointer`
+                ? `bg-white border-gray-200 hover:${style.border} hover:shadow-md cursor-pointer`
                 : 'bg-gray-50 border-gray-100 opacity-60 cursor-not-allowed'
         }`}
       >
-        <div className="flex items-center gap-2">
-          <div className={`h-2 w-2 rounded-full flex-shrink-0 ${isDone ? 'bg-green-500' : locked ? 'bg-gray-300' : style.dot}`} />
-          <span className={`text-xs font-semibold ${isDone ? 'text-green-700' : locked ? 'text-gray-400' : style.text}`}>
+        <div className="flex items-center gap-1.5 mb-1 pr-4">
+          <div className={`h-1.5 w-1.5 rounded-full flex-shrink-0 ${isDone ? 'bg-green-500' : locked ? 'bg-gray-300' : style.dot}`} />
+          <span className={`text-[10px] font-bold tracking-tight uppercase truncate ${isDone ? 'text-green-700' : locked ? 'text-gray-400' : style.text}`}>
             {slot.skill}
           </span>
           {isAssessment && (
-            <span className="text-[9px] font-bold uppercase bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded">
-              Đánh giá
+            <span className="text-[8px] font-black uppercase bg-amber-100 text-amber-700 px-1 py-0.5 rounded-sm flex-shrink-0">
+              Test
             </span>
           )}
-          {locked && !isDone && <Lock className="h-3 w-3 text-gray-300 ml-auto flex-shrink-0" />}
-          {isDone && <Check className="h-3.5 w-3.5 text-green-600 ml-auto flex-shrink-0" />}
         </div>
-        <p className={`text-[11px] mt-1 truncate ${locked && !isDone ? 'text-gray-300' : 'text-gray-500'}`}>
+        
+        <p className={`text-[10px] leading-tight line-clamp-2 ${locked && !isDone ? 'text-gray-300' : 'text-gray-500'}`}>
           {formattedTitle}
         </p>
+
+        {/* Status Icons - Absolutely positioned for perfect alignment */}
+        <div className="absolute right-1.5 top-2 flex items-center">
+          {locked && !isDone && <Lock className="h-2.5 w-2.5 text-gray-300" />}
+          {isDone && <Check className="h-3 w-3 text-green-600" />}
+        </div>
+
         {isDone && slot.score != null && slot.totalQuestions != null && (
-          <p className="text-[10px] font-mono text-green-700 mt-0.5">
-            {slot.score}/{slot.totalQuestions}
-          </p>
+          <div className="mt-1 flex items-center justify-between">
+            <span className="text-[9px] font-mono font-bold text-green-600 bg-green-100/50 px-1 rounded">
+              {slot.score}/{slot.totalQuestions}
+            </span>
+          </div>
         )}
       </button>
 

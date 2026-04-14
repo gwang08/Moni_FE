@@ -3,7 +3,7 @@
 import { use, useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, FileText, Loader2, Sparkles, ChevronDown, ChevronUp, Info, X } from 'lucide-react';
+import { ArrowLeft, FileText, Loader2, Sparkles, ChevronDown, ChevronUp, Info, X, Check, AlertTriangle, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -21,15 +21,21 @@ interface Props { params: Promise<{ id: string }> }
 // ---------- colour helpers ----------
 function bc(b: number) {
   if (b >= 8) return 'text-emerald-600';
-  if (b >= 6.5) return 'text-teal-600';
+  if (b >= 6.5) return 'text-blue-600';
   if (b >= 5) return 'text-amber-600';
-  return 'text-red-500';
+  return 'text-rose-600';
 }
 function bbg(b: number) {
-  if (b >= 8) return 'bg-emerald-50 border-emerald-200/60';
-  if (b >= 6.5) return 'bg-teal-50 border-teal-200/60';
-  if (b >= 5) return 'bg-amber-50 border-amber-200/60';
-  return 'bg-red-50 border-red-200/60';
+  if (b >= 8) return 'bg-emerald-50/40 border-emerald-100';
+  if (b >= 6.5) return 'bg-blue-50/40 border-blue-100';
+  if (b >= 5) return 'bg-amber-50/40 border-amber-100';
+  return 'bg-rose-50/40 border-rose-100';
+}
+function bbc(b: number) {
+  if (b >= 8) return 'border-emerald-200';
+  if (b >= 6.5) return 'border-blue-200';
+  if (b >= 5) return 'border-amber-200';
+  return 'border-rose-200';
 }
 
 // ---------- data normalisation ----------
@@ -112,20 +118,24 @@ function normalise(raw: Record<string, unknown>): NormalisedData {
 // ---------- sub-components ----------
 function ScoreOverview({ data }: { data: NormalisedData }) {
   return (
-    <div className="flex items-center gap-3 flex-wrap">
-      {/* Overall circle */}
-      <div className="w-16 h-16 rounded-full bg-gradient-to-br from-teal-400 to-emerald-400 flex items-center justify-center shadow-md shadow-teal-200/40 shrink-0">
-        <div className="w-13 h-13 rounded-full bg-white flex flex-col items-center justify-center w-[52px] h-[52px]">
-          <span className={`text-lg font-black leading-none ${bc(data.overall)}`}>{data.overall.toFixed(1)}</span>
-          <span className="text-[9px] text-gray-400">Band</span>
+    <div className="flex flex-col md:flex-row items-center gap-8 md:gap-10">
+      {/* Overall Score prominent display */}
+      <div className="flex flex-col items-center justify-center shrink-0">
+        <div className="relative w-32 h-32 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center shadow-xl shadow-blue-500/20 ring-8 ring-blue-50">
+          <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-white/20 to-transparent"></div>
+          <div className="relative w-28 h-28 rounded-full bg-white flex flex-col items-center justify-center shadow-inner">
+            <span className="text-[40px] font-extrabold tracking-tight text-blue-700 leading-none mb-1">{data.overall.toFixed(1)}</span>
+            <span className="text-[10px] font-black text-blue-400 uppercase tracking-widest">Band</span>
+          </div>
         </div>
       </div>
-      {/* Criteria chips */}
-      <div className="flex gap-2 flex-wrap flex-1">
+      
+      {/* Criteria Breakdown Grid */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 w-full">
         {data.criteria.map((c) => (
-          <div key={c.key} className={`rounded-xl border px-3 py-1.5 ${bbg(c.band)} min-w-[72px]`}>
-            <p className="text-[10px] font-semibold text-gray-500">{c.key}</p>
-            <p className={`text-base font-black leading-none mt-0.5 ${bc(c.band)}`}>{c.band.toFixed(1)}</p>
+          <div key={c.key} className={`flex flex-col items-center justify-center p-4 rounded-2xl border ${bbg(c.band)} transition-transform hover:-translate-y-1 hover:shadow-md duration-300`}>
+            <span className="text-[11px] font-extrabold text-gray-500 uppercase tracking-wider mb-2 text-center">{c.key}</span>
+            <span className={`text-2xl font-black ${bc(c.band)}`}>{c.band.toFixed(1)}</span>
           </div>
         ))}
       </div>
@@ -139,53 +149,68 @@ function CriterionCard({ c }: { c: NormalisedData['criteria'][number] }) {
     : [];
 
   return (
-    <div className={`rounded-2xl border p-4 ${bbg(c.band)}`}>
-      <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center gap-2">
-          <span className={`text-2xl font-black ${bc(c.band)}`}>{c.band.toFixed(1)}</span>
-          <div>
-            <p className="text-sm font-bold text-gray-800">{c.label}</p>
-            <p className="text-[10px] text-gray-500">Band {c.band.toFixed(1)}</p>
+    <div className={`group relative rounded-3xl border p-5 md:p-6 ${bbg(c.band)} transition-all hover:shadow-md overflow-hidden flex flex-col h-full bg-white/50 backdrop-blur-sm`}>
+      {/* Decorative top border glow */}
+      <div className={`absolute top-0 left-0 right-0 h-1.5 ${c.band >= 8 ? 'bg-emerald-400' : c.band >= 6.5 ? 'bg-blue-400' : c.band >= 5 ? 'bg-amber-400' : 'bg-rose-400'} opacity-80`}></div>
+      
+      <div className="flex items-start justify-between mb-4 mt-1">
+        <div className="flex-1 pr-3">
+          <p className="text-[15px] font-extrabold text-gray-900 tracking-tight">{c.label}</p>
+          <div className="flex items-center gap-2 mt-2">
+             <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full ${c.band >= 8 ? 'bg-emerald-100 text-emerald-700' : c.band >= 6.5 ? 'bg-blue-100 text-blue-700' : c.band >= 5 ? 'bg-amber-100 text-amber-700' : 'bg-rose-100 text-rose-700'}`}>Band {c.band.toFixed(1)}</span>
           </div>
+        </div>
+        <div className={`flex items-center justify-center w-12 h-12 rounded-2xl bg-white shadow-sm shrink-0 border ${bbc(c.band)} rotate-3 group-hover:rotate-0 transition-transform`}>
+           <span className={`text-xl font-black ${bc(c.band)}`}>{c.band.toFixed(1)}</span>
         </div>
       </div>
 
-      {c.justification && (
-        <p className="text-[12px] text-gray-700 leading-relaxed mb-2">{c.justification}</p>
-      )}
+      <div className="flex-1 flex flex-col gap-3">
+        {c.justification && (
+          <p className="text-[13.5px] text-gray-700 font-medium leading-relaxed bg-white/70 p-4 rounded-2xl border border-white/60 shadow-sm">{c.justification}</p>
+        )}
 
-      {c.strengths && c.strengths.length > 0 && (
-        <div className="space-y-1 mb-2">
-          {c.strengths.slice(0, 2).map((s, i) => (
-            <p key={i} className="text-[11px] text-gray-700 flex gap-1.5">
-              <span className="text-emerald-500 shrink-0">✓</span>{s}
-            </p>
-          ))}
-        </div>
-      )}
+        <div className="flex flex-col gap-3 mt-auto pt-3">
+          {c.strengths && c.strengths.length > 0 && (
+            <div className="space-y-2">
+              {c.strengths.slice(0, 2).map((s, i) => (
+                <div key={i} className="flex gap-2.5 items-start">
+                  <div className="w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center shrink-0 mt-0.5 shadow-sm">
+                    <Check className="h-3 w-3 text-emerald-600" />
+                  </div>
+                  <p className="text-[13px] text-gray-700 leading-snug font-medium pt-0.5">{s}</p>
+                </div>
+              ))}
+            </div>
+          )}
 
-      {c.weaknesses && c.weaknesses.length > 0 && (
-        <div className="space-y-1 mb-2">
-          {c.weaknesses.slice(0, 2).map((w, i) => (
-            <p key={i} className="text-[11px] text-gray-700 flex gap-1.5">
-              <span className="text-amber-500 shrink-0">⚠</span>{w}
-            </p>
-          ))}
-        </div>
-      )}
+          {c.weaknesses && c.weaknesses.length > 0 && (
+            <div className="space-y-2 mt-1 border-t border-gray-200/60 pt-3">
+              {c.weaknesses.slice(0, 2).map((w, i) => (
+                <div key={i} className="flex gap-2.5 items-start">
+                  <div className="w-5 h-5 rounded-full bg-amber-100 flex items-center justify-center shrink-0 mt-0.5 shadow-sm">
+                    <AlertTriangle className="h-3 w-3 text-amber-600" />
+                  </div>
+                  <p className="text-[13px] text-gray-700 leading-snug font-medium pt-0.5">{w}</p>
+                </div>
+              ))}
+            </div>
+          )}
 
-      {activeViolations.length > 0 && (
-        <div className="space-y-1.5">
-          <p className="text-[10px] font-bold text-red-500 uppercase tracking-wide">Lỗi thường gặp</p>
-          {activeViolations.slice(0, 1).map(([, vArr]) => {
-            const item = (vArr as Record<string, unknown>[])[0];
-            const reason = item?.reason != null ? String(item.reason) : '';
-            return reason ? (
-              <p key={0} className="text-[11px] text-red-600 leading-relaxed">• {reason}</p>
-            ) : null;
-          })}
+          {activeViolations.length > 0 && (
+            <div className="mt-2 space-y-2 bg-rose-50/80 border border-rose-100/80 p-3 rounded-2xl shadow-sm">
+              <p className="text-[10px] font-extrabold text-rose-600 uppercase tracking-widest flex items-center gap-1.5"><XCircle className="h-3.5 w-3.5" /> Lỗi phổ biến</p>
+              {activeViolations.slice(0, 1).map(([, vArr]) => {
+                const item = (vArr as Record<string, unknown>[])[0];
+                const reason = item?.reason != null ? String(item.reason) : '';
+                return reason ? (
+                  <p key={0} className="text-[12.5px] text-rose-800 leading-relaxed font-semibold">{reason}</p>
+                ) : null;
+              })}
+            </div>
+          )}
         </div>
-      )}
+      </div>
     </div>
   );
 }
@@ -257,57 +282,66 @@ function HighlightedEssay({ essay, improvements }: { essay: string; improvements
 
   if (!segments.length || (segments.length === 1 && segments[0].type === 'text')) {
     return (
-      <div className="rounded-xl bg-gray-50/60 border border-gray-100 p-4">
-        <p className="text-[13px] text-gray-800 leading-relaxed whitespace-pre-wrap">{essay}</p>
+      <div className="rounded-2xl bg-gray-50/80 border border-gray-200 p-6 md:p-8 shadow-sm">
+        <p className="text-[14px] md:text-[15px] text-gray-800 leading-[1.9] whitespace-pre-wrap font-serif">{essay}</p>
       </div>
     );
   }
 
   return (
-    <div className="rounded-xl bg-gray-50/60 border border-gray-100 p-4 space-y-2">
-      <div className="flex items-center gap-2 mb-2">
-        <Info className="h-4 w-4 text-amber-500" />
-        <p className="text-[11px] text-gray-600">Các đoạn được highlight là những phần cần cải thiện. Nhấn vào icon <Info className="h-3 w-3 inline" /> để xem chi tiết.</p>
+    <div className="rounded-3xl bg-white border border-gray-200 shadow-md overflow-hidden">
+      <div className="bg-amber-50/80 border-b border-amber-100/60 px-5 py-4 flex items-start sm:items-center gap-3">
+        <div className="bg-amber-100/80 p-2 rounded-full shrink-0 shadow-sm border border-amber-200/50">
+          <Info className="h-4 w-4 text-amber-600" />
+        </div>
+        <p className="text-[13px] text-amber-800 leading-relaxed font-semibold">
+          Các đoạn bị bôi vàng là những phần cần cải thiện. Nhấn vào biểu tượng <Info className="h-3.5 w-3.5 inline text-amber-600 mx-0.5" /> bên cạnh để xem góp ý từ chuyên gia.
+        </p>
       </div>
-      <div className="text-[13px] text-gray-800 leading-relaxed whitespace-pre-wrap">
+      <div className="p-6 md:p-8 text-[14px] md:text-[15px] text-gray-800 leading-[2.1] whitespace-pre-wrap font-serif selection:bg-blue-100">
         {segments.map((seg, i) => {
           if (seg.type === 'text') {
-            return <span key={i}>{seg.content as string}</span>;
+            return <span key={i} className="text-gray-700">{seg.content as string}</span>;
           }
           const hl = seg.content as HighlightInfo;
           return (
             <span
               key={i}
-              className="inline bg-amber-100 border-b-2 border-amber-400 px-1 py-0.5 rounded cursor-pointer hover:bg-amber-200 transition-colors"
+              className="inline-flex items-center bg-amber-100/50 border-b-[2px] border-amber-300/80 rounded-[3px] cursor-pointer hover:bg-amber-200/60 transition-colors group relative mx-[1px]"
             >
-              {hl.text}
+              <span className="px-1 py-[1.5px] leading-tight">{hl.text}</span>
               <Dialog open={openDialog === i} onOpenChange={(open) => setOpenDialog(open ? i : null)}>
                 <DialogTrigger asChild>
-                  <button className="inline-flex ml-1 align-middle hover:scale-110 transition-transform">
-                    <Info className="h-3.5 w-3.5 text-amber-700 hover:text-amber-800" />
+                  <button className="inline-flex items-center justify-center mx-1 outline-none text-amber-500 group-hover:text-amber-600 group-hover:scale-110 transition-all bg-amber-100 rounded-full w-5 h-5 shadow-sm">
+                    <Info className="h-3 w-3" />
                   </button>
                 </DialogTrigger>
-                <DialogContent className="max-w-md">
-                  <DialogHeader>
-                    <DialogTitle className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Badge variant="secondary">{hl.criterion}</Badge>
-                        {hl.issueType && <span className="text-xs text-gray-500">{hl.issueType}</span>}
-                      </div>
-                      <button onClick={() => setOpenDialog(null)} className="text-gray-400 hover:text-gray-600">
-                        <X className="h-4 w-4" />
-                      </button>
-                    </DialogTitle>
-                  </DialogHeader>
-                  <div className="space-y-3 mt-2">
-                    <div className="rounded-lg bg-gray-50 border border-gray-200 p-3">
-                      <p className="text-[10px] font-bold text-gray-600 mb-1">⚠ Vấn đề</p>
-                      <p className="text-[12px] text-gray-700 leading-relaxed">{hl.reason}</p>
+                <DialogContent className="max-w-xl p-0 gap-0 overflow-hidden rounded-3xl border border-gray-100 shadow-2xl">
+                  {/* Dialog Header Customization */}
+                  <div className="bg-[#F8FAFC] px-6 py-4 border-b border-gray-100 flex flex-col gap-1">
+                    <div className="flex items-center justify-between">
+                      <Badge variant="secondary" className="bg-indigo-50 text-indigo-700 border border-indigo-100/50 hover:bg-indigo-100 font-bold tracking-wide px-3">{hl.criterion}</Badge>
+                      <DialogTrigger asChild>
+                        <button className="text-gray-400 hover:text-gray-900 bg-white border border-gray-200 hover:border-gray-300 p-1.5 rounded-full transition-all hover:bg-gray-50 focus:ring-2 ring-gray-200 outline-none">
+                          <X className="h-4 w-4" />
+                        </button>
+                      </DialogTrigger>
                     </div>
+                    {hl.issueType && <span className="text-[10px] font-black text-gray-400 tracking-widest uppercase mt-1 px-1">{hl.issueType}</span>}
+                  </div>
+                  
+                  <div className="p-6 space-y-6 bg-white">
+                    <div className="relative pl-5">
+                      <div className="absolute left-0 top-0 bottom-0 w-1.5 rounded-full bg-rose-200"></div>
+                      <p className="text-[11px] font-black text-rose-500 uppercase tracking-widest mb-2 flex items-center gap-1.5"><AlertTriangle className="h-3.5 w-3.5" /> Vấn đề</p>
+                      <p className="text-[14px] text-gray-700 leading-relaxed font-semibold">{hl.reason}</p>
+                    </div>
+                    
                     {hl.improvedVersion && (
-                      <div className="rounded-lg bg-emerald-50 border border-emerald-100 p-3">
-                        <p className="text-[10px] font-bold text-emerald-600 mb-1">✓ Gợi ý sửa</p>
-                        <p className="text-[12px] text-emerald-700 leading-relaxed">{hl.improvedVersion}</p>
+                      <div className="relative pl-5 bg-emerald-50/40 p-5 rounded-2xl border border-emerald-100/50 shadow-sm mt-2">
+                        <div className="absolute left-0 top-0 bottom-0 w-1.5 rounded-l-2xl bg-emerald-400"></div>
+                        <p className="text-[11px] font-black text-emerald-600 uppercase tracking-widest mb-2 flex items-center gap-1.5"><Check className="h-3.5 w-3.5" /> Gợi ý cách viết tốt hơn</p>
+                        <p className="text-[14.5px] text-emerald-900 leading-relaxed font-bold">{hl.improvedVersion}</p>
                       </div>
                     )}
                   </div>
@@ -405,27 +439,60 @@ export default function WritingResultPage({ params }: Props) {
         </Badge>
       </div>
 
-      <div className="max-w-5xl mx-auto p-6 space-y-6">
+      <div className="max-w-4xl mx-auto p-4 md:p-8 space-y-8 pb-16">
         {/* Prompt at the top */}
         {prompt && (
-          <div className="rounded-2xl border border-teal-100/60 bg-gradient-to-br from-teal-50/40 to-emerald-50/20 p-4">
+          <div className="rounded-3xl border border-indigo-100/60 bg-gradient-to-br from-indigo-50/40 to-blue-50/20 p-5 shadow-sm">
             <WritingPromptPanel prompt={prompt} chartImageUrl={chartImageUrl || ''} taskType={taskType} />
           </div>
         )}
 
         {/* Score overview */}
         {normData && (
-          <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
-            <p className="text-[10px] font-bold text-teal-500 uppercase tracking-wider mb-3">Tổng quan điểm số</p>
+          <div className="rounded-3xl border border-gray-100 bg-white p-7 md:p-10 shadow-sm relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-1.5 h-full bg-blue-500"></div>
+            <h2 className="text-xl md:text-2xl font-black text-gray-900 mb-8 font-sans tracking-tight">Kết quả đánh giá</h2>
             <ScoreOverview data={normData} />
+
+            {/* Overall strategy */}
+            {normData?.overall_strategy && (
+              <div className="mt-8 rounded-2xl bg-gradient-to-br from-indigo-50/80 to-blue-50/40 border border-indigo-100 p-6 shadow-sm">
+                <p className="text-[11px] font-black text-indigo-600 uppercase tracking-widest mb-3 flex items-center gap-1.5"><Sparkles className="h-4 w-4" /> Chiến lược bứt phá</p>
+                <p className="text-[14.5px] text-gray-800 leading-relaxed font-semibold">{normData.overall_strategy}</p>
+              </div>
+            )}
+            
+            {/* Expert format (fallback if missing overall_strategy) */}
+            {(normData.summary || normData.strengths || normData.feedbackImprovements) && (
+              <div className="mt-8 space-y-4">
+               {normData.summary && (
+                  <div className="rounded-2xl bg-gray-50 border border-gray-100 p-5">
+                    <p className="text-[11px] font-black text-gray-500 uppercase tracking-widest mb-2">Nhận xét tổng quan</p>
+                    <p className="text-[14px] text-gray-700 leading-relaxed font-medium whitespace-pre-line">{normData.summary}</p>
+                  </div>
+                )}
+                {normData.strengths && (
+                  <div className="rounded-2xl bg-emerald-50/60 border border-emerald-100/50 p-5">
+                    <p className="text-[11px] font-black text-emerald-600 uppercase tracking-widest mb-2 flex items-center gap-1.5"><Check className="h-4 w-4" /> Điểm mạnh</p>
+                    <p className="text-[14px] text-gray-800 leading-relaxed font-medium whitespace-pre-line">{normData.strengths}</p>
+                  </div>
+                )}
+                {normData.feedbackImprovements && (
+                  <div className="rounded-2xl bg-amber-50/60 border border-amber-100/50 p-5">
+                    <p className="text-[11px] font-black text-amber-600 uppercase tracking-widest mb-2 flex items-center gap-1.5"><AlertTriangle className="h-4 w-4" /> Cần cải thiện</p>
+                    <p className="text-[14px] text-gray-800 leading-relaxed font-medium whitespace-pre-line">{normData.feedbackImprovements}</p>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
 
         {/* All 4 criteria displayed directly */}
         {normData && (
-          <div>
-            <p className="text-sm font-bold text-gray-800 mb-3">Phân tích chi tiết theo tiêu chí</p>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div className="space-y-6">
+            <h2 className="text-xl md:text-2xl font-black text-gray-900 font-sans tracking-tight px-1">Phân tích chuyên sâu</h2>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 lg:gap-6">
               {normData.criteria.map((c) => (
                 <CriterionCard key={c.key} c={c} />
               ))}
@@ -435,79 +502,69 @@ export default function WritingResultPage({ params }: Props) {
 
         {/* Essay with highlights */}
         {normData && normData.improvements.length > 0 ? (
-          <div>
-            <div className="flex items-center gap-2 mb-3">
-              <FileText className="h-4 w-4 text-teal-500" />
-              <p className="text-sm font-bold text-gray-800">Bài viết của bạn</p>
-              <Badge variant="secondary" className="text-[10px]">{submission.wordCount} từ</Badge>
+          <div className="space-y-5 pt-4">
+            <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 px-1">
+              <div>
+                <h2 className="text-xl md:text-2xl font-black text-gray-900 font-sans tracking-tight flex items-center gap-2">
+                  <FileText className="h-6 w-6 text-blue-600" />
+                  Chữa bài chi tiết
+                </h2>
+                <p className="text-[13px] text-gray-500 mt-1 font-semibold">Bấm vào các phần được đánh dấu để xem gợi ý sửa đổi</p>
+              </div>
+              <Badge variant="outline" className="bg-white/80 border-gray-200 px-3 py-1 font-mono text-[11px] font-bold shadow-sm whitespace-nowrap text-gray-600">
+                {submission.wordCount} WORDS
+              </Badge>
             </div>
             <HighlightedEssay essay={submission.essayContent} improvements={normData.improvements} />
           </div>
         ) : (
-          <div className="rounded-2xl border border-gray-100 bg-white shadow-sm overflow-hidden">
+          <div className="rounded-3xl border border-gray-100 bg-white shadow-sm overflow-hidden mt-8">
             <button
-              className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition-colors"
+              className="w-full flex items-center justify-between px-6 py-4 hover:bg-gray-50/50 transition-colors group"
               onClick={() => setEssayOpen((o) => !o)}
             >
-              <div className="flex items-center gap-2">
-                <FileText className="h-4 w-4 text-teal-500" />
-                <span className="text-sm font-bold text-gray-800">Bài viết của bạn</span>
-                <Badge variant="secondary" className="text-[10px]">{submission.wordCount} từ</Badge>
+              <div className="flex items-center gap-4">
+                <div className="bg-blue-50 group-hover:bg-blue-100 p-2.5 rounded-xl border border-blue-100/50 transition-colors">
+                  <FileText className="h-5 w-5 text-blue-600" />
+                </div>
+                <div className="flex flex-col items-start gap-1">
+                   <span className="text-[15px] font-extrabold text-gray-900">Bài viết của bạn</span>
+                   <Badge variant="secondary" className="text-[10px] bg-gray-100 text-gray-600 font-bold border-gray-200 shadow-sm">
+                     {submission.wordCount} words
+                   </Badge>
+                </div>
               </div>
-              {essayOpen ? <ChevronUp className="h-4 w-4 text-gray-400" /> : <ChevronDown className="h-4 w-4 text-gray-400" />}
+              <div className="bg-gray-50 group-hover:bg-gray-100 border border-gray-200 p-2 rounded-full transition-colors">
+                {essayOpen ? <ChevronUp className="h-5 w-5 text-gray-500" /> : <ChevronDown className="h-5 w-5 text-gray-500" />}
+              </div>
             </button>
             {essayOpen && (
-              <div className="px-4 pb-4">
-                <div className="rounded-xl bg-gray-50/60 border border-gray-100 p-4">
-                  <p className="text-[13px] text-gray-800 leading-relaxed whitespace-pre-wrap">{submission.essayContent}</p>
+              <div className="px-6 pb-6 pt-2">
+                <div className="rounded-2xl bg-gray-50/80 border border-gray-100 p-6 md:p-8 shadow-inner">
+                  <p className="text-[14px] md:text-[15px] text-gray-800 leading-[1.9] whitespace-pre-wrap font-serif">{submission.essayContent}</p>
                 </div>
               </div>
             )}
           </div>
         )}
 
-        {/* Expert format: summary/strengths/improvements text */}
-        {normData && (normData.summary || normData.strengths) && (
-          <div className="space-y-3">
-            {normData.summary && (
-              <div className="rounded-2xl bg-teal-50/50 border border-teal-100/60 p-4">
-                <p className="text-xs font-bold text-teal-600 mb-1.5">Nhận xét tổng quan</p>
-                <p className="text-[13px] text-gray-600 leading-relaxed whitespace-pre-line">{normData.summary}</p>
-              </div>
-            )}
-            {normData.strengths && (
-              <div className="rounded-2xl bg-emerald-50/50 border border-emerald-100/60 p-4">
-                <p className="text-xs font-bold text-emerald-600 mb-1.5">Điểm mạnh</p>
-                <p className="text-[13px] text-gray-600 leading-relaxed whitespace-pre-line">{normData.strengths}</p>
-              </div>
-            )}
-            {normData.feedbackImprovements && (
-              <div className="rounded-2xl bg-amber-50/50 border border-amber-100/60 p-4">
-                <p className="text-xs font-bold text-amber-600 mb-1.5">Cần cải thiện</p>
-                <p className="text-[13px] text-gray-600 leading-relaxed whitespace-pre-line">{normData.feedbackImprovements}</p>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Overall strategy */}
-        {normData?.overall_strategy && (
-          <div className="rounded-2xl bg-gradient-to-br from-teal-50 to-emerald-50/60 border border-teal-100/60 p-4">
-            <p className="text-xs font-bold text-teal-600 mb-1.5">Chiến lược tổng thể</p>
-            <p className="text-[13px] text-gray-700 leading-relaxed">{normData.overall_strategy}</p>
-          </div>
-        )}
-
         {/* AI score CTA */}
         {!scored && (
-          <div className="flex justify-center pb-4">
+          <div className="flex flex-col items-center justify-center py-12 px-4 border-2 border-dashed border-gray-200 rounded-3xl bg-gray-50/50 mt-6 shadow-sm">
+             <div className="bg-white p-4 rounded-full shadow-sm border border-gray-100 mb-5 relative overflow-hidden">
+                <div className="absolute inset-0 bg-blue-50 opacity-50 blur-xl"></div>
+                <Sparkles className="h-8 w-8 text-blue-600 relative z-10" />
+             </div>
+             <h3 className="text-xl font-extrabold text-gray-900 mb-3 text-center tracking-tight">Chấm điểm bài viết với AI</h3>
+             <p className="text-[14px] text-gray-600 text-center max-w-md mb-8 leading-relaxed font-medium">AI sẽ cung cấp cho bạn band điểm dự kiến, phân tích chi tiết theo 4 tiêu chí của IELTS và chữa lỗi trực tiếp trên bài làm của bạn.</p>
             <Button
               onClick={handleAiScore}
               disabled={isGrading}
-              className="gap-2 bg-gradient-to-r from-teal-400 to-emerald-400 hover:from-teal-500 hover:to-emerald-500 text-white shadow-md shadow-teal-200/50 px-6 rounded-2xl"
+              size="lg"
+              className="gap-2.5 bg-gray-900 hover:bg-gray-800 text-white shadow-xl shadow-gray-900/10 px-8 py-6 rounded-full font-bold text-[15px] transition-all hover:-translate-y-0.5"
             >
-              <Sparkles className="h-4 w-4" />
-              Chấm AI ngay
+              <Sparkles className="h-5 w-5 text-amber-300" />
+              Bắt đầu chấm điểm
             </Button>
           </div>
         )}

@@ -67,6 +67,17 @@ const CRIT_META = [
   { key: 'GRA', altKeys: ['GRA'], label: 'Grammatical Range', short: 'GRA' },
 ];
 
+function cleanFeedback(text: any): string | undefined {
+  if (typeof text !== 'string') return undefined;
+  const trimmed = text.trim();
+  if (!trimmed) return undefined;
+  // If it starts with [ or { it's likely a JSON leak
+  if (trimmed.startsWith('[') || trimmed.startsWith('{')) return undefined;
+  // If it contains "criterion": or "reason": it's likely a leaked object
+  if (trimmed.includes('"criterion":') || trimmed.includes('"reason":')) return undefined;
+  return trimmed;
+}
+
 function normalise(raw: Record<string, unknown>): NormalisedData {
   // Determine which format we have
   const isFormatB = 'overallScore' in raw || 'analysisResult' in raw || 'feedbackResponse' in raw;
@@ -107,21 +118,16 @@ function normalise(raw: Record<string, unknown>): NormalisedData {
     } catch { /* ignore */ }
   }
 
-  const overall_strategy = typeof fbObj?.overall_strategy === 'string' ? fbObj.overall_strategy : undefined;
-  
-  // feedbackImprovements should only be displayed if it is a descriptive text, not raw JSON
-  let feedbackImprovements = typeof fbObj?.improvements === 'string' ? fbObj.improvements : undefined;
-  if (feedbackImprovements?.trim().startsWith('[') || feedbackImprovements?.trim().startsWith('{')) {
-    feedbackImprovements = undefined;
-  }
+  const overall_strategy = cleanFeedback(fbObj?.overall_strategy);
+  const feedbackImprovements = cleanFeedback(fbObj?.improvements);
 
   return {
     overall,
     criteria,
     improvements,
     overall_strategy,
-    summary: typeof fbObj?.summary === 'string' ? fbObj.summary : undefined,
-    strengths: typeof fbObj?.strengths === 'string' ? fbObj.strengths : undefined,
+    summary: cleanFeedback(fbObj?.summary),
+    strengths: cleanFeedback(fbObj?.strengths),
     feedbackImprovements,
   };
 }
@@ -481,7 +487,10 @@ export default function WritingResultPage({ params }: Props) {
         {normData && (
           <div className="rounded-3xl border border-gray-100 bg-white p-7 md:p-10 shadow-sm relative overflow-hidden">
             <div className="absolute top-0 left-0 w-1.5 h-full bg-blue-500"></div>
-            <h2 className="text-xl md:text-2xl font-black text-gray-900 mb-8 font-sans tracking-tight">Kết quả đánh giá</h2>
+            <div className="flex items-center justify-between mb-8">
+              <h2 className="text-xl md:text-2xl font-black text-gray-900 font-sans tracking-tight">Kết quả đánh giá</h2>
+              <span className="text-[10px] text-gray-300 font-mono">v1.1</span>
+            </div>
             <ScoreOverview data={normData} />
 
             {/* Overall strategy */}

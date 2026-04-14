@@ -60,7 +60,10 @@ export default function ScoringHistoryPage() {
 
   useEffect(() => {
     Promise.all([
-      getWritingSubmissions().then(setSubs).catch(() => {}),
+      getWritingSubmissions().then(setSubs).catch((err) => {
+        console.error('[scoring-history] getWritingSubmissions failed:', err);
+        toast.error('Không thể tải danh sách bài viết');
+      }),
       getMySessions().then(setSessions).catch(() => {}),
     ]).finally(() => setLoading(false));
   }, []);
@@ -68,7 +71,9 @@ export default function ScoringHistoryPage() {
   const refresh = () => {
     setLoading(true);
     Promise.all([
-      getWritingSubmissions().then(setSubs).catch(() => {}),
+      getWritingSubmissions().then(setSubs).catch((err) => {
+        console.error('[scoring-history] getWritingSubmissions failed:', err);
+      }),
       getMySessions().then(setSessions).catch(() => {}),
     ]).finally(() => setLoading(false));
   };

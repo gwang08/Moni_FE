@@ -11,6 +11,7 @@ import { WritingPracticeView } from '@/components/writing/writing-practice-view'
 import { WritingExamView } from '@/components/writing/writing-exam-view';
 import { WritingScoringProgressDialog } from '@/components/writing/writing-scoring-progress-dialog';
 import { WritingScoringOptionsDialog } from '@/components/writing/writing-scoring-options-dialog';
+import { WritingExpertSelectionDialog } from '@/components/writing/writing-expert-selection-dialog';
 import { getServices } from '@/lib/payment-api';
 import { useWritingStore } from '@/store/writing-store';
 import { usePracticeStore } from '@/store/practice-store';
@@ -69,6 +70,7 @@ export default function WritingExercisePage({ params }: Props) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [submissionId, setSubmissionId] = useState<number | null>(null);
+  const [showExpertDialog, setShowExpertDialog] = useState(false);
 
   const handleSubmitRef = useRef<() => Promise<void>>(() => Promise.resolve());
 
@@ -243,8 +245,14 @@ export default function WritingExercisePage({ params }: Props) {
           aiCost={aiCost}
           expertCost={expertCost}
           onAIScore={() => { setShowScoringDialog(false); handleGrade(); }}
-          onExpertScore={() => { setShowScoringDialog(false); router.push('/scoring-history'); }}
+          onExpertScore={() => { setShowScoringDialog(false); setShowExpertDialog(true); }}
           onSkip={() => { setShowScoringDialog(false); router.push('/scoring-history'); }}
+        />
+        <WritingExpertSelectionDialog
+          open={showExpertDialog}
+          onOpenChange={setShowExpertDialog}
+          submissionId={submissionId}
+          expertCost={expertCost}
         />
         <WritingScoringProgressDialog open={isGrading} />
       </div>
@@ -277,8 +285,14 @@ export default function WritingExercisePage({ params }: Props) {
         aiCost={aiCost}
         expertCost={expertCost}
         onAIScore={() => { setShowScoringDialog(false); handleGrade(); }}
-        onExpertScore={() => { setShowScoringDialog(false); router.push('/scoring-history'); }}
+        onExpertScore={() => { setShowScoringDialog(false); setShowExpertDialog(true); }}
         onSkip={() => { setShowScoringDialog(false); router.push('/scoring-history'); }}
+      />
+      <WritingExpertSelectionDialog
+        open={showExpertDialog}
+        onOpenChange={setShowExpertDialog}
+        submissionId={submissionId}
+        expertCost={expertCost}
       />
       <WritingScoringProgressDialog open={isGrading} />
 

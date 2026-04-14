@@ -315,7 +315,7 @@ export default function PromptEditorPage() {
             <div className="border-t border-gray-100 pt-3">
               <p className="text-[11px] text-gray-400 leading-snug">
                 <Clock className="h-3 w-3 inline mr-1" />
-                Mỗi lần lưu sẽ tạo phiên bản mới. Ông có thể kích hoạt lại bất kỳ phiên bản cũ nào.
+                Mỗi lần lưu sẽ tạo phiên bản mới. Bạn có thể kích hoạt lại bất kỳ phiên bản cũ nào.
               </p>
             </div>
           </div>

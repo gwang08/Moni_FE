@@ -53,44 +53,8 @@ export default function DashboardPage() {
   const [showPlacementDialog, setShowPlacementDialog] = useState(false);
   const fetchedRef = useRef(false);
 
-  // Weekly Navigation State
   const [availableWeeks, setAvailableWeeks] = useState<{ week: number, label: string, isCurrent: boolean }[]>([]);
   const [selectedWeek, setSelectedWeek] = useState<number | undefined>(undefined);
-
-  useEffect(() => {
-    async function loadWeeks() {
-      try {
-        const [currentPlan, history] = await Promise.all([
-          getWeeklyPlan(),
-          getWeeklyPlanHistory()
-        ]);
-        
-        const weeks = [];
-        if (currentPlan) {
-          weeks.push({ week: currentPlan.weekNumber, label: `Tuần ${currentPlan.weekNumber} (Hiện tại)`, isCurrent: true });
-        }
-        
-        for (const h of history) {
-          // avoid duplicate if current is also in history (shouldn't happen but safe to guard)
-          if (!weeks.some(w => w.week === h.weekNumber)) {
-            weeks.push({ week: h.weekNumber, label: `Tuần ${h.weekNumber}`, isCurrent: false });
-          }
-        }
-        
-        // Sort descending
-        weeks.sort((a, b) => b.week - a.week);
-        setAvailableWeeks(weeks);
-        
-        // Set selected to current initially
-        if (weeks.length > 0) {
-          setSelectedWeek(weeks[0].week);
-        }
-      } catch {
-        // ignore
-      }
-    }
-    loadWeeks();
-  }, []);
 
   // Redirect ADMIN and EXPERT away from learner dashboard
   useEffect(() => {
@@ -108,6 +72,35 @@ export default function DashboardPage() {
   useEffect(() => {
     if (!hydrated || fetchedRef.current) return;
     fetchedRef.current = true;
+
+    async function loadWeeks() {
+      try {
+        const [currentPlan, history] = await Promise.all([
+          getWeeklyPlan(),
+          getWeeklyPlanHistory()
+        ]);
+        
+        const weeks = [];
+        if (currentPlan) {
+          weeks.push({ week: currentPlan.weekNumber, label: `Tuần ${currentPlan.weekNumber} (Hiện tại)`, isCurrent: true });
+        }
+        
+        for (const h of history) {
+          if (!weeks.some(w => w.week === h.weekNumber)) {
+            weeks.push({ week: h.weekNumber, label: `Tuần ${h.weekNumber}`, isCurrent: false });
+          }
+        }
+        
+        weeks.sort((a, b) => b.week - a.week);
+        setAvailableWeeks(weeks);
+        
+        if (weeks.length > 0) {
+          setSelectedWeek(weeks[0].week);
+        }
+      } catch (err) {
+        console.error('Failed to load weeks navigation:', err);
+      }
+    }
 
     // Fetch placement result
     async function fetchPlacement() {
@@ -151,6 +144,7 @@ export default function DashboardPage() {
       fetchPlacement();
     }
 
+    loadWeeks();
     fetchProfile();
     refreshProfile(); // Sync credit balance in header
   // eslint-disable-next-line react-hooks/exhaustive-deps

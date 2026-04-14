@@ -376,7 +376,7 @@ export function GapFillingEditor({
           </div>
           <div className="rounded-md border border-input bg-white overflow-hidden shadow-sm">
             {editor && <RichTextToolbar editor={editor} />}
-            <EditorContent editor={editor} />
+            <EditorContent editor={editor} className="prose prose-sm max-w-none [&_table]:w-full [&_table]:border-collapse [&_th]:border [&_th]:border-gray-300 [&_th]:bg-gray-100 [&_th]:p-2 [&_td]:border [&_td]:border-gray-300 [&_td]:p-2" />
           </div>
         </div>
       )}

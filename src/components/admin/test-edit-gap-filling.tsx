@@ -22,6 +22,7 @@ import Placeholder from '@tiptap/extension-placeholder';
 import Underline from '@tiptap/extension-underline';
 import TextAlign from '@tiptap/extension-text-align';
 import LinkExtension from '@tiptap/extension-link';
+import ImageExtension from '@tiptap/extension-image';
 import Subscript from '@tiptap/extension-subscript';
 import Superscript from '@tiptap/extension-superscript';
 import Highlight from '@tiptap/extension-highlight';
@@ -53,6 +54,7 @@ const EDITOR_EXTENSIONS = [
   Highlight.configure({ multicolor: true }),
   TextAlign.configure({ types: ['heading', 'paragraph', 'listItem'] }),
   LinkExtension.configure({ openOnClick: false }),
+  ImageExtension,
   TableExtension.configure({ resizable: true }),
   TableRow,
   TableCell,
@@ -331,7 +333,7 @@ export const TestEditGapFilling = forwardRef<TestEditGapFillingHandle, Props>(fu
           {passageMode === 'edit' && (
             <div className="rounded-md border border-input bg-white overflow-hidden shadow-sm">
               {editor && <RichTextToolbar editor={editor} />}
-              <EditorContent editor={editor} />
+              <EditorContent editor={editor} className="prose prose-sm max-w-none [&_table]:w-full [&_table]:border-collapse [&_th]:border [&_th]:border-gray-300 [&_th]:bg-gray-100 [&_th]:p-2 [&_td]:border [&_td]:border-gray-300 [&_td]:p-2" />
             </div>
           )}
 

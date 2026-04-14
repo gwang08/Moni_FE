@@ -6,7 +6,7 @@ import {
   List, ListOrdered, Quote, Minus,
   AlignLeft, AlignCenter, AlignRight, AlignJustify,
   Link, Unlink, Image, Undo2, Redo2,
-  Subscript, Superscript, RemoveFormatting, Table,
+  Subscript, Superscript, RemoveFormatting, Table, Trash2,
   Heading1, Heading2, Heading3,
 } from 'lucide-react';
 import { useCallback, useRef, useState } from 'react';
@@ -95,6 +95,10 @@ export function RichTextToolbar({ editor }: Props) {
 
   const addTable = useCallback(() => {
     editor?.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run();
+  }, [editor]);
+
+  const deleteTable = useCallback(() => {
+    editor?.chain().focus().deleteTable().run();
   }, [editor]);
 
   if (!editor) return null;
@@ -212,6 +216,11 @@ export function RichTextToolbar({ editor }: Props) {
       <ToolbarButton onClick={addTable} title="Chèn bảng">
         <Table size={s} />
       </ToolbarButton>
+      {editor.isActive('table') && (
+        <ToolbarButton onClick={deleteTable} title="Xóa bảng">
+          <Trash2 size={s} className="text-red-500" />
+        </ToolbarButton>
+      )}
     </div>
   );
 }

@@ -299,3 +299,83 @@ export async function getScoringSessionEvaluation(id: number): Promise<ExpertEva
   if (!response.result) throw new Error('Failed to fetch scoring session evaluation');
   return response.result;
 }
+
+// ─── Prompt Management ────────────────────────────────────────────────────────
+
+export interface PromptInfo {
+  skill: string;
+  filename: string;
+  path: string;
+  activeVersion: string;
+  availableVersions: string[];
+}
+
+export interface PromptDetail {
+  skill: string;
+  filename: string;
+  activeVersion: string;
+  content: string;
+}
+
+export interface PromptVersionDetail {
+  skill: string;
+  filename: string;
+  version: string;
+  content: string;
+}
+
+export async function listAllPrompts(): Promise<PromptInfo[]> {
+  const response = await apiClient.get<PromptInfo[] | ApiResponse<PromptInfo[]>>(
+    '/api/v1/admin/prompts',
+    true
+  );
+  if (Array.isArray(response)) return response;
+  return (response as ApiResponse<PromptInfo[]>).result ?? [];
+}
+
+export async function getPromptDetail(skill: string, filename: string): Promise<PromptDetail> {
+  const response = await apiClient.get<PromptDetail>(
+    `/api/v1/admin/prompts/${skill}/${filename}`,
+    true
+  );
+  return response;
+}
+
+export async function getPromptVersionContent(
+  skill: string,
+  filename: string,
+  version: string
+): Promise<PromptVersionDetail> {
+  const response = await apiClient.get<PromptVersionDetail>(
+    `/api/v1/admin/prompts/${skill}/${filename}/versions/${version}`,
+    true
+  );
+  return response;
+}
+
+export async function updatePrompt(
+  skill: string,
+  filename: string,
+  content: string,
+  activateImmediately: boolean
+): Promise<{ newVersion: string; activated: boolean; message: string }> {
+  const response = await apiClient.put<{ newVersion: string; activated: boolean; message: string }>(
+    `/api/v1/admin/prompts/${skill}/${filename}`,
+    { content, activateImmediately },
+    true
+  );
+  return response;
+}
+
+export async function activatePromptVersion(
+  skill: string,
+  filename: string,
+  version: string
+): Promise<{ activeVersion: string; message: string }> {
+  const response = await apiClient.put<{ activeVersion: string; message: string }>(
+    `/api/v1/admin/prompts/${skill}/${filename}/activate/${version}`,
+    {},
+    true
+  );
+  return response;
+}

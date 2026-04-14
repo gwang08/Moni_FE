@@ -2,13 +2,15 @@
 
 import { useMemo, useState } from 'react';
 import { Clock, Wifi, Bell, Menu } from 'lucide-react';
-import { ReadingExamQuestionsPanel } from '@/components/reading/reading-exam-questions-panel';
-import { ReadingExamQuestionNav } from '@/components/reading/reading-exam-question-nav';
 import { ReadingPassage } from '@/components/reading/reading-passage';
 import { ReadingPassageWithMatching } from '@/components/reading/reading-passage-with-matching';
 import { ReadingToolbar } from '@/components/reading/reading-toolbar';
+import { ReadingExamQuestionNav } from '@/components/reading/reading-exam-question-nav';
+import { ReadingExamQuestionsPanel } from '@/components/reading/reading-exam-questions-panel';
 import { ResizableSplitPane } from '@/components/reading/resizable-split-pane';
 import type { StimulusDetail } from '@/types/test.types';
+
+const GAP_TYPES = ['GAP_FILLING', 'DIAGRAM_LABEL'];
 
 interface Props {
   stimuli: StimulusDetail[];
@@ -57,7 +59,7 @@ function ReadingPracticeHeader({
 }
 
 /** IELTS-style part info banner */
-function ReadingPartInfo({ section, questionCount }: { section: number; questionCount: number }) {
+function ReadingPartInfo({ section, questionCount, questionStart = 1 }: { section: number; questionCount: number; questionStart?: number }) {
   return (
     <div className="shrink-0 border-b border-gray-200 bg-[#f1f2ea] px-4 py-2">
       <div className="flex items-center gap-3">
@@ -65,7 +67,7 @@ function ReadingPartInfo({ section, questionCount }: { section: number; question
           Part {section}
         </div>
         <p className="text-sm text-gray-900">
-          Read the text and answer questions 1-{questionCount}.
+          Read the text and answer questions {questionStart}-{questionCount}.
         </p>
       </div>
     </div>
@@ -95,11 +97,27 @@ export function ReadingPracticeView({
   const currentQuestionId = activeQuestionId ?? currentQuestionIds[0] ?? null;
   const currentQuestionIndex = currentQuestionIds.indexOf(currentQuestionId ?? -1);
 
+  // Calculate global question offset for current stimulus
+  const globalQuestionOffset = useMemo(() => {
+    let offset = 1;
+    for (let i = 0; i < activeStimulusIdx; i++) {
+      offset += stimuli[i].questionGroups.reduce((sum, g) => sum + g.questions.length, 0);
+    }
+    return offset;
+  }, [stimuli, activeStimulusIdx]);
+
   // Calculate total questions for current stimulus
   const totalQuestions = useMemo(() => {
     if (!currentStimulus) return 0;
     return currentStimulus.questionGroups.reduce((sum, g) => sum + g.questions.length, 0);
   }, [currentStimulus]);
+
+  // Calculate global question range for header
+  const globalQuestionRange = useMemo(() => {
+    if (!currentStimulus) return { start: 1, end: 0 };
+    const end = globalQuestionOffset + totalQuestions - 1;
+    return { start: globalQuestionOffset, end };
+  }, [currentStimulus, globalQuestionOffset, totalQuestions]);
 
   const scrollToQuestion = (questionId: number) => {
     const el = document.getElementById(`question-${questionId}`);
@@ -183,7 +201,11 @@ export function ReadingPracticeView({
       <ReadingToolbar />
 
       {/* Part info */}
-      <ReadingPartInfo section={currentStimulus.section ?? activeStimulusIdx + 1} questionCount={totalQuestions} />
+      <ReadingPartInfo
+        section={currentStimulus.section ?? activeStimulusIdx + 1}
+        questionCount={globalQuestionRange.end}
+        questionStart={globalQuestionRange.start}
+      />
 
       {/* Main content */}
       <div className="flex-1 min-h-0 flex flex-col bg-[#f5f6f8]">
@@ -221,6 +243,7 @@ export function ReadingPracticeView({
                 onTextAnswer={onTextAnswer}
                 selectedPillId={selectedPillId}
                 onPillSelect={onPillSelect}
+                globalQuestionOffset={globalQuestionOffset}
               />
             </>
           }
@@ -231,7 +254,7 @@ export function ReadingPracticeView({
       {/* Navigation */}
       {currentStimulus.questionGroups.length > 0 && (
         <ReadingExamQuestionNav
-          stimuli={[currentStimulus]}
+          stimuli={stimuli}
           questionGroups={currentStimulus.questionGroups}
           answeredQuestions={answeredQuestionIds}
           submitted={submitted}
@@ -242,7 +265,9 @@ export function ReadingPracticeView({
           canGoNext={canGoNext}
           partLabel={`Part ${currentStimulus.section ?? activeStimulusIdx + 1}`}
           activeQuestionId={currentQuestionId}
+          activePartIndex={activeStimulusIdx}
           onNavigate={setActiveQuestionId}
+          onPartChange={setActiveStimulusIdx}
         />
       )}
     </div>

@@ -26,7 +26,6 @@ interface Props {
   submitted: boolean;
   isPlaying: boolean;
   elapsedTime?: string;
-  audioUrl?: string;
 }
 
 export function ListeningPracticeView({
@@ -39,21 +38,39 @@ export function ListeningPracticeView({
   submitted,
   isPlaying,
   elapsedTime,
-  audioUrl,
 }: Props) {
   const [activeStimulusIdx, setActiveStimulusIdx] = useState(0);
   const [activeQuestionId, setActiveQuestionId] = useState<number | null>(null);
 
-  // In practice mode, show ALL questions from ALL stimuli
-  const allQuestionIds = useMemo(
-    () => stimuli.flatMap((s) => s.questionGroups.flatMap((g) => g.questions.map((q) => q.id))),
-    [stimuli]
+  const currentStimulus = stimuli[activeStimulusIdx];
+  const currentQuestionIds = useMemo(
+    () => currentStimulus?.questionGroups.flatMap((group) => group.questions.map((question) => question.id)) ?? [],
+    [currentStimulus]
   );
-  const currentQuestionId = activeQuestionId ?? allQuestionIds[0] ?? null;
-  const currentQuestionIndex = allQuestionIds.indexOf(currentQuestionId ?? -1);
+  const currentQuestionId = activeQuestionId ?? currentQuestionIds[0] ?? null;
+  const currentQuestionIndex = currentQuestionIds.indexOf(currentQuestionId ?? -1);
 
-  // Calculate total questions across all stimuli
-  const totalQuestions = allQuestionIds.length;
+  // Calculate global question offset for current stimulus
+  const globalQuestionOffset = useMemo(() => {
+    let offset = 1;
+    for (let i = 0; i < activeStimulusIdx; i++) {
+      offset += stimuli[i].questionGroups.reduce((sum, g) => sum + g.questions.length, 0);
+    }
+    return offset;
+  }, [stimuli, activeStimulusIdx]);
+
+  // Calculate total questions for current stimulus
+  const totalQuestions = useMemo(() => {
+    if (!currentStimulus) return 0;
+    return currentStimulus.questionGroups.reduce((sum, g) => sum + g.questions.length, 0);
+  }, [currentStimulus]);
+
+  // Calculate global question range for header
+  const globalQuestionRange = useMemo(() => {
+    if (!currentStimulus) return { start: 1, end: 0 };
+    const end = globalQuestionOffset + totalQuestions - 1;
+    return { start: globalQuestionOffset, end };
+  }, [currentStimulus, globalQuestionOffset, totalQuestions]);
 
   const scrollToQuestion = (questionId: number) => {
     const el = document.getElementById(`question-${questionId}`);
@@ -67,38 +84,77 @@ export function ListeningPracticeView({
     scrollToQuestion(questionId);
   };
 
-  // Prev/Next move by question across all stimuli
+  // Prev/Next move by question within the current stimulus, then across stimuli at boundaries.
   const handlePrev = () => {
-    if (currentQuestionIndex > 0) {
-      moveToQuestion(allQuestionIds[currentQuestionIndex - 1]);
+    if (!currentQuestionIds.length) return;
+    const currentIndex = currentQuestionIds.indexOf(currentQuestionId ?? currentQuestionIds[0]);
+
+    if (currentIndex > 0) {
+      moveToQuestion(currentQuestionIds[currentIndex - 1]);
+      return;
+    }
+
+    if (activeStimulusIdx > 0) {
+      const nextIdx = activeStimulusIdx - 1;
+      const nextQuestionId = stimuli[nextIdx]?.questionGroups.flatMap((group) => group.questions.map((question) => question.id))[0] ?? null;
+      setActiveStimulusIdx(nextIdx);
+      setActiveQuestionId(nextQuestionId);
+      if (nextQuestionId != null) {
+        window.requestAnimationFrame(() => scrollToQuestion(nextQuestionId));
+      }
     }
   };
 
   const handleNext = () => {
-    if (currentQuestionIndex < allQuestionIds.length - 1) {
-      moveToQuestion(allQuestionIds[currentQuestionIndex + 1]);
+    if (!currentQuestionIds.length) return;
+    const currentIndex = currentQuestionIds.indexOf(currentQuestionId ?? currentQuestionIds[0]);
+
+    if (currentIndex >= 0 && currentIndex < currentQuestionIds.length - 1) {
+      moveToQuestion(currentQuestionIds[currentIndex + 1]);
+      return;
+    }
+
+    if (activeStimulusIdx < stimuli.length - 1) {
+      const nextIdx = activeStimulusIdx + 1;
+      const nextQuestionId = stimuli[nextIdx]?.questionGroups.flatMap((group) => group.questions.map((question) => question.id))[0] ?? null;
+      setActiveStimulusIdx(nextIdx);
+      setActiveQuestionId(nextQuestionId);
+      if (nextQuestionId != null) {
+        window.requestAnimationFrame(() => scrollToQuestion(nextQuestionId));
+      }
     }
   };
 
-  const canGoPrev = currentQuestionIndex > 0;
-  const canGoNext = currentQuestionIndex < allQuestionIds.length - 1;
+  const canGoPrev = currentQuestionIndex > 0 || activeStimulusIdx > 0;
+  const canGoNext = currentQuestionIndex >= 0
+    ? currentQuestionIndex < currentQuestionIds.length - 1 || activeStimulusIdx < stimuli.length - 1
+    : activeStimulusIdx < stimuli.length - 1;
 
   const answeredQuestionIds = useMemo(() => {
     const ids = new Set<number>();
-    stimuli.forEach((stimulus) => {
-      stimulus.questionGroups.forEach((group) => {
-        group.questions.forEach((question) => {
-          if (answers[question.id] != null && answers[question.id] !== 0) ids.add(question.id);
-          if ((textAnswers[question.id] ?? '').trim() !== '') ids.add(question.id);
-        });
+    currentStimulus?.questionGroups.forEach((group) => {
+      group.questions.forEach((question) => {
+        if (answers[question.id] != null && answers[question.id] !== 0) ids.add(question.id);
+        if ((textAnswers[question.id] ?? '').trim() !== '') ids.add(question.id);
       });
     });
     return ids;
-  }, [stimuli, answers, textAnswers]);
+  }, [currentStimulus, answers, textAnswers]);
 
-  // Render question group
-  const renderQuestionGroup = (group: QuestionGroupDetail, groupIndex: number) => {
+  // Render question group with global question positions
+  const renderQuestionGroup = (group: QuestionGroupDetail) => {
     const type = group.questionTypeCode as QuestionTypeCode;
+
+    // Build position map with global offsets
+    const questionPositionById: Record<number, number> = {};
+    let pos = globalQuestionOffset;
+    for (const g of currentStimulus.questionGroups) {
+      if (g.id === group.id) break;
+      pos += g.questions.length;
+    }
+    group.questions.forEach((q, idx) => {
+      questionPositionById[q.id] = pos + idx;
+    });
 
     if (GAP_TYPES.includes(type)) {
       return (
@@ -111,6 +167,7 @@ export function ListeningPracticeView({
           textAnswers={textAnswers}
           onTextAnswer={onTextAnswer}
           examMode={true}
+          questionPositionById={questionPositionById}
         />
       );
     }
@@ -123,10 +180,7 @@ export function ListeningPracticeView({
           answers={answers}
           submitted={submitted}
           onAnswer={onAnswer}
-          questionPositionById={group.questions.reduce((acc, q) => {
-            acc[q.id] = q.position;
-            return acc;
-          }, {} as Record<number, number>)}
+          questionPositionById={questionPositionById}
         />
       );
     }
@@ -139,10 +193,7 @@ export function ListeningPracticeView({
           answers={answers}
           submitted={submitted}
           onAnswer={onAnswer}
-          questionPositionById={group.questions.reduce((acc, q) => {
-            acc[q.id] = q.position;
-            return acc;
-          }, {} as Record<number, number>)}
+          questionPositionById={questionPositionById}
         />
       );
     }
@@ -153,7 +204,7 @@ export function ListeningPracticeView({
           <ListeningQuestionMcq
             key={question.id}
             questionId={question.id}
-            position={question.position}
+            position={questionPositionById[question.id]}
             content={question.content}
             options={question.options}
             selectedId={answers[question.id]}
@@ -166,7 +217,7 @@ export function ListeningPracticeView({
     );
   };
 
-  if (stimuli.length === 0) {
+  if (!currentStimulus) {
     return <div className="p-8 text-center text-gray-500">No questions available</div>;
   }
 
@@ -175,48 +226,54 @@ export function ListeningPracticeView({
       {/* Header */}
       <ListeningExamHeader isPlaying={isPlaying} elapsedTime={elapsedTime} />
 
-      {/* Audio player */}
-      {audioUrl && <ListeningPracticeAudioPlayer audioUrl={audioUrl} />}
+      {/* Audio player for current part */}
+      {currentStimulus.mediaUrl && <ListeningPracticeAudioPlayer audioUrl={currentStimulus.mediaUrl} />}
 
-      {/* Main content - scrollable questions */}
+      {/* Main content - scrollable */}
       <div className="flex-1 overflow-y-auto">
         <div className="px-6 py-6 space-y-6">
-          {/* Render all stimuli */}
-          {stimuli.map((stimulus, sIdx) => (
-            <div key={stimulus.id} className="space-y-4">
-              {/* Part info - scrolls with content */}
-              <ListeningPartInfo
-                section={stimulus.section ?? sIdx + 1}
-                questionRange={`1-${stimulus.questionGroups.reduce((sum, g) => sum + g.questions.length, 0)}`}
-                instruction={stimulus.questionGroups[0]?.instruction}
-              />
+          {/* Part info */}
+          <ListeningPartInfo
+            section={currentStimulus.section ?? activeStimulusIdx + 1}
+            questionRange={`${globalQuestionRange.start}-${globalQuestionRange.end}`}
+            instruction={currentStimulus.questionGroups[0]?.instruction}
+          />
 
-              {stimulus.questionGroups.map((group, idx) => (
-                <div key={group.id}>
-                  {/* Group header */}
-                  <div className="mb-3">
-                    <h3 className="text-base font-semibold text-gray-900">
-                      Questions {group.questions[0]?.position}-{group.questions[group.questions.length - 1]?.position}
-                    </h3>
-                    {!GAP_TYPES.includes(group.questionTypeCode as QuestionTypeCode) && group.instruction && (
-                      <p className="text-sm text-gray-600 mt-1">{group.instruction}</p>
-                    )}
-                  </div>
+          {/* Render question groups for current stimulus only */}
+          {currentStimulus.questionGroups.map((group) => {
+            // Calculate the offset for this specific group
+            let groupOffset = globalQuestionOffset;
+            for (const prevGroup of currentStimulus.questionGroups) {
+              if (prevGroup.id === group.id) break;
+              groupOffset += prevGroup.questions.length;
+            }
+            const groupGlobalEnd = groupOffset + group.questions.length - 1;
 
-                  {/* Questions */}
-                  {renderQuestionGroup(group, idx)}
+            return (
+              <div key={group.id}>
+                {/* Group header with global question numbers */}
+                <div className="mb-3">
+                  <h3 className="text-base font-semibold text-gray-900">
+                    Questions {groupOffset}-{groupGlobalEnd}
+                  </h3>
+                  {!GAP_TYPES.includes(group.questionTypeCode as QuestionTypeCode) && group.instruction && (
+                    <p className="text-sm text-gray-600 mt-1">{group.instruction}</p>
+                  )}
                 </div>
-              ))}
-            </div>
-          ))}
+
+                {/* Questions */}
+                {renderQuestionGroup(group)}
+              </div>
+            );
+          })}
         </div>
       </div>
 
-      {/* Navigation */}
-      {allQuestionIds.length > 0 && (
+      {/* Navigation with part switching */}
+      {currentStimulus.questionGroups.length > 0 && (
         <ListeningExamQuestionNav
           stimuli={stimuli}
-          questionGroups={stimuli.flatMap((s) => s.questionGroups)}
+          questionGroups={currentStimulus.questionGroups}
           answeredQuestions={answeredQuestionIds}
           submitted={submitted}
           onPrev={handlePrev}
@@ -224,9 +281,11 @@ export function ListeningPracticeView({
           onSubmit={onSubmit}
           canGoPrev={canGoPrev}
           canGoNext={canGoNext}
-          partLabel={`Part ${stimuli[0]?.section ?? 1}`}
+          partLabel={`Part ${currentStimulus.section ?? activeStimulusIdx + 1}`}
           activeQuestionId={currentQuestionId}
+          activePartIndex={activeStimulusIdx}
           onNavigate={setActiveQuestionId}
+          onPartChange={setActiveStimulusIdx}
         />
       )}
     </div>

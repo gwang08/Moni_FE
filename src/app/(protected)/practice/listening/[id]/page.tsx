@@ -259,7 +259,6 @@ export default function ListeningExercisePage({ params }: Props) {
           submitted={submitted}
           isPlaying={isPlaying}
           elapsedTime={elapsedTime}
-          audioUrl={currentStimulus?.mediaUrl ?? undefined}
         />
       )}
 

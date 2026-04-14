@@ -63,7 +63,7 @@ export default function AdminPromptsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <AdminHeader />
+      <AdminHeader title="Quản lý AI Prompts" />
 
       <div className="max-w-6xl mx-auto px-4 py-8 space-y-8">
         {/* Header */}

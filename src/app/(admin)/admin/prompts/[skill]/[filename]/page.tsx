@@ -123,7 +123,7 @@ export default function PromptEditorPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      <AdminHeader />
+      <AdminHeader title="Quản lý AI Prompts" />
 
       <div className="flex-1 flex flex-col max-w-7xl w-full mx-auto px-4 py-6 gap-6">
         {/* Breadcrumb + header */}

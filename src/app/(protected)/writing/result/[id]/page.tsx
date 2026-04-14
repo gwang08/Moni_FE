@@ -96,10 +96,24 @@ function normalise(raw: Record<string, unknown>): NormalisedData {
 
   // Feedback / improvements
   const fbObj: any = isFormatB ? (raw?.feedbackResponse || raw) : (raw?.feedback || raw);
-  const improvements: NormalisedData['improvements'] = Array.isArray(fbObj?.improvements)
-    ? fbObj.improvements
-    : [];
+  
+  let improvements: any[] = [];
+  if (Array.isArray(fbObj?.improvements)) {
+    improvements = fbObj.improvements;
+  } else if (typeof fbObj?.improvements === 'string' && fbObj.improvements.trim().startsWith('[')) {
+    try {
+      const parsed = JSON.parse(fbObj.improvements);
+      if (Array.isArray(parsed)) improvements = parsed;
+    } catch { /* ignore */ }
+  }
+
   const overall_strategy = typeof fbObj?.overall_strategy === 'string' ? fbObj.overall_strategy : undefined;
+  
+  // feedbackImprovements should only be displayed if it is a descriptive text, not raw JSON
+  let feedbackImprovements = typeof fbObj?.improvements === 'string' ? fbObj.improvements : undefined;
+  if (feedbackImprovements?.trim().startsWith('[') || feedbackImprovements?.trim().startsWith('{')) {
+    feedbackImprovements = undefined;
+  }
 
   return {
     overall,
@@ -108,7 +122,7 @@ function normalise(raw: Record<string, unknown>): NormalisedData {
     overall_strategy,
     summary: typeof fbObj?.summary === 'string' ? fbObj.summary : undefined,
     strengths: typeof fbObj?.strengths === 'string' ? fbObj.strengths : undefined,
-    feedbackImprovements: typeof fbObj?.improvements === 'string' ? fbObj.improvements : undefined,
+    feedbackImprovements,
   };
 }
 /* eslint-enable @typescript-eslint/no-explicit-any */
@@ -493,8 +507,10 @@ export default function WritingResultPage({ params }: Props) {
                     <p className="text-[14px] text-gray-800 leading-relaxed font-medium whitespace-pre-line">{normData.strengths}</p>
                   </div>
                 )}
-                {/* Only render feedbackImprovements if it's a valid string. If it's the list, the HighlightedEssay section handles it better, or we can list reasons here. */}
-                {typeof normData.feedbackImprovements === 'string' && normData.feedbackImprovements.length > 0 && (
+                {/* Only render feedbackImprovements if it's a valid string and doesn't look like code. */}
+                {typeof normData.feedbackImprovements === 'string' && 
+                 normData.feedbackImprovements.length > 0 && 
+                 !normData.feedbackImprovements.trim().startsWith('[') && (
                   <div className="rounded-2xl bg-amber-50/60 border border-amber-100/50 p-5">
                     <p className="text-[11px] font-black text-amber-600 uppercase tracking-widest mb-2 flex items-center gap-1.5"><AlertTriangle className="h-4 w-4" /> Cần cải thiện</p>
                     <p className="text-[14px] text-gray-800 leading-relaxed font-medium whitespace-pre-line">{normData.feedbackImprovements}</p>

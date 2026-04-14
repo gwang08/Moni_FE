@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
@@ -17,10 +17,10 @@ import TableCell from '@tiptap/extension-table-cell';
 import TableHeader from '@tiptap/extension-table-header';
 import { RichTextToolbar } from '@/components/admin/rich-text-toolbar';
 import { Button } from '@/components/ui/button';
-import { Loader2, Save } from 'lucide-react';
+import { Loader2, Save, ScanSearch, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
-import { updateStimulus, updateQuestion, updateQuestionGroupContent, updateQuestionGroupTypeCode } from '@/lib/admin-api';
+import { updateStimulus, updateQuestion, updateQuestionGroupContent, updateQuestionGroupTypeCode, analyzeChart as analyzeChartApi, getVisonAnalysis, updateVisonAnalysis } from '@/lib/admin-api';
 import {
   WRITING_TASK1_TYPES,
   WRITING_TASK1_TYPE_CODES,
@@ -99,6 +99,56 @@ export function TestEditWritingContent({ test }: Props) {
   const isTask2 = section === 2;
   const typeOptions = isTask1 ? WRITING_TASK1_TYPES : isTask2 ? WRITING_TASK2_TYPES : [];
   const typeCodes = isTask1 ? WRITING_TASK1_TYPE_CODES : isTask2 ? WRITING_TASK2_TYPE_CODES : {};
+
+  // Chart analysis state (Task 1 only)
+  const [chartDataJson, setChartDataJson] = useState('');
+  const [chartAnalyzing, setChartAnalyzing] = useState(false);
+  const [chartSaving, setChartSaving] = useState(false);
+  const [chartJsonError, setChartJsonError] = useState<string | null>(null);
+  const chartFileRef = useRef<HTMLInputElement>(null);
+
+  // Load existing chart analysis
+  useEffect(() => {
+    if (!isTask1 || !stimulus) return;
+    getVisonAnalysis(stimulus.id).then((data) => {
+      if (data && Object.keys(data).length > 0) {
+        setChartDataJson(JSON.stringify(data, null, 2));
+      }
+    }).catch(() => {});
+  }, [isTask1, stimulus]);
+
+  const handleAnalyzeChart = async () => {
+    const file = chartFileRef.current?.files?.[0];
+    if (!file) {
+      toast.error('Vui lòng chọn ảnh biểu đồ trước');
+      return;
+    }
+    setChartAnalyzing(true);
+    try {
+      const result = await analyzeChartApi(stimulus.id, file);
+      setChartDataJson(JSON.stringify(result, null, 2));
+      setChartJsonError(null);
+      toast.success('Phân tích biểu đồ thành công!');
+    } catch {
+      toast.error('Phân tích biểu đồ thất bại');
+    } finally {
+      setChartAnalyzing(false);
+    }
+  };
+
+  const handleSaveChartData = async () => {
+    try {
+      const parsed = JSON.parse(chartDataJson);
+      setChartJsonError(null);
+      setChartSaving(true);
+      await updateVisonAnalysis(stimulus.id, parsed);
+      toast.success('Đã lưu dữ liệu biểu đồ');
+    } catch {
+      setChartJsonError('JSON không hợp lệ. Vui lòng kiểm tra lại cú pháp.');
+    } finally {
+      setChartSaving(false);
+    }
+  };
 
   // Reverse lookup: code → label for the select value
   const codeToLabel: Record<string, string> = Object.fromEntries(
@@ -180,6 +230,63 @@ export function TestEditWritingContent({ test }: Props) {
           <EditorContent editor={editor} />
         </div>
       </div>
+
+      {/* Chart Analysis (Task 1 only) */}
+      {isTask1 && (
+        <div className="border border-amber-200 bg-amber-50/50 rounded-lg p-4 space-y-3">
+          <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
+            <ScanSearch className="h-4 w-4 text-amber-600" />
+            Phân tích biểu đồ (Task 1)
+            <span className="text-xs text-gray-400 font-normal">AI sẽ trích xuất dữ liệu số từ ảnh biểu đồ</span>
+          </label>
+
+          <div className="flex items-center gap-3">
+            <input
+              ref={chartFileRef}
+              type="file"
+              accept="image/*"
+              className="text-sm file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-medium file:bg-amber-100 file:text-amber-700 hover:file:bg-amber-200 cursor-pointer"
+            />
+            <Button
+              onClick={handleAnalyzeChart}
+              disabled={chartAnalyzing}
+              size="sm"
+              variant="outline"
+              className="border-amber-300 text-amber-700 hover:bg-amber-100"
+            >
+              {chartAnalyzing ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <ScanSearch className="h-3.5 w-3.5 mr-1" />}
+              Phân tích (AI)
+            </Button>
+          </div>
+
+          {chartDataJson && (
+            <div className="space-y-2">
+              <label className="text-xs font-medium text-gray-500 block">Kết quả JSON (có thể sửa tay)</label>
+              <textarea
+                value={chartDataJson}
+                onChange={(e) => {
+                  setChartDataJson(e.target.value);
+                  setChartJsonError(null);
+                }}
+                rows={10}
+                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-amber-500 resize-y"
+              />
+              {chartJsonError && (
+                <div className="flex items-center gap-1.5 text-red-600 text-xs">
+                  <AlertTriangle className="h-3.5 w-3.5" />
+                  {chartJsonError}
+                </div>
+              )}
+              <div className="flex justify-end">
+                <Button onClick={handleSaveChartData} disabled={chartSaving} size="sm" variant="outline">
+                  {chartSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <Save className="h-3.5 w-3.5 mr-1" />}
+                  Lưu dữ liệu biểu đồ
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Bài mẫu - 4 fields */}
       <div>

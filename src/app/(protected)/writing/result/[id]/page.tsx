@@ -352,35 +352,17 @@ export default function WritingResultPage({ params }: Props) {
   useEffect(() => { fetchSubmission(); }, [fetchSubmission]);
   useEffect(() => { if (isGrading) setShowGrading(true); }, [isGrading]);
 
+  // Grade handler — chart data is pre-computed by Admin, no need to send chartImage
   const handleAiScore = async () => {
     if (!submission) return;
     const stimulus = testDetail?.stimuli[0];
     const rawPrompt = stimulus?.content ?? '';
     const taskType = submission.taskType === 'TASK_1' ? 1 : 2;
-    const imgUrl = stimulus?.mediaUrl || rawPrompt.match(/<img[^>]+src="([^"]+)"/)?.[1];
 
-    let chartFile: File | undefined;
-    if (taskType === 1 && imgUrl) {
-      try {
-        const res = await fetch(imgUrl, { mode: 'cors' });
-        if (res.ok) {
-          const blob = await res.blob();
-          if (blob.size > 0) chartFile = new File([blob], 'chart.png', { type: blob.type || 'image/png' });
-        }
-      } catch {
-        try {
-          const img = new Image(); img.crossOrigin = 'anonymous';
-          await new Promise<void>((resolve, reject) => { img.onload = () => resolve(); img.onerror = reject; img.src = imgUrl!; });
-          const canvas = document.createElement('canvas');
-          canvas.width = img.naturalWidth; canvas.height = img.naturalHeight;
-          canvas.getContext('2d')?.drawImage(img, 0, 0);
-          const blob = await new Promise<Blob | null>((r) => canvas.toBlob(r, 'image/png'));
-          if (blob && blob.size > 0) chartFile = new File([blob], 'chart.png', { type: 'image/png' });
-        } catch { /* give up */ }
-      }
-    }
-
-    await submitForGrading({ taskType, question: rawPrompt, answer: submission.essayContent, chartImage: chartFile, stimulusId: submission.stimulusId ?? undefined, submissionId: submission.submissionId });
+    await submitForGrading({
+      taskType, question: rawPrompt, answer: submission.essayContent,
+      stimulusId: submission.stimulusId ?? undefined, submissionId: submission.submissionId,
+    });
     refreshProfile();
   };
 

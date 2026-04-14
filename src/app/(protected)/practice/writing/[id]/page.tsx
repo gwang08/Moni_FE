@@ -164,35 +164,17 @@ export default function WritingExercisePage({ params }: Props) {
     handleSubmitRef.current = handleSubmit;
   }, [handleSubmit]);
 
-  // Grade handler
+  // Grade handler — chart data is pre-computed by Admin, no need to send chartImage
   const handleGrade = useCallback(() => {
     const stimulus = testDetail?.stimuli[0];
     if (!testDetail || !stimulus) return;
     const taskType: WritingTaskType = testDetail.section === 1 ? 1 : 2;
     const prompt = stimulus.content || testDetail.description || FALLBACK_PROMPT;
     const answer = stripHtml(content);
-    const scoringChartUrl = stimulus.mediaUrl || stimulus.content?.match(/<img[^>]+src="([^"]+)"/)?.[1];
-    let chartFile: File | undefined;
-    if (taskType === 1 && scoringChartUrl) {
-      fetch(scoringChartUrl)
-        .then((res) => res.blob())
-        .then((blob) => {
-          chartFile = new File([blob], 'chart.png', { type: blob.type || 'image/png' });
-          console.log('[Writing Score] Chart image fetched:', chartFile.size, 'bytes');
-        })
-        .catch((err) => { console.error('[Writing Score] Chart fetch failed:', err, 'URL:', scoringChartUrl); })
-        .finally(() => {
-          submitForGrading({
-            taskType, question: prompt, answer, chartImage: chartFile,
-            stimulusId: stimulus.id, submissionId: submissionId ?? undefined,
-          }).then(() => { refreshProfile(); if (submissionId) router.push(`/writing/result/${submissionId}`); });
-        });
-    } else {
-      submitForGrading({
-        taskType, question: prompt, answer,
-        stimulusId: stimulus.id, submissionId: submissionId ?? undefined,
-      }).then(() => { refreshProfile(); if (submissionId) router.push(`/writing/result/${submissionId}`); });
-    }
+    submitForGrading({
+      taskType, question: prompt, answer,
+      stimulusId: stimulus.id, submissionId: submissionId ?? undefined,
+    }).then(() => { refreshProfile(); if (submissionId) router.push(`/writing/result/${submissionId}`); });
   }, [testDetail, content, submissionId, submitForGrading, refreshProfile, router]);
 
   // ===== EARLY RETURNS AFTER ALL HOOKS =====

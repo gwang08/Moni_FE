@@ -68,12 +68,11 @@ export async function submitWriting(params: {
   return response.result;
 }
 
-// Writing score - multipart form data
+// Writing score - multipart form data (no longer sends chartImage; chart data is pre-computed by Admin)
 export async function scoreWriting(params: {
   taskType: number;
   question: string;
   answer: string;
-  chartImage?: File;
   stimulusId?: number;
   submissionId?: number;
 }): Promise<Record<string, unknown>> {
@@ -81,9 +80,6 @@ export async function scoreWriting(params: {
   formData.append('taskType', String(params.taskType));
   formData.append('question', params.question);
   formData.append('answer', params.answer);
-  if (params.chartImage) {
-    formData.append('chartImage', params.chartImage);
-  }
   if (params.stimulusId) {
     formData.append('stimulusId', String(params.stimulusId));
   }

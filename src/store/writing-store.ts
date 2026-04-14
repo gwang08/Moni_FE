@@ -19,7 +19,6 @@ interface WritingStore {
     taskType: number;
     question: string;
     answer: string;
-    chartImage?: File;
     stimulusId?: number;
     submissionId?: number;
   }) => Promise<void>;

@@ -103,12 +103,35 @@ export async function getStimuli(params?: {
   return response.result;
 }
 
-export async function updateStimulus(id: number, data: { content?: string; mediaUrl?: string; transcript?: unknown }): Promise<void> {
+export async function updateStimulus(id: number, data: { content?: string; mediaUrl?: string; transcript?: unknown; visonAnalysisResult?: Record<string, unknown> }): Promise<void> {
   await apiClient.put(`/api/v1/admin/stimuli/${id}`, data, true);
 }
 
 export async function deleteStimulus(id: number): Promise<void> {
   await apiClient.delete(`/api/v1/admin/stimuli/${id}`, true);
+}
+
+// Chart Analysis (Writing Task 1)
+export async function analyzeChart(stimulusId: number, chartImage: File): Promise<Record<string, unknown>> {
+  const formData = new FormData();
+  formData.append('chartImage', chartImage);
+  const response = await apiClient.request<ApiResponse<Record<string, unknown>>>(`/api/v1/admin/stimuli/${stimulusId}/analyze-chart`, {
+    method: 'POST',
+    requiresAuth: true,
+    body: formData,
+  });
+  // apiClient.request returns the raw response; extract result
+  const res = response as unknown as ApiResponse<Record<string, unknown>>;
+  return res.result ?? {};
+}
+
+export async function getVisonAnalysis(stimulusId: number): Promise<Record<string, unknown> | null> {
+  const response = await apiClient.get<ApiResponse<Record<string, unknown>>>(`/api/v1/admin/stimuli/${stimulusId}/vison-analysis`, true);
+  return response.result ?? null;
+}
+
+export async function updateVisonAnalysis(stimulusId: number, data: Record<string, unknown>): Promise<void> {
+  await apiClient.put(`/api/v1/admin/stimuli/${stimulusId}/vison-analysis`, data, true);
 }
 
 export async function transcribeByUrl(audioUrl: string): Promise<{ id: string; startTime: number; endTime: number; text: string; speaker?: string }[]> {

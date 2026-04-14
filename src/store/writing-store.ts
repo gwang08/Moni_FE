@@ -101,7 +101,10 @@ export const useWritingStore = create<WritingStore>((set) => ({
   isGrading: false,
   gradingError: null,
 
-  setContent: (content) => set({ content }),
+  setContent: (content) => {
+    const wc = content.trim().split(/\s+/).filter((w) => w.length > 0).length;
+    set({ content, wordCount: wc });
+  },
   setWordCount: (count) => set({ wordCount: count }),
 
   submitForGrading: async (params) => {

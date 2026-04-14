@@ -31,7 +31,14 @@ interface Props {
 }
 
 function stripHtml(html: string): string {
-  return html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+  return html
+    .replace(/<br\s*\/?>/gi, '\n')           // <br> → newline
+    .replace(/<\/p>/gi, '\n\n')               // </p> → double newline (paragraph break)
+    .replace(/<\/div>/gi, '\n')               // </div> → newline
+    .replace(/<[^>]*>/g, '')                  // strip remaining tags
+    .replace(/[ \t]+/g, ' ')                  // collapse only horizontal spaces (not \n)
+    .replace(/\n{3,}/g, '\n\n')              // limit to max 2 consecutive newlines
+    .trim();
 }
 
 function draftKey(testId: string) {

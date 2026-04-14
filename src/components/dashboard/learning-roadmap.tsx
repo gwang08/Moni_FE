@@ -136,7 +136,7 @@ function SlotCard({ slot, onClick, locked }: { slot: DailySlotResponse; onClick:
   );
 }
 
-export function LearningRoadmap() {
+export function LearningRoadmap({ weekNumber }: { weekNumber?: number }) {
   const router = useRouter();
   const { step: tourStep, nextStep, stopTour } = useTourStore();
   const [plan, setPlan] = useState<WeeklyPlanResponse | null>(null);
@@ -156,17 +156,15 @@ export function LearningRoadmap() {
 
   const fetchPlan = async () => {
     try {
-      const data = await getWeeklyPlan();
+      const data = await getWeeklyPlan(weekNumber);
       setPlan(data);
     } catch { /* ignore */ }
     finally { setLoading(false); }
   };
 
   useEffect(() => {
-    if (fetchedRef.current) return;
-    fetchedRef.current = true;
     fetchPlan();
-  }, []);
+  }, [weekNumber]);
 
   useEffect(() => {
     const handler = () => fetchPlan();

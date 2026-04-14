@@ -19,7 +19,9 @@ import { RoadmapInsights } from '@/components/dashboard/roadmap-insights';
 import { useUserStore } from '@/store/user-store';
 import { useTourStore } from '@/store/tour-store';
 import { getPlacementResult } from '@/lib/placement-api';
+import { getWeeklyPlan, getWeeklyPlanHistory } from '@/lib/roadmap-api';
 import { apiClient } from '@/lib/api-client';
+import { ChevronLeft, ChevronRight, CalendarDays } from 'lucide-react';
 import type { ApiResponse } from '@/types/auth.types';
 
 function DashboardSkeleton() {
@@ -50,6 +52,45 @@ export default function DashboardPage() {
   const { step: tourStep, setStep: setTourStep } = useTourStore();
   const [showPlacementDialog, setShowPlacementDialog] = useState(false);
   const fetchedRef = useRef(false);
+
+  // Weekly Navigation State
+  const [availableWeeks, setAvailableWeeks] = useState<{ week: number, label: string, isCurrent: boolean }[]>([]);
+  const [selectedWeek, setSelectedWeek] = useState<number | undefined>(undefined);
+
+  useEffect(() => {
+    async function loadWeeks() {
+      try {
+        const [currentPlan, history] = await Promise.all([
+          getWeeklyPlan(),
+          getWeeklyPlanHistory()
+        ]);
+        
+        const weeks = [];
+        if (currentPlan) {
+          weeks.push({ week: currentPlan.weekNumber, label: `Tuần ${currentPlan.weekNumber} (Hiện tại)`, isCurrent: true });
+        }
+        
+        for (const h of history) {
+          // avoid duplicate if current is also in history (shouldn't happen but safe to guard)
+          if (!weeks.some(w => w.week === h.weekNumber)) {
+            weeks.push({ week: h.weekNumber, label: `Tuần ${h.weekNumber}`, isCurrent: false });
+          }
+        }
+        
+        // Sort descending
+        weeks.sort((a, b) => b.week - a.week);
+        setAvailableWeeks(weeks);
+        
+        // Set selected to current initially
+        if (weeks.length > 0) {
+          setSelectedWeek(weeks[0].week);
+        }
+      } catch {
+        // ignore
+      }
+    }
+    loadWeeks();
+  }, []);
 
   // Redirect ADMIN and EXPERT away from learner dashboard
   useEffect(() => {
@@ -169,11 +210,60 @@ export default function DashboardPage() {
             {/* Vocab Stats - Full Width */}
             <VocabReviewStats />
 
+            {/* Weekly Navigation UI */}
+            {availableWeeks.length > 0 && (
+              <div className="flex items-center justify-between bg-white px-5 py-3 rounded-xl border border-gray-100 shadow-sm">
+                <div className="flex items-center gap-2">
+                  <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
+                    <CalendarDays className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <div className="text-sm font-semibold text-gray-800">Chọn tuần để xem lịch sử</div>
+                    <div className="text-xs text-gray-500">Xem lại phân tích và lộ trình các tuần trước</div>
+                  </div>
+                </div>
+                
+                <div className="flex items-center gap-3">
+                  <button 
+                    onClick={() => {
+                      const curIdx = availableWeeks.findIndex(w => w.week === selectedWeek);
+                      if (curIdx < availableWeeks.length - 1) setSelectedWeek(availableWeeks[curIdx + 1].week);
+                    }}
+                    disabled={availableWeeks.findIndex(w => w.week === selectedWeek) >= availableWeeks.length - 1}
+                    className="p-2 text-gray-400 hover:text-gray-700 hover:bg-gray-50 rounded-full disabled:opacity-30 transition-all"
+                  >
+                    <ChevronLeft className="w-5 h-5" />
+                  </button>
+                  
+                  <select 
+                    value={selectedWeek} 
+                    onChange={(e) => setSelectedWeek(Number(e.target.value))}
+                    className="bg-gray-50 border border-gray-200 text-gray-800 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2 outline-none font-medium"
+                  >
+                    {availableWeeks.map(w => (
+                      <option key={w.week} value={w.week}>{w.label}</option>
+                    ))}
+                  </select>
+                  
+                  <button 
+                    onClick={() => {
+                      const curIdx = availableWeeks.findIndex(w => w.week === selectedWeek);
+                      if (curIdx > 0) setSelectedWeek(availableWeeks[curIdx - 1].week);
+                    }}
+                    disabled={availableWeeks.findIndex(w => w.week === selectedWeek) <= 0}
+                    className="p-2 text-gray-400 hover:text-gray-700 hover:bg-gray-50 rounded-full disabled:opacity-30 transition-all"
+                  >
+                    <ChevronRight className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* Personalized Roadmap Metrics */}
-            <RoadmapInsights />
+            <RoadmapInsights weekNumber={selectedWeek} />
 
             {/* Learning Roadmap */}
-            <LearningRoadmap />
+            <LearningRoadmap weekNumber={selectedWeek} />
 
             {/* Middle Row: Calendar + Weekly Stats */}
             <div className="grid gap-6 md:grid-cols-2">

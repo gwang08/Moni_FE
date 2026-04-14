@@ -29,9 +29,13 @@ export async function updateTaskStatus(
   );
 }
 
-export async function getRoadmapInsights(): Promise<LearnerRoadmapInsights | null> {
+export async function getRoadmapInsights(weekNumber?: number): Promise<LearnerRoadmapInsights | null> {
+  const url = weekNumber 
+    ? `/api/v1/learner/goals/insights/week/${weekNumber}`
+    : '/api/v1/learner/goals/insights';
+    
   const res = await apiClient.get<ApiResponse<LearnerRoadmapInsights>>(
-    '/api/v1/learner/goals/insights',
+    url,
     true
   );
   return res.result ?? null;
@@ -43,9 +47,13 @@ export async function getRoadmapInsights(): Promise<LearnerRoadmapInsights | nul
 
 import type { WeeklyPlanResponse, WeeklyPlanSummary, MonthlyAssessmentResponse } from '@/types/roadmap.types';
 
-export async function getWeeklyPlan(): Promise<WeeklyPlanResponse | null> {
+export async function getWeeklyPlan(weekNumber?: number): Promise<WeeklyPlanResponse | null> {
+  const url = weekNumber
+    ? `/api/v1/learner/weekly-plan/week/${weekNumber}`
+    : '/api/v1/learner/weekly-plan';
+    
   const res = await apiClient.get<ApiResponse<WeeklyPlanResponse>>(
-    '/api/v1/learner/weekly-plan',
+    url,
     true
   );
   return res.result ?? null;

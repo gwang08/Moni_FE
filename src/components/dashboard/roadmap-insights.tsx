@@ -105,15 +105,14 @@ type BandRow = {
   target: number | null;
 };
 
-export function RoadmapInsights() {
+export function RoadmapInsights({ weekNumber }: { weekNumber?: number }) {
   const [loading, setLoading] = useState(true);
   const [insights, setInsights] = useState<LearnerRoadmapInsights | null>(null);
-  const fetchedRef = useRef(false);
 
   const fetchInsights = async () => {
     setLoading(true);
     try {
-      const data = await getRoadmapInsights();
+      const data = await getRoadmapInsights(weekNumber);
       setInsights(data);
     } catch {
       setInsights(null);
@@ -123,10 +122,8 @@ export function RoadmapInsights() {
   };
 
   useEffect(() => {
-    if (fetchedRef.current) return;
-    fetchedRef.current = true;
     fetchInsights();
-  }, []);
+  }, [weekNumber]);
 
   useEffect(() => {
     const handler = () => fetchInsights();

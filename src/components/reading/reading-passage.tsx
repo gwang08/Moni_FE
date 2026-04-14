@@ -1,17 +1,16 @@
 'use client';
 
+import { forwardRef, useRef, useMemo, useState, useCallback, useEffect } from 'react';
 import { useReadingStore } from '@/store/reading-store';
-import { useRef, useMemo, useState, useCallback, useEffect } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
-import { HighlightMark, NoteIconNode } from '@/components/reading/tiptap-highlight-extensions';
+import { HighlightMark, NoteIconNode, MatchingSlotNode } from '@/components/reading/tiptap-highlight-extensions';
 import { VocabPopup } from '@/components/reading/vocab-popup';
 import { ReadingWordLookupPopup } from '@/components/reading/reading-word-lookup-popup';
 import { SentenceTranslationPopup } from '@/components/reading/sentence-translation-popup';
 import { NoteInlineEditor } from '@/components/reading/note-inline-editor';
 import { HighlightContextMenu } from '@/components/reading/highlight-context-menu';
 import { useWordSelection } from '@/hooks/use-word-selection';
-import type { Highlight } from '@/types/reading.types';
 import { formatReadingPassage } from '@/lib/format-reading-passage';
 import { injectHighlights } from '@/lib/inject-highlights';
 
@@ -39,6 +38,7 @@ const PASSAGE_EXTENSIONS = [
   StarterKit.configure({ heading: false }),
   HighlightMark,
   NoteIconNode,
+  MatchingSlotNode,
 ];
 
 interface Props {
@@ -47,7 +47,10 @@ interface Props {
   examMode?: boolean;
 }
 
-export function ReadingPassage({ content, interactive = true, examMode = false }: Props) {
+export const ReadingPassage = forwardRef<HTMLDivElement, Props>(function ReadingPassage(
+  { content, interactive = true, examMode = false }: Props,
+  forwardedRef
+) {
   const {
     activeTool, selectedColor, addHighlight, highlights, addVocab,
     editingHighlightId, setEditingHighlightId, addNote, removeHighlight,
@@ -60,6 +63,14 @@ export function ReadingPassage({ content, interactive = true, examMode = false }
   const [translateButton, setTranslateButton] = useState<{ text: string; x: number; y: number } | null>(null);
   const [translatePopup, setTranslatePopup] = useState<{ text: string; x: number; y: number } | null>(null);
   const hoveredWordRef = useRef<{ el: HTMLElement | null }>({ el: null });
+  const setPassageRef = useCallback((node: HTMLDivElement | null) => {
+    passageRef.current = node;
+    if (typeof forwardedRef === 'function') {
+      forwardedRef(node);
+    } else if (forwardedRef) {
+      forwardedRef.current = node;
+    }
+  }, [forwardedRef]);
 
   // Build HTML with highlights injected
   const formattedContent = useMemo(() => formatReadingPassage(content), [content]);
@@ -258,7 +269,7 @@ export function ReadingPassage({ content, interactive = true, examMode = false }
   return (
     <>
       <div
-        ref={passageRef}
+        ref={setPassageRef}
         onMouseUp={handleMouseUp}
         onClick={handleClick}
         onMouseOver={handleMouseOver}
@@ -326,9 +337,106 @@ export function ReadingPassage({ content, interactive = true, examMode = false }
       {interactive && activeTool === 'vocab' && (
         <style dangerouslySetInnerHTML={{ __html: `.vocab-mode { cursor: default !important; }` }} />
       )}
+      <style dangerouslySetInnerHTML={{ __html: `
+        .matching-slot {
+          position: relative;
+          display: inline-flex;
+          flex-direction: row;
+          align-items: flex-start;
+          gap: 8px;
+          width: 100%;
+          max-width: 100%;
+          margin-right: 0;
+          margin-bottom: 6px;
+          vertical-align: top;
+          user-select: none;
+          -webkit-user-select: none;
+        }
+        .matching-slot-badge {
+          flex: 0 0 auto;
+          min-width: 22px;
+          height: 22px;
+          border-radius: 9999px;
+          border: 1px solid #d1d5db;
+          background: #fff;
+          color: #374151;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 12px;
+          line-height: 1;
+          font-weight: 800;
+          padding: 0 5px;
+          margin-top: 8px;
+        }
+        .matching-slot-body {
+          position: relative;
+          flex: 1 1 auto;
+          min-width: 0;
+          border: 2px dashed #d1d5db;
+          border-radius: 10px;
+          background: #fff;
+          padding: 8px 10px;
+          box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+        }
+        .matching-slot-answer {
+          display: block;
+          min-height: 18px;
+          padding-right: 20px;
+          font-size: 12px;
+          line-height: 1.25;
+          color: #111827;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+        .matching-slot[data-state="active"] .matching-slot-body {
+          border-color: #93c5fd;
+          background: #eff6ff;
+        }
+        .matching-slot[data-state="filled"] .matching-slot-body {
+          border-color: #bfdbfe;
+          background: #eff6ff;
+        }
+        .matching-slot[data-state="submitted-correct"] .matching-slot-body {
+          border-color: #a7f3d0;
+          background: #ecfdf5;
+          color: #047857;
+        }
+        .matching-slot[data-state="submitted-wrong"] .matching-slot-body {
+          border-color: #fecaca;
+          background: #fef2f2;
+          color: #b91c1c;
+        }
+        .matching-slot[data-state="empty"] .matching-slot-answer {
+          color: #9ca3af;
+        }
+        .matching-slot [data-clear-matching-answer] {
+          position: absolute;
+          right: 8px;
+          top: 8px;
+          width: 14px;
+          height: 14px;
+          padding: 0;
+          border: 0;
+          background: transparent;
+          cursor: pointer;
+        }
+        .matching-slot [data-clear-matching-answer]::before {
+          content: "×";
+          display: block;
+          font-size: 12px;
+          line-height: 14px;
+          color: #9ca3af;
+          text-align: center;
+        }
+        .matching-slot:hover [data-clear-matching-answer]::before {
+          color: #374151;
+        }
+      ` }} />
     </>
   );
-}
+});
 
 function NoteInlineEditorFromDom({ highlightId, currentNote, onSave, onCancel }: {
   highlightId: string; currentNote?: string; onSave: (note: string) => void; onCancel: () => void;

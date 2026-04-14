@@ -1,58 +1,9 @@
 'use client';
 
-import { useMemo, useState } from 'react';
-import { CheckCircle2, XCircle } from 'lucide-react';
+import { useCallback, useMemo } from 'react';
+import { ReadingPassage } from '@/components/reading/reading-passage';
+import { formatReadingPassage } from '@/lib/format-reading-passage';
 import type { QuestionDetail } from '@/types/test.types';
-
-interface PassageSegment {
-  label: string;
-  html: string;
-}
-
-function splitPassageByParagraphs(html: string): PassageSegment[] {
-  // 1. Try explicit "Paragraph A" labels
-  let matches = [...html.matchAll(/Paragraph\s+([A-Z])\b/gi)];
-  // 2. Try "<p><strong>A.</strong>" pattern
-  if (matches.length === 0) {
-    matches = [...html.matchAll(/<p[^>]*>\s*(?:<(?:strong|b)>)?\s*([A-Z])\.\s*(?:<\/(?:strong|b)>)?/gi)];
-  }
-
-  if (matches.length > 0) {
-    const segments: PassageSegment[] = [];
-    if (matches[0].index! > 0) {
-      segments.push({ label: '', html: html.slice(0, matches[0].index!) });
-    }
-    for (let i = 0; i < matches.length; i++) {
-      const start = matches[i].index!;
-      const end = i + 1 < matches.length ? matches[i + 1].index! : html.length;
-      segments.push({ label: matches[i][1].toUpperCase(), html: html.slice(start, end) });
-    }
-    return segments;
-  }
-
-  // 3. Fallback: auto-detect paragraphs by <p> tags, assign A, B, C...
-  const pMatches = [...html.matchAll(/<p[^>]*>/gi)];
-  if (pMatches.length > 1) {
-    const segments: PassageSegment[] = [];
-    let labelIdx = 0;
-    for (let i = 0; i < pMatches.length; i++) {
-      const start = pMatches[i].index!;
-      const end = i + 1 < pMatches.length ? pMatches[i + 1].index! : html.length;
-      const chunk = html.slice(start, end);
-      // Skip very short paragraphs (titles, empty tags)
-      const textOnly = chunk.replace(/<[^>]*>/g, '').trim();
-      if (textOnly.length < 50) {
-        segments.push({ label: '', html: chunk });
-      } else {
-        segments.push({ label: String.fromCharCode(65 + labelIdx), html: chunk });
-        labelIdx++;
-      }
-    }
-    return segments;
-  }
-
-  return [{ label: '', html }];
-}
 
 interface Props {
   content: string;
@@ -63,143 +14,165 @@ interface Props {
   selectedPillId: number | null;
   onPillAssigned: () => void;
   examMode?: boolean;
+  questionPositionById?: Record<number, number>;
+}
+
+function getParagraphLabel(text: string): string | null {
+  const normalized = text.replace(/\s+/g, ' ').trim();
+  const explicit = normalized.match(/^Paragraph\s+([A-Z])\b/i);
+  if (explicit) return explicit[1].toUpperCase();
+
+  const letter = normalized.match(/^([A-Z])(?:\s*\.|\s)\s+/);
+  if (letter) return letter[1].toUpperCase();
+
+  return null;
+}
+
+function buildMatchingContent(
+  content: string,
+  questions: QuestionDetail[],
+  answers: Record<number, number>,
+  submitted: boolean,
+  questionPositionById: Record<number, number> = {},
+) {
+  const formatted = formatReadingPassage(content);
+  if (!formatted.trim()) return formatted;
+
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(`<body>${formatted}</body>`, 'text/html');
+  const body = doc.body;
+  const blocks = Array.from(body.children).filter((el): el is HTMLElement => {
+    const text = el.textContent?.replace(/\s+/g, ' ').trim() ?? '';
+    return text.length > 0;
+  });
+
+  const questionByLabel: Record<string, QuestionDetail> = {};
+  for (const q of questions) {
+    const match = q.content.match(/(?:Paragraph\s+)?([A-Z])\b/i);
+    if (match) questionByLabel[match[1].toUpperCase()] = q;
+  }
+
+  blocks.forEach((block, index) => {
+    const label = getParagraphLabel(block.textContent || '') ?? String.fromCharCode(65 + index);
+    const question = questionByLabel[label] ?? questions[index];
+    if (!question) return;
+
+    const assignedId = answers[question.id];
+    const assignedOpt = assignedId ? question.options.find((o) => o.id === assignedId) : undefined;
+    const correctOpt = question.options.find((o) => o.isCorrect);
+    const isCorrect = assignedOpt?.isCorrect ?? false;
+    const displayPosition = questionPositionById[question.id] ?? question.position;
+    const state = submitted
+      ? assignedOpt
+        ? isCorrect
+          ? 'submitted-correct'
+          : 'submitted-wrong'
+        : 'empty'
+      : assignedOpt
+        ? 'filled'
+        : 'empty';
+
+    const existingSlot = block.querySelector('[data-matching-slot]');
+    if (existingSlot) existingSlot.remove();
+
+    const slot = doc.createElement('span');
+    slot.setAttribute('data-matching-slot', '1');
+    slot.setAttribute('data-question-id', String(question.id));
+    slot.setAttribute('data-question-position', String(displayPosition));
+    slot.setAttribute('data-label', String(displayPosition));
+    slot.setAttribute('data-answer', assignedOpt?.content || '');
+    slot.setAttribute('data-state', state);
+    slot.setAttribute('contenteditable', 'false');
+    block.insertBefore(slot, block.firstChild);
+
+    if (submitted && assignedOpt && !isCorrect && correctOpt) {
+      block.setAttribute('data-correct-answer', correctOpt.content);
+    } else {
+      block.removeAttribute('data-correct-answer');
+    }
+  });
+
+  return body.innerHTML;
 }
 
 export function ReadingPassageWithMatching({
-  content, questions, answers, submitted, onAnswer, selectedPillId, onPillAssigned, examMode = false,
+  content,
+  questions,
+  answers,
+  submitted,
+  onAnswer,
+  selectedPillId,
+  onPillAssigned,
+  examMode = false,
+  questionPositionById = {},
 }: Props) {
-  const segments = useMemo(() => splitPassageByParagraphs(content), [content]);
-  const [dragOverId, setDragOverId] = useState<number | null>(null);
+  const contentWithSlots = useMemo(
+    () => buildMatchingContent(content, questions, answers, submitted, questionPositionById),
+    [answers, content, questionPositionById, questions, submitted]
+  );
 
-  const labelToQuestion = useMemo(() => {
-    const map: Record<string, QuestionDetail> = {};
-    for (const q of questions) {
-      const match = q.content.match(/(?:Paragraph\s+)?([A-Z])\b/i);
-      if (match) map[match[1].toUpperCase()] = q;
-    }
-    return map;
-  }, [questions]);
-
-  // Pills use questions[0].options. Each question has its own option IDs.
-  // We need to translate pill optionId → target question's matching optionId by content.
   const pillOptions = useMemo(() => questions[0]?.options || [], [questions]);
 
-  /** Translate a pill's optionId to the correct optionId for a specific question */
-  const translateOptionId = (pillOptionId: number, targetQuestionId: number): number => {
-    const pillOpt = pillOptions.find(o => o.id === pillOptionId);
+  const translateOptionId = useCallback((pillOptionId: number, targetQuestionId: number): number => {
+    const pillOpt = pillOptions.find((o) => o.id === pillOptionId);
     if (!pillOpt) return pillOptionId;
-    const targetQ = questions.find(q => q.id === targetQuestionId);
+    const targetQ = questions.find((q) => q.id === targetQuestionId);
     if (!targetQ) return pillOptionId;
-    const match = targetQ.options.find(o => o.content === pillOpt.content);
+    const match = targetQ.options.find((o) => o.content === pillOpt.content);
     return match ? match.id : pillOptionId;
-  };
+  }, [pillOptions, questions]);
 
-  const handleSlotClick = (questionId: number) => {
+  const resolveQuestionId = useCallback((target: HTMLElement) => {
+    const slot = target.closest('[data-matching-slot]') as HTMLElement | null;
+    if (!slot) return null;
+    const id = Number(slot.getAttribute('data-question-id'));
+    return Number.isFinite(id) ? id : null;
+  }, []);
+
+  const handleClickCapture = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    const target = e.target as HTMLElement;
+    const questionId = resolveQuestionId(target);
+    if (!questionId) return;
+
+    e.preventDefault();
+    e.stopPropagation();
+
+    const clear = target.closest('[data-clear-matching-answer]') as HTMLElement | null;
+    if (clear) {
+      if (!submitted) onAnswer(questionId, 0);
+      return;
+    }
+
     if (submitted || !selectedPillId) return;
     onAnswer(questionId, translateOptionId(selectedPillId, questionId));
     onPillAssigned();
-  };
+  }, [onAnswer, onPillAssigned, resolveQuestionId, selectedPillId, submitted, translateOptionId]);
 
-  const handleClear = (questionId: number, e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (submitted) return;
-    onAnswer(questionId, 0);
-  };
+  const handleDropCapture = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+    const target = e.target as HTMLElement;
+    const questionId = resolveQuestionId(target);
+    if (!questionId || submitted) return;
 
-  /* Drag-and-drop via event delegation on wrapper */
-  const handleWrapperDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-    const zone = (e.target as HTMLElement).closest('[data-question-id]');
-    setDragOverId(zone ? Number(zone.getAttribute('data-question-id')) : null);
-  };
-
-  const handleWrapperDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setDragOverId(null);
-    const zone = (e.target as HTMLElement).closest('[data-question-id]');
-    if (!zone) return;
-    const questionId = Number(zone.getAttribute('data-question-id'));
     const pillOptionId = Number(e.dataTransfer.getData('text/plain'));
-    if (questionId && pillOptionId) onAnswer(questionId, translateOptionId(pillOptionId, questionId));
-  };
+    if (!pillOptionId) return;
 
-  const handleWrapperDragLeave = (e: React.DragEvent) => {
-    const related = e.relatedTarget as Node | null;
-    if (!e.currentTarget.contains(related)) setDragOverId(null);
-  };
+    e.preventDefault();
+    e.stopPropagation();
+    onAnswer(questionId, translateOptionId(pillOptionId, questionId));
+    onPillAssigned();
+  }, [onAnswer, onPillAssigned, resolveQuestionId, submitted, translateOptionId]);
+
+  const handleDragOverCapture = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+    const target = e.target as HTMLElement;
+    if (resolveQuestionId(target)) {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+    }
+  }, [resolveQuestionId]);
 
   return (
-    <div
-      className={`prose max-w-none leading-relaxed ${examMode ? 'text-[13px]' : 'text-lg'}`}
-      onDragOver={handleWrapperDragOver}
-      onDrop={handleWrapperDrop}
-      onDragLeave={handleWrapperDragLeave}
-    >
-      {segments.map((seg, i) => {
-        const question = seg.label ? labelToQuestion[seg.label] : null;
-        const assignedId = question ? answers[question.id] : undefined;
-        // answers now stores the target question's own option ID
-        const assignedOpt = assignedId ? question?.options.find(o => o.id === assignedId) : undefined;
-        const correctOpt = question?.options.find(o => o.isCorrect);
-        const isCorrect = assignedOpt?.isCorrect ?? false;
-        const isDragOver = question && dragOverId === question.id;
-
-        return (
-          <div key={i}>
-            {question && (
-              <div
-                className={`mb-3 mt-5 not-prose ${examMode ? 'text-[13px]' : ''}`}
-                data-question-id={question.id}
-                onClick={() => handleSlotClick(question.id)}
-              >
-                {assignedOpt ? (
-                  <div className={`flex items-center gap-2 px-4 py-2.5 rounded-lg border-2 ${
-                    examMode ? 'text-[13px]' : 'text-sm'
-                  } ${
-                    submitted
-                      ? isCorrect ? 'bg-green-50 border-green-300 text-green-700' : 'bg-red-50 border-red-300 text-red-700'
-                      : 'bg-blue-50 border-blue-300 text-blue-700'
-                  }`}>
-                    <span className="font-semibold text-xs text-gray-400 shrink-0">Q{question.position}</span>
-                    <span className="flex-1">{assignedOpt.content}</span>
-                    {!submitted && (
-                      <button type="button" onClick={(e) => handleClear(question.id, e)} className="text-blue-400 hover:text-blue-600 text-xs font-bold">✕</button>
-                    )}
-                    {submitted && isCorrect && <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0" />}
-                    {submitted && !isCorrect && <XCircle className="h-4 w-4 text-red-500 shrink-0" />}
-                  </div>
-                ) : (
-                  <div className={`flex items-center gap-2 px-4 py-2.5 rounded-lg border-2 border-dashed transition-colors cursor-pointer ${
-                    examMode ? 'text-[13px]' : 'text-sm'
-                  } ${
-                    isDragOver
-                      ? 'border-blue-500 bg-blue-100/50 text-blue-600'
-                      : selectedPillId
-                        ? 'border-blue-400 bg-blue-50/50 text-blue-500 hover:bg-blue-100'
-                        : submitted
-                          ? 'border-gray-200 text-gray-400 cursor-default'
-                          : 'border-gray-300 bg-gray-50/50 text-gray-400'
-                  }`}>
-                    <span className="font-semibold text-xs text-gray-400 shrink-0">Q{question.position}</span>
-                    <span className="flex-1 italic">
-                      {submitted ? 'Chưa trả lời' : selectedPillId ? 'Click để gán heading' : 'Chọn heading bên phải →'}
-                    </span>
-                  </div>
-                )}
-
-                {submitted && assignedId != null && !isCorrect && correctOpt && (
-                  <p className="text-xs text-red-600 mt-1 ml-8">Đáp án đúng: <strong>{correctOpt.content}</strong></p>
-                )}
-                {submitted && assignedId == null && correctOpt && (
-                  <p className="text-xs text-gray-400 mt-1 ml-8 italic">Đáp án: <strong>{correctOpt.content}</strong></p>
-                )}
-              </div>
-            )}
-            <div dangerouslySetInnerHTML={{ __html: seg.html }} />
-          </div>
-        );
-      })}
+    <div onClickCapture={handleClickCapture} onDragOverCapture={handleDragOverCapture} onDropCapture={handleDropCapture}>
+      <ReadingPassage content={contentWithSlots} interactive examMode={examMode} />
     </div>
   );
 }

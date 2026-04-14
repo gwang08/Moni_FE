@@ -111,6 +111,18 @@ export function ReadingExamView({
     return { start: globalQuestionOffset, end };
   }, [currentStimulus, globalQuestionOffset, totalQuestions]);
 
+  const questionPositionById = useMemo(() => {
+    const map: Record<number, number> = {};
+    let currentPosition = globalQuestionOffset;
+    currentStimulus?.questionGroups.forEach((group) => {
+      group.questions.forEach((question) => {
+        map[question.id] = currentPosition;
+        currentPosition += 1;
+      });
+    });
+    return map;
+  }, [currentStimulus, globalQuestionOffset]);
+
   const scrollToQuestion = (questionId: number) => {
     const el = document.getElementById(`question-${questionId}`);
     if (el) {
@@ -215,6 +227,7 @@ export function ReadingExamView({
                   selectedPillId={null}
                   onPillAssigned={() => {}}
                   examMode
+                  questionPositionById={questionPositionById}
                 />
               ) : (
                 <ReadingPassage content={currentStimulus.content} interactive={false} examMode />

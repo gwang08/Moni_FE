@@ -72,3 +72,114 @@ export const NoteIconNode = Node.create({
     };
   },
 });
+
+/** Atomic inline node used to render matching-heading slots inside the passage */
+export const MatchingSlotNode = Node.create({
+  name: 'matchingSlot',
+  inline: true,
+  group: 'inline',
+  atom: true,
+  selectable: false,
+  draggable: false,
+
+  addAttributes() {
+    return {
+      'data-matching-slot': { default: '1' },
+      'data-question-id': {
+        default: null,
+        parseHTML: (el) => el.getAttribute('data-question-id'),
+      },
+      'data-question-position': {
+        default: null,
+        parseHTML: (el) => el.getAttribute('data-question-position'),
+      },
+      'data-label': {
+        default: '',
+        parseHTML: (el) => el.getAttribute('data-label') || '',
+      },
+      'data-answer': {
+        default: '',
+        parseHTML: (el) => el.getAttribute('data-answer') || '',
+      },
+      'data-placeholder': {
+        default: '',
+        parseHTML: (el) => el.getAttribute('data-placeholder') || '',
+      },
+      'data-state': {
+        default: 'empty',
+        parseHTML: (el) => el.getAttribute('data-state') || 'empty',
+      },
+    };
+  },
+
+  parseHTML() {
+    return [{ tag: 'span[data-matching-slot]' }];
+  },
+
+  renderHTML({ HTMLAttributes }) {
+    return ['span', mergeAttributes(HTMLAttributes)];
+  },
+
+  addNodeView() {
+    return ({ node }) => {
+      const root = document.createElement('span');
+      root.className = 'matching-slot';
+      root.contentEditable = 'false';
+      root.setAttribute('data-matching-slot', '1');
+
+      const badge = document.createElement('span');
+      badge.className = 'matching-slot-badge';
+      root.appendChild(badge);
+
+      const body = document.createElement('span');
+      body.className = 'matching-slot-body';
+      const answerText = document.createElement('span');
+      answerText.className = 'matching-slot-answer';
+      body.appendChild(answerText);
+      root.appendChild(body);
+
+      const setAttr = (name: string, value: unknown) => {
+        if (value == null || value === '') return;
+        root.setAttribute(name, String(value));
+      };
+
+      setAttr('data-question-id', node.attrs['data-question-id']);
+      setAttr('data-question-position', node.attrs['data-question-position']);
+      setAttr('data-label', node.attrs['data-label'] || '');
+      setAttr('data-answer', node.attrs['data-answer'] || '');
+      setAttr('data-placeholder', node.attrs['data-placeholder'] || '');
+      setAttr('data-state', node.attrs['data-state'] || 'empty');
+
+      const syncContent = (updatedNode = node) => {
+        const position = updatedNode.attrs['data-question-position'];
+        badge.textContent = position != null ? String(position) : '';
+        const answer = updatedNode.attrs['data-answer'] || '';
+        answerText.textContent = answer;
+        body.setAttribute('data-has-answer', answer ? '1' : '0');
+      };
+
+      syncContent();
+
+      const clearButton = document.createElement('button');
+      clearButton.type = 'button';
+      clearButton.setAttribute('data-clear-matching-answer', '1');
+      clearButton.setAttribute('aria-label', 'Clear matching answer');
+      body.appendChild(clearButton);
+
+      return {
+        dom: root,
+        update: (updatedNode) => {
+          if (updatedNode.type.name !== 'matchingSlot') return false;
+          setAttr('data-question-id', updatedNode.attrs['data-question-id']);
+          setAttr('data-question-position', updatedNode.attrs['data-question-position']);
+          setAttr('data-label', updatedNode.attrs['data-label'] || '');
+          setAttr('data-answer', updatedNode.attrs['data-answer'] || '');
+          setAttr('data-placeholder', updatedNode.attrs['data-placeholder'] || '');
+          setAttr('data-state', updatedNode.attrs['data-state'] || 'empty');
+          syncContent(updatedNode);
+          return true;
+        },
+      };
+    };
+  },
+});

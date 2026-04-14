@@ -108,9 +108,9 @@ function normalise(raw: Record<string, unknown>): NormalisedData {
     criteria,
     improvements,
     overall_strategy,
-    summary: isFormatB ? String(fbObj?.summary ?? '') : undefined,
-    strengths: isFormatB ? String(fbObj?.strengths ?? '') : undefined,
-    feedbackImprovements: isFormatB ? String(fbObj?.improvements ?? '') : undefined,
+    summary: isFormatB ? (typeof fbObj?.summary === 'string' ? fbObj.summary : undefined) : undefined,
+    strengths: isFormatB ? (typeof fbObj?.strengths === 'string' ? fbObj.strengths : undefined) : undefined,
+    feedbackImprovements: isFormatB ? (typeof fbObj?.improvements === 'string' ? fbObj.improvements : undefined) : undefined,
   };
 }
 /* eslint-enable @typescript-eslint/no-explicit-any */
@@ -166,8 +166,10 @@ function CriterionCard({ c }: { c: NormalisedData['criteria'][number] }) {
       </div>
 
       <div className="flex-1 flex flex-col gap-3">
-        {c.justification && (
+        {c.justification ? (
           <p className="text-[13.5px] text-gray-700 font-medium leading-relaxed bg-white/70 p-4 rounded-2xl border border-white/60 shadow-sm">{c.justification}</p>
+        ) : (
+          <p className="text-[13px] text-gray-400 italic bg-white/40 p-4 rounded-2xl border border-white/40 shadow-sm">Giám khảo không để lại nhận xét chi tiết cho tiêu chí này.</p>
         )}
 
         <div className="flex flex-col gap-3 mt-auto pt-3">
@@ -228,28 +230,43 @@ function parseEssayWithHighlights(essay: string, improvements: NormalisedData['i
     return { segments: [{ type: 'text', content: essay }] };
   }
 
-  const segments: Array<{ type: 'text' | 'highlight'; content: string | HighlightInfo }> = [];
-  let remaining = essay;
-
-  // Try to match original sentences in the essay
   const highlights: Array<{ index: number; length: number; info: HighlightInfo }> = [];
+  
+  // Track which parts of the essay are already highlighted to avoid overlap
+  const usedRanges: Array<[number, number]> = [];
 
   for (const imp of improvements) {
     if (!imp.original_sentence) continue;
     const original = imp.original_sentence.replace(/^"|"$/g, '').trim();
-    const idx = remaining.indexOf(original);
-    if (idx !== -1) {
-      highlights.push({
-        index: idx,
-        length: original.length,
-        info: {
-          text: original,
-          reason: imp.reason || '',
-          criterion: imp.criterion,
-          issueType: imp.issue_type,
-          improvedVersion: imp.improved_sentence?.replace(/^"|"$/g, '').trim(),
-        },
-      });
+    if (!original) continue;
+
+    let searchIdx = 0;
+    while (true) {
+      const idx = essay.indexOf(original, searchIdx);
+      if (idx === -1) break;
+
+      // Check if this instance overlaps with any existing highlight
+      const overlaps = usedRanges.some(([start, end]) => 
+        (idx >= start && idx < end) || (idx + original.length > start && idx + original.length <= end)
+      );
+
+      if (!overlaps) {
+        highlights.push({
+          index: idx,
+          length: original.length,
+          info: {
+            text: original,
+            reason: imp.reason || '',
+            criterion: imp.criterion,
+            issueType: imp.issue_type,
+            improvedVersion: imp.improved_sentence?.replace(/^"|"$/g, '').trim(),
+          },
+        });
+        usedRanges.push([idx, idx + original.length]);
+        break; // Found a match, move to next improvement
+      }
+      
+      searchIdx = idx + 1;
     }
   }
 
@@ -261,16 +278,17 @@ function parseEssayWithHighlights(essay: string, improvements: NormalisedData['i
   highlights.sort((a, b) => a.index - b.index);
 
   // Build segments
+  const segments: Array<{ type: 'text' | 'highlight'; content: string | HighlightInfo }> = [];
   let lastIdx = 0;
   for (const hl of highlights) {
     if (hl.index > lastIdx) {
-      segments.push({ type: 'text', content: remaining.slice(lastIdx, hl.index) });
+      segments.push({ type: 'text', content: essay.slice(lastIdx, hl.index) });
     }
     segments.push({ type: 'highlight', content: hl.info });
     lastIdx = hl.index + hl.length;
   }
-  if (lastIdx < remaining.length) {
-    segments.push({ type: 'text', content: remaining.slice(lastIdx) });
+  if (lastIdx < essay.length) {
+    segments.push({ type: 'text', content: essay.slice(lastIdx) });
   }
 
   return { segments };

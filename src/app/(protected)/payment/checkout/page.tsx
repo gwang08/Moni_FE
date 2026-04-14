@@ -123,6 +123,8 @@ export default function CheckoutPage() {
 
   const { refreshProfile, updateUser } = useAuthStore();
 
+  const returnUrl = usePaymentStore((s) => s.returnUrl);
+
   const handlePaymentSuccess = useCallback(
     (credit?: number) => {
       setStatus('completed');
@@ -132,12 +134,13 @@ export default function CheckoutPage() {
       } else {
         refreshProfile();
       }
+      const redirectTo = returnUrl || '/transactions';
       setTimeout(() => {
         clear();
-        router.push('/transactions');
+        router.push(redirectTo);
       }, 2500);
     },
-    [clear, router, refreshProfile, updateUser]
+    [clear, router, refreshProfile, updateUser, returnUrl]
   );
 
   // SSE realtime listener + polling fallback

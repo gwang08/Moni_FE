@@ -1,7 +1,8 @@
 'use client';
 
-import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
+import { usePaymentStore } from '@/store/payment-store';
 import type { ExpertProfile } from '@/types/expert.types';
 
 interface Props {
@@ -11,10 +12,20 @@ interface Props {
   submitting: boolean;
   onConfirm: () => void;
   onCancel: () => void;
+  /** Where to redirect after top-up completes (defaults to /scoring-history) */
+  returnUrl?: string;
 }
 
-export function SpeakingModeExpertInlineConfirm({ expert, cost, balance, submitting, onConfirm, onCancel }: Props) {
+export function SpeakingModeExpertInlineConfirm({ expert, cost, balance, submitting, onConfirm, onCancel, returnUrl }: Props) {
+  const router = useRouter();
+  const setReturnUrl = usePaymentStore((s) => s.setReturnUrl);
   const hasEnough = balance >= cost;
+
+  const handleTopUp = () => {
+    setReturnUrl(returnUrl || '/scoring-history');
+    router.push('/payment');
+  };
+
   return (
     <div className="border border-orange-200 rounded-2xl p-5 bg-orange-50/80 shadow-sm space-y-4">
       <p className="font-bold text-[15px] flex items-center gap-2">
@@ -22,12 +33,12 @@ export function SpeakingModeExpertInlineConfirm({ expert, cost, balance, submitt
       </p>
       <div className="text-sm space-y-2 text-gray-600 bg-white/60 p-4 rounded-xl border border-orange-100">
         <p className="flex justify-between items-center">
-          <span className="font-medium">Chi phí:</span> 
+          <span className="font-medium">Chi phí:</span>
           <span className="font-bold text-gray-800 inline-flex items-center gap-1.5">{cost} <img src="/currency.webp" alt="credit" className="h-4 w-4 inline" /></span>
         </p>
         <div className="h-px w-full bg-orange-100/50" />
         <p className="flex justify-between items-center">
-          <span className="font-medium">Số dư hiện tại:</span> 
+          <span className="font-medium">Số dư hiện tại:</span>
           <span className={`font-bold inline-flex items-center gap-1.5 ${hasEnough ? 'text-green-600' : 'text-red-500'}`}>{balance} <img src="/currency.webp" alt="credit" className="h-4 w-4 inline" /></span>
         </p>
         {!hasEnough && <p className="text-red-500 font-bold text-xs mt-2 bg-red-50 p-2 rounded-lg text-center">Không đủ credit! Vui lòng nạp thêm.</p>}
@@ -39,8 +50,8 @@ export function SpeakingModeExpertInlineConfirm({ expert, cost, balance, submitt
             {submitting ? 'Đang đặt...' : 'Xác nhận đặt lịch'}
           </Button>
         ) : (
-          <Button asChild className="flex-1 rounded-xl h-10 font-bold bg-[#16a34a] hover:bg-[#15803d] text-white shadow-sm">
-            <Link href="/payment">Nạp credit ngay</Link>
+          <Button className="flex-1 rounded-xl h-10 font-bold bg-[#16a34a] hover:bg-[#15803d] text-white shadow-sm" onClick={handleTopUp}>
+            Nạp credit ngay
           </Button>
         )}
       </div>

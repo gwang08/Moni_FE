@@ -69,18 +69,16 @@ const CRIT_META = [
 
 function normalise(raw: Record<string, unknown>): NormalisedData {
   // Determine which format we have
-  // Format A (AI scoreWriting): raw.assessment + raw.feedback
-  // Format B (BE saved evaluation): raw.overallScore + raw.analysisResult + raw.feedbackResponse
-  const isFormatB = 'overallScore' in raw || 'analysisResult' in raw;
+  const isFormatB = 'overallScore' in raw || 'analysisResult' in raw || 'feedbackResponse' in raw;
 
   const overall = isFormatB
-    ? dig(raw, 'overallScore')
-    : dig(raw, 'assessment.final_band', 'overallBand');
+    ? dig(raw, 'overallScore', 'overallBand')
+    : dig(raw, 'assessment.final_band', 'final_band', 'overallBand');
 
   // Criteria source
   const critSource: any = isFormatB
-    ? (raw as any)?.analysisResult?.criteria
-    : (raw as any)?.assessment?.criteria;
+    ? ((raw as any)?.analysisResult?.criteria || (raw as any)?.criteria)
+    : ((raw as any)?.assessment?.criteria || (raw as any)?.criteria);
 
   const criteria = CRIT_META.map(({ key, altKeys, label, short }) => {
     const cObj: any = critSource?.[key] ?? altKeys.reduce((acc: any, k) => acc ?? critSource?.[k], undefined);
@@ -97,7 +95,7 @@ function normalise(raw: Record<string, unknown>): NormalisedData {
   });
 
   // Feedback / improvements
-  const fbObj: any = isFormatB ? raw?.feedbackResponse : raw?.feedback;
+  const fbObj: any = isFormatB ? (raw?.feedbackResponse || raw) : (raw?.feedback || raw);
   const improvements: NormalisedData['improvements'] = Array.isArray(fbObj?.improvements)
     ? fbObj.improvements
     : [];
@@ -108,9 +106,9 @@ function normalise(raw: Record<string, unknown>): NormalisedData {
     criteria,
     improvements,
     overall_strategy,
-    summary: isFormatB ? (typeof fbObj?.summary === 'string' ? fbObj.summary : undefined) : undefined,
-    strengths: isFormatB ? (typeof fbObj?.strengths === 'string' ? fbObj.strengths : undefined) : undefined,
-    feedbackImprovements: isFormatB ? (typeof fbObj?.improvements === 'string' ? fbObj.improvements : undefined) : undefined,
+    summary: typeof fbObj?.summary === 'string' ? fbObj.summary : undefined,
+    strengths: typeof fbObj?.strengths === 'string' ? fbObj.strengths : undefined,
+    feedbackImprovements: typeof fbObj?.improvements === 'string' ? fbObj.improvements : undefined,
   };
 }
 /* eslint-enable @typescript-eslint/no-explicit-any */
@@ -481,7 +479,7 @@ export default function WritingResultPage({ params }: Props) {
             )}
             
             {/* Expert format (fallback if missing overall_strategy) */}
-            {(normData.summary || normData.strengths || normData.feedbackImprovements) && (
+            {(normData.summary || normData.strengths || normData.feedbackImprovements || (normData.improvements.length > 0 && !normData.overall_strategy)) && (
               <div className="mt-8 space-y-4">
                {normData.summary && (
                   <div className="rounded-2xl bg-gray-50 border border-gray-100 p-5">
@@ -495,15 +493,30 @@ export default function WritingResultPage({ params }: Props) {
                     <p className="text-[14px] text-gray-800 leading-relaxed font-medium whitespace-pre-line">{normData.strengths}</p>
                   </div>
                 )}
-                {normData.feedbackImprovements && (
+                {/* Only render feedbackImprovements if it's a valid string. If it's the list, the HighlightedEssay section handles it better, or we can list reasons here. */}
+                {typeof normData.feedbackImprovements === 'string' && normData.feedbackImprovements.length > 0 && (
                   <div className="rounded-2xl bg-amber-50/60 border border-amber-100/50 p-5">
                     <p className="text-[11px] font-black text-amber-600 uppercase tracking-widest mb-2 flex items-center gap-1.5"><AlertTriangle className="h-4 w-4" /> Cần cải thiện</p>
                     <p className="text-[14px] text-gray-800 leading-relaxed font-medium whitespace-pre-line">{normData.feedbackImprovements}</p>
                   </div>
                 )}
+                {/* Fallback: if we have improvements list but no strategy/string feedback, list the reasons briefly */}
+                {!normData.overall_strategy && !normData.feedbackImprovements && normData.improvements.length > 0 && (
+                   <div className="rounded-2xl bg-amber-50/60 border border-amber-100/50 p-5">
+                    <p className="text-[11px] font-black text-amber-600 uppercase tracking-widest mb-3 flex items-center gap-1.5"><AlertTriangle className="h-4 w-4" /> Các điểm cần lưu ý</p>
+                    <div className="space-y-3">
+                       {normData.improvements.slice(0, 3).map((imp, idx) => (
+                         <div key={idx} className="flex gap-2.5 items-start">
+                            <span className="text-amber-500 font-bold mt-0.5">•</span>
+                            <p className="text-[13.5px] text-gray-700 leading-snug font-medium">{imp.reason}</p>
+                         </div>
+                       ))}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
-          </div>
+           </div>
         )}
 
         {/* All 4 criteria displayed directly */}

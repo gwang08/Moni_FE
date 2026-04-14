@@ -10,6 +10,7 @@ import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { ChibiMascot, ChibiAnimationStyles } from '@/components/ui/chibi-mascot';
 import { getMySessions, getSessionEvaluation, getExperts, createScoringSession } from '@/lib/expert-api';
 import { getWritingSubmissions, getWritingSubmissionDetail, type WritingSubmission } from '@/lib/ai-api';
+import { getServices } from '@/lib/payment-api';
 import { SpeakingModeExpertGrid } from '@/components/speaking/speaking-mode-expert-grid';
 import { SpeakingModeExpertInlineConfirm } from '@/components/speaking/speaking-mode-expert-inline-confirm';
 import { useAuthStore } from '@/store/auth-store';
@@ -54,6 +55,9 @@ export default function ScoringHistoryPage() {
   const [confirming, setConfirming] = useState<ExpertProfile | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
+  // Expert cost
+  const [expertCost, setExpertCost] = useState<number | null>(null);
+
   // Evaluation dialog
   const [evalOpen, setEvalOpen] = useState(false);
   const [evaluation, setEvaluation] = useState<ExpertEvaluation | null>(null);
@@ -65,6 +69,9 @@ export default function ScoringHistoryPage() {
         toast.error('Không thể tải danh sách bài viết');
       }),
       getMySessions().then(setSessions).catch(() => {}),
+      getServices().then((services) => {
+        setExpertCost(services.find((s) => s.serviceCode === 'EXPERT_WRITING_SCORE')?.creditCost ?? null);
+      }).catch(() => {}),
     ]).finally(() => setLoading(false));
   }, []);
 
@@ -246,7 +253,7 @@ export default function ScoringHistoryPage() {
           <DialogContent className="sm:max-w-2xl">
             <h3 className="text-lg font-bold mb-3">Chọn giảng viên chấm Writing</h3>
             {confirming && (
-              <SpeakingModeExpertInlineConfirm expert={confirming} cost={0} balance={user?.credit ?? 0} submitting={submitting}
+              <SpeakingModeExpertInlineConfirm expert={confirming} cost={expertCost ?? 0} balance={user?.credit ?? 0} submitting={submitting}
                 onConfirm={() => handleBookExpert(confirming)} onCancel={() => setConfirming(null)} />
             )}
             <div className="relative mb-3">
@@ -258,7 +265,7 @@ export default function ScoringHistoryPage() {
             ) : (
               <SpeakingModeExpertGrid
                 experts={experts.filter(e => !expertSearch.trim() || e.displayName.toLowerCase().includes(expertSearch.toLowerCase()))}
-                expertCost={0} onBook={setConfirming} onDetail={(e) => router.push(`/experts/${e.id}`)} />
+                expertCost={expertCost} onBook={setConfirming} onDetail={(e) => router.push(`/experts/${e.id}`)} />
             )}
           </DialogContent>
         </Dialog>

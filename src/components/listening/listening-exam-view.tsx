@@ -49,14 +49,21 @@ export function ListeningExamView({
     () => stimuli.flatMap((s) => s.questionGroups.flatMap((g) => g.questions.map((q) => q.id))),
     [stimuli]
   );
-  const currentQuestionId = activeQuestionId ?? allQuestionIds[0] ?? null;
-  const currentQuestionIndex = allQuestionIds.indexOf(currentQuestionId ?? -1);
+  const currentQuestionIds = useMemo(
+    () => currentStimulus?.questionGroups.flatMap((group) => group.questions.map((question) => question.id)) ?? [],
+    [currentStimulus]
+  );
+  const currentQuestionId = activeQuestionId ?? currentQuestionIds[0] ?? null;
+  const currentQuestionIndex = currentQuestionIds.indexOf(currentQuestionId ?? -1);
 
-  // Calculate total questions for current stimulus
-  const totalQuestions = useMemo(() => {
-    if (!currentStimulus) return 0;
-    return currentStimulus.questionGroups.reduce((sum, g) => sum + g.questions.length, 0);
-  }, [currentStimulus]);
+  // Build global question position map - maps question ID to its global position (1-based)
+  const globalQuestionPositionById = useMemo(() => {
+    const map: Record<number, number> = {};
+    allQuestionIds.forEach((qId, idx) => {
+      map[qId] = idx + 1;
+    });
+    return map;
+  }, [allQuestionIds]);
 
   const scrollToQuestion = (questionId: number) => {
     const el = document.getElementById(`question-${questionId}`);
@@ -70,21 +77,51 @@ export function ListeningExamView({
     scrollToQuestion(questionId);
   };
 
-  // Prev/Next move by question across all stimuli
+  // Prev/Next move by question within the current stimulus, then across stimuli at boundaries.
   const handlePrev = () => {
-    if (currentQuestionIndex > 0) {
-      moveToQuestion(allQuestionIds[currentQuestionIndex - 1]);
+    if (!currentQuestionIds.length) return;
+    const currentIndex = currentQuestionIds.indexOf(currentQuestionId ?? currentQuestionIds[0]);
+
+    if (currentIndex > 0) {
+      moveToQuestion(currentQuestionIds[currentIndex - 1]);
+      return;
+    }
+
+    if (activeStimulusIdx > 0) {
+      const nextIdx = activeStimulusIdx - 1;
+      const nextQuestionId = stimuli[nextIdx]?.questionGroups.flatMap((group) => group.questions.map((question) => question.id))[0] ?? null;
+      setActiveStimulusIdx(nextIdx);
+      setActiveQuestionId(nextQuestionId);
+      if (nextQuestionId != null) {
+        window.requestAnimationFrame(() => scrollToQuestion(nextQuestionId));
+      }
     }
   };
 
   const handleNext = () => {
-    if (currentQuestionIndex < allQuestionIds.length - 1) {
-      moveToQuestion(allQuestionIds[currentQuestionIndex + 1]);
+    if (!currentQuestionIds.length) return;
+    const currentIndex = currentQuestionIds.indexOf(currentQuestionId ?? currentQuestionIds[0]);
+
+    if (currentIndex >= 0 && currentIndex < currentQuestionIds.length - 1) {
+      moveToQuestion(currentQuestionIds[currentIndex + 1]);
+      return;
+    }
+
+    if (activeStimulusIdx < stimuli.length - 1) {
+      const nextIdx = activeStimulusIdx + 1;
+      const nextQuestionId = stimuli[nextIdx]?.questionGroups.flatMap((group) => group.questions.map((question) => question.id))[0] ?? null;
+      setActiveStimulusIdx(nextIdx);
+      setActiveQuestionId(nextQuestionId);
+      if (nextQuestionId != null) {
+        window.requestAnimationFrame(() => scrollToQuestion(nextQuestionId));
+      }
     }
   };
 
-  const canGoPrev = currentQuestionIndex > 0;
-  const canGoNext = currentQuestionIndex < allQuestionIds.length - 1;
+  const canGoPrev = currentQuestionIndex > 0 || activeStimulusIdx > 0;
+  const canGoNext = currentQuestionIndex >= 0
+    ? currentQuestionIndex < currentQuestionIds.length - 1 || activeStimulusIdx < stimuli.length - 1
+    : activeStimulusIdx < stimuli.length - 1;
 
   const answeredQuestionIds = useMemo(() => {
     const ids = new Set<number>();
@@ -99,9 +136,12 @@ export function ListeningExamView({
     return ids;
   }, [stimuli, answers, textAnswers]);
 
-  // Render question group
+  // Render question group with global question positions
   const renderQuestionGroup = (group: QuestionGroupDetail) => {
     const type = group.questionTypeCode as QuestionTypeCode;
+
+    // Use the global position map directly
+    const questionPositionById = globalQuestionPositionById;
 
     if (GAP_TYPES.includes(type)) {
       return (
@@ -114,10 +154,7 @@ export function ListeningExamView({
           textAnswers={textAnswers}
           onTextAnswer={onTextAnswer}
           examMode={true}
-          questionPositionById={group.questions.reduce((acc, q) => {
-            acc[q.id] = q.position;
-            return acc;
-          }, {} as Record<number, number>)}
+          questionPositionById={questionPositionById}
         />
       );
     }
@@ -131,10 +168,7 @@ export function ListeningExamView({
           submitted={submitted}
           onAnswer={onAnswer}
           examMode
-          questionPositionById={group.questions.reduce((acc, q) => {
-            acc[q.id] = q.position;
-            return acc;
-          }, {} as Record<number, number>)}
+          questionPositionById={questionPositionById}
         />
       );
     }
@@ -148,10 +182,7 @@ export function ListeningExamView({
           submitted={submitted}
           onAnswer={onAnswer}
           examMode
-          questionPositionById={group.questions.reduce((acc, q) => {
-            acc[q.id] = q.position;
-            return acc;
-          }, {} as Record<number, number>)}
+          questionPositionById={questionPositionById}
         />
       );
     }
@@ -162,7 +193,7 @@ export function ListeningExamView({
           <ListeningQuestionMcq
             key={question.id}
             questionId={question.id}
-            position={question.position}
+            position={questionPositionById[question.id]}
             content={question.content}
             options={question.options}
             selectedId={answers[question.id]}
@@ -176,7 +207,7 @@ export function ListeningExamView({
     );
   };
 
-  if (stimuli.length === 0) {
+  if (!currentStimulus) {
     return <div className="p-8 text-center text-gray-500">No questions available</div>;
   }
 
@@ -185,28 +216,27 @@ export function ListeningExamView({
       {/* Header */}
       <ListeningExamHeader isPlaying={isPlaying} elapsedTime={elapsedTime} />
 
-      {/* Audio player (hidden but functional) */}
-      {currentStimulus?.mediaUrl && <ListeningAudioPlayer audioUrl={currentStimulus.mediaUrl} />}
+      {/* Audio player (hidden but functional) - use first stimulus audio */}
+      {stimuli[0]?.mediaUrl && <ListeningAudioPlayer audioUrl={stimuli[0].mediaUrl} />}
 
       {/* Main content - scrollable */}
       <div className="flex-1 overflow-y-auto">
         <div className="px-6 py-6 space-y-6">
-          {/* Part info - scrolls with content */}
-          <ListeningPartInfo
-            section={currentStimulus.section ?? activeStimulusIdx + 1}
-            questionRange={`1-${totalQuestions}`}
-            instruction={currentStimulus.questionGroups[0]?.instruction}
-          />
+          {/* Render current stimulus only */}
+          <div key={currentStimulus.id} className="space-y-4">
+            {currentStimulus.questionGroups.map((group) => {
+              // Get global question range for this group
+              const firstQId = group.questions[0]?.id;
+              const lastQId = group.questions[group.questions.length - 1]?.id;
+              const groupStart = firstQId ? globalQuestionPositionById[firstQId] : 1;
+              const groupEnd = lastQId ? globalQuestionPositionById[lastQId] : group.questions.length;
 
-          {/* Render all question groups from all stimuli */}
-          {stimuli.map((stimulus, sIdx) => (
-            <div key={stimulus.id} className="space-y-4">
-              {stimulus.questionGroups.map((group) => (
+              return (
                 <div key={group.id}>
-                  {/* Group header */}
+                  {/* Group header with global question numbers */}
                   <div className="mb-3">
                     <h3 className="text-base font-semibold text-gray-900">
-                      Questions {group.questions[0]?.position}-{group.questions[group.questions.length - 1]?.position}
+                      Questions {groupStart}-{groupEnd}
                     </h3>
                     {!GAP_TYPES.includes(group.questionTypeCode as QuestionTypeCode) && group.instruction && (
                       <p className="text-sm text-gray-600 mt-1">{group.instruction}</p>
@@ -216,17 +246,17 @@ export function ListeningExamView({
                   {/* Questions */}
                   {renderQuestionGroup(group)}
                 </div>
-              ))}
-            </div>
-          ))}
+              );
+            })}
+          </div>
         </div>
       </div>
 
-      {/* Navigation */}
-      {allQuestionIds.length > 0 && (
+      {/* Navigation with part switching */}
+      {currentStimulus.questionGroups.length > 0 && (
         <ListeningExamQuestionNav
           stimuli={stimuli}
-          questionGroups={currentStimulus?.questionGroups ?? []}
+          questionGroups={currentStimulus.questionGroups}
           answeredQuestions={answeredQuestionIds}
           submitted={submitted}
           onPrev={handlePrev}
@@ -234,7 +264,7 @@ export function ListeningExamView({
           onSubmit={onSubmit}
           canGoPrev={canGoPrev}
           canGoNext={canGoNext}
-          partLabel={`Part ${currentStimulus?.section ?? activeStimulusIdx + 1}`}
+          partLabel={`Part ${currentStimulus.section ?? activeStimulusIdx + 1}`}
           activeQuestionId={currentQuestionId}
           activePartIndex={activeStimulusIdx}
           onNavigate={setActiveQuestionId}

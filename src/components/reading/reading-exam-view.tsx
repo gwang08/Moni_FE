@@ -53,7 +53,7 @@ function ReadingExamHeader({
 }
 
 /** IELTS-style part info banner */
-function ReadingPartInfo({ section, questionCount }: { section: number; questionCount: number }) {
+function ReadingPartInfo({ section, questionCount, questionStart = 1 }: { section: number; questionCount: number; questionStart?: number }) {
   return (
     <div className="shrink-0 border-b border-gray-200 bg-[#f1f2ea] px-4 py-2">
       <div className="flex items-center gap-3">
@@ -61,7 +61,7 @@ function ReadingPartInfo({ section, questionCount }: { section: number; question
           Part {section}
         </div>
         <p className="text-sm text-gray-900">
-          Read the text and answer questions 1-{questionCount}.
+          Read the text and answer questions {questionStart}-{questionCount}.
         </p>
       </div>
     </div>
@@ -89,11 +89,27 @@ export function ReadingExamView({
   const currentQuestionId = activeQuestionId ?? currentQuestionIds[0] ?? null;
   const currentQuestionIndex = currentQuestionIds.indexOf(currentQuestionId ?? -1);
 
+  // Calculate global question offset for current stimulus
+  const globalQuestionOffset = useMemo(() => {
+    let offset = 1;
+    for (let i = 0; i < activeStimulusIdx; i++) {
+      offset += stimuli[i].questionGroups.reduce((sum, g) => sum + g.questions.length, 0);
+    }
+    return offset;
+  }, [stimuli, activeStimulusIdx]);
+
   // Calculate total questions for current stimulus
   const totalQuestions = useMemo(() => {
     if (!currentStimulus) return 0;
     return currentStimulus.questionGroups.reduce((sum, g) => sum + g.questions.length, 0);
   }, [currentStimulus]);
+
+  // Calculate global question range for header
+  const globalQuestionRange = useMemo(() => {
+    if (!currentStimulus) return { start: 1, end: 0 };
+    const end = globalQuestionOffset + totalQuestions - 1;
+    return { start: globalQuestionOffset, end };
+  }, [currentStimulus, globalQuestionOffset, totalQuestions]);
 
   const scrollToQuestion = (questionId: number) => {
     const el = document.getElementById(`question-${questionId}`);
@@ -174,7 +190,11 @@ export function ReadingExamView({
       <ReadingExamHeader elapsedTime={elapsedTime} />
 
       {/* Part info */}
-      <ReadingPartInfo section={currentStimulus.section ?? activeStimulusIdx + 1} questionCount={totalQuestions} />
+      <ReadingPartInfo 
+        section={currentStimulus.section ?? activeStimulusIdx + 1} 
+        questionCount={globalQuestionRange.end}
+        questionStart={globalQuestionRange.start}
+      />
 
       {/* Main content */}
       <div className="flex-1 min-h-0 flex overflow-hidden">
@@ -213,6 +233,7 @@ export function ReadingExamView({
               onAnswer={onAnswer}
               textAnswers={textAnswers}
               onTextAnswer={onTextAnswer}
+              globalQuestionOffset={globalQuestionOffset}
             />
           </div>
         </div>

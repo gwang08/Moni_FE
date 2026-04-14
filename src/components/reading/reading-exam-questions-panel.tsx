@@ -17,6 +17,8 @@ interface Props {
   onTextAnswer?: (questionId: number, text: string) => void;
   selectedPillId?: number | null;
   onPillSelect?: (id: number | null) => void;
+  /** Global question number offset for multi-part tests */
+  globalQuestionOffset?: number;
 }
 
 const GAP_TYPES = ['GAP_FILLING', 'DIAGRAM_LABEL'];
@@ -94,11 +96,12 @@ export function ReadingExamQuestionsPanel({
   onTextAnswer,
   selectedPillId = null,
   onPillSelect,
+  globalQuestionOffset,
 }: Props) {
   const questionMeta = useMemo(() => {
     const questionPositionById: Record<number, number> = {};
     const questionRangeByGroupId: Record<number, { start: number; end: number }> = {};
-    let currentPosition = 1;
+    let currentPosition = globalQuestionOffset ?? 1;
 
     for (const group of stimulus.questionGroups) {
       const start = currentPosition;
@@ -113,7 +116,7 @@ export function ReadingExamQuestionsPanel({
     }
 
     return { questionPositionById, questionRangeByGroupId };
-  }, [stimulus.questionGroups]);
+  }, [stimulus.questionGroups, globalQuestionOffset]);
 
   return (
     <div className="space-y-8 px-5">

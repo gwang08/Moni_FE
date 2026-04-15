@@ -1,12 +1,16 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect, useCallback } from 'react';
+import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
 import { SkeletonTable } from '@/components/ui/skeleton';
 import { AdminHeader } from '@/components/admin/admin-header';
 import { getAdminCreditTransactions } from '@/lib/admin-api';
 import { formatDate } from '@/lib/format-date';
 import { useQuery } from '@tanstack/react-query';
+import { DateRangePicker } from '@/components/ui/date-range-picker';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 
 function formatDateInput(date: Date): string {
   const year = date.getFullYear();
@@ -16,19 +20,25 @@ function formatDateInput(date: Date): string {
 }
 
 const TYPE_CONFIG: Record<string, { label: string; color: string }> = {
-  TOPUP: { label: 'Nap tien', color: 'bg-green-100 text-green-700' },
-  CONSUME: { label: 'Su dung', color: 'bg-orange-100 text-orange-700' },
-  REFUND: { label: 'Refund', color: 'bg-blue-100 text-blue-700' },
+  TOPUP: { label: 'Nạp tiền', color: 'bg-green-100 text-green-700' },
+  CONSUME: { label: 'Thanh toán', color: 'bg-orange-100 text-orange-700' },
+  REFUND: { label: 'Hoàn tiền', color: 'bg-blue-100 text-blue-700' },
 };
 
 const TYPE_FILTERS = [
-  { value: 'ALL', label: 'Tat ca' },
-  { value: 'TOPUP', label: 'Nap tien' },
-  { value: 'CONSUME', label: 'Su dung' },
-  { value: 'REFUND', label: 'Refund' },
+  { value: 'ALL', label: 'Tất cả' },
+  { value: 'TOPUP', label: 'Nạp tiền' },
+  { value: 'CONSUME', label: 'Thanh toán' },
+  { value: 'REFUND', label: 'Hoàn tiền' },
 ];
 
+const PAGE_SIZE = 10;
+
 export default function AdminUserTransactionsPage() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
   const today = useMemo(() => new Date(), []);
   const defaultFromDate = useMemo(() => {
     const date = new Date(today);
@@ -36,142 +46,251 @@ export default function AdminUserTransactionsPage() {
     return date;
   }, [today]);
 
-  const [userId, setUserId] = useState('');
-  const [paymentType, setPaymentType] = useState('ALL');
-  const [fromDate, setFromDate] = useState(formatDateInput(defaultFromDate));
-  const [toDate, setToDate] = useState(formatDateInput(today));
+  const pageFromUrl = parseInt(searchParams.get('page') || '1', 10);
+  const searchFromUrl = searchParams.get('search') || '';
+  const typeFromUrl = searchParams.get('type') || 'ALL';
+  const fromDateFromUrl = searchParams.get('fromDate') || formatDateInput(defaultFromDate);
+  const toDateFromUrl = searchParams.get('toDate') || formatDateInput(today);
 
-  const [appliedUserId, setAppliedUserId] = useState('');
-  const [appliedPaymentType, setAppliedPaymentType] = useState('ALL');
-  const [appliedFromDate, setAppliedFromDate] = useState(formatDateInput(defaultFromDate));
-  const [appliedToDate, setAppliedToDate] = useState(formatDateInput(today));
+  const [page, setPage] = useState(pageFromUrl);
+  const [userId, setUserId] = useState(searchFromUrl);
+  const [debouncedUserId, setDebouncedUserId] = useState(searchFromUrl);
+  const [paymentType, setPaymentType] = useState(typeFromUrl);
+  const [dateRange, setDateRange] = useState({
+    startDate: fromDateFromUrl,
+    endDate: toDateFromUrl,
+  });
+
+  const updateUrl = useCallback(
+    (updates: Record<string, string | number | null>) => {
+      const params = new URLSearchParams(searchParams.toString());
+      Object.entries(updates).forEach(([key, value]) => {
+        if (value === null || value === '' || (key === 'type' && value === 'ALL')) {
+          params.delete(key);
+        } else {
+          params.set(key, String(value));
+        }
+      });
+      router.push(`${pathname}?${params.toString()}`, { scroll: false });
+    },
+    [pathname, router, searchParams]
+  );
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (debouncedUserId !== userId) {
+        setDebouncedUserId(userId);
+        updateUrl({ search: userId || null, page: 1 });
+      }
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [userId, debouncedUserId, updateUrl]);
+
+  useEffect(() => {
+    setPage(pageFromUrl);
+    setUserId(searchFromUrl);
+    setDebouncedUserId(searchFromUrl);
+    setPaymentType(typeFromUrl);
+    setDateRange({
+      startDate: fromDateFromUrl,
+      endDate: toDateFromUrl,
+    });
+  }, [pageFromUrl, searchFromUrl, typeFromUrl, fromDateFromUrl, toDateFromUrl]);
+
+  const handlePageChange = (newPage: number) => {
+    updateUrl({ page: newPage });
+  };
 
   const { data = [], isLoading, error } = useQuery({
-    queryKey: ['admin', 'user-transactions', appliedUserId, appliedPaymentType, appliedFromDate, appliedToDate],
+    queryKey: ['admin', 'user-transactions', debouncedUserId, paymentType, dateRange],
     queryFn: () =>
       getAdminCreditTransactions({
-        userId: appliedUserId || undefined,
-        paymentType: appliedPaymentType,
-        fromDate: appliedFromDate || undefined,
-        toDate: appliedToDate || undefined,
+        userId: debouncedUserId.trim() || undefined,
+        paymentType,
+        fromDate: dateRange.startDate || undefined,
+        toDate: dateRange.endDate || undefined,
       }),
   });
+
+  const totalElements = data.length;
+  const totalPages = Math.ceil(totalElements / PAGE_SIZE);
+  const paginatedData = useMemo(() => {
+    const start = (page - 1) * PAGE_SIZE;
+    return data.slice(start, start + PAGE_SIZE);
+  }, [data, page]);
 
   return (
     <div>
       <AdminHeader title="Giao dịch" />
       <div className="space-y-6 p-6">
-        <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-          <p className="mb-3 text-sm font-semibold text-gray-700">Loc giao dich phuc vu refund</p>
-          <div className="flex flex-wrap items-end gap-3">
-            <label className="flex min-w-64 flex-col gap-1">
-              <span className="text-xs text-gray-500">User ID / Email</span>
-              <input
-                value={userId}
-                onChange={(event) => setUserId(event.target.value)}
-                placeholder="Nhap userId hoac email"
-                className="h-10 rounded-md border border-gray-300 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </label>
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex min-w-[300px] flex-1">
+            <Input
+              value={userId}
+              onChange={(event) => setUserId(event.target.value)}
+              placeholder="Tìm kiếm"
+              className="h-10"
+            />
+          </div>
 
-            <label className="flex flex-col gap-1">
-              <span className="text-xs text-gray-500">Loai giao dich</span>
-              <select
-                value={paymentType}
-                onChange={(event) => setPaymentType(event.target.value)}
-                className="h-10 rounded-md border border-gray-300 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                {TYPE_FILTERS.map((filter) => (
-                  <option key={filter.value} value={filter.value}>
-                    {filter.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <label className="flex flex-col gap-1">
-              <span className="text-xs text-gray-500">Tu ngay</span>
-              <input
-                type="date"
-                value={fromDate}
-                onChange={(event) => setFromDate(event.target.value)}
-                className="h-10 rounded-md border border-gray-300 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </label>
-
-            <label className="flex flex-col gap-1">
-              <span className="text-xs text-gray-500">Den ngay</span>
-              <input
-                type="date"
-                value={toDate}
-                onChange={(event) => setToDate(event.target.value)}
-                className="h-10 rounded-md border border-gray-300 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </label>
-
-            <button
-              type="button"
-              onClick={() => {
-                setAppliedUserId(userId.trim());
-                setAppliedPaymentType(paymentType);
-                setAppliedFromDate(fromDate);
-                setAppliedToDate(toDate);
+          <div className="min-w-[160px]">
+            <select
+              value={paymentType}
+              onChange={(event) => {
+                const val = event.target.value;
+                setPaymentType(val);
+                updateUrl({ type: val, page: 1 });
               }}
-              className="h-10 rounded-md bg-blue-600 px-4 text-sm font-medium text-white transition-colors hover:bg-blue-700"
+              className="h-10 w-full rounded-md border border-gray-300 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              Tim kiem
-            </button>
+              {TYPE_FILTERS.map((filter) => (
+                <option key={filter.value} value={filter.value}>
+                  {filter.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="min-w-[280px]">
+            <DateRangePicker
+              value={dateRange}
+              onChange={(range) => {
+                setDateRange(range);
+                updateUrl({ 
+                  fromDate: range.startDate, 
+                  toDate: range.endDate, 
+                  page: 1 
+                });
+              }}
+            />
           </div>
         </div>
 
         {isLoading ? (
-          <SkeletonTable rows={7} cols={5} />
+          <SkeletonTable rows={PAGE_SIZE} cols={6} />
         ) : error ? (
-          <p className="py-8 text-center text-red-500">Khong the tai danh sach giao dich</p>
+          <p className="py-8 text-center text-red-500">Không thể tải danh sách giao dịch</p>
         ) : (
-          <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-            <table className="w-full text-sm">
-              <thead className="border-b border-gray-200 bg-gray-50">
-                <tr>
-                  <th className="px-4 py-3 text-left font-medium text-gray-600">User</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-600">Dich vu / Goi</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-600">So credit</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-600">Loai</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-600">Thoi gian</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {data.length === 0 ? (
+          <>
+            <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+              <table className="w-full text-sm">
+                <thead className="border-b border-gray-200 bg-gray-50">
                   <tr>
-                    <td colSpan={5} className="py-10 text-center text-gray-400">
-                      Khong co giao dich nao
-                    </td>
+                    <th className="px-4 py-3 text-left font-medium text-gray-600">Người dùng</th>
+                    <th className="px-4 py-3 text-left font-medium text-gray-600">Email</th>
+                    <th className="px-4 py-3 text-left font-medium text-gray-600">Dịch vụ</th>
+                    <th className="px-4 py-3 text-right font-medium text-gray-600">Credit</th>
+                    <th className="px-4 py-3 text-left font-medium text-gray-600">Loại</th>
+                    <th className="px-4 py-3 text-left font-medium text-gray-600">Thời gian</th>
                   </tr>
-                ) : (
-                  data.map((tx) => {
-                    const cfg = TYPE_CONFIG[tx.paymentType] ?? { label: tx.paymentType, color: 'bg-gray-100 text-gray-600' };
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {paginatedData.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="py-10 text-center text-gray-400">
+                        Không có giao dịch nào
+                      </td>
+                    </tr>
+                  ) : (
+                    paginatedData.map((tx) => {
+                      const cfg = TYPE_CONFIG[tx.paymentType] ?? { label: tx.paymentType, color: 'bg-gray-100 text-gray-600' };
+                      
+                      let deltaDisplay = '';
+                      let deltaColor = '';
+                      
+                      if (tx.paymentType === 'CONSUME') {
+                        deltaDisplay = `-${Math.abs(tx.delta)}`;
+                        deltaColor = 'text-orange-600';
+                      } else if (tx.paymentType === 'TOPUP') {
+                        deltaDisplay = `+${tx.delta}`;
+                        deltaColor = 'text-green-600';
+                      } else {
+                        deltaDisplay = tx.delta >= 0 ? `+${tx.delta}` : `${tx.delta}`;
+                        deltaColor = tx.delta >= 0 ? 'text-green-600' : 'text-red-500';
+                      }
+
+                      return (
+                        <tr key={tx.id} className="hover:bg-gray-50">
+                          <td className="px-4 py-3 font-medium text-gray-700">
+                            {tx.userFullName || '-'}
+                          </td>
+                          <td className="px-4 py-3 text-gray-500">
+                            {tx.userEmail || tx.userId}
+                          </td>
+                          <td className="px-4 py-3 text-gray-700">{tx.serviceName || tx.packageName || '-'}</td>
+                          <td className={`px-4 py-3 font-bold tabular-nums text-right ${deltaColor}`}>
+                            {deltaDisplay}
+                          </td>
+                          <td className="px-4 py-3">
+                            <Badge className={cfg.color}>{cfg.label}</Badge>
+                          </td>
+                          <td className="px-4 py-3 text-xs text-gray-500">{formatDate(tx.createdAt)}</td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            {totalPages > 1 && (
+              <div className="flex items-center justify-center gap-1 mt-6">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={page <= 1}
+                  onClick={() => handlePageChange(page - 1)}
+                  className="px-2"
+                >
+                  Trước
+                </Button>
+
+                {(() => {
+                  const pages = [];
+                  if (totalPages <= 7) {
+                    for (let i = 1; i <= totalPages; i++) pages.push(i);
+                  } else {
+                    pages.push(1);
+                    if (page > 4) pages.push('...');
+                    const start = Math.max(2, page - 2);
+                    const end = Math.min(totalPages - 1, page + 2);
+                    for (let i = start; i <= end; i++) {
+                      if (!pages.includes(i)) pages.push(i);
+                    }
+                    if (page < totalPages - 3) pages.push('...');
+                    pages.push(totalPages);
+                  }
+
+                  return pages.map((p, idx) => {
+                    if (p === '...') {
+                      return <span key={`ellipsis-${idx}`} className="px-2 text-gray-400">...</span>;
+                    }
                     return (
-                      <tr key={tx.id} className="hover:bg-gray-50">
-                        <td className="px-4 py-3 text-gray-700">
-                          <p className="font-medium">{tx.userFullName || tx.userEmail || tx.userId}</p>
-                          <p className="text-xs text-gray-500">{tx.userEmail || tx.userId}</p>
-                        </td>
-                        <td className="px-4 py-3 text-gray-700">{tx.serviceName || tx.packageName || '-'}</td>
-                        <td className={`px-4 py-3 font-semibold tabular-nums ${tx.delta >= 0 ? 'text-green-600' : 'text-red-500'}`}>
-                          {tx.delta >= 0 ? '+' : ''}
-                          {tx.delta}
-                        </td>
-                        <td className="px-4 py-3">
-                          <Badge className={cfg.color}>{cfg.label}</Badge>
-                        </td>
-                        <td className="px-4 py-3 text-xs text-gray-500">{formatDate(tx.createdAt)}</td>
-                      </tr>
+                      <Button
+                        key={`page-${p}`}
+                        variant={page === p ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => handlePageChange(p as number)}
+                        className={`w-9 ${page === p ? 'bg-blue-600 hover:bg-blue-700' : ''}`}
+                      >
+                        {p}
+                      </Button>
                     );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
+                  });
+                })()}
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={page >= totalPages}
+                  onClick={() => handlePageChange(page + 1)}
+                  className="px-2"
+                >
+                  Sau
+                </Button>
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>

@@ -1,9 +1,9 @@
-﻿'use client';
+'use client';
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
-import { Plus, ChevronDown, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
+import { Plus, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -14,6 +14,7 @@ import {
   ADMIN_TEST_STATUS_LABELS,
   ADMIN_TEST_TYPE_BADGES,
   ADMIN_TEST_TYPE_LABELS,
+  ADMIN_QUESTION_TYPE_LABELS,
 } from '@/components/admin/admin-test-badges';
 import { getTests } from '@/lib/tests-api';
 import { SkeletonTable } from '@/components/ui/skeleton';
@@ -51,11 +52,13 @@ export default function AdminTestsPage() {
 
   const pageFromUrl = parseInt(searchParams.get('page') || '1', 10);
   const sortFromUrl = searchParams.get('sort') || '';
+  const skillFromUrl = searchParams.get('skill') || 'ALL';
+  const keywordFromUrl = searchParams.get('keyword') || '';
 
   const [page, setPage] = useState(pageFromUrl);
-  const [skillFilter, setSkillFilter] = useState<string>('ALL');
-  const [keywordInput, setKeywordInput] = useState('');
-  const [keyword, setKeyword] = useState('');
+  const [skillFilter, setSkillFilter] = useState<string>(skillFromUrl);
+  const [keywordInput, setKeywordInput] = useState(keywordFromUrl);
+  const [keyword, setKeyword] = useState(keywordFromUrl);
   const [sort, setSort] = useState<SortOption | ''>(sortFromUrl as SortOption | '');
   const [readingPassage, setReadingPassage] = useState('');
   const [readingQuestionType, setReadingQuestionType] = useState('');
@@ -93,12 +96,14 @@ export default function AdminTestsPage() {
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      setKeyword(keywordInput);
-      updateUrl({ keyword: keywordInput || null, page: 1 });
-      setPage(1);
-    }, 300);
+      if (keywordInput !== keyword) {
+        setKeyword(keywordInput);
+        updateUrl({ keyword: keywordInput || null, page: 1 });
+        setPage(1);
+      }
+    }, 500);
     return () => clearTimeout(timer);
-  }, [keywordInput, updateUrl]);
+  }, [keywordInput, updateUrl, keyword]);
 
   useEffect(() => {
     setPage(pageFromUrl);
@@ -108,11 +113,23 @@ export default function AdminTestsPage() {
     setSort(sortFromUrl as SortOption | '');
   }, [sortFromUrl]);
 
+  useEffect(() => {
+    setSkillFilter(skillFromUrl);
+  }, [skillFromUrl]);
+
   const activeSkill = skillFilter === 'ALL' ? undefined : skillFilter;
 
+  const currentSection = useMemo(() => {
+    if (activeSkill === 'READING') return readingPassage ? parseInt(readingPassage) : undefined;
+    if (activeSkill === 'LISTENING') return listeningSection ? parseInt(listeningSection) : undefined;
+    if (activeSkill === 'WRITING') return writingTask ? parseInt(writingTask) : undefined;
+    if (activeSkill === 'SPEAKING') return speakingPart ? parseInt(speakingPart) : undefined;
+    return undefined;
+  }, [activeSkill, readingPassage, listeningSection, writingTask, speakingPart]);
+
   const { data, isLoading, error } = useQuery({
-    queryKey: ['admin', 'tests', page, skillFilter, keyword, sort],
-    queryFn: () => getTests(page, 20, activeSkill, keyword || undefined, undefined, sort || undefined),
+    queryKey: ['admin', 'tests', page, skillFilter, keyword, sort, currentSection],
+    queryFn: () => getTests(page, 20, activeSkill, keyword || undefined, currentSection, sort || undefined),
     staleTime: 30_000,
   });
 
@@ -211,11 +228,11 @@ export default function AdminTestsPage() {
         </div>
 
         <div className="flex flex-col gap-3 mb-4">
-          <div className="flex gap-2 items-center max-w-sm">
+          <div className="flex gap-2 items-center w-full">
             <Input
               value={keywordInput}
               onChange={e => setKeywordInput(e.target.value)}
-              placeholder="Tìm kiếm bài thi..."
+              placeholder="Tìm kiếm"
               className="flex-1"
             />
             <DropdownMenu>
@@ -284,11 +301,11 @@ export default function AdminTestsPage() {
           </div>
 
           {activeSkill === 'READING' && (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+            <div className="flex flex-wrap gap-2">
               <select
                 value={readingPassage}
-                onChange={e => setReadingPassage(e.target.value)}
-                className="h-10 rounded-md border border-gray-200 px-3 text-sm"
+                onChange={e => { setReadingPassage(e.target.value); setPage(1); }}
+                className="h-9 rounded-md border border-gray-200 px-3 text-sm min-w-[120px]"
               >
                 <option value="">Passage (tất cả)</option>
                 {sectionOptions.map(section => (
@@ -299,25 +316,25 @@ export default function AdminTestsPage() {
               </select>
               <select
                 value={readingQuestionType}
-                onChange={e => setReadingQuestionType(e.target.value)}
-                className="h-10 rounded-md border border-gray-200 px-3 text-sm"
+                onChange={e => { setReadingQuestionType(e.target.value); setPage(1); }}
+                className="h-9 rounded-md border border-gray-200 px-3 text-sm min-w-[180px]"
               >
                 <option value="">Dạng câu hỏi (tất cả)</option>
                 {questionTypeOptions.map(qt => (
                   <option key={qt} value={qt}>
-                    {qt}
+                    {ADMIN_QUESTION_TYPE_LABELS[qt] || qt}
                   </option>
                 ))}
               </select>
               <select
                 value={readingTestType}
-                onChange={e => setReadingTestType(e.target.value)}
-                className="h-10 rounded-md border border-gray-200 px-3 text-sm"
+                onChange={e => { setReadingTestType(e.target.value); setPage(1); }}
+                className="h-9 rounded-md border border-gray-200 px-3 text-sm min-w-[140px]"
               >
                 <option value="">Loại đề (tất cả)</option>
                 {testTypeOptions.map(type => (
                   <option key={type} value={type}>
-                    {type}
+                    {ADMIN_TEST_TYPE_LABELS[type] || type}
                   </option>
                 ))}
               </select>
@@ -325,11 +342,11 @@ export default function AdminTestsPage() {
           )}
 
           {activeSkill === 'LISTENING' && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+            <div className="flex flex-wrap gap-2">
               <select
                 value={listeningSection}
-                onChange={e => setListeningSection(e.target.value)}
-                className="h-10 rounded-md border border-gray-200 px-3 text-sm"
+                onChange={e => { setListeningSection(e.target.value); setPage(1); }}
+                className="h-9 rounded-md border border-gray-200 px-3 text-sm min-w-[120px]"
               >
                 <option value="">Section (tất cả)</option>
                 {sectionOptions.map(section => (
@@ -340,13 +357,13 @@ export default function AdminTestsPage() {
               </select>
               <select
                 value={listeningQuestionType}
-                onChange={e => setListeningQuestionType(e.target.value)}
-                className="h-10 rounded-md border border-gray-200 px-3 text-sm"
+                onChange={e => { setListeningQuestionType(e.target.value); setPage(1); }}
+                className="h-9 rounded-md border border-gray-200 px-3 text-sm min-w-[180px]"
               >
                 <option value="">Dạng câu hỏi (tất cả)</option>
                 {questionTypeOptions.map(qt => (
                   <option key={qt} value={qt}>
-                    {qt}
+                    {ADMIN_QUESTION_TYPE_LABELS[qt] || qt}
                   </option>
                 ))}
               </select>
@@ -354,11 +371,11 @@ export default function AdminTestsPage() {
           )}
 
           {activeSkill === 'WRITING' && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+            <div className="flex flex-wrap gap-2">
               <select
                 value={writingTask}
-                onChange={e => setWritingTask(e.target.value)}
-                className="h-10 rounded-md border border-gray-200 px-3 text-sm"
+                onChange={e => { setWritingTask(e.target.value); setPage(1); }}
+                className="h-9 rounded-md border border-gray-200 px-3 text-sm min-w-[120px]"
               >
                 <option value="">Task (tất cả)</option>
                 {sectionOptions.map(section => (
@@ -369,13 +386,13 @@ export default function AdminTestsPage() {
               </select>
               <select
                 value={writingTestType}
-                onChange={e => setWritingTestType(e.target.value)}
-                className="h-10 rounded-md border border-gray-200 px-3 text-sm"
+                onChange={e => { setWritingTestType(e.target.value); setPage(1); }}
+                className="h-9 rounded-md border border-gray-200 px-3 text-sm min-w-[140px]"
               >
                 <option value="">Dạng đề (tất cả)</option>
                 {testTypeOptions.map(type => (
                   <option key={type} value={type}>
-                    {type}
+                    {ADMIN_TEST_TYPE_LABELS[type] || type}
                   </option>
                 ))}
               </select>
@@ -383,11 +400,11 @@ export default function AdminTestsPage() {
           )}
 
           {activeSkill === 'SPEAKING' && (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+            <div className="flex flex-wrap gap-2">
               <select
                 value={speakingPart}
-                onChange={e => setSpeakingPart(e.target.value)}
-                className="h-10 rounded-md border border-gray-200 px-3 text-sm"
+                onChange={e => { setSpeakingPart(e.target.value); setPage(1); }}
+                className="h-9 rounded-md border border-gray-200 px-3 text-sm min-w-[120px]"
               >
                 <option value="">Part (tất cả)</option>
                 {sectionOptions.map(section => (
@@ -398,19 +415,19 @@ export default function AdminTestsPage() {
               </select>
               <Input
                 value={speakingTopic}
-                onChange={e => setSpeakingTopic(e.target.value)}
+                onChange={e => { setSpeakingTopic(e.target.value); setPage(1); }}
                 placeholder="Chủ đề..."
-                className="h-10"
+                className="h-9 text-sm max-w-[200px]"
               />
               <select
                 value={speakingTestType}
-                onChange={e => setSpeakingTestType(e.target.value)}
-                className="h-10 rounded-md border border-gray-200 px-3 text-sm"
+                onChange={e => { setSpeakingTestType(e.target.value); setPage(1); }}
+                className="h-9 rounded-md border border-gray-200 px-3 text-sm min-w-[140px]"
               >
                 <option value="">Dạng đề (tất cả)</option>
                 {testTypeOptions.map(type => (
                   <option key={type} value={type}>
-                    {type}
+                    {ADMIN_TEST_TYPE_LABELS[type] || type}
                   </option>
                 ))}
               </select>
@@ -421,8 +438,12 @@ export default function AdminTestsPage() {
         {error && <p className="text-red-500 mb-4 text-sm">Không thể tải danh sách bài thi</p>}
 
         {!isLoading && (
-          <p className="mb-3 text-sm text-gray-500">
-            Có {totalElements} phần thi
+          <p className="mb-3 text-sm text-gray-500 font-medium">
+            {readingQuestionType || readingTestType || listeningQuestionType || writingTestType || speakingTopic || speakingTestType ? (
+              <span>Tìm thấy {filteredTests.length} kết quả phù hợp (trên trang này)</span>
+            ) : (
+              <span>Có {totalElements} phần thi</span>
+            )}
           </p>
         )}
 
@@ -454,11 +475,11 @@ export default function AdminTestsPage() {
                   </tr>
                 ) : (
                   filteredTests.map(test => (
-                      <tr
-                        key={test.id}
-                        className="cursor-pointer"
-                        onClick={() => router.push(`/admin/tests/${test.id}`)}
-                      >
+                    <tr
+                      key={test.id}
+                      className="cursor-pointer"
+                      onClick={() => router.push(`/admin/tests/${test.id}`)}
+                    >
                       <td className="px-4 py-3 font-medium text-gray-900">
                         <div className="flex items-center gap-1.5">
                           <Link
@@ -510,82 +531,80 @@ export default function AdminTestsPage() {
         )}
 
         {totalPages > 1 && (
-          <div className="flex items-center justify-center gap-2 mt-6">
-            <Button 
-              variant="outline" 
-              size="sm" 
-              disabled={page <= 1} 
+          <div className="flex items-center justify-center gap-1 mt-6">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={page <= 1}
               onClick={() => {
                 const newPage = page - 1;
                 setPage(newPage);
                 updateUrl({ page: newPage });
               }}
+              className="px-2"
             >
               Trước
             </Button>
-            <span className="text-sm text-gray-600">
-              Trang {page} / {totalPages}
-            </span>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              disabled={page >= totalPages} 
+
+            {/* Pagination numbers */}
+            {(() => {
+              const pages = [];
+
+              if (totalPages <= 7) {
+                for (let i = 1; i <= totalPages; i++) pages.push(i);
+              } else {
+                pages.push(1);
+                if (page > 4) pages.push('...');
+
+                const start = Math.max(2, page - 2);
+                const end = Math.min(totalPages - 1, page + 2);
+
+                for (let i = start; i <= end; i++) {
+                  if (!pages.includes(i)) pages.push(i);
+                }
+
+                if (page < totalPages - 3) pages.push('...');
+                pages.push(totalPages);
+              }
+
+              return pages.map((p, idx) => {
+                if (p === '...') {
+                  return (
+                    <span key={`ellipsis-${idx}`} className="px-2 text-gray-400">
+                      ...
+                    </span>
+                  );
+                }
+                return (
+                  <Button
+                    key={`page-${p}`}
+                    variant={page === p ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => {
+                      setPage(p as number);
+                      updateUrl({ page: p as number });
+                    }}
+                    className={`w-9 ${page === p ? 'bg-blue-600 hover:bg-blue-700' : ''}`}
+                  >
+                    {p}
+                  </Button>
+                );
+              });
+            })()}
+
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={page >= totalPages}
               onClick={() => {
                 const newPage = page + 1;
                 setPage(newPage);
                 updateUrl({ page: newPage });
               }}
+              className="px-2"
             >
               Sau
             </Button>
-            {totalPages > 7 && (
-              <>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setPage(1);
-                    updateUrl({ page: 1 });
-                  }}
-                  className={page === 1 ? 'bg-blue-50' : ''}
-                >
-                  1
-                </Button>
-                {page > 4 && <span className="text-gray-400">...</span>}
-                {Array.from({ length: 5 }, (_, i) => {
-                  const pageNum = page - 2 + i;
-                  if (pageNum > 1 && pageNum < totalPages) {
-                    return (
-                      <Button
-                        key={pageNum}
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          setPage(pageNum);
-                          updateUrl({ page: pageNum });
-                        }}
-                        className={pageNum === page ? 'bg-blue-50' : ''}
-                      >
-                        {pageNum}
-                      </Button>
-                    );
-                  }
-                  return null;
-                }).filter(Boolean)}
-                {page < totalPages - 3 && <span className="text-gray-400">...</span>}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setPage(totalPages);
-                    updateUrl({ page: totalPages });
-                  }}
-                  className={page === totalPages ? 'bg-blue-50' : ''}
-                >
-                  {totalPages}
-                </Button>
-              </>
-            )}
           </div>
         )}
       </div>

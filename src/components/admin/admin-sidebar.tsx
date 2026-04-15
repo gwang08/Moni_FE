@@ -14,14 +14,22 @@ import {
   Cog,
   Headphones,
   ReceiptText,
-  BrainCircuit,
   ChevronLeft,
   ChevronRight,
   LogOut,
+  UserCog,
+  KeyRound,
   type LucideIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { useAuthStore } from '@/store/auth-store';
 import { toast } from 'sonner';
 
@@ -55,7 +63,7 @@ const navGroups: NavGroup[] = [
   {
     label: 'AI & Chấm điểm',
     items: [
-      { href: '/admin/prompts', label: 'AI Prompts', icon: BrainCircuit },
+      { href: '/admin/prompts', label: 'AI Prompts', icon: FileText }, // Changed BrainCircuit to FileText as placeholder
       { href: '/admin/scoring-sessions', label: 'Chấm điểm', icon: Headphones },
       { href: '/admin/experts', label: 'Giám khảo', icon: GraduationCap },
     ],
@@ -108,39 +116,49 @@ export function AdminSidebar({ onCollapseChange }: AdminSidebarProps) {
     <aside
       className={cn(
         'fixed left-0 top-0 z-40 flex h-full flex-col transition-all duration-300 ease-in-out',
-        // Deep slate-indigo gradient sidebar
-        'bg-gradient-to-b from-[#1C1F3A] to-[#141728] shadow-2xl',
-        collapsed ? 'w-[68px]' : 'w-[220px]'
+        'bg-[#EDEFF2] border-r border-slate-200 shadow-sm',
+        collapsed ? 'w-[68px]' : 'w-[240px]'
       )}
     >
-      {/* Logo */}
+      {/* Header with Logo and Collapse Button */}
       <div
         className={cn(
-          'flex h-[56px] shrink-0 items-center border-b border-white/8 px-4',
-          collapsed ? 'justify-center' : 'gap-3'
+          'flex h-[72px] shrink-0 items-center justify-between px-4',
+          collapsed && 'justify-center px-0'
         )}
       >
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-400 to-purple-500 shadow-lg shadow-indigo-900/40">
-          <BrainCircuit className="h-4 w-4 text-white" />
-        </div>
-        {!collapsed && (
-          <div className="flex flex-col leading-tight">
-            <span className="text-[14px] font-black tracking-tight text-white">Moni</span>
-            <span className="text-[10px] font-semibold text-indigo-300/70 tracking-widest uppercase">Admin Panel</span>
-          </div>
+        {!collapsed ? (
+          <>
+            <div className="flex items-center gap-3 px-2">
+              <img src="/Moni-logo.png" alt="Moni Logo" className="h-10 w-auto" />
+            </div>
+            <button
+              onClick={handleToggle}
+              className="p-1.5 rounded-lg text-slate-400 hover:bg-white/60 hover:text-slate-900 transition-all shadow-sm border border-transparent hover:border-slate-200"
+            >
+              <ChevronLeft className="h-5 w-5" />
+            </button>
+          </>
+        ) : (
+          <button
+            onClick={handleToggle}
+            className="p-1.5 rounded-lg text-slate-400 hover:bg-white/60 hover:text-slate-900 transition-all"
+          >
+            <ChevronRight className="h-5 w-5" />
+          </button>
         )}
       </div>
 
       {/* Nav groups */}
-      <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-5">
+      <nav className="flex-1 overflow-y-auto px-4 py-6 space-y-6">
         {navGroups.map((group) => (
           <div key={group.label}>
             {!collapsed && (
-              <p className="mb-1.5 px-2 text-[9.5px] font-bold uppercase tracking-widest text-white/25">
+              <p className="mb-3 px-2 text-[11px] font-bold uppercase tracking-wider text-slate-400">
                 {group.label}
               </p>
             )}
-            <div className="space-y-0.5">
+            <div className="space-y-1">
               {group.items.map(({ href, label, icon: Icon, exact }) => {
                 const active = isActive(href, exact);
                 return (
@@ -149,26 +167,21 @@ export function AdminSidebar({ onCollapseChange }: AdminSidebarProps) {
                     href={href}
                     title={collapsed ? label : undefined}
                     className={cn(
-                      'group flex items-center gap-3 rounded-xl px-2.5 py-2 text-[13px] font-medium transition-all duration-150',
+                      'group flex items-center gap-3 rounded-xl px-3 py-2.5 text-[14px] transition-all duration-200',
                       active
-                        ? 'bg-indigo-500/20 text-indigo-200 ring-1 ring-indigo-500/30'
-                        : 'text-white/50 hover:bg-white/6 hover:text-white/85',
+                        ? 'bg-white text-slate-900 font-bold shadow-sm ring-1 ring-slate-200'
+                        : 'text-slate-600 hover:bg-white/60 hover:text-slate-900 font-medium',
                       collapsed && 'justify-center px-2'
                     )}
                   >
                     <Icon
                       className={cn(
-                        'h-[17px] w-[17px] shrink-0 transition-colors',
-                        active ? 'text-indigo-300' : 'text-white/40 group-hover:text-white/70'
+                        'h-[18px] w-[18px] shrink-0 transition-colors',
+                        active ? 'text-blue-600' : 'text-slate-400 group-hover:text-slate-600'
                       )}
                     />
                     {!collapsed && (
-                      <>
-                        <span className="truncate">{label}</span>
-                        {active && (
-                          <span className="ml-auto h-1.5 w-1.5 rounded-full bg-indigo-400/80" />
-                        )}
-                      </>
+                      <span className="truncate">{label}</span>
                     )}
                   </Link>
                 );
@@ -178,59 +191,56 @@ export function AdminSidebar({ onCollapseChange }: AdminSidebarProps) {
         ))}
       </nav>
 
-      {/* User profile + collapse toggle */}
-      <div className="shrink-0 border-t border-white/8 p-3 space-y-1">
-        {/* Profile */}
+      {/* User profile */}
+      <div className="shrink-0 border-t border-slate-200 p-4">
         {user && (
-          <div
-            className={cn(
-              'flex items-center gap-2.5 rounded-xl px-2.5 py-2.5 bg-white/5',
-              collapsed ? 'justify-center' : ''
-            )}
-          >
-            <Avatar className="h-7 w-7 shrink-0 ring-2 ring-indigo-400/30">
-              <AvatarImage src={user.avatarUrl || undefined} alt={user.fullName || 'Admin'} />
-              <AvatarFallback className="bg-gradient-to-br from-indigo-400 to-purple-500 text-[10px] font-black text-white">
-                {getInitials(user.fullName || user.email)}
-              </AvatarFallback>
-            </Avatar>
-            {!collapsed && (
-              <div className="flex-1 min-w-0">
-                <p className="text-[12px] font-semibold text-white/85 truncate">
-                  {user.fullName || 'Admin'}
-                </p>
-                <p className="text-[10px] text-white/35 truncate">{user.email || 'admin'}</p>
-              </div>
-            )}
-            {!collapsed && (
-              <button
-                onClick={handleLogout}
-                title="Đăng xuất"
-                className="shrink-0 p-1 rounded-lg text-white/30 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <div
+                className={cn(
+                  'flex items-center gap-3 rounded-xl px-2 py-2 transition-all cursor-pointer hover:bg-white/60',
+                  collapsed ? 'justify-center' : ''
+                )}
               >
-                <LogOut className="h-3.5 w-3.5" />
-              </button>
-            )}
-          </div>
+                <Avatar className="h-8 w-8 shrink-0 ring-2 ring-white shadow-sm">
+                  <AvatarImage src={user.avatarUrl || undefined} alt={user.fullName || 'Admin'} />
+                  <AvatarFallback className="bg-blue-600 text-[10px] font-bold text-white">
+                    {getInitials(user.fullName || user.email)}
+                  </AvatarFallback>
+                </Avatar>
+                {!collapsed && (
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[13px] font-bold text-slate-900 truncate">
+                      {user.fullName || 'Admin'}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              align={collapsed ? 'center' : 'end'}
+              side={collapsed ? 'right' : 'top'}
+              className="w-56 mb-2 ml-2 shadow-xl border-slate-200"
+            >
+              <div className="px-2 py-1.5 text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                Tài khoản
+              </div>
+              <DropdownMenuItem onClick={() => router.push('/admin/profile')} className="cursor-pointer">
+                <UserCog className="mr-2 h-4 w-4 text-slate-500" />
+                <span>Cài đặt tài khoản</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => router.push('/admin/profile/change-password')} className="cursor-pointer">
+                <KeyRound className="mr-2 h-4 w-4 text-slate-500" />
+                <span>Đổi mật khẩu</span>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-red-600 focus:text-red-600 focus:bg-red-50">
+                <LogOut className="mr-2 h-4 w-4" />
+                <span>Đăng xuất</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         )}
-
-        {/* Collapse button */}
-        <button
-          onClick={handleToggle}
-          className={cn(
-            'flex w-full items-center gap-2 rounded-xl px-2.5 py-2 text-[12px] font-medium text-white/30 transition-all hover:bg-white/6 hover:text-white/60',
-            collapsed && 'justify-center'
-          )}
-        >
-          {collapsed ? (
-            <ChevronRight className="h-4 w-4" />
-          ) : (
-            <>
-              <ChevronLeft className="h-4 w-4" />
-              <span>Thu gọn</span>
-            </>
-          )}
-        </button>
       </div>
     </aside>
   );

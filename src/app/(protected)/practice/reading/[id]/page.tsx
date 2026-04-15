@@ -83,6 +83,7 @@ export default function ReadingExercisePage({ params }: Props) {
   });
   const [selectedPillId, setSelectedPillId] = useState<number | null>(null);
   const testDuration = toMinutes(testDetail?.duration);
+  const highlightsKey = `reading-highlights-${id}`;
 
   const elapsedTimer = useElapsedTimer(submitted || isExamMode);
   const countdownTimer = useCountdownTimer(
@@ -102,8 +103,12 @@ export default function ReadingExercisePage({ params }: Props) {
   useEffect(() => {
     if (modeParam === 'exam' || modeParam === 'practice') setMode(modeParam);
     setActiveTool(null);
-    clearAll();
-  }, [modeParam, setMode, setActiveTool, clearAll]);
+    // Only clear highlights if explicitly starting fresh (not resuming)
+    if (!examSession.isResuming) {
+      clearAll();
+      sessionStorage.removeItem(highlightsKey);
+    }
+  }, [modeParam, setMode, setActiveTool, clearAll, examSession.isResuming, highlightsKey]);
 
   // Restore answers from server on resume (exam mode)
   useEffect(() => {
@@ -114,11 +119,37 @@ export default function ReadingExercisePage({ params }: Props) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [examSession.isResuming, examSession.session?.savedAnswers?.length]);
 
+  // Restore highlights from sessionStorage on mount/resume
+  useEffect(() => {
+    // Don't restore highlights when starting a new exam (only when resuming)
+    if (isExamMode && !examSession.isResuming) return;
+    
+    try {
+      const saved = sessionStorage.getItem(highlightsKey);
+      if (saved) {
+        const parsedHighlights = JSON.parse(saved);
+        if (Array.isArray(parsedHighlights) && parsedHighlights.length > 0) {
+          // Restore highlights to store (batch restore)
+          parsedHighlights.forEach((hl: any) => {
+            useReadingStore.getState().addHighlight(hl);
+          });
+        }
+      }
+    } catch { /* ignore parse errors */ }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [examSession.isResuming, highlightsKey, isExamMode]);
+
   // Sync answers to exam hook refs (for auto-save)
   useEffect(() => {
     if (!isExamMode) return;
     examSession.syncAnswers(answers, textAnswers);
   }, [answers, textAnswers, isExamMode, examSession]);
+
+  // Auto-save highlights to sessionStorage
+  const highlights = useReadingStore((state) => state.highlights);
+  useEffect(() => {
+    sessionStorage.setItem(highlightsKey, JSON.stringify(highlights));
+  }, [highlights, highlightsKey]);
 
   // Auto-save progress to sessionStorage (practice mode only)
   useEffect(() => {

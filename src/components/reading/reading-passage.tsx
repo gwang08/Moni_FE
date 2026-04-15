@@ -133,7 +133,7 @@ export const ReadingPassage = forwardRef<HTMLDivElement, Props>(function Reading
 
     if (!activeTool) {
       const wordCount = text.split(/\s+/).filter(Boolean).length;
-      if (wordCount === 1 && text.length >= 2) {
+      if (wordCount === 1 && text.length >= 2 && !examMode) {
         handleWordSelection(e);
         setTranslateButton(null);
       } else if (wordCount >= 2) {
@@ -178,7 +178,7 @@ export const ReadingPassage = forwardRef<HTMLDivElement, Props>(function Reading
   }, []);
 
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
-    if (!interactive || activeTool !== 'vocab') return;
+    if (!interactive || activeTool !== 'vocab' || examMode) return;
     clearHoveredWord();
     const result = getWordAtPoint(e.clientX, e.clientY);
     if (!result) return;
@@ -193,7 +193,7 @@ export const ReadingPassage = forwardRef<HTMLDivElement, Props>(function Reading
       result.range.surroundContents(tempSpan);
       hoveredWordRef.current.el = tempSpan;
     } catch { /* ignore */ }
-  }, [activeTool, clearHoveredWord, interactive]);
+  }, [activeTool, clearHoveredWord, interactive, examMode]);
 
   const handleMouseOver = (e: React.MouseEvent) => {
     if (!interactive) return;
@@ -226,7 +226,7 @@ export const ReadingPassage = forwardRef<HTMLDivElement, Props>(function Reading
       }
     }
 
-    if (activeTool === 'vocab') {
+    if (activeTool === 'vocab' && !examMode) {
       clearHoveredWord();
       const result = getWordAtPoint(e.clientX, e.clientY);
       const editorEl = passageRef.current?.querySelector('.tiptap');
@@ -281,11 +281,11 @@ export const ReadingPassage = forwardRef<HTMLDivElement, Props>(function Reading
         <EditorContent editor={editor} />
       </div>
 
-      {interactive && vocabPopup && (
+      {interactive && !examMode && vocabPopup && (
         <VocabPopup word={vocabPopup.word} sentence={vocabPopup.sentence} position={{ x: vocabPopup.x, y: vocabPopup.y }} onClose={() => setVocabPopup(null)} />
       )}
 
-      {interactive && selectedWord && wordSelPos && !activeTool && (
+      {interactive && !examMode && selectedWord && wordSelPos && !activeTool && (
         <ReadingWordLookupPopup word={selectedWord} position={wordSelPos} onClose={closeWordLookup} />
       )}
 

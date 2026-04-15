@@ -6,6 +6,7 @@ import { ReadingExamQuestionsPanel } from '@/components/reading/reading-exam-que
 import { ReadingExamQuestionNav } from '@/components/reading/reading-exam-question-nav';
 import { ReadingPassage } from '@/components/reading/reading-passage';
 import { ReadingPassageWithMatching } from '@/components/reading/reading-passage-with-matching';
+import { ReadingToolbar } from '@/components/reading/reading-toolbar';
 import type { StimulusDetail } from '@/types/test.types';
 
 interface Props {
@@ -201,9 +202,12 @@ export function ReadingExamView({
       {/* Header */}
       <ReadingExamHeader elapsedTime={elapsedTime} />
 
+      {/* Toolbar for highlight/note tools (no vocab in exam mode) */}
+      <ReadingToolbar showVocab={false} />
+
       {/* Part info */}
-      <ReadingPartInfo 
-        section={currentStimulus.section ?? activeStimulusIdx + 1} 
+      <ReadingPartInfo
+        section={currentStimulus.section ?? activeStimulusIdx + 1}
         questionCount={globalQuestionRange.end}
         questionStart={globalQuestionRange.start}
       />
@@ -230,7 +234,7 @@ export function ReadingExamView({
                   questionPositionById={questionPositionById}
                 />
               ) : (
-                <ReadingPassage content={currentStimulus.content} interactive={false} examMode />
+                <ReadingPassage content={currentStimulus.content} interactive examMode />
               );
             })()}
           </div>

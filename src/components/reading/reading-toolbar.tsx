@@ -5,7 +5,11 @@ import { useReadingStore } from '@/store/reading-store';
 import { Highlighter, StickyNote, BookOpen } from 'lucide-react';
 import { useEffect } from 'react';
 
-export function ReadingToolbar() {
+interface Props {
+  showVocab?: boolean;
+}
+
+export function ReadingToolbar({ showVocab = true }: Props) {
   const { activeTool, selectedColor, setActiveTool, setColor } = useReadingStore();
 
   useEffect(() => {
@@ -18,14 +22,14 @@ export function ReadingToolbar() {
       if (e.key === 'n' || e.key === 'N') {
         setActiveTool(activeTool === 'note' ? null : 'note');
       }
-      if (e.key === 't' || e.key === 'T') {
+      if (e.key === 't' || e.key === 'T' && showVocab) {
         setActiveTool(activeTool === 'vocab' ? null : 'vocab');
       }
     };
 
     window.addEventListener('keydown', handleKeyPress);
     return () => window.removeEventListener('keydown', handleKeyPress);
-  }, [activeTool, setActiveTool]);
+  }, [activeTool, setActiveTool, showVocab]);
 
   return (
     <div className="flex items-center gap-2 p-4 bg-white border-b flex-wrap">
@@ -50,15 +54,17 @@ export function ReadingToolbar() {
         Ghi chú (N)
       </Button>
 
-      <Button
-        variant={activeTool === 'vocab' ? 'default' : 'outline'}
-        size="sm"
-        onClick={() => setActiveTool(activeTool === 'vocab' ? null : 'vocab')}
-        className="gap-2"
-      >
-        <BookOpen className="h-4 w-4" />
-        Từ vựng (T)
-      </Button>
+      {showVocab && (
+        <Button
+          variant={activeTool === 'vocab' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => setActiveTool(activeTool === 'vocab' ? null : 'vocab')}
+          className="gap-2"
+        >
+          <BookOpen className="h-4 w-4" />
+          Từ vựng (T)
+        </Button>
+      )}
 
       {/* Color picker for highlight tool */}
       {activeTool === 'highlight' && (

@@ -18,6 +18,7 @@ export default function AdminTagsPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingTag, setEditingTag] = useState<TagResponse | undefined>();
   const [confirmId, setConfirmId] = useState<string | null>(null);
+  const [filterType, setFilterType] = useState<string>('ALL');
 
   const { data: tags = [], isLoading, error } = useQuery({
     queryKey: ['admin', 'tags'],
@@ -48,7 +49,19 @@ export default function AdminTagsPage() {
       <div className="p-6">
         <div className="flex justify-between items-center mb-6">
           <p className="text-sm text-gray-500">Quản lý các tags phân loại bài thi</p>
-          <Button onClick={openCreate}><Plus className="h-4 w-4" /> Tạo tag</Button>
+          <div className="flex gap-4 items-center">
+            <select
+              className="text-sm border-gray-200 border rounded-md px-3 py-2 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={filterType}
+              onChange={(e) => setFilterType(e.target.value)}
+            >
+              <option value="ALL">Tất cả các loại</option>
+              {Array.from(new Set(tags.map(t => t.type))).map(type => (
+                <option key={type} value={type}>{type}</option>
+              ))}
+            </select>
+            <Button onClick={openCreate}><Plus className="h-4 w-4" /> Tạo tag</Button>
+          </div>
         </div>
 
         {error && <p className="text-red-500 mb-4 text-sm">Không thể tải danh sách tags</p>}
@@ -67,9 +80,9 @@ export default function AdminTagsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {tags.length === 0 ? (
-                  <tr><td colSpan={4} className="text-center py-8 text-gray-400">Chưa có tag nào</td></tr>
-                ) : tags.map(tag => (
+                {(filterType === 'ALL' ? tags : tags.filter(t => t.type === filterType)).length === 0 ? (
+                  <tr><td colSpan={4} className="text-center py-8 text-gray-400">Chưa có tag nào phù hợp</td></tr>
+                ) : (filterType === 'ALL' ? tags : tags.filter(t => t.type === filterType)).map(tag => (
                   <tr key={tag.id} className="hover:bg-gray-50">
                     <td className="px-4 py-3 font-medium text-gray-800">{tag.name}</td>
                     <td className="px-4 py-3"><Badge variant="outline">{tag.type}</Badge></td>

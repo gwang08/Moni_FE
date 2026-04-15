@@ -39,9 +39,9 @@ export function Navbar() {
           <Image
             src="/Moni-logo.png"
             alt="Moni"
-            width={100}
-            height={40}
-            className="object-contain rounded-lg"
+            width={120}
+            height={48}
+            className="object-contain"
           />
         </Link>
 

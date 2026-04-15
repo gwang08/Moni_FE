@@ -12,8 +12,8 @@ export function Footer() {
               <Image
                 src="/Moni-logo.png"
                 alt="Moni"
-                width={80}
-                height={24}
+                width={100}
+                height={32}
                 className="object-contain"
               />
             </div>

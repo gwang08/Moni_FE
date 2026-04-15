@@ -8,6 +8,7 @@ import type {
 } from '@/types/auth.types';
 import { apiClient } from '@/lib/api-client';
 import { getRoleFromToken, isTokenExpired } from '@/lib/jwt-utils';
+import { getQueryClient } from '@/components/providers/query-provider';
 
 export const useAuthStore = create<AuthStore>()(
   persist(
@@ -91,10 +92,18 @@ export const useAuthStore = create<AuthStore>()(
           user: null,
           isAuthenticated: false,
         });
-        // Clear other persisted stores to prevent cross-user data leaks
+
+        // Clear React Query cache to prevent cross-user data leaks
+        const queryClient = getQueryClient();
+        if (queryClient) {
+          queryClient.clear();
+        }
+
+        // Clear other persisted stores and session data
         if (typeof window !== 'undefined') {
           localStorage.removeItem('moni-user-storage');
           localStorage.removeItem('practice-progress');
+          sessionStorage.clear();
         }
       },
 

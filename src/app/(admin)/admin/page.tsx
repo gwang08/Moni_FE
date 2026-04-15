@@ -18,6 +18,10 @@ import {
   Area,
   BarChart,
   Bar,
+  PieChart,
+  Pie,
+  Cell,
+  Legend,
 } from 'recharts';
 
 interface DateRange {
@@ -95,7 +99,7 @@ export default function AdminDashboardPage() {
     const startDate = new Date(revenueRange.startDate);
     const endDate = new Date(revenueRange.endDate);
     const allDates: string[] = [];
-    
+
     const currentDate = new Date(startDate);
     while (currentDate <= endDate) {
       const dateStr = currentDate.toISOString().split('T')[0];
@@ -109,6 +113,34 @@ export default function AdminDashboardPage() {
       revenue: revenueMap.get(date) ?? 0,
     }));
   }, [currentData, revenueRange]);
+
+  // Doughnut chart data: Expert vs AI revenue (credit-based)
+  const doughnutData = useMemo(() => {
+    if (!currentData) return [];
+    const expertTotal = (currentData.expertWritingCredits ?? 0) + (currentData.expertSpeakingCredits ?? 0);
+    // Use totalAiCredits if available, otherwise fall back to job count as a proxy
+    const aiCredits = (currentData as any).totalAiCredits ?? 0;
+    const aiTotal = aiCredits || ((currentData.aiWritingJobs ?? 0) + (currentData.aiSpeakingJobs ?? 0));
+    const total = expertTotal + aiTotal;
+    if (total === 0) return [];
+    return [
+      { name: 'Expert', value: expertTotal, percent: ((expertTotal / total) * 100).toFixed(1) },
+      { name: 'AI', value: aiTotal, percent: ((aiTotal / total) * 100).toFixed(1) },
+    ];
+  }, [currentData]);
+
+  // Stacked bar chart data for scoring sessions
+  const stackedBarData = useMemo(() => {
+    if (!currentData?.dailyExpertJobs) return [];
+    return currentData.dailyExpertJobs.map(d => ({
+      date: new Date(d.date).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' }),
+      fullDate: d.date,
+      expWriting: d.writingJobs,
+      expSpeaking: d.speakingJobs,
+      aiWriting: d.aiWritingJobs ?? 0,
+      aiSpeaking: d.aiSpeakingJobs ?? 0,
+    }));
+  }, [currentData]);
 
   const isLoading = isCurrentLoading;
   const hasError = Boolean(currentError);
@@ -267,49 +299,90 @@ export default function AdminDashboardPage() {
             <p className="py-12 text-center text-red-500">Không thể tải dữ liệu dashboard</p>
           ) : (
             <div className="space-y-4">
-              {/* Summary Stats */}
-              <div className="grid grid-cols-2 gap-4 md:grid-cols-4 lg:grid-cols-6">
-                <div className="rounded-lg bg-orange-50 p-4">
-                  <p className="text-sm font-medium text-gray-600">Expert Writing</p>
-                  <p className="text-2xl font-bold text-orange-600">{currentData?.expertWritingJobs ?? 0}</p>
+              {/* Summary Stats + Doughnut Chart */}
+              <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+                {/* 4 Metric Cards */}
+                <div className="grid grid-cols-2 gap-4 lg:col-span-2">
+                  <div className="rounded-lg bg-orange-50 p-4">
+                    <p className="text-sm font-medium text-gray-600">Expert Writing</p>
+                    <p className="text-2xl font-bold text-orange-600">{currentData?.expertWritingJobs ?? 0}</p>
+                  </div>
+                  <div className="rounded-lg bg-pink-50 p-4">
+                    <p className="text-sm font-medium text-gray-600">Expert Speaking</p>
+                    <p className="text-2xl font-bold text-pink-600">{currentData?.expertSpeakingJobs ?? 0}</p>
+                  </div>
+                  <div className="rounded-lg bg-blue-50 p-4">
+                    <p className="text-sm font-medium text-gray-600 flex items-center gap-1"><Bot className="h-3 w-3"/> AI Writing</p>
+                    <p className="text-2xl font-bold text-blue-600">{currentData?.aiWritingJobs ?? 0}</p>
+                  </div>
+                  <div className="rounded-lg bg-indigo-50 p-4">
+                    <p className="text-sm font-medium text-gray-600 flex items-center gap-1"><Bot className="h-3 w-3"/> AI Speaking</p>
+                    <p className="text-2xl font-bold text-indigo-600">{currentData?.aiSpeakingJobs ?? 0}</p>
+                  </div>
                 </div>
-                <div className="rounded-lg bg-pink-50 p-4">
-                  <p className="text-sm font-medium text-gray-600">Expert Speaking</p>
-                  <p className="text-2xl font-bold text-pink-600">{currentData?.expertSpeakingJobs ?? 0}</p>
-                </div>
-                <div className="rounded-lg bg-blue-50 p-4">
-                  <p className="text-sm font-medium text-gray-600 flex items-center gap-1"><Bot className="h-3 w-3"/> AI Writing</p>
-                  <p className="text-2xl font-bold text-blue-600">{currentData?.aiWritingJobs ?? 0}</p>
-                </div>
-                <div className="rounded-lg bg-indigo-50 p-4">
-                  <p className="text-sm font-medium text-gray-600 flex items-center gap-1"><Bot className="h-3 w-3"/> AI Speaking</p>
-                  <p className="text-2xl font-bold text-indigo-600">{currentData?.aiSpeakingJobs ?? 0}</p>
-                </div>
-                <div className="rounded-lg border-l-4 border-blue-500 bg-gray-50 p-4">
-                  <p className="text-sm font-medium text-gray-600">Tổng bài chấm</p>
-                  <p className="text-2xl font-bold text-gray-900">{(currentData?.totalExpertJobs ?? 0) + (currentData?.totalAiJobs ?? 0)}</p>
-                </div>
-                <div className="rounded-lg bg-purple-50 p-4">
-                  <p className="text-sm font-medium text-gray-600">Credit đã chi trả</p>
-                  <p className="text-2xl font-bold text-purple-600">{currentData?.totalExpertCredits ?? 0}</p>
+
+                {/* Doughnut Chart: Expert vs AI Revenue */}
+                <div className="flex flex-col items-center justify-center rounded-lg bg-gray-50 p-4">
+                  <p className="mb-2 text-sm font-semibold text-gray-700">Tỉ trọng doanh thu credit</p>
+                  {doughnutData.length > 0 ? (
+                    <div className="flex w-full flex-col items-center gap-2">
+                      <ResponsiveContainer width="100%" height={160}>
+                        <PieChart>
+                          <Pie
+                            data={doughnutData}
+                            dataKey="value"
+                            nameKey="name"
+                            cx="50%"
+                            cy="50%"
+                            innerRadius={45}
+                            outerRadius={70}
+                            paddingAngle={4}
+                            cornerRadius={4}
+                          >
+                            {doughnutData.map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={index === 0 ? '#f97316' : '#3b82f6'} />
+                            ))}
+                          </Pie>
+                          <Tooltip
+                            contentStyle={{
+                              backgroundColor: 'white',
+                              border: '1px solid #e5e7eb',
+                              borderRadius: '8px',
+                              boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
+                            }}
+                            formatter={(value: number, name: string, props: any) => {
+                              const pct = props.payload.percent;
+                              return [`${value}`, `${name} (${pct}%)`];
+                            }}
+                          />
+                        </PieChart>
+                      </ResponsiveContainer>
+                      <div className="flex gap-4 text-xs font-medium">
+                        <span className="flex items-center gap-1">
+                          <span className="inline-block h-3 w-3 rounded-sm bg-orange-500" />
+                          Expert {doughnutData[0]?.percent}%
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <span className="inline-block h-3 w-3 rounded-sm bg-blue-500" />
+                          AI {doughnutData[1]?.percent}%
+                        </span>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="py-8 text-center text-sm text-gray-400">Không có dữ liệu</p>
+                  )}
                 </div>
               </div>
 
-              {/* Expert Jobs Chart */}
-              {currentData?.dailyExpertJobs && currentData.dailyExpertJobs.length > 0 && (
+              {/* Expert Jobs Chart - Stacked Column */}
+              {stackedBarData.length > 0 && (
                 <div className="mt-6">
                   <h4 className="mb-3 text-sm font-medium text-gray-700">
                     Biểu đồ bài chấm theo ngày
                   </h4>
                   <div className="h-[300px]">
                     <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={currentData.dailyExpertJobs.map(d => ({
-                        date: new Date(d.date).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' }),
-                        expWriting: d.writingJobs,
-                        expSpeaking: d.speakingJobs,
-                        aiWriting: d.aiWritingJobs ?? 0,
-                        aiSpeaking: d.aiSpeakingJobs ?? 0,
-                      }))} margin={{ top: 20, right: 30, left: 0, bottom: 0 }}>
+                      <BarChart data={stackedBarData} margin={{ top: 20, right: 30, left: 0, bottom: 0 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
                         <XAxis
                           dataKey="date"
@@ -324,28 +397,40 @@ export default function AdminDashboardPage() {
                           axisLine={false}
                           tickMargin={10}
                         />
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: 'white',
-                        border: '1px solid #e5e7eb',
-                        borderRadius: '8px',
-                        boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
-                      }}
-                      formatter={(value: number, name: string) => {
-                        const labels: Record<string, string> = {
-                          expWriting: 'Expert Writing',
-                          expSpeaking: 'Expert Speaking',
-                          aiWriting: 'AI Writing',
-                          aiSpeaking: 'AI Speaking',
-                        };
-                        return [`${value} bài`, labels[name] || name];
-                      }}
-                      labelFormatter={(label) => `Ngày: ${label}`}
-                    />
-                        <Bar dataKey="expWriting" stackId="exp" name="Expert Writing" fill="#f97316" radius={[4, 4, 0, 0]} />
-                        <Bar dataKey="expSpeaking" stackId="exp" name="Expert Speaking" fill="#ec4899" radius={[4, 4, 0, 0]} />
-                        <Bar dataKey="aiWriting" stackId="ai" name="AI Writing" fill="#3b82f6" radius={[4, 4, 0, 0]} />
-                        <Bar dataKey="aiSpeaking" stackId="ai" name="AI Speaking" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
+                        <Tooltip
+                          contentStyle={{
+                            backgroundColor: 'white',
+                            border: '1px solid #e5e7eb',
+                            borderRadius: '8px',
+                            boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
+                          }}
+                          formatter={(value: number, name: string) => {
+                            const labels: Record<string, string> = {
+                              expWriting: 'Expert Writing',
+                              expSpeaking: 'Expert Speaking',
+                              aiWriting: 'AI Writing',
+                              aiSpeaking: 'AI Speaking',
+                            };
+                            return [`${value} bài`, labels[name] || name];
+                          }}
+                          labelFormatter={(label) => `Ngày: ${label}`}
+                        />
+                        <Legend
+                          formatter={(value: string) => {
+                            const labels: Record<string, string> = {
+                              expWriting: 'Expert Writing',
+                              expSpeaking: 'Expert Speaking',
+                              aiWriting: 'AI Writing',
+                              aiSpeaking: 'AI Speaking',
+                            };
+                            return labels[value] || value;
+                          }}
+                        />
+                        {/* All 4 series stacked on a single stackId */}
+                        <Bar dataKey="expWriting" stackId="all" name="Expert Writing" fill="#f97316" radius={[0, 0, 0, 0]} />
+                        <Bar dataKey="expSpeaking" stackId="all" name="Expert Speaking" fill="#ec4899" radius={[0, 0, 0, 0]} />
+                        <Bar dataKey="aiWriting" stackId="all" name="AI Writing" fill="#3b82f6" radius={[0, 0, 0, 0]} />
+                        <Bar dataKey="aiSpeaking" stackId="all" name="AI Speaking" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>

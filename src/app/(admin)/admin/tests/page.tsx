@@ -1,9 +1,9 @@
 ﻿'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { Plus } from 'lucide-react';
+import { useRouter, useSearchParams, usePathname } from 'next/navigation';
+import { Plus, ChevronDown, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -17,6 +17,12 @@ import {
 } from '@/components/admin/admin-test-badges';
 import { getTests } from '@/lib/tests-api';
 import { SkeletonTable } from '@/components/ui/skeleton';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 const SKILLS = ['ALL', 'READING', 'LISTENING', 'WRITING', 'SPEAKING'] as const;
 const SKILL_LABELS: Record<string, string> = {
@@ -36,12 +42,21 @@ function getTestSectionLabel(test: { skill: string; section?: number | null }) {
   return String(test.section);
 }
 
+type SortOption = 'title-asc' | 'title-desc' | 'created-asc' | 'created-desc' | 'availability-asc' | 'availability-desc';
+
 export default function AdminTestsPage() {
   const router = useRouter();
-  const [page, setPage] = useState(1);
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  const pageFromUrl = parseInt(searchParams.get('page') || '1', 10);
+  const sortFromUrl = searchParams.get('sort') || '';
+
+  const [page, setPage] = useState(pageFromUrl);
   const [skillFilter, setSkillFilter] = useState<string>('ALL');
   const [keywordInput, setKeywordInput] = useState('');
   const [keyword, setKeyword] = useState('');
+  const [sort, setSort] = useState<SortOption | ''>(sortFromUrl as SortOption | '');
   const [readingPassage, setReadingPassage] = useState('');
   const [readingQuestionType, setReadingQuestionType] = useState('');
   const [readingTestType, setReadingTestType] = useState('');
@@ -53,19 +68,51 @@ export default function AdminTestsPage() {
   const [speakingTopic, setSpeakingTopic] = useState('');
   const [speakingTestType, setSpeakingTestType] = useState('');
 
+  const createQueryString = useCallback(
+    (params: Record<string, string | number | null>) => {
+      const newParams = new URLSearchParams(searchParams.toString());
+      Object.entries(params).forEach(([key, value]) => {
+        if (value === null) {
+          newParams.delete(key);
+        } else {
+          newParams.set(key, String(value));
+        }
+      });
+      return newParams.toString();
+    },
+    [searchParams]
+  );
+
+  const updateUrl = useCallback(
+    (updates: Record<string, string | number | null>) => {
+      const queryString = createQueryString(updates);
+      router.push(`${pathname}?${queryString}`, { scroll: false });
+    },
+    [pathname, router, createQueryString]
+  );
+
   useEffect(() => {
     const timer = setTimeout(() => {
       setKeyword(keywordInput);
+      updateUrl({ keyword: keywordInput || null, page: 1 });
       setPage(1);
     }, 300);
     return () => clearTimeout(timer);
-  }, [keywordInput]);
+  }, [keywordInput, updateUrl]);
+
+  useEffect(() => {
+    setPage(pageFromUrl);
+  }, [pageFromUrl]);
+
+  useEffect(() => {
+    setSort(sortFromUrl as SortOption | '');
+  }, [sortFromUrl]);
 
   const activeSkill = skillFilter === 'ALL' ? undefined : skillFilter;
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ['admin', 'tests', page, skillFilter, keyword],
-    queryFn: () => getTests(page, 20, activeSkill, keyword || undefined),
+    queryKey: ['admin', 'tests', page, skillFilter, keyword, sort],
+    queryFn: () => getTests(page, 20, activeSkill, keyword || undefined, undefined, sort || undefined),
     staleTime: 30_000,
   });
 
@@ -152,28 +199,67 @@ export default function AdminTestsPage() {
 
   return (
     <div>
-      <AdminHeader title="Quản lý bài thi" />
+      <AdminHeader title="Quản lí phần thi" />
       <div className="p-6">
         <div className="flex justify-between items-center mb-4">
-          <p className="text-sm text-gray-500">Danh sách tất cả bài thi trong hệ thống</p>
+          <div className="inline-block px-4 py-2 text-sm font-medium rounded-lg" style={{ backgroundColor: '#dcebfe' }}>
+            Tất cả phần thi
+          </div>
           <Button onClick={() => router.push('/admin/tests/import')}>
             <Plus className="h-4 w-4" /> Tạo bài thi
           </Button>
         </div>
 
         <div className="flex flex-col gap-3 mb-4">
-          <Input
-            value={keywordInput}
-            onChange={e => setKeywordInput(e.target.value)}
-            placeholder="Tìm kiếm bài thi..."
-            className="max-w-sm"
-          />
+          <div className="flex gap-2 items-center max-w-sm">
+            <Input
+              value={keywordInput}
+              onChange={e => setKeywordInput(e.target.value)}
+              placeholder="Tìm kiếm bài thi..."
+              className="flex-1"
+            />
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="shrink-0">
+                  <ArrowUpDown className="h-4 w-4 mr-1" />
+                  Sắp xếp
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => { setSort('title-asc'); updateUrl({ sort: 'title-asc', page: 1 }); setPage(1); }}>
+                  <ArrowUp className="h-3 w-3 mr-2" />
+                  Tiêu đề (A-Z)
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => { setSort('title-desc'); updateUrl({ sort: 'title-desc', page: 1 }); setPage(1); }}>
+                  <ArrowDown className="h-3 w-3 mr-2" />
+                  Tiêu đề (Z-A)
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => { setSort('created-asc'); updateUrl({ sort: 'created-asc', page: 1 }); setPage(1); }}>
+                  <ArrowUp className="h-3 w-3 mr-2" />
+                  Ngày tạo (Cũ → Mới)
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => { setSort('created-desc'); updateUrl({ sort: 'created-desc', page: 1 }); setPage(1); }}>
+                  <ArrowDown className="h-3 w-3 mr-2" />
+                  Ngày tạo (Mới → Cũ)
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => { setSort('availability-asc'); updateUrl({ sort: 'availability-asc', page: 1 }); setPage(1); }}>
+                  <ArrowUp className="h-3 w-3 mr-2" />
+                  Khả dụng (Cũ → Mới)
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => { setSort('availability-desc'); updateUrl({ sort: 'availability-desc', page: 1 }); setPage(1); }}>
+                  <ArrowDown className="h-3 w-3 mr-2" />
+                  Khả dụng (Mới → Cũ)
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
           <div className="flex gap-2">
             {SKILLS.map(skill => (
               <button
                 key={skill}
                 onClick={() => {
                   setSkillFilter(skill);
+                  updateUrl({ skill: skill === 'ALL' ? null : skill, page: 1 });
                   setPage(1);
                   setReadingPassage('');
                   setReadingQuestionType('');
@@ -336,7 +422,7 @@ export default function AdminTestsPage() {
 
         {!isLoading && (
           <p className="mb-3 text-sm text-gray-500">
-            Hiển thị {filteredTests.length} kết quả (trong {tests.length} mục của trang này, tổng {totalElements} mục)
+            Có {totalElements} phần thi
           </p>
         )}
 
@@ -425,15 +511,81 @@ export default function AdminTestsPage() {
 
         {totalPages > 1 && (
           <div className="flex items-center justify-center gap-2 mt-6">
-            <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              disabled={page <= 1} 
+              onClick={() => {
+                const newPage = page - 1;
+                setPage(newPage);
+                updateUrl({ page: newPage });
+              }}
+            >
               Trước
             </Button>
             <span className="text-sm text-gray-600">
               Trang {page} / {totalPages}
             </span>
-            <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              disabled={page >= totalPages} 
+              onClick={() => {
+                const newPage = page + 1;
+                setPage(newPage);
+                updateUrl({ page: newPage });
+              }}
+            >
               Sau
             </Button>
+            {totalPages > 7 && (
+              <>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setPage(1);
+                    updateUrl({ page: 1 });
+                  }}
+                  className={page === 1 ? 'bg-blue-50' : ''}
+                >
+                  1
+                </Button>
+                {page > 4 && <span className="text-gray-400">...</span>}
+                {Array.from({ length: 5 }, (_, i) => {
+                  const pageNum = page - 2 + i;
+                  if (pageNum > 1 && pageNum < totalPages) {
+                    return (
+                      <Button
+                        key={pageNum}
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setPage(pageNum);
+                          updateUrl({ page: pageNum });
+                        }}
+                        className={pageNum === page ? 'bg-blue-50' : ''}
+                      >
+                        {pageNum}
+                      </Button>
+                    );
+                  }
+                  return null;
+                }).filter(Boolean)}
+                {page < totalPages - 3 && <span className="text-gray-400">...</span>}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setPage(totalPages);
+                    updateUrl({ page: totalPages });
+                  }}
+                  className={page === totalPages ? 'bg-blue-50' : ''}
+                >
+                  {totalPages}
+                </Button>
+              </>
+            )}
           </div>
         )}
       </div>

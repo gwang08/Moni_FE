@@ -7,12 +7,14 @@ export async function getTests(
   size = 20,
   skill?: string,
   keyword?: string,
-  section?: number | null
+  section?: number | null,
+  sort?: string
 ): Promise<PagedResponse<TestResponse>> {
   let endpoint = `/api/v1/admin/tests?page=${page - 1}&size=${size}`;
   if (skill) endpoint += `&skill=${skill.toUpperCase()}`;
   if (keyword) endpoint += `&keyword=${encodeURIComponent(keyword)}`;
   if (section != null) endpoint += `&section=${section}`;
+  if (sort) endpoint += `&sort=${encodeURIComponent(sort)}`;
 
   const response = await apiClient.get<ApiResponse<PagedResponse<TestResponse>>>(
     endpoint,

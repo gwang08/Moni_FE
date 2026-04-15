@@ -67,8 +67,8 @@ export function InnerNavbar() {
           <Image
             src="/Moni-logo.png"
             alt="Moni"
-            width={80}
-            height={32}
+            width={100}
+            height={40}
             className="object-contain"
           />
         </Link>

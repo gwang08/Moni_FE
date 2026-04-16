@@ -170,6 +170,7 @@ export interface AdminRevenueDashboardResponse {
   aiWritingJobs?: number;
   aiSpeakingJobs?: number;
   totalAiJobs?: number;
+  totalAiCredits?: number;
 
   // Additional Operation metrics
   totalTests?: number;

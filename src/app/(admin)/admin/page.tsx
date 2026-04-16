@@ -167,7 +167,6 @@ export default function AdminDashboardPage() {
       <div className="space-y-6 p-6">
         {/* Date Range Filter (Global for dashboard) */}
         <div className="flex items-center gap-4 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-          <span className="text-sm font-semibold text-gray-700">Bộ lọc thời gian:</span>
           <div className="w-64">
             <DateRangePicker
               value={revenueRange}

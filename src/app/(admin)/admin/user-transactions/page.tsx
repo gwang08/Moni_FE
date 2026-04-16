@@ -51,11 +51,13 @@ export default function AdminUserTransactionsPage() {
   const typeFromUrl = searchParams.get('type') || 'ALL';
   const fromDateFromUrl = searchParams.get('fromDate') || formatDateInput(defaultFromDate);
   const toDateFromUrl = searchParams.get('toDate') || formatDateInput(today);
+  const sortFromUrl = searchParams.get('sort') || 'desc';
 
   const [page, setPage] = useState(pageFromUrl);
   const [userId, setUserId] = useState(searchFromUrl);
   const [debouncedUserId, setDebouncedUserId] = useState(searchFromUrl);
   const [paymentType, setPaymentType] = useState(typeFromUrl);
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>(sortFromUrl as 'asc' | 'desc');
   const [dateRange, setDateRange] = useState({
     startDate: fromDateFromUrl,
     endDate: toDateFromUrl,
@@ -65,7 +67,7 @@ export default function AdminUserTransactionsPage() {
     (updates: Record<string, string | number | null>) => {
       const params = new URLSearchParams(searchParams.toString());
       Object.entries(updates).forEach(([key, value]) => {
-        if (value === null || value === '' || (key === 'type' && value === 'ALL')) {
+        if (value === null || value === '' || (key === 'type' && value === 'ALL') || (key === 'sort' && value === 'desc')) {
           params.delete(key);
         } else {
           params.set(key, String(value));
@@ -91,11 +93,12 @@ export default function AdminUserTransactionsPage() {
     setUserId(searchFromUrl);
     setDebouncedUserId(searchFromUrl);
     setPaymentType(typeFromUrl);
+    setSortOrder(sortFromUrl as 'asc' | 'desc');
     setDateRange({
       startDate: fromDateFromUrl,
       endDate: toDateFromUrl,
     });
-  }, [pageFromUrl, searchFromUrl, typeFromUrl, fromDateFromUrl, toDateFromUrl]);
+  }, [pageFromUrl, searchFromUrl, typeFromUrl, fromDateFromUrl, toDateFromUrl, sortFromUrl]);
 
   const handlePageChange = (newPage: number) => {
     updateUrl({ page: newPage });
@@ -112,12 +115,20 @@ export default function AdminUserTransactionsPage() {
       }),
   });
 
-  const totalElements = data.length;
+  const sortedData = useMemo(() => {
+    return [...data].sort((a, b) => {
+      const dateA = new Date(a.createdAt).getTime();
+      const dateB = new Date(b.createdAt).getTime();
+      return sortOrder === 'desc' ? dateB - dateA : dateA - dateB;
+    });
+  }, [data, sortOrder]);
+
+  const totalElements = sortedData.length;
   const totalPages = Math.ceil(totalElements / PAGE_SIZE);
   const paginatedData = useMemo(() => {
     const start = (page - 1) * PAGE_SIZE;
-    return data.slice(start, start + PAGE_SIZE);
-  }, [data, page]);
+    return sortedData.slice(start, start + PAGE_SIZE);
+  }, [sortedData, page]);
 
   return (
     <div>
@@ -163,6 +174,21 @@ export default function AdminUserTransactionsPage() {
                 });
               }}
             />
+          </div>
+
+          <div className="min-w-[140px]">
+            <select
+              value={sortOrder}
+              onChange={(event) => {
+                const val = event.target.value as 'asc' | 'desc';
+                setSortOrder(val);
+                updateUrl({ sort: val, page: 1 });
+              }}
+              className="h-10 w-full rounded-md border border-gray-300 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="desc">Mới nhất</option>
+              <option value="asc">Cũ nhất</option>
+            </select>
           </div>
         </div>
 

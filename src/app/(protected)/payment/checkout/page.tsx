@@ -147,7 +147,21 @@ export default function CheckoutPage() {
   useEffect(() => {
     if (!pendingPayment || status !== 'pending') return;
     if (expired) {
-      setStatus('expired');
+      // Final DB check before declaring expired — SSE may have been delayed/dropped
+      const doFinalCheck = async () => {
+        try {
+          const payments = await getPayments();
+          const match = payments.find(
+            (p) => p.id === pendingPayment.id || p.txnCode === pendingPayment.txnCode
+          );
+          if (match?.status === 'SUCCESS') {
+            handlePaymentSuccess();
+            return;
+          }
+        } catch { /* ignore */ }
+        setStatus('expired');
+      };
+      doFinalCheck();
       return;
     }
 

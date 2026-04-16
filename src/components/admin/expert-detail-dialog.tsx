@@ -242,8 +242,8 @@ export function ExpertDetailDialog({ expert, open, onClose, onUpdated }: Props) 
                 </div>
 
                 <div className="col-span-2 flex gap-4 text-sm text-muted-foreground">
-                  <span>Tổng phiên: <strong className="text-foreground">{expert.totalSessions}</strong></span>
-                  <span>Đánh giá: <strong className="text-foreground">{expert.rating.toFixed(1)}</strong></span>
+                  <span>Tổng phiên: <strong className="text-foreground">{expert.totalSessions || 0}</strong></span>
+                  <span>Đánh giá: <strong className="text-foreground">{(expert.rating ?? 0).toFixed(1)}</strong></span>
                 </div>
               </div>
 

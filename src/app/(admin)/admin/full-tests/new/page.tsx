@@ -44,6 +44,7 @@ export default function AdminFullTestCreatePage() {
   const queryClient = useQueryClient();
 
   const [skill, setSkill] = useState<Skill | null>(null);
+  const [testType, setTestType] = useState<string>('ACADEMIC');
   const [title, setTitle] = useState('');
   const [duration, setDuration] = useState('');
 
@@ -60,6 +61,11 @@ export default function AdminFullTestCreatePage() {
 
   const handleSkillChange = (nextSkill: Skill) => {
     setSkill(nextSkill);
+    if (nextSkill === 'READING' || nextSkill === 'WRITING') {
+      setTestType('ACADEMIC');
+    } else {
+      setTestType('');
+    }
     setActiveSection(1);
     setSelected({});
     setSearchInputBySection({});
@@ -146,6 +152,7 @@ export default function AdminFullTestCreatePage() {
     createMutation.mutate({
       title: title.trim(),
       skill,
+      testType: testType || undefined,
       duration: duration ? parseInt(duration, 10) : undefined,
       stimulusIds,
     });
@@ -172,7 +179,7 @@ export default function AdminFullTestCreatePage() {
               {SKILLS.map((s) => (
                 <button
                   key={s}
-                    onClick={() => handleSkillChange(s)}
+                  onClick={() => handleSkillChange(s)}
                   className={`h-11 rounded-lg border-2 text-sm font-medium transition-colors ${
                     skill === s
                       ? 'border-blue-600 bg-blue-50 text-blue-700'
@@ -184,6 +191,40 @@ export default function AdminFullTestCreatePage() {
               ))}
             </div>
           </div>
+
+          {(skill === 'READING' || skill === 'WRITING') && (
+            <div className="space-y-2">
+              <Label>Loại bài thi *</Label>
+              <div className="flex gap-6">
+                <label className="flex items-center gap-2 cursor-pointer group">
+                  <input
+                    type="radio"
+                    name="testType"
+                    value="ACADEMIC"
+                    checked={testType === 'ACADEMIC'}
+                    onChange={(e) => setTestType(e.target.value)}
+                    className="w-4 h-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+                  />
+                  <span className={`text-sm font-medium transition-colors ${testType === 'ACADEMIC' ? 'text-blue-700' : 'text-gray-600 group-hover:text-gray-900'}`}>
+                    Academic
+                  </span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer group">
+                  <input
+                    type="radio"
+                    name="testType"
+                    value="GENERAL_TRAINING"
+                    checked={testType === 'GENERAL_TRAINING'}
+                    onChange={(e) => setTestType(e.target.value)}
+                    className="w-4 h-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+                  />
+                  <span className={`text-sm font-medium transition-colors ${testType === 'GENERAL_TRAINING' ? 'text-blue-700' : 'text-gray-600 group-hover:text-gray-900'}`}>
+                    General Training
+                  </span>
+                </label>
+              </div>
+            </div>
+          )}
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
             <div className="space-y-2">

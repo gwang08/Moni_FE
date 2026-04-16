@@ -1,27 +1,21 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ExpertFormDialog } from '@/components/admin/expert-form-dialog';
-import { ExpertDetailDialog } from '@/components/admin/expert-detail-dialog';
-import { getAdminExperts, updateExpertStatus, deleteExpert } from '@/lib/admin-expert-api';
+import { getAdminExperts, updateExpertAccountStatus } from '@/lib/admin-expert-api';
 import { toast } from 'sonner';
 import { Input } from '@/components/ui/input';
-import { Plus, Trash2, Ban, CheckCircle, Loader2, Search } from 'lucide-react';
+import { Plus, Loader2, Search } from 'lucide-react';
 import type { ExpertProfile } from '@/types/expert.types';
 
 const STATUS_LABELS: Record<string, string> = {
-  AVAILABLE: 'Sẵn sàng',
+  AVAILABLE: 'Hoạt động',
   BUSY: 'Đang bận',
-  OFFLINE: 'Ngoại tuyến',
-};
-
-const STATUS_COLORS: Record<string, string> = {
-  AVAILABLE: 'bg-green-100 text-green-700',
-  BUSY: 'bg-yellow-100 text-yellow-700',
-  OFFLINE: 'bg-gray-100 text-gray-600',
+  OFFLINE: 'Vô hiệu hóa',
 };
 
 function getInitials(name: string) {
@@ -32,14 +26,14 @@ export default function AdminExpertsPage() {
   const [experts, setExperts] = useState<ExpertProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
-  const [deletingId, setDeletingId] = useState<number | null>(null);
-  const [selectedExpert, setSelectedExpert] = useState<ExpertProfile | null>(null);
   const [search, setSearch] = useState('');
+  const router = useRouter();
 
   const fetchExperts = async () => {
     setLoading(true);
     try {
-      setExperts(await getAdminExperts());
+      const data = await getAdminExperts();
+      setExperts(data);
     } catch {
       toast.error('Không thể tải danh sách giám khảo');
     } finally {
@@ -47,50 +41,34 @@ export default function AdminExpertsPage() {
     }
   };
 
-  useEffect(() => { fetchExperts(); }, []);
+  useEffect(() => {
+    fetchExperts();
+  }, []);
 
-  const handleToggleBan = async (expert: ExpertProfile) => {
-    const isBanning = expert.status !== 'OFFLINE';
-    const newStatus = isBanning ? 'OFFLINE' : 'AVAILABLE';
+  const handleAccountStatusChange = async (expert: ExpertProfile, enabled: boolean) => {
     try {
-      await updateExpertStatus(expert.id, newStatus);
+      const updated = await updateExpertAccountStatus(expert.id, enabled);
       setExperts((prev) =>
-        prev.map((e) => (e.id === expert.id ? { ...e, status: newStatus as ExpertProfile['status'] } : e))
+        prev.map((e) => (e.id === expert.id ? updated : e))
       );
-      toast.success(isBanning ? 'Đã vô hiệu hoá giám khảo' : 'Đã kích hoạt giám khảo');
+      toast.success(`Tài khoản đã được ${enabled ? 'kích hoạt' : 'vô hiệu hóa'}`);
     } catch {
-      toast.error('Không thể cập nhật');
+      toast.error('Không thể cập nhật trạng thái tài khoản');
     }
   };
 
-  const handleDelete = async (id: number) => {
-    if (!confirm('Bạn có chắc chắn muốn xoá giám khảo này?')) return;
-    setDeletingId(id);
-    try {
-      await deleteExpert(id);
-      setExperts((prev) => prev.filter((e) => e.id !== id));
-      toast.success('Đã xoá giám khảo');
-    } catch {
-      toast.error('Không thể xoá giám khảo');
-    } finally {
-      setDeletingId(null);
-    }
-  };
-
-  const handleExpertUpdated = (updated: ExpertProfile) => {
-    setExperts((prev) => prev.map((e) => (e.id === updated.id ? updated : e)));
-    setSelectedExpert(updated);
-  };
+  const q = search.toLowerCase().trim();
+  const filteredExperts = q
+    ? experts.filter((e) => 
+        (e.displayName || '').toLowerCase().includes(q) ||
+        (e.email || '').toLowerCase().includes(q)
+      )
+    : experts;
 
   return (
-    <div className="p-6 max-w-6xl mx-auto">
+    <div className="p-6 max-w-7xl mx-auto">
       <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold">Quản lý giám khảo</h1>
-          <p className="text-muted-foreground text-sm mt-0.5">
-            Tổng: {experts.length} giám khảo
-          </p>
-        </div>
+        <h1 className="text-2xl font-bold">Quản lý giám khảo</h1>
         <Button onClick={() => setShowForm(true)}>
           <Plus className="h-4 w-4 mr-2" />
           Tạo giám khảo mới
@@ -98,7 +76,7 @@ export default function AdminExpertsPage() {
       </div>
 
       {/* Search */}
-      <div className="relative mb-4">
+      <div className="relative mb-2">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
         <Input
           value={search}
@@ -108,16 +86,23 @@ export default function AdminExpertsPage() {
         />
       </div>
 
-      {loading ? (
+      <div className="mb-4">
+        <p className="text-muted-foreground text-sm">
+          Có {filteredExperts.length} giám khảo
+          {search && ` (Tìm kiếm: "${search}")`}
+        </p>
+      </div>
+
+      {loading && experts.length === 0 ? (
         <div className="flex items-center justify-center py-16">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
       ) : (
-        <div className="rounded-lg border bg-white overflow-hidden">
+        <div className="rounded-lg border bg-white overflow-hidden shadow-sm">
           <table className="w-full text-sm">
             <thead className="bg-gray-50 border-b">
               <tr>
-                {['Giám khảo', 'Band Score', 'Trạng thái', 'Phiên', 'Đánh giá', 'Hành động'].map((h) => (
+                {['Giám khảo', 'Email', 'Band Score', 'Bài đã chấm', 'Đánh giá', 'Trạng thái'].map((h) => (
                   <th key={h} className="px-4 py-3 text-left font-medium text-gray-600 text-xs uppercase tracking-wide">
                     {h}
                   </th>
@@ -125,80 +110,62 @@ export default function AdminExpertsPage() {
               </tr>
             </thead>
             <tbody>
-              {(() => {
-                const q = search.toLowerCase().trim();
-                const filtered = q
-                  ? experts.filter((e) => e.displayName.toLowerCase().includes(q))
-                  : experts;
-                return filtered.length === 0 ? (
+              {filteredExperts.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="text-center py-12 text-muted-foreground">
                     {q ? 'Không tìm thấy giám khảo' : 'Chưa có giám khảo nào'}
                   </td>
                 </tr>
               ) : (
-                filtered.map((expert) => (
+                filteredExperts.map((expert) => (
                   <tr key={expert.id} className="border-b hover:bg-gray-50/50 transition-colors">
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
-                        <Avatar className="h-8 w-8">
-                          <AvatarImage src={expert.avatarUrl} />
-                          <AvatarFallback className="text-xs bg-primary/10 text-primary">
-                            {getInitials(expert.displayName)}
-                          </AvatarFallback>
-                        </Avatar>
-                        {/* Clickable name opens detail dialog */}
+                        <div className="relative">
+                          <Avatar className="h-9 w-9 border">
+                            <AvatarImage src={expert.avatarUrl} />
+                            <AvatarFallback className="text-xs bg-primary/10 text-primary">
+                              {getInitials(expert.displayName || 'X')}
+                            </AvatarFallback>
+                          </Avatar>
+                          {/* Messenger-style Status Dot (Working Status) */}
+                          <span className={`absolute bottom-0 right-0 block h-2.5 w-2.5 rounded-full border-2 border-white ${
+                            expert.status === 'AVAILABLE' ? 'bg-green-500' : 
+                            expert.status === 'BUSY' ? 'bg-yellow-500' : 'bg-gray-400'
+                          }`} title={STATUS_LABELS[expert.status]} />
+                        </div>
                         <button
                           type="button"
-                          className="font-medium hover:text-primary hover:underline transition-colors text-left"
-                          onClick={() => setSelectedExpert(expert)}
+                          className="font-medium hover:text-primary hover:underline transition-colors text-left truncate max-w-[180px]"
+                          onClick={() => router.push(`/admin/experts/${expert.id}`)}
                         >
-                          {expert.displayName}
+                          {expert.displayName || 'Unknown'}
                         </button>
                       </div>
                     </td>
-                    <td className="px-4 py-3">
-                      <Badge variant="outline">{expert.bandScore}</Badge>
+                    <td className="px-4 py-3 text-gray-500 truncate max-w-[200px]">
+                      {expert.email || '-'}
                     </td>
                     <td className="px-4 py-3">
-                      <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_COLORS[expert.status]}`}>
-                        {STATUS_LABELS[expert.status]}
-                      </span>
+                      <Badge variant="outline" className="font-mono">{expert.bandScore || '0.0'}</Badge>
                     </td>
-                    <td className="px-4 py-3 tabular-nums">{expert.totalSessions}</td>
-                    <td className="px-4 py-3 tabular-nums">{expert.rating.toFixed(1)}</td>
+                    <td className="px-4 py-3 tabular-nums text-gray-600">{expert.totalSessions || 0}</td>
+                    <td className="px-4 py-3 tabular-nums font-medium">{(expert.rating ?? 0).toFixed(1)}</td>
                     <td className="px-4 py-3">
-                      <div className="flex items-center gap-1">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 w-8 p-0"
-                          title={expert.status === 'OFFLINE' ? 'Kích hoạt' : 'Vô hiệu hoá'}
-                          onClick={() => handleToggleBan(expert)}
-                        >
-                          {expert.status === 'OFFLINE'
-                            ? <CheckCircle className="h-4 w-4 text-green-600" />
-                            : <Ban className="h-4 w-4 text-orange-500" />
-                          }
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-                          onClick={() => handleDelete(expert.id)}
-                          disabled={deletingId === expert.id}
-                        >
-                          {deletingId === expert.id
-                            ? <Loader2 className="h-4 w-4 animate-spin" />
-                            : <Trash2 className="h-4 w-4" />
-                          }
-                        </Button>
-                      </div>
+                      {/* Account Activation Toggle */}
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input 
+                          type="checkbox" 
+                          className="sr-only peer"
+                          checked={expert.enabled}
+                          onChange={(e) => handleAccountStatusChange(expert, e.target.checked)}
+                        />
+                        <div className="w-10 h-5 bg-gray-300 rounded-full peer peer-checked:bg-[#50d764] after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-5 shadow-sm"></div>
+                      </label>
                     </td>
                   </tr>
                 ))
-              );
-              })()}
+              )}
             </tbody>
           </table>
         </div>
@@ -208,13 +175,6 @@ export default function AdminExpertsPage() {
         open={showForm}
         onClose={() => setShowForm(false)}
         onCreated={(expert) => setExperts((prev) => [expert, ...prev])}
-      />
-
-      <ExpertDetailDialog
-        expert={selectedExpert}
-        open={!!selectedExpert}
-        onClose={() => setSelectedExpert(null)}
-        onUpdated={handleExpertUpdated}
       />
     </div>
   );

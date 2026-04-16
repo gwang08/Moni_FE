@@ -42,6 +42,7 @@ export async function getAvailableStimuli(skill: string): Promise<Record<number,
 export async function createFullTest(data: {
   title: string;
   skill: string;
+  testType?: string;
   duration?: number;
   stimulusIds: number[];
 }): Promise<FullTestResponse> {

@@ -38,6 +38,16 @@ export async function updateExpertStatus(id: number, status: string): Promise<vo
   );
 }
 
+export async function updateExpertAccountStatus(id: number, enabled: boolean): Promise<ExpertProfile> {
+  const response = await apiClient.patch<ApiResponse<ExpertProfile>>(
+    `/api/v1/admin/experts/${id}/account-status`,
+    { enabled },
+    true
+  );
+  if (!response.result) throw new Error('Failed to update account status');
+  return response.result;
+}
+
 export async function deleteExpert(id: number): Promise<void> {
   await apiClient.delete(`/api/v1/admin/experts/${id}`, true);
 }

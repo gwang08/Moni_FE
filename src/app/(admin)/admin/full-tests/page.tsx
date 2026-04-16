@@ -66,15 +66,10 @@ export default function AdminFullTestsPage() {
 
   return (
     <div className="flex-1 flex flex-col">
-      <AdminHeader title="Quản lý Full Test" />
+      <AdminHeader title="Quản lý bài thi" />
 
       <div className="flex-1 p-6 space-y-4">
-        <div className="flex items-center justify-between">
-          <p className="text-sm text-gray-500">
-            {filteredFullTests.length} full test
-            {skillFilter !== 'ALL' ? ` (${SKILL_LABELS[skillFilter]})` : ''}
-            {searchQuery ? ` (Tìm kiếm: "${searchQuery}")` : ''}
-          </p>
+        <div className="flex items-center justify-end">
           <div className="flex gap-2">
             <Button variant="outline" onClick={() => setAutoOpen(true)}>
               <Shuffle className="h-4 w-4 mr-2" />
@@ -82,7 +77,7 @@ export default function AdminFullTestsPage() {
             </Button>
             <Button onClick={() => router.push('/admin/full-tests/new')}>
               <Plus className="h-4 w-4 mr-2" />
-              Tạo Full Test
+              Tạo mới
             </Button>
           </div>
         </div>
@@ -114,6 +109,14 @@ export default function AdminFullTestsPage() {
               </button>
             ))}
           </div>
+        </div>
+
+        <div className="flex items-center">
+          <p className="text-sm text-gray-500">
+            Có {filteredFullTests.length} bài thi
+            {skillFilter !== 'ALL' ? ` (${SKILL_LABELS[skillFilter]})` : ''}
+            {searchQuery ? ` (Tìm kiếm: "${searchQuery}")` : ''}
+          </p>
         </div>
 
         {isLoading ? (

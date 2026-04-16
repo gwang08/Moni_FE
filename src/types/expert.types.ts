@@ -12,6 +12,7 @@ export interface ExpertProfile {
   specialization: 'WRITING' | 'SPEAKING' | 'BOTH';
   bio: string;
   status: 'AVAILABLE' | 'BUSY' | 'OFFLINE';
+  enabled: boolean;
   rating: number;
   totalSessions: number;
   certificates?: string[];

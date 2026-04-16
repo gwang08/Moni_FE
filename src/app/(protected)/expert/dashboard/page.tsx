@@ -113,10 +113,6 @@ export default function ExpertDashboardPage() {
           <h1 className="text-2xl font-bold">Xin chào, {user?.fullName ?? 'Expert'}</h1>
           <p className="text-muted-foreground text-sm mt-1">Bảng điều khiển giảng viên</p>
         </div>
-        <Button variant="outline" size="sm" className="gap-2 text-red-500" onClick={handleLogout}>
-          <LogOut className="h-4 w-4" />
-          Đăng xuất
-        </Button>
       </div>
 
       {/* Stats */}

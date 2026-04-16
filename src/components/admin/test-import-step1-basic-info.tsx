@@ -5,6 +5,9 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { MediaUploadZone } from '@/components/admin/media-upload-zone';
 import { X } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { getTags } from '@/lib/admin-api';
+import { TagResponse } from '@/types/admin.types';
 
 export interface BasicInfo {
   title: string;
@@ -12,6 +15,7 @@ export interface BasicInfo {
   thumbnailUrl: string;
   section: number | null;
   testType: string;
+  tagIds?: number[];
 }
 
 interface Props {
@@ -51,13 +55,33 @@ export const SKILL_SECTIONS: Record<string, { value: number; label: string }[]> 
 export function TestImportStep1({ data, onChange, onNext, onThumbnailFileSelected }: Props) {
   const sections = data.skill ? (SKILL_SECTIONS[data.skill] || []) : [];
   const needsSection = sections.length > 0;
+  const [topicTags, setTopicTags] = useState<TagResponse[]>([]);
+
+  useEffect(() => {
+    if (data.skill === 'SPEAKING') {
+      getTags()
+        .then(res => setTopicTags(res.filter(t => t.type === 'TOPIC')))
+        .catch(console.error);
+    }
+  }, [data.skill]);
+
+  const hasValidTags = data.skill !== 'SPEAKING' || (data.tagIds && data.tagIds.length > 0);
 
   const isValid = data.title.trim() && data.skill
     && ((data.skill === 'READING' || data.skill === 'WRITING') ? data.testType : true)
-    && (!needsSection || data.section !== null);
+    && (!needsSection || data.section !== null)
+    && hasValidTags;
 
   const handleSkillChange = (skill: string) => {
-    onChange({ ...data, skill, section: null, testType: '' });
+    onChange({ ...data, skill, section: null, testType: '', tagIds: [] });
+  };
+
+  const handleTagToggle = (tagId: number) => {
+    const currentTags = data.tagIds || [];
+    const newTags = currentTags.includes(tagId)
+      ? currentTags.filter(id => id !== tagId)
+      : [...currentTags, tagId];
+    onChange({ ...data, tagIds: newTags });
   };
 
   return (
@@ -108,6 +132,30 @@ export function TestImportStep1({ data, onChange, onNext, onThumbnailFileSelecte
             <option value="">Chọn phần</option>
             {sections.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
           </select>
+        </div>
+      )}
+
+      {/* Topic selection cho Speaking */}
+      {data.skill === 'SPEAKING' && topicTags.length > 0 && (
+        <div>
+          <Label className="mb-1.5 block text-sm font-medium">Chủ đề (Topic) *</Label>
+          <div className="flex flex-wrap gap-2 mt-2">
+            {topicTags.map(tag => (
+              <button
+                key={tag.id}
+                type="button"
+                onClick={() => handleTagToggle(Number(tag.id))}
+                className={`px-3 py-1 text-sm rounded-full border transition-colors ${
+                  (data.tagIds || []).includes(Number(tag.id))
+                    ? 'bg-primary text-white border-primary'
+                    : 'bg-white text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                {tag.name}
+              </button>
+            ))}
+          </div>
+          {!(data.tagIds?.length) && <p className="text-xs text-red-500 mt-1">Vui lòng chọn ít nhất 1 chủ đề</p>}
         </div>
       )}
 

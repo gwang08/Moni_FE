@@ -67,7 +67,7 @@ export default function TestImportPage() {
   const [error, setError] = useState('');
 
   const draft = loadDraft();
-  const [basicInfo, setBasicInfo] = useState<BasicInfo>(draft?.basicInfo ?? { title: '', skill: '', thumbnailUrl: '', section: null, testType: '' });
+  const [basicInfo, setBasicInfo] = useState<BasicInfo>(draft?.basicInfo ?? { title: '', skill: '', thumbnailUrl: '', section: null, testType: '', tagIds: [] });
   const [stimuli, setStimuli] = useState<StimulusRequest[]>(draft?.stimuli ?? []);
   const thumbnailFileRef = useRef<File | null>(null);
   const [listeningAudioDuration, setListeningAudioDuration] = useState<number>(0); // in seconds
@@ -137,7 +137,8 @@ export default function TestImportPage() {
         testType: (basicInfo.skill === 'READING' || basicInfo.skill === 'WRITING') && basicInfo.testType ? basicInfo.testType : undefined,
         testMode: 'PRACTICE',
         section: basicInfo.section ?? undefined,
-        thumbnailUrl,
+        thumbnailUrl: basicInfo.thumbnailUrl || undefined,
+        tagIds: basicInfo.tagIds,
         duration: basicInfo.skill === 'WRITING'
           ? (basicInfo.section === 1 ? 20 : 40)
           : basicInfo.skill === 'LISTENING'

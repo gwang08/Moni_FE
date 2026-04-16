@@ -27,11 +27,15 @@ function calcOverall(r: number, l: number, w: number, s: number): number {
   return Math.round(avg * 2) / 2;
 }
 
-export default function AdminExpertDetailPage({ params }: { params: Promise<{ id: string }> }) {
+interface PageProps {
+  params: Promise<{ id: string }>;
+}
+
+export default function AdminExpertDetailPage({ params }: PageProps) {
   const router = useRouter();
   const queryClient = useQueryClient();
-  const { id } = use(params);
-  const expertId = parseInt(id, 10);
+  const resolvedParams = use(params);
+  const expertId = parseInt(resolvedParams.id, 10);
 
   const [form, setForm] = useState<UpdateExpertRequest>({});
   const [avatarPreview, setAvatarPreview] = useState('');
@@ -188,40 +192,40 @@ export default function AdminExpertDetailPage({ params }: { params: Promise<{ id
           <div className="bg-white rounded-xl border shadow-sm overflow-hidden">
             <Tabs defaultValue="info" className="w-full">
               <TabsList className="w-full justify-start rounded-none border-b h-12 bg-gray-50/50 px-4">
-                <TabsTrigger value="info" className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none h-full">Thông tin chuyên môn</TabsTrigger>
-                <TabsTrigger value="certs" className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none h-full">Bằng cấp & Chứng chỉ</TabsTrigger>
+                <TabsTrigger value="info" className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none h-full text-xs">Thông tin chuyên môn</TabsTrigger>
+                <TabsTrigger value="certs" className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none h-full text-xs">Bằng cấp & Chứng chỉ</TabsTrigger>
               </TabsList>
               
               <TabsContent value="info" className="p-6 space-y-6">
                 <div className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label>Tên hiển thị</Label>
+                      <Label className="text-xs">Tên hiển thị</Label>
                       <Input value={form.displayName || ''} onChange={e => set('displayName', e.target.value)} />
                     </div>
                     <div className="space-y-2">
-                      <Label>Số năm kinh nghiệm</Label>
+                      <Label className="text-xs">Số năm kinh nghiệm</Label>
                       <Input type="number" value={form.yearsExperience ?? 0} onChange={e => set('yearsExperience', parseInt(e.target.value) || 0)} />
                     </div>
                   </div>
 
                   <div className="space-y-3">
-                    <Label className="font-semibold">Điểm IELTS</Label>
+                    <Label className="font-semibold text-xs text-gray-600">Điểm IELTS</Label>
                     <div className="grid grid-cols-5 gap-3">
                       {BAND_FIELDS.map(({ key, label }) => (
                         <div key={key} className="space-y-1">
                           <Label className="text-[10px] text-muted-foreground">{label}</Label>
                           <Input 
                             type="number" step={0.5} min={0} max={9}
-                            className="text-center font-mono"
+                            className="text-center font-mono h-9"
                             value={form[key] ?? 0} 
                             onChange={e => set(key, parseFloat(e.target.value) || 0)} 
                           />
                         </div>
                       ))}
                       <div className="space-y-1">
-                        <Label className="text-[10px] text-primary font-bold">OVERALL</Label>
-                        <div className="h-10 bg-primary/5 border border-primary/20 rounded-md flex items-center justify-center font-bold text-primary">
+                        <Label className="text-[10px] text-primary font-bold uppercase">Overall</Label>
+                        <div className="h-9 bg-primary/5 border border-primary/20 rounded-md flex items-center justify-center font-bold text-primary text-sm">
                           {overall.toFixed(1)}
                         </div>
                       </div>
@@ -229,7 +233,7 @@ export default function AdminExpertDetailPage({ params }: { params: Promise<{ id
                   </div>
 
                   <div className="space-y-2">
-                    <Label>Giới thiệu bản thân</Label>
+                    <Label className="text-xs">Giới thiệu bản thân</Label>
                     <textarea 
                       className="w-full min-h-[120px] rounded-md border p-3 text-sm focus:ring-1 focus:ring-primary outline-none transition-all"
                       value={form.bio || ''}
@@ -242,9 +246,9 @@ export default function AdminExpertDetailPage({ params }: { params: Promise<{ id
 
               <TabsContent value="certs" className="p-6 space-y-6">
                 <div className="flex items-center justify-between mb-4">
-                  <p className="text-sm text-muted-foreground">Tải lên bằng cấp, chứng chỉ IELTS để tăng độ tin cậy.</p>
-                  <Button variant="outline" size="sm" onClick={() => document.getElementById('cert-upload')?.click()}>
-                    <ImagePlus className="h-4 w-4 mr-2" />
+                  <p className="text-xs text-muted-foreground">Tải lên bằng cấp, chứng chỉ IELTS để tăng độ tin cậy.</p>
+                  <Button variant="outline" size="sm" onClick={() => document.getElementById('cert-upload')?.click()} className="h-8 text-xs">
+                    <ImagePlus className="h-3.5 w-3.5 mr-2" />
                     Thêm ảnh
                   </Button>
                   <input 

@@ -21,6 +21,7 @@ import { Loader2, Save, ScanSearch, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
 import { updateStimulus, updateQuestion, updateQuestionGroupContent, updateQuestionGroupTypeCode, analyzeChart as analyzeChartApi, getVisonAnalysis, updateVisonAnalysis } from '@/lib/admin-api';
+import { ChartDataEditor } from '@/components/admin/chart-data-editor';
 import {
   WRITING_TASK1_TYPES,
   WRITING_TASK1_TYPE_CODES,
@@ -260,16 +261,10 @@ export function TestEditWritingContent({ test }: Props) {
           </div>
 
           {chartDataJson && (
-            <div className="space-y-2">
-              <label className="text-xs font-medium text-gray-500 block">Kết quả JSON (có thể sửa tay)</label>
-              <textarea
-                value={chartDataJson}
-                onChange={(e) => {
-                  setChartDataJson(e.target.value);
-                  setChartJsonError(null);
-                }}
-                rows={10}
-                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-amber-500 resize-y"
+            <div className="space-y-3">
+              <ChartDataEditor
+                data={chartDataJson}
+                onChange={setChartDataJson}
               />
               {chartJsonError && (
                 <div className="flex items-center gap-1.5 text-red-600 text-xs">
@@ -278,7 +273,7 @@ export function TestEditWritingContent({ test }: Props) {
                 </div>
               )}
               <div className="flex justify-end">
-                <Button onClick={handleSaveChartData} disabled={chartSaving} size="sm" variant="outline">
+                <Button onClick={handleSaveChartData} disabled={chartSaving} size="sm" variant="outline" className="border-amber-200 text-amber-700 hover:bg-amber-50">
                   {chartSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <Save className="h-3.5 w-3.5 mr-1" />}
                   Lưu dữ liệu biểu đồ
                 </Button>

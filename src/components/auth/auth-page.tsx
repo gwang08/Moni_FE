@@ -68,8 +68,8 @@ export function AuthPage({ initialMode = 'login' }: AuthPageProps) {
               isRegister ? 'translate-x-0' : '-translate-x-1/2'
             }`}
           >
-            <Image src="/login.png" alt="" fill className="object-cover" priority />
-            <div className="absolute inset-0 bg-gradient-to-br from-teal-700/80 via-teal-600/70 to-emerald-700/75" />
+            <Image src="/auth-mascot.png" alt="" fill className="object-cover" priority />
+            <div className="absolute inset-0 bg-gradient-to-br from-emerald-600/40 via-primary/30 to-emerald-700/40" />
           </div>
 
           {/* Overlay text + toggle button */}
@@ -98,8 +98,8 @@ export function AuthPage({ initialMode = 'login' }: AuthPageProps) {
         <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
           {/* Mobile hero image */}
           <div className="relative h-40 overflow-hidden">
-            <Image src="/login.png" alt="" fill className="object-cover" priority />
-            <div className="absolute inset-0 bg-gradient-to-br from-teal-700/80 via-teal-600/70 to-emerald-700/75" />
+            <Image src="/auth-mascot.png" alt="" fill className="object-cover" priority />
+            <div className="absolute inset-0 bg-gradient-to-br from-emerald-600/40 via-primary/30 to-emerald-700/40" />
             <div className="relative z-10 flex flex-col items-center justify-center h-full text-white text-center px-6">
               <h2 className="text-xl font-bold mb-1">
                 {isRegister ? 'Tạo tài khoản' : 'Chào mừng trở lại!'}

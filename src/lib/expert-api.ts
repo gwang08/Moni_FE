@@ -12,8 +12,9 @@ export async function getExperts(specialization?: string): Promise<ExpertProfile
 }
 
 export async function getExpertsForSpeaking(): Promise<ExpertProfile[]> {
+  // Không lọc specialization — user được tự chọn giảng viên bất kỳ (giống writing)
   const response = await apiClient.get<ApiResponse<ExpertProfile[]>>(
-    '/api/v1/experts?specialization=SPEAKING',
+    '/api/v1/experts',
     true
   );
   return response.result ?? [];

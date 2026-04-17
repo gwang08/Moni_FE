@@ -12,9 +12,10 @@ import { Send, Loader2, FileText, PenLine } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
 import { uploadMedia } from '@/lib/admin-api';
 import { getWritingSubmissionDetail } from '@/lib/ai-api';
+import { getSessionEvaluation } from '@/lib/expert-api';
 import { useAuthStore } from '@/store/auth-store';
 import type { ApiResponse } from '@/types/auth.types';
-import type { ScoringSession } from '@/types/expert.types';
+import type { ScoringSession, ExpertEvaluation } from '@/types/expert.types';
 import { toast } from 'sonner';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import Image from 'next/image';
@@ -75,6 +76,9 @@ export default function ExpertSessionPage({ params }: Props) {
   const [writingPrompt, setWritingPrompt] = useState<WritingPromptData | null>(null);
   const [chartZoomOpen, setChartZoomOpen] = useState(false);
   const recordingBlobRef = useRef<Blob | null>(null);
+  const [existingEvaluation, setExistingEvaluation] = useState<ExpertEvaluation | null>(null);
+
+  const isReadOnly = session?.status === 'COMPLETED' || session?.status === 'CANCELLED';
 
   // Fetch session details
   useEffect(() => {
@@ -162,6 +166,44 @@ export default function ExpertSessionPage({ params }: Props) {
   useEffect(() => {
     setScores(Object.fromEntries(criteria.map((c) => [c.key, ''])));
   }, [skill]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // If session already completed, fetch saved evaluation and populate form (read-only)
+  useEffect(() => {
+    if (session?.status !== 'COMPLETED') return;
+    getSessionEvaluation(Number(sessionId))
+      .then((ev) => {
+        setExistingEvaluation(ev);
+        // Populate criteria scores
+        const nextScores: Record<string, string> = {};
+        criteria.forEach((c) => {
+          const v = (ev as unknown as Record<string, number | undefined>)[c.key];
+          nextScores[c.key] = v != null ? String(v) : '';
+        });
+        setScores(nextScores);
+
+        // Parse compiled feedback (format: [NHẬN XÉT CHUNG]\n...\n\n[ĐÁNH GIÁ CHI TIẾT]\n- Label (score):\nfeedback...)
+        const rawFeedback = ev.feedback || '';
+        const generalMatch = rawFeedback.match(/\[NHẬN XÉT CHUNG\]\n([\s\S]*?)(?=\n\n\[ĐÁNH GIÁ CHI TIẾT\]|$)/);
+        const detailSection = rawFeedback.split('[ĐÁNH GIÁ CHI TIẾT]')[1] ?? '';
+        setFeedback(generalMatch?.[1]?.trim() ?? rawFeedback);
+
+        // Extract per-criterion feedback blocks
+        const perCrit: Record<string, string> = {};
+        criteria.forEach((c) => {
+          const escapedLabel = c.label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+          const re = new RegExp(`- ${escapedLabel} \\([^)]*\\):\\n([\\s\\S]*?)(?=\\n- |$)`);
+          const m = detailSection.match(re);
+          if (m?.[1] && m[1].trim() !== 'Không có nhận xét thêm') {
+            perCrit[c.key] = m[1].trim();
+          }
+        });
+        setCriteriaFeedback(perCrit);
+
+        setStrengths(ev.strengths ?? '');
+        setAreasForImprovement(ev.areasForImprovement ?? '');
+      })
+      .catch(() => {/* evaluation may not exist */});
+  }, [session?.status, sessionId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSubmit = async () => {
     const missing = criteria.filter((c) => !scores[c.key]);
@@ -306,6 +348,54 @@ export default function ExpertSessionPage({ params }: Props) {
             </div>
           </div>
         </div>
+      ) : isReadOnly ? (
+        <div className="w-1/2 flex flex-col bg-gradient-to-br from-slate-50 to-gray-100 border-r border-gray-200 overflow-hidden">
+          <div className="px-6 py-5 border-b border-gray-200/80 bg-white/60 backdrop-blur-sm">
+            <div className="flex items-center gap-2">
+              <div className="h-2 w-2 rounded-full bg-gray-400" />
+              <span className="text-[11px] font-bold uppercase tracking-[0.12em] text-gray-500">Phiên đã kết thúc</span>
+            </div>
+            <h2 className="text-[18px] font-bold text-gray-900 mt-1.5">Bản ghi phiên #{sessionId}</h2>
+            {session?.userDisplayName && (
+              <p className="text-[12.5px] text-gray-500 mt-0.5">Học viên: <span className="font-semibold text-gray-700">{session.userDisplayName}</span></p>
+            )}
+          </div>
+          <div className="flex-1 overflow-y-auto p-6 space-y-4">
+            {session?.recordingUrl ? (
+              <div className="rounded-2xl bg-white border border-gray-200 p-4 shadow-sm">
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="h-7 w-7 rounded-lg bg-blue-50 flex items-center justify-center text-[13px]">🎙️</span>
+                  <div>
+                    <p className="text-[12.5px] font-bold text-gray-800">Bản ghi của học viên</p>
+                    <p className="text-[10.5px] text-gray-500">Phần trả lời ghi âm trong cuộc gọi</p>
+                  </div>
+                </div>
+                <audio controls src={session.recordingUrl} className="w-full" />
+              </div>
+            ) : null}
+            {session?.expertRecordingUrl ? (
+              <div className="rounded-2xl bg-white border border-gray-200 p-4 shadow-sm">
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="h-7 w-7 rounded-lg bg-emerald-50 flex items-center justify-center text-[13px]">🎧</span>
+                  <div>
+                    <p className="text-[12.5px] font-bold text-gray-800">Bản ghi của giảng viên</p>
+                    <p className="text-[10.5px] text-gray-500">Lời nói và phản hồi của bạn</p>
+                  </div>
+                </div>
+                <audio controls src={session.expertRecordingUrl} className="w-full" />
+              </div>
+            ) : null}
+            {!session?.recordingUrl && !session?.expertRecordingUrl && (
+              <div className="flex flex-col items-center justify-center h-full text-center py-16 px-4">
+                <div className="h-16 w-16 rounded-2xl bg-gray-200/60 flex items-center justify-center mb-4">
+                  <FileText className="h-7 w-7 text-gray-400" />
+                </div>
+                <p className="text-[13.5px] font-semibold text-gray-600">Không có bản ghi</p>
+                <p className="text-[11.5px] text-gray-400 mt-1 max-w-xs">Phiên này không có bản ghi âm. Xem chi tiết đánh giá ở bên phải.</p>
+              </div>
+            )}
+          </div>
+        </div>
       ) : (
         <div className="w-1/2 bg-gray-900 p-1">
           <DailyVideoCall
@@ -393,16 +483,18 @@ export default function ExpertSessionPage({ params }: Props) {
                       min={0} max={9} step={0.5}
                       value={scores[c.key] ?? ''}
                       onChange={(e) => setScores((prev) => ({ ...prev, [c.key]: e.target.value }))}
-                      className="w-20 h-9 font-bold text-center text-emerald-700 bg-white border-gray-200 focus:border-emerald-500 focus:ring-emerald-500/20"
+                      disabled={isReadOnly}
+                      className="w-20 h-9 font-bold text-center text-emerald-700 bg-white border-gray-200 focus:border-emerald-500 focus:ring-emerald-500/20 disabled:opacity-100 disabled:cursor-default"
                       placeholder="0.0"
                     />
                   </div>
                 </div>
                 <textarea
-                  className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-[12.5px] leading-relaxed min-h-[70px] resize-y focus:outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/10 transition-all placeholder:text-gray-400"
+                  className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-[12.5px] leading-relaxed min-h-[70px] resize-y focus:outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/10 transition-all placeholder:text-gray-400 disabled:bg-gray-50 disabled:cursor-default"
                   placeholder={`Nhận xét chi tiết cho ${c.label}...`}
                   value={criteriaFeedback[c.key] ?? ''}
                   onChange={(e) => setCriteriaFeedback((prev) => ({ ...prev, [c.key]: e.target.value }))}
+                  disabled={isReadOnly}
                 />
               </div>
             ))}
@@ -417,10 +509,11 @@ export default function ExpertSessionPage({ params }: Props) {
               Nhận xét chung <span className="text-red-500">*</span>
             </Label>
             <textarea
-              className="w-full rounded-xl border border-gray-200 bg-gray-50/50 px-4 py-3 text-[13px] leading-relaxed min-h-[100px] resize-y focus:outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/10 transition-all placeholder:text-gray-400"
+              className="w-full rounded-xl border border-gray-200 bg-gray-50/50 px-4 py-3 text-[13px] leading-relaxed min-h-[100px] resize-y focus:outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/10 transition-all placeholder:text-gray-400 disabled:cursor-default"
               placeholder="Viết nhận xét tổng quan về bài làm của học viên để giúp họ định hướng rõ ràng nhất..."
               value={feedback}
               onChange={(e) => setFeedback(e.target.value)}
+              disabled={isReadOnly}
             />
           </div>
           
@@ -430,10 +523,11 @@ export default function ExpertSessionPage({ params }: Props) {
                 <span className="text-[16px]">✨</span> Điểm mạnh
               </Label>
               <textarea
-                className="w-full rounded-xl border border-emerald-100 bg-emerald-50/30 px-4 py-3 text-[13px] leading-relaxed min-h-[80px] resize-y focus:outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/10 transition-all placeholder:text-emerald-700/40"
+                className="w-full rounded-xl border border-emerald-100 bg-emerald-50/30 px-4 py-3 text-[13px] leading-relaxed min-h-[80px] resize-y focus:outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/10 transition-all placeholder:text-emerald-700/40 disabled:cursor-default"
                 placeholder="Điều học viên đã làm rất tốt..."
                 value={strengths}
                 onChange={(e) => setStrengths(e.target.value)}
+                disabled={isReadOnly}
               />
             </div>
             <div className="space-y-2">
@@ -441,22 +535,41 @@ export default function ExpertSessionPage({ params }: Props) {
                 <span className="text-[16px]">💡</span> Cần cải thiện
               </Label>
               <textarea
-                className="w-full rounded-xl border border-orange-100 bg-orange-50/30 px-4 py-3 text-[13px] leading-relaxed min-h-[80px] resize-y focus:outline-none focus:border-orange-400 focus:ring-4 focus:ring-orange-500/10 transition-all placeholder:text-orange-700/40"
+                className="w-full rounded-xl border border-orange-100 bg-orange-50/30 px-4 py-3 text-[13px] leading-relaxed min-h-[80px] resize-y focus:outline-none focus:border-orange-400 focus:ring-4 focus:ring-orange-500/10 transition-all placeholder:text-orange-700/40 disabled:cursor-default"
                 placeholder="Những mặt học viên cần chú ý khắc phục..."
                 value={areasForImprovement}
                 onChange={(e) => setAreasForImprovement(e.target.value)}
+                disabled={isReadOnly}
               />
             </div>
           </div>
         </Card>
 
-        <Button className="w-full h-12 rounded-xl bg-[#16a34a] hover:bg-[#15803d] text-white font-bold text-[14px] shadow-sm tracking-wide gap-2 mb-8" onClick={handleSubmit} disabled={submitting}>
-          {submitting ? (
-            <><Loader2 className="h-5 w-5 animate-spin" /> Hệ thống đang lưu đánh giá...</>
-          ) : (
-            <><Send className="h-4 w-4" /> Gửi kết quả chấm điểm</>
-          )}
-        </Button>
+        {isReadOnly ? (
+          <div className="flex items-center gap-3 p-4 rounded-xl bg-gray-50 border border-gray-200 mb-8">
+            <div className="h-10 w-10 rounded-full bg-emerald-100 flex items-center justify-center shrink-0">
+              <Send className="h-5 w-5 text-emerald-600" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-[13px] font-bold text-gray-800">
+                {existingEvaluation ? 'Đánh giá đã được gửi' : 'Phiên đã kết thúc'}
+              </p>
+              <p className="text-[11px] text-gray-500 mt-0.5">
+                {existingEvaluation
+                  ? `Chế độ xem — không thể chỉnh sửa. Điểm tổng: ${existingEvaluation.overallScore?.toFixed(1) ?? '—'}`
+                  : 'Không có đánh giá nào được lưu cho phiên này.'}
+              </p>
+            </div>
+          </div>
+        ) : (
+          <Button className="w-full h-12 rounded-xl bg-[#16a34a] hover:bg-[#15803d] text-white font-bold text-[14px] shadow-sm tracking-wide gap-2 mb-8" onClick={handleSubmit} disabled={submitting}>
+            {submitting ? (
+              <><Loader2 className="h-5 w-5 animate-spin" /> Hệ thống đang lưu đánh giá...</>
+            ) : (
+              <><Send className="h-4 w-4" /> Gửi kết quả chấm điểm</>
+            )}
+          </Button>
+        )}
         </div>
       </div>
     </div>

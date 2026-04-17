@@ -124,10 +124,10 @@ export default function ListeningExercisePage({ params }: Props) {
 
   // Handle EXPIRED exam session
   useEffect(() => {
-    if (isExamMode && examSession.session?.status === 'EXPIRED') {
+    if (!submitted && isExamMode && examSession.session?.status === 'EXPIRED') {
       router.push(`/practice/listening/${id}/result`);
     }
-  }, [isExamMode, examSession.session?.status, id, router]);
+  }, [isExamMode, examSession.session?.status, id, router, submitted]);
 
   const stimuli = useMemo(() => testDetail?.stimuli ?? [], [testDetail?.stimuli]);
   const currentStimulus = stimuli[activeStimulusIdx];

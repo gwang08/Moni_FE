@@ -102,10 +102,10 @@ export default function WritingExercisePage({ params }: Props) {
 
   // Handle EXPIRED exam session
   useEffect(() => {
-    if (isExamMode && examSession.session?.status === 'EXPIRED') {
+    if (!submitted && isExamMode && examSession.session?.status === 'EXPIRED') {
       router.push(`/practice/writing/${id}/review`);
     }
-  }, [isExamMode, examSession.session?.status, id, router]);
+  }, [isExamMode, examSession.session?.status, id, router, submitted]);
 
   // On mount: reset store + fetch service costs
   useEffect(() => {

@@ -159,10 +159,10 @@ export default function ReadingExercisePage({ params }: Props) {
 
   // Handle EXPIRED exam session
   useEffect(() => {
-    if (isExamMode && examSession.session?.status === 'EXPIRED') {
+    if (!submitted && isExamMode && examSession.session?.status === 'EXPIRED') {
       router.push(`/practice/reading/${id}/result`);
     }
-  }, [isExamMode, examSession.session?.status, id, router]);
+  }, [isExamMode, examSession.session?.status, id, router, submitted]);
 
   const handleAnswer = (questionId: number, optionId: number) => {
     if (optionId === 0) {

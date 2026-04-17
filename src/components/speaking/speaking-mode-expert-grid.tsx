@@ -76,18 +76,19 @@ export function SpeakingModeExpertGrid({ experts, expertCost, onBook, onDetail }
 
             {/* Actions */}
             <div className="flex gap-2 mt-auto pt-2 border-t border-gray-50">
-              {isOffline ? (
-                <p className="text-xs font-medium text-red-500/80 text-center w-full py-1.5 bg-red-50/50 rounded-xl">Khôi phục sau — vui lòng thử giảng viên khác</p>
-              ) : (
-                <>
-                  <Button className="flex-1 text-[13px] h-9 font-bold rounded-xl bg-[#16a34a] hover:bg-[#15803d] text-white shadow-sm" onClick={() => onBook(expert)}>
-                    Book Now
-                  </Button>
-                  <Button variant="outline" className="flex-1 text-[13px] h-9 font-bold rounded-xl border-gray-200 text-gray-600 hover:bg-gray-50 hover:text-gray-900" onClick={() => onDetail(expert)}>
-                    Chi tiết
-                  </Button>
-                </>
-              )}
+              <Button
+                className="flex-1 text-[13px] h-9 font-bold rounded-xl bg-[#16a34a] hover:bg-[#15803d] text-white shadow-sm"
+                onClick={() => onBook(expert)}
+              >
+                Book Now
+              </Button>
+              <Button
+                variant="outline"
+                className="flex-1 text-[13px] h-9 font-bold rounded-xl border-gray-200 text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                onClick={() => onDetail(expert)}
+              >
+                Chi tiết
+              </Button>
             </div>
           </div>
         );

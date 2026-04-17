@@ -9,8 +9,8 @@ import { Label } from '@/components/ui/label';
 import { updateTest, uploadMedia, getTags, updateStimulus } from '@/lib/admin-api';
 import { SKILL_SECTIONS } from '@/components/admin/test-import-step1-basic-info';
 import {
-  WRITING_TASK1_TYPES,
   WRITING_TASK1_TYPE_CODES,
+  WRITING_TASK2_TYPE_CODES,
 } from '@/components/practice/writing-filter-constants';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
@@ -66,46 +66,63 @@ export const TestEditBasicInfoTab = forwardRef<TestEditBasicInfoHandle, Props>(f
   const thumbnailFileRef = useRef<File | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Writing Task 1 state (uses hardcoded codes — no tag mapping needed)
+  // Shared tags state
   const firstGroup = test.stimuli[0]?.questionGroups[0];
-  const [writingTask1Type, setWritingTask1Type] = useState(firstGroup?.questionTypeCode || '');
-
-  // Writing Task 2 tag state — fetched dynamically from API
   const firstStimulus = test.stimuli[0];
   const [writingTypeTags, setWritingTypeTags] = useState<TagResponse[]>([]);
   const [topicTags, setTopicTags] = useState<TagResponse[]>([]);
+
   const [selectedWritingTypeId, setSelectedWritingTypeId] = useState<number | null>(null);
   const [selectedTopicId, setSelectedTopicId] = useState<number | null>(null);
+  const [testTagIds, setTestTagIds] = useState<number[]>(test.tagIds || []);
 
   const sections = skill ? (SKILL_SECTIONS[skill] || []) : [];
   const needsSection = sections.length > 0;
   const isWriting = skill === 'WRITING';
+  const isSpeaking = skill === 'SPEAKING';
   const isTask1 = test.section === 1;
   const isTask2 = test.section === 2;
 
-  // Load tags for Task 2 Writing from API
+  // Derive valid writing type tags for the current task
+  const taskTypeCodes = isTask1 ? WRITING_TASK1_TYPE_CODES : isTask2 ? WRITING_TASK2_TYPE_CODES : {};
+  const validWritingTypeTags = writingTypeTags.filter((t) => t.name in taskTypeCodes);
+
+  // Load tags from API
   useEffect(() => {
-    if (!isWriting || !isTask2) return;
+    if (!isWriting && !isSpeaking) return;
     getTags().then(allTags => {
       const wt = allTags.filter(t => t.type === 'WRITING_TYPE');
       const tp = allTags.filter(t => t.type === 'TOPIC');
       setWritingTypeTags(wt);
       setTopicTags(tp);
 
-      // Pre-populate from existing stimulus tagIds
-      const existingTagIds = firstStimulus?.tagIds ?? [];
-      const existingWt = wt.find(t => existingTagIds.includes(t.id));
-      const existingTp = tp.find(t => existingTagIds.includes(t.id));
-      if (existingWt) setSelectedWritingTypeId(existingWt.id);
-      if (existingTp) setSelectedTopicId(existingTp.id);
-    }).catch(console.error);
-  }, [isWriting, isTask2, firstStimulus]);
+      if (isWriting) {
+        // Pre-populate from existing stimulus tagIds for writing
+        const existingTagIds = firstStimulus?.tagIds ?? [];
+        const existingWt = wt.find(t => existingTagIds.includes(t.id));
+        const existingTp = tp.find(t => existingTagIds.includes(t.id));
 
-  // Task 1: reverse lookup code → label
-  const writingTask1CodeToLabel = isTask1 ? Object.fromEntries(
-    Object.entries(WRITING_TASK1_TYPE_CODES).map(([label, code]) => [code, label])
-  ) : {};
-  const selectedTask1Label = writingTask1CodeToLabel[writingTask1Type] || '';
+        // If no tag is set but we have a questionTypeCode, try backward compatibility fallback
+        if (!existingWt && firstGroup?.questionTypeCode) {
+          const typeCodes = isTask1 ? WRITING_TASK1_TYPE_CODES : isTask2 ? WRITING_TASK2_TYPE_CODES : {};
+          const label = Object.keys(typeCodes).find((l) => typeCodes[l] === firstGroup.questionTypeCode);
+          const fallbackWt = wt.find(t => t.name === label);
+          if (fallbackWt) setSelectedWritingTypeId(fallbackWt.id);
+        } else if (existingWt) {
+          setSelectedWritingTypeId(existingWt.id);
+        }
+        
+        if (existingTp) setSelectedTopicId(existingTp.id);
+      }
+    }).catch(console.error);
+  }, [isWriting, isSpeaking, isTask1, isTask2, firstStimulus, firstGroup]);
+
+  const handleTagToggle = (tagId: number) => {
+    const newTags = testTagIds.includes(tagId)
+      ? testTagIds.filter(id => id !== tagId)
+      : [...testTagIds, tagId];
+    setTestTagIds(newTags);
+  };
 
   const handleSave = async () => {
     if (!title.trim()) {
@@ -133,21 +150,34 @@ export const TestEditBasicInfoTab = forwardRef<TestEditBasicInfoHandle, Props>(f
         testMode: test.testMode || undefined,
         section: section ?? undefined,
         testType: SKILLS_WITH_TEST_TYPE.includes(skill) ? testType || undefined : undefined,
+        tagIds: isSpeaking ? testTagIds : undefined,
       });
 
-      // Writing Task 1: update question type code (uses hardcoded codes)
-      if (isTask1 && firstGroup && writingTask1Type && writingTask1Type !== firstGroup.questionTypeCode) {
-        await import('@/lib/admin-api').then(({ updateQuestionGroupTypeCode }) =>
-          updateQuestionGroupTypeCode(firstGroup.id, writingTask1Type)
-        );
-      }
+      // Writing: update question type code & tags
+      if (isWriting && (isTask1 || isTask2)) {
+        if (firstStimulus) {
+          const newTagIds: number[] = [];
+          if (selectedWritingTypeId) newTagIds.push(selectedWritingTypeId);
+          if (selectedTopicId) newTagIds.push(selectedTopicId);
+          await updateStimulus(firstStimulus.id, { tagIds: newTagIds });
+        }
 
-      // Writing Task 2: update stimulus tags (WRITING_TYPE + TOPIC)
-      if (isTask2 && firstStimulus) {
-        const newTagIds: number[] = [];
-        if (selectedWritingTypeId) newTagIds.push(selectedWritingTypeId);
-        if (selectedTopicId) newTagIds.push(selectedTopicId);
-        await updateStimulus(firstStimulus.id, { tagIds: newTagIds });
+        if (firstGroup && selectedWritingTypeId) {
+          const tag = writingTypeTags.find(t => t.id === selectedWritingTypeId);
+          if (tag && taskTypeCodes[tag.name]) {
+            const code = taskTypeCodes[tag.name] as string;
+            if (code !== firstGroup.questionTypeCode) {
+              await import('@/lib/admin-api').then(({ updateQuestionGroupTypeCode }) =>
+                updateQuestionGroupTypeCode(firstGroup.id, code)
+              );
+            }
+          }
+        } else if (firstGroup && !selectedWritingTypeId && firstGroup.questionTypeCode) {
+          // Clear it if tag is unselected
+          await import('@/lib/admin-api').then(({ updateQuestionGroupTypeCode }) =>
+            updateQuestionGroupTypeCode(firstGroup.id, '')
+          );
+        }
       }
 
       toast.success('Cập nhật thành công!');
@@ -291,7 +321,7 @@ export const TestEditBasicInfoTab = forwardRef<TestEditBasicInfoHandle, Props>(f
                   </div>
                 )}
 
-                {!isWriting && skill !== 'LISTENING' && (
+                {!isWriting && skill !== 'LISTENING' && !isSpeaking && (
                   <div className="flex items-center gap-4">
                     <Label htmlFor="duration" className="text-sm font-medium text-gray-700 whitespace-nowrap">Thời gian</Label>
                     <div className="flex items-center gap-2">
@@ -310,33 +340,32 @@ export const TestEditBasicInfoTab = forwardRef<TestEditBasicInfoHandle, Props>(f
                   </div>
                 )}
 
+                {isSpeaking && topicTags.length > 0 && (
+                  <div className="flex flex-col gap-2">
+                    <Label className="text-sm font-medium text-gray-700">Chủ đề (Topic) *</Label>
+                    <div className="flex flex-wrap gap-2">
+                      {topicTags.map(tag => (
+                        <button
+                          key={tag.id}
+                          type="button"
+                          onClick={() => handleTagToggle(Number(tag.id))}
+                          className={`px-3 py-1 text-xs rounded-full border transition-colors ${
+                            testTagIds.includes(Number(tag.id))
+                              ? 'bg-blue-600 text-white border-blue-600'
+                              : 'bg-white text-gray-700 hover:bg-gray-50 border-gray-300'
+                          }`}
+                        >
+                          {tag.name}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {isWriting && (
                   <>
-                    {/* Task 1: hardcoded writing type codes */}
-                    {isTask1 && (
-                      <div className="flex items-center gap-4">
-                        <Label className="text-sm font-medium text-gray-700 whitespace-nowrap">Dạng đề</Label>
-                        <select
-                          value={selectedTask1Label}
-                          onChange={(e) => {
-                            const label = e.target.value;
-                            const code = (WRITING_TASK1_TYPE_CODES[label] as string) || '';
-                            setWritingTask1Type(code);
-                          }}
-                          className="rounded-md border border-input bg-white px-3 py-1.5 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring max-w-[180px] truncate"
-                        >
-                          <option value="">Chọn dạng đề</option>
-                          {WRITING_TASK1_TYPES.map((label) => (
-                            <option key={label} value={label}>
-                              {label}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    )}
-
-                    {/* Task 2: dynamic tags from DB */}
-                    {isTask2 && (
+                    {/* Writing Task 1 & 2: dynamic tags from DB */}
+                    {(isTask1 || isTask2) && (
                       <>
                         <div className="flex items-center gap-4">
                           <Label className="text-sm font-medium text-gray-700 whitespace-nowrap">Dạng đề</Label>
@@ -346,7 +375,7 @@ export const TestEditBasicInfoTab = forwardRef<TestEditBasicInfoHandle, Props>(f
                             className="rounded-md border border-input bg-white px-3 py-1.5 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring max-w-[180px] truncate"
                           >
                             <option value="">Chọn dạng đề</option>
-                            {writingTypeTags.map((tag) => (
+                            {validWritingTypeTags.map((tag) => (
                               <option key={tag.id} value={tag.id}>
                                 {tag.name}
                               </option>
@@ -354,21 +383,23 @@ export const TestEditBasicInfoTab = forwardRef<TestEditBasicInfoHandle, Props>(f
                           </select>
                         </div>
 
-                        <div className="flex items-center gap-4">
-                          <Label className="text-sm font-medium text-gray-700 whitespace-nowrap">Chủ đề</Label>
-                          <select
-                            value={selectedTopicId ?? ''}
-                            onChange={(e) => setSelectedTopicId(e.target.value ? Number(e.target.value) : null)}
-                            className="rounded-md border border-input bg-white px-3 py-1.5 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring max-w-[180px] truncate"
-                          >
-                            <option value="">Chọn chủ đề</option>
-                            {topicTags.map((tag) => (
-                              <option key={tag.id} value={tag.id}>
-                                {tag.name}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
+                        {isTask2 && (
+                          <div className="flex items-center gap-4">
+                            <Label className="text-sm font-medium text-gray-700 whitespace-nowrap">Chủ đề</Label>
+                            <select
+                              value={selectedTopicId ?? ''}
+                              onChange={(e) => setSelectedTopicId(e.target.value ? Number(e.target.value) : null)}
+                              className="rounded-md border border-input bg-white px-3 py-1.5 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring max-w-[180px] truncate"
+                            >
+                              <option value="">Chọn chủ đề</option>
+                              {topicTags.map((tag) => (
+                                <option key={tag.id} value={tag.id}>
+                                  {tag.name}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        )}
                       </>
                     )}
 

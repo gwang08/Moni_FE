@@ -91,7 +91,8 @@ export function TestImportStep2Writing({ stimuli, onChange, onNext, onBack, sect
   const currentTypeCode = stimulus.questionGroups[0]?.questionTypeCode || '';
 
   // Derive currently selected writing type tag ID from questionTypeCode
-  const selectedWritingTypeTag = writingTypeTags.find((t) => {
+  const validWritingTypeTags = writingTypeTags.filter((t) => t.name in typeCodes);
+  const selectedWritingTypeTag = validWritingTypeTags.find((t) => {
     // Match by looking up label from code
     const label = Object.keys(typeCodes).find((l) => typeCodes[l] === currentTypeCode);
     return label && t.name === label;
@@ -107,11 +108,11 @@ export function TestImportStep2Writing({ stimuli, onChange, onNext, onBack, sect
   };
 
   const updateWritingType = (tagId: number) => {
-    const tag = writingTypeTags.find((t) => t.id === tagId);
+    const tag = validWritingTypeTags.find((t) => t.id === tagId);
     if (!tag) {
       // Cleared
       const code = '';
-      const writingTypeIds = writingTypeTags.map((t) => t.id);
+      const writingTypeIds = validWritingTypeTags.map((t) => t.id);
       const otherTags = currentTagIds.filter((id) => !writingTypeIds.includes(id));
       updateGroup({ questionTypeCode: code as QuestionTypeCode });
       update({ tagIds: otherTags });
@@ -122,7 +123,7 @@ export function TestImportStep2Writing({ stimuli, onChange, onNext, onBack, sect
     const code = (typeCodes[tag.name] || '') as QuestionTypeCode;
 
     // Replace old writing type tag, keep others
-    const writingTypeIds = writingTypeTags.map((t) => t.id);
+    const writingTypeIds = validWritingTypeTags.map((t) => t.id);
     const otherTags = currentTagIds.filter((id) => !writingTypeIds.includes(id));
 
     updateGroup({ questionTypeCode: code });
@@ -146,40 +147,14 @@ export function TestImportStep2Writing({ stimuli, onChange, onNext, onBack, sect
     updateGroup({ instruction: buildSampleAnswer(updated) });
   };
 
-  // For Task 1, build type options from static constant (no WRITING_TYPE tags needed)
-  const task1TypeOptions = isTask1 ? WRITING_TASK1_TYPES : [];
-
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-5">
-      {/* Dạng đề — Task 1 (static list) */}
-      {isTask1 && (
+      {/* Dạng đề — Task 1 & Task 2 (dynamic from API, filtered by Task) */}
+      {(isTask1 || isTask2) && (
         <div>
           <label className="text-sm font-medium text-gray-700 mb-1.5 block">
             Dạng đề
-            <span className="text-xs text-gray-400 font-normal ml-2">Task 1</span>
-          </label>
-          <select
-            value={currentTypeCode ? Object.keys(typeCodes).find((l) => typeCodes[l] === currentTypeCode) || '' : ''}
-            onChange={(e) => {
-              const code = (WRITING_TASK1_TYPE_CODES[e.target.value] || '') as QuestionTypeCode;
-              updateGroup({ questionTypeCode: code });
-            }}
-            className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="">-- Chọn dạng đề --</option>
-            {task1TypeOptions.map((label) => (
-              <option key={label} value={label}>{label}</option>
-            ))}
-          </select>
-        </div>
-      )}
-
-      {/* Dạng đề — Task 2 (dynamic from API) */}
-      {isTask2 && (
-        <div>
-          <label className="text-sm font-medium text-gray-700 mb-1.5 block">
-            Dạng đề
-            <span className="text-xs text-gray-400 font-normal ml-2">Task 2</span>
+            <span className="text-xs text-gray-400 font-normal ml-2">Task {section}</span>
           </label>
           <select
             value={selectedWritingTypeTag?.id ?? ''}
@@ -187,7 +162,7 @@ export function TestImportStep2Writing({ stimuli, onChange, onNext, onBack, sect
             className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="">-- Chọn dạng đề --</option>
-            {writingTypeTags.map((tag) => (
+            {validWritingTypeTags.map((tag) => (
               <option key={tag.id} value={tag.id}>{tag.name}</option>
             ))}
           </select>

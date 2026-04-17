@@ -1,16 +1,15 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { StimulusCard } from '@/components/admin/test-import-stimulus-card';
 import {
   WRITING_TASK1_TYPES,
   WRITING_TASK1_TYPE_CODES,
-  WRITING_TASK2_TYPES,
   WRITING_TASK2_TYPE_CODES,
-  WRITING_TOPICS,
 } from '@/components/practice/writing-filter-constants';
-import type { StimulusRequest, QuestionTypeCode, QuestionGroupRequest } from '@/types/admin.types';
+import { getTags } from '@/lib/admin-api';
+import type { TagResponse, StimulusRequest, QuestionTypeCode, QuestionGroupRequest } from '@/types/admin.types';
 
 interface Props {
   stimuli: StimulusRequest[];
@@ -55,9 +54,21 @@ const emptyStimulus = (): StimulusRequest => ({
   mediaUrl: undefined,
   section: 1,
   questionGroups: [],
+  tagIds: [],
 });
 
 export function TestImportStep2Writing({ stimuli, onChange, onNext, onBack, section }: Props) {
+  const [writingTypeTags, setWritingTypeTags] = useState<TagResponse[]>([]);
+  const [topicTags, setTopicTags] = useState<TagResponse[]>([]);
+
+  // Fetch tags by type from API once on mount
+  useEffect(() => {
+    getTags().then((all) => {
+      setWritingTypeTags(all.filter((t) => t.type === 'WRITING_TYPE'));
+      setTopicTags(all.filter((t) => t.type === 'TOPIC'));
+    }).catch(console.error);
+  }, []);
+
   useEffect(() => {
     if (stimuli.length === 0) onChange([emptyStimulus()]);
   }, [stimuli.length, onChange]);
@@ -74,78 +85,127 @@ export function TestImportStep2Writing({ stimuli, onChange, onNext, onBack, sect
   // Determine writing type options based on section
   const isTask1 = section === 1;
   const isTask2 = section === 2;
-  const typeOptions = isTask1 ? WRITING_TASK1_TYPES : isTask2 ? WRITING_TASK2_TYPES : [];
   const typeCodes = isTask1 ? WRITING_TASK1_TYPE_CODES : isTask2 ? WRITING_TASK2_TYPE_CODES : {};
 
-  // Current questionTypeCode stored in first group
+  const currentTagIds = stimulus.tagIds || [];
   const currentTypeCode = stimulus.questionGroups[0]?.questionTypeCode || '';
-  // Current topic stored in groupContent of first group
-  const currentTopic = stimulus.questionGroups[0]?.groupContent || '';
+
+  // Derive currently selected writing type tag ID from questionTypeCode
+  const selectedWritingTypeTag = writingTypeTags.find((t) => {
+    // Match by looking up label from code
+    const label = Object.keys(typeCodes).find((l) => typeCodes[l] === currentTypeCode);
+    return label && t.name === label;
+  });
+
+  // Derive currently selected topic tag (first topic in tagIds)
+  const selectedTopicTag = topicTags.find((t) => currentTagIds.includes(t.id));
 
   /** Helper: update fields on the first questionGroup, creating it if needed */
   const updateGroup = (patch: Partial<QuestionGroupRequest>) => {
     const existing: QuestionGroupRequest = stimulus.questionGroups[0] || { questionTypeCode: 'SHORT_ANSWER', instruction: '', questions: [] };
-    const groups = [{ ...existing, ...patch }];
-    update({ questionGroups: groups });
+    update({ questionGroups: [{ ...existing, ...patch }] });
   };
 
-  const updateWritingType = (label: string) => {
-    const code = (typeCodes[label] || '') as QuestionTypeCode;
+  const updateWritingType = (tagId: number) => {
+    const tag = writingTypeTags.find((t) => t.id === tagId);
+    if (!tag) {
+      // Cleared
+      const code = '';
+      const writingTypeIds = writingTypeTags.map((t) => t.id);
+      const otherTags = currentTagIds.filter((id) => !writingTypeIds.includes(id));
+      updateGroup({ questionTypeCode: code as QuestionTypeCode });
+      update({ tagIds: otherTags });
+      return;
+    }
+
+    // Get questionTypeCode from tag name
+    const code = (typeCodes[tag.name] || '') as QuestionTypeCode;
+
+    // Replace old writing type tag, keep others
+    const writingTypeIds = writingTypeTags.map((t) => t.id);
+    const otherTags = currentTagIds.filter((id) => !writingTypeIds.includes(id));
+
     updateGroup({ questionTypeCode: code });
+    update({ tagIds: [...otherTags, tag.id] });
   };
 
-  const updateTopic = (topicValue: string) => {
-    updateGroup({ groupContent: topicValue });
+  const updateTopic = (tagId: number) => {
+    // Replace old topic tag, keep others (e.g. writing type tag)
+    const topicIds = topicTags.map((t) => t.id);
+    const otherTags = currentTagIds.filter((id) => !topicIds.includes(id));
+
+    if (!tagId) {
+      update({ tagIds: otherTags });
+      return;
+    }
+    update({ tagIds: [...otherTags, tagId] });
   };
 
   const updateSampleField = (key: string, value: string) => {
     const updated = { ...sampleFields, [key]: value };
-    const instruction = buildSampleAnswer(updated);
-    updateGroup({ instruction });
+    updateGroup({ instruction: buildSampleAnswer(updated) });
   };
 
-  // Reverse lookup: code → label for display in select
-  const codeToLabel: Record<string, string> = Object.fromEntries(
-    Object.entries(typeCodes).map(([label, code]) => [code, label])
-  );
-  const selectedTypeLabel = codeToLabel[currentTypeCode] || '';
+  // For Task 1, build type options from static constant (no WRITING_TYPE tags needed)
+  const task1TypeOptions = isTask1 ? WRITING_TASK1_TYPES : [];
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-5">
-      {/* Dạng đề — chỉ hiển thị khi là Task 1 hoặc Task 2 */}
-      {(isTask1 || isTask2) && (
+      {/* Dạng đề — Task 1 (static list) */}
+      {isTask1 && (
         <div>
           <label className="text-sm font-medium text-gray-700 mb-1.5 block">
             Dạng đề
-            <span className="text-xs text-gray-400 font-normal ml-2">
-              {isTask1 ? 'Task 1' : 'Task 2'}
-            </span>
+            <span className="text-xs text-gray-400 font-normal ml-2">Task 1</span>
           </label>
           <select
-            value={selectedTypeLabel}
-            onChange={(e) => updateWritingType(e.target.value)}
+            value={currentTypeCode ? Object.keys(typeCodes).find((l) => typeCodes[l] === currentTypeCode) || '' : ''}
+            onChange={(e) => {
+              const code = (WRITING_TASK1_TYPE_CODES[e.target.value] || '') as QuestionTypeCode;
+              updateGroup({ questionTypeCode: code });
+            }}
             className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="">-- Chọn dạng đề --</option>
-            {typeOptions.map((label) => (
+            {task1TypeOptions.map((label) => (
               <option key={label} value={label}>{label}</option>
             ))}
           </select>
         </div>
       )}
 
-      {/* Chủ đề — chỉ hiển thị khi là Task 2 */}
+      {/* Dạng đề — Task 2 (dynamic from API) */}
+      {isTask2 && (
+        <div>
+          <label className="text-sm font-medium text-gray-700 mb-1.5 block">
+            Dạng đề
+            <span className="text-xs text-gray-400 font-normal ml-2">Task 2</span>
+          </label>
+          <select
+            value={selectedWritingTypeTag?.id ?? ''}
+            onChange={(e) => updateWritingType(Number(e.target.value))}
+            className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="">-- Chọn dạng đề --</option>
+            {writingTypeTags.map((tag) => (
+              <option key={tag.id} value={tag.id}>{tag.name}</option>
+            ))}
+          </select>
+        </div>
+      )}
+
+      {/* Chủ đề — chỉ hiển thị khi là Task 2 (dynamic from API) */}
       {isTask2 && (
         <div>
           <label className="text-sm font-medium text-gray-700 mb-1.5 block">Chủ đề</label>
           <select
-            value={currentTopic}
-            onChange={(e) => updateTopic(e.target.value)}
+            value={selectedTopicTag?.id ?? ''}
+            onChange={(e) => updateTopic(Number(e.target.value))}
             className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="">-- Chọn chủ đề --</option>
-            {WRITING_TOPICS.map((topic) => (
-              <option key={topic} value={topic}>{topic}</option>
+            {topicTags.map((tag) => (
+              <option key={tag.id} value={tag.id}>{tag.name}</option>
             ))}
           </select>
         </div>

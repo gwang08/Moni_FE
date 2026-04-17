@@ -1,16 +1,23 @@
 export enum TagType {
   SKILL = 'SKILL',
+  QUESTION_TYPE = 'QUESTION_TYPE',
   TOPIC = 'TOPIC',
   DIFFICULTY = 'DIFFICULTY',
+  WRITING_TYPE = 'WRITING_TYPE',
+  WRITING_TOPIC = 'WRITING_TOPIC',
+  PASSAGE = 'PASSAGE',
+  SECTION = 'SECTION',
+  TASK = 'TASK',
+  PART = 'PART',
   CUSTOM = 'CUSTOM',
 }
 
 export interface TagResponse {
-  id: string;
+  id: number;
   name: string;
-  type: TagType;
+  type: string; // matches TagType enum values from backend
   description: string | null;
-  createdAt: string;
+  code: string;
 }
 
 export interface TagRequest {
@@ -89,6 +96,7 @@ export interface StimulusRequest {
   mediaUrl?: string;
   section?: number;
   questionGroups: QuestionGroupRequest[];
+  tagIds?: number[];
 }
 
 export interface TestImportRequest {

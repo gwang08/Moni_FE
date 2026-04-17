@@ -33,6 +33,7 @@ export interface StimulusDetail {
   content: string;
   mediaUrl: string | null;
   section: number;
+  tagIds?: number[];
   questionGroups: QuestionGroupDetail[];
   transcript?: { id: string; startTime: number; endTime: number; text: string; speaker?: string }[];
 }

@@ -103,7 +103,7 @@ export async function getStimuli(params?: {
   return response.result;
 }
 
-export async function updateStimulus(id: number, data: { content?: string; mediaUrl?: string; transcript?: unknown; visonAnalysisResult?: Record<string, unknown> }): Promise<void> {
+export async function updateStimulus(id: number, data: { content?: string; mediaUrl?: string; transcript?: unknown; visonAnalysisResult?: Record<string, unknown>; tagIds?: number[] }): Promise<void> {
   await apiClient.put(`/api/v1/admin/stimuli/${id}`, data, true);
 }
 

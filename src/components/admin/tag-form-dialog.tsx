@@ -29,7 +29,7 @@ export function TagFormDialog({ open, onOpenChange, tag, onSuccess }: Props) {
 
   useEffect(() => {
     if (open) {
-      setForm(tag ? { name: tag.name, type: tag.type, description: tag.description || '' } : defaultForm);
+      setForm(tag ? { name: tag.name, type: tag.type as TagType, description: tag.description || '' } : defaultForm);
       setError('');
     }
   }, [open, tag]);

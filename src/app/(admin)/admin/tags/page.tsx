@@ -17,7 +17,7 @@ export default function AdminTagsPage() {
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingTag, setEditingTag] = useState<TagResponse | undefined>();
-  const [confirmId, setConfirmId] = useState<string | null>(null);
+  const [confirmId, setConfirmId] = useState<number | string | null>(null);
   const [filterType, setFilterType] = useState<string>('ALL');
 
   const { data: tags = [], isLoading, error } = useQuery({
@@ -26,7 +26,7 @@ export default function AdminTagsPage() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => deleteTag(id),
+    mutationFn: (id: number | string) => deleteTag(id),
     onSuccess: () => {
       toast.success('Đã xóa tag');
       queryClient.invalidateQueries({ queryKey: ['admin', 'tags'] });

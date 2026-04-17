@@ -159,7 +159,7 @@ export interface QuestionUpdateRequest {
   position?: number;
   options?: OptionRequest[];
   explanation?: { text?: string; evidence?: string };
-  tagIds?: string[];
+  tagIds?: number[];
 }
 
 export interface AdminRevenueDashboardResponse {

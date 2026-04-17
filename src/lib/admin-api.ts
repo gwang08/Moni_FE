@@ -34,7 +34,7 @@ export async function createTag(data: TagRequest): Promise<TagResponse> {
   return response.result;
 }
 
-export async function updateTag(id: string, data: TagRequest): Promise<TagResponse> {
+export async function updateTag(id: number | string, data: TagRequest): Promise<TagResponse> {
   const response = await apiClient.put<ApiResponse<TagResponse>>(
     `/api/v1/tags/${id}`,
     data,
@@ -44,7 +44,7 @@ export async function updateTag(id: string, data: TagRequest): Promise<TagRespon
   return response.result;
 }
 
-export async function deleteTag(id: string): Promise<void> {
+export async function deleteTag(id: number | string): Promise<void> {
   await apiClient.delete(`/api/v1/tags/${id}`, true);
 }
 

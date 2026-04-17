@@ -10,6 +10,11 @@ interface WritingPracticeFooterProps {
   isSubmitting: boolean;
   submitted: boolean;
   onSubmit: () => void;
+  // Navigation props
+  totalTasks?: number;
+  activeTaskIndex?: number;
+  onTaskChange?: (index: number) => void;
+  taskTypes?: WritingTaskType[];
 }
 
 export function WritingPracticeFooter({
@@ -19,35 +24,66 @@ export function WritingPracticeFooter({
   isSubmitting,
   submitted,
   onSubmit,
+  totalTasks = 1,
+  activeTaskIndex = 0,
+  onTaskChange,
+  taskTypes = [2],
 }: WritingPracticeFooterProps) {
   const isPartCompleted = wordCount >= minWords;
+  const canGoPrev = activeTaskIndex > 0;
+  const canGoNext = activeTaskIndex < totalTasks - 1;
 
   return (
     <div className="shrink-0 bg-white border-t border-gray-300 px-4 py-1">
-      <div className="flex items-end justify-between gap-2">
-        {/* Part label */}
-        <span
-          className={`shrink-0 text-sm font-bold pb-1 ${
-            isPartCompleted ? 'text-emerald-600' : 'text-gray-900'
-          }`}
-        >
-          Part {taskType}
-        </span>
-
-        {/* Spacer - writing doesn't have question numbers */}
-        <div className="flex-1" />
+      <div className="flex items-center justify-between gap-3">
+        {/* Part navigation (Mini-map style) */}
+        <div className="flex items-center gap-6 overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+          {taskTypes.map((tType, idx) => {
+            const isActive = idx === activeTaskIndex;
+            return (
+              <button
+                key={idx}
+                type="button"
+                onClick={() => onTaskChange?.(idx)}
+                className={`shrink-0 text-sm font-bold pb-1 transition-colors border-b-2 ${
+                  isActive
+                    ? 'text-emerald-600 border-emerald-600'
+                    : 'text-gray-400 border-transparent hover:text-gray-600'
+                }`}
+              >
+                Part {tType}
+              </button>
+            );
+          })}
+        </div>
 
         {/* Navigation controls */}
         <div className="flex items-center gap-2 shrink-0 pb-1">
-          {/* Prev button - disabled for writing since there's no multi-part navigation within a single task */}
           <button
-            disabled
-            className="w-[34px] h-[34px] flex items-center justify-center rounded bg-gray-100 text-gray-400 cursor-not-allowed"
+            onClick={() => canGoPrev && onTaskChange?.(activeTaskIndex - 1)}
+            disabled={!canGoPrev}
+            className={`w-[34px] h-[34px] flex items-center justify-center rounded transition-colors ${
+              canGoPrev
+                ? 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+            }`}
           >
             <ChevronLeft className="h-[18px] w-[18px]" />
           </button>
 
-          {/* Next/Submit button */}
+          <button
+            onClick={() => canGoNext && onTaskChange?.(activeTaskIndex + 1)}
+            disabled={!canGoNext}
+            className={`w-[34px] h-[34px] flex items-center justify-center rounded transition-colors ${
+              canGoNext
+                ? 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+            }`}
+          >
+            <ChevronRight className="h-[18px] w-[18px]" />
+          </button>
+
+          {/* Submit button */}
           <button
             onClick={onSubmit}
             disabled={isSubmitting || submitted || wordCount === 0}

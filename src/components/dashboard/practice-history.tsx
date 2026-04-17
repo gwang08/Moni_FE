@@ -73,11 +73,16 @@ function EmptyState() {
 
 function EntryCard({ entry }: { entry: UnifiedEntry }) {
   const isSpeakingExpert = entry.source === 'expert';
+  const isInProgress = entry.status === 'Đang làm';
 
   return (
     <Link
       href={entry.reviewUrl}
-      className="flex items-center gap-4 px-4 py-3 rounded-xl border border-gray-100 hover:border-orange-200 hover:bg-orange-50/30 transition-all"
+      className={`flex items-center gap-4 px-4 py-3 rounded-xl border transition-all ${
+        isInProgress 
+          ? 'border-orange-200 bg-orange-50/20 hover:bg-orange-50/40 shadow-sm' 
+          : 'border-gray-100 hover:border-orange-200 hover:bg-orange-50/30'
+      }`}
     >
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
@@ -97,9 +102,9 @@ function EntryCard({ entry }: { entry: UnifiedEntry }) {
               <Bot className="h-2.5 w-2.5" /> AI
             </span>
           )}
-          {entry.status === 'Đang làm' && !entry.id.startsWith('writing-sub-') && (
-            <span className="text-[10px] px-1.5 py-0.5 rounded font-medium bg-orange-100 text-orange-700 animate-pulse">
-              Đang làm
+          {isInProgress && (
+            <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded font-bold bg-orange-500 text-white animate-pulse">
+              <Clock className="h-2.5 w-2.5" /> ĐANG LÀM
             </span>
           )}
           {entry.id.startsWith('writing-sub-') && entry.status && (
@@ -124,7 +129,7 @@ function EntryCard({ entry }: { entry: UnifiedEntry }) {
         <div className="flex items-center gap-3 mt-1 text-xs text-gray-400">
           <span>{formatDate(entry.date)}</span>
           {entry.elapsedSeconds > 0 && (
-            <span className="flex items-center gap-1">
+            <span className={`flex items-center gap-1 ${isInProgress ? 'text-orange-600 font-medium' : ''}`}>
               <Clock className="h-3 w-3" />
               {formatTime(entry.elapsedSeconds)}
             </span>
@@ -148,6 +153,13 @@ function EntryCard({ entry }: { entry: UnifiedEntry }) {
           )}
         </div>
       )}
+      {isInProgress && entry.total === 0 && (
+        <div className="flex-shrink-0">
+          <Button size="sm" variant="outline" className="h-8 rounded-full border-orange-200 text-orange-600 hover:bg-orange-50 hover:text-orange-700 text-[11px] font-bold">
+            TIẾP TỤC
+          </Button>
+        </div>
+      )}
     </Link>
   );
 }
@@ -168,6 +180,11 @@ function toUnifiedAttempt(a: AttemptHistory, skill: string): UnifiedEntry {
   }
 
   const isInProgress = !a.submittedAt;
+  
+  // If in progress, link back to practice page to resume, otherwise link to review
+  const reviewUrl = isInProgress 
+    ? (testOrStimulusId ? `/practice/${skillPath}/${testOrStimulusId}` : '#')
+    : (testOrStimulusId ? `/practice/${skillPath}/${testOrStimulusId}/review?attemptId=${a.attemptId}` : '#');
 
   return {
     id: `${skill}-${a.attemptId}`,
@@ -177,13 +194,14 @@ function toUnifiedAttempt(a: AttemptHistory, skill: string): UnifiedEntry {
     total: a.totalQuestions,
     percentage,
     elapsedSeconds: a.elapsedSeconds,
-    reviewUrl: testOrStimulusId ? `/practice/${skillPath}/${testOrStimulusId}/review?attemptId=${a.attemptId}` : '#',
+    reviewUrl,
     source: 'ai',
     testMode: a.testMode ?? 'PRACTICE',
     bandScore,
     status: isInProgress ? 'Đang làm' : undefined,
   };
 }
+
 
 function toUnifiedWritingSub(s: WritingSubmission): UnifiedEntry {
   const statusLabel = s.evaluationStatus === 'COMPLETED' ? 'Đã chấm'

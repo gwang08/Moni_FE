@@ -24,6 +24,11 @@ interface WritingPracticeViewProps {
   submitted: boolean;
   elapsedTime: string;
   onExit: () => void;
+  // Navigation props
+  totalTasks?: number;
+  activeTaskIndex?: number;
+  onTaskChange?: (index: number) => void;
+  taskTypes?: WritingTaskType[];
 }
 
 const MIN_WORDS: Record<number, number> = {
@@ -110,6 +115,10 @@ export function WritingPracticeView({
   submitted,
   elapsedTime,
   onExit,
+  totalTasks = 1,
+  activeTaskIndex = 0,
+  onTaskChange,
+  taskTypes = [2],
 }: WritingPracticeViewProps) {
   const minWords = MIN_WORDS[taskType] ?? 150;
 
@@ -162,6 +171,10 @@ export function WritingPracticeView({
         isSubmitting={isSubmitting}
         submitted={submitted}
         onSubmit={onSubmit}
+        totalTasks={totalTasks}
+        activeTaskIndex={activeTaskIndex}
+        onTaskChange={onTaskChange}
+        taskTypes={taskTypes}
       />
     </div>
   );

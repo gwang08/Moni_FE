@@ -131,18 +131,17 @@ export default function ExpertLayout({ children }: { children: React.ReactNode }
                   className="w-56 mb-2 ml-2 shadow-xl border-slate-200"
                 >
                   <div className="px-2 py-1.5 text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                    Tài khoản
+                   Tài khoản
                   </div>
-                  <DropdownMenuItem onClick={() => router.push('/profile')} className="cursor-pointer">
-                    <UserCog className="mr-2 h-4 w-4 text-slate-500" />
-                    <span>Chỉnh sửa hồ sơ</span>
+                  <DropdownMenuItem onClick={() => router.push('/expert/profile?tab=profile')} className="cursor-pointer">
+                   <UserCog className="mr-2 h-4 w-4 text-slate-500" />
+                   <span>Chỉnh sửa hồ sơ</span>
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => router.push('/profile')} className="cursor-pointer">
-                    <KeyRound className="mr-2 h-4 w-4 text-slate-500" />
-                    <span>Đổi mật khẩu</span>
+                  <DropdownMenuItem onClick={() => router.push('/expert/profile?tab=security')} className="cursor-pointer">
+                   <KeyRound className="mr-2 h-4 w-4 text-slate-500" />
+                   <span>Đổi mật khẩu</span>
                   </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-red-600 focus:text-red-600 focus:bg-red-50">
+                  <DropdownMenuSeparator />                  <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-red-600 focus:text-red-600 focus:bg-red-50">
                     <LogOut className="mr-2 h-4 w-4" />
                     <span>Đăng xuất</span>
                   </DropdownMenuItem>

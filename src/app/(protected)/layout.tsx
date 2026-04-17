@@ -91,13 +91,21 @@ export default function ProtectedLayout({
         const isLearnerRoute = learnerRoutes.some(route => 
           pathname === route || pathname.startsWith(route + '/')
         );
+
+        // Special handling for profile route
+        const isProfileRoute = pathname === '/profile' || pathname.startsWith('/profile/');
         
-        if (role === 'ADMIN' && isLearnerRoute) {
+        if (role === 'EXPERT' && isProfileRoute) {
+          router.push('/expert/profile');
+          return;
+        }
+
+        if (role === 'ADMIN' && isLearnerRoute && !isProfileRoute) {
           router.push('/admin');
           return;
         }
         
-        if (role === 'EXPERT' && isLearnerRoute) {
+        if (role === 'EXPERT' && isLearnerRoute && !isProfileRoute) {
           router.push('/expert/dashboard');
           return;
         }

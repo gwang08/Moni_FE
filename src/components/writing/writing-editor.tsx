@@ -61,7 +61,13 @@ export function WritingEditor({ taskType = 2, sampleAnswer, showSample, onToggle
     : sampleAnswer ? [sampleAnswer] : [];
 
   useEffect(() => {
-    setTexts(sections.map(() => ''));
+    const currentStoreContent = useWritingStore.getState().content;
+    if (currentStoreContent) {
+      const parts = currentStoreContent.split('\n\n');
+      setTexts(sections.map((_, i) => parts[i] ?? ''));
+    } else {
+      setTexts(sections.map(() => ''));
+    }
   }, [taskType, sections]);
 
   useEffect(() => {

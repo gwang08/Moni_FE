@@ -9,7 +9,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useAuthStore } from '@/store/auth-store';
-import { User, LogOut, Shield, CreditCard, Plus, LogIn, GraduationCap } from 'lucide-react';
+import { User, LogOut, Shield, CreditCard, Plus, LogIn, GraduationCap, LayoutDashboard } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -59,24 +59,26 @@ export function UserAvatarDropdown({ variant = 'light' }: UserAvatarDropdownProp
 
   return (
     <div className="flex items-center gap-2">
-      {/* Credit balance + Nạp button */}
-      <Link
-        href="/payment"
-        className={`hidden sm:flex items-center gap-1.5 rounded-full pl-3 pr-1 py-1 transition-colors group ${
-          isDark
-            ? 'border-white/30 border bg-white/10 hover:bg-white/20'
-            : 'border rounded-full hover:bg-accent'
-        }`}
-      >
-        <Image src="/currency.webp" alt="credit" width={16} height={16} className="h-4 w-4 object-contain" />
-        <span className={`text-sm font-semibold tabular-nums ${isDark ? 'text-white' : ''}`}>
-          {creditBalance.toLocaleString()}
-        </span>
-        <span className="flex items-center gap-0.5 rounded-full bg-primary text-primary-foreground px-2 py-0.5 text-xs font-medium group-hover:bg-primary/90 transition-colors">
-          <Plus className="h-3 w-3" />
-          Nạp
-        </span>
-      </Link>
+      {/* Credit balance + Nạp button - only for learners */}
+      {user.role === 'USER' && (
+        <Link
+          href="/payment"
+          className={`hidden sm:flex items-center gap-1.5 rounded-full pl-3 pr-1 py-1 transition-colors group ${
+            isDark
+              ? 'border-white/30 border bg-white/10 hover:bg-white/20'
+              : 'border rounded-full hover:bg-accent'
+          }`}
+        >
+          <Image src="/currency.webp" alt="credit" width={16} height={16} className="h-4 w-4 object-contain" />
+          <span className={`text-sm font-semibold tabular-nums ${isDark ? 'text-white' : ''}`}>
+            {creditBalance.toLocaleString()}
+          </span>
+          <span className="flex items-center gap-0.5 rounded-full bg-primary text-primary-foreground px-2 py-0.5 text-xs font-medium group-hover:bg-primary/90 transition-colors">
+            <Plus className="h-3 w-3" />
+            Nạp
+          </span>
+        </Link>
+      )}
 
       {/* Avatar dropdown */}
       <DropdownMenu>
@@ -103,42 +105,55 @@ export function UserAvatarDropdown({ variant = 'light' }: UserAvatarDropdownProp
             <p className="text-xs text-muted-foreground truncate">{user.email}</p>
           </div>
 
-          {/* Mobile-only credit display */}
-          <div className="sm:hidden px-2 py-1.5">
-            <Link
-              href="/payment"
-              className="flex items-center justify-between rounded-md border px-2.5 py-2 hover:bg-accent transition-colors"
-            >
-              <div className="flex items-center gap-1.5">
-                <Image src="/currency.webp" alt="credit" width={16} height={16} className="h-4 w-4 object-contain" />
-                <span className="text-sm font-semibold">{creditBalance.toLocaleString()}</span>
-              </div>
-              <span className="flex items-center gap-0.5 rounded-full bg-primary text-primary-foreground px-2 py-0.5 text-xs font-medium">
-                <Plus className="h-3 w-3" />
-                Nạp
-              </span>
-            </Link>
-          </div>
+          {/* Mobile-only credit display - only for learners */}
+          {user.role === 'USER' && (
+            <div className="sm:hidden px-2 py-1.5">
+              <Link
+                href="/payment"
+                className="flex items-center justify-between rounded-md border px-2.5 py-2 hover:bg-accent transition-colors"
+              >
+                <div className="flex items-center gap-1.5">
+                  <Image src="/currency.webp" alt="credit" width={16} height={16} className="h-4 w-4 object-contain" />
+                  <span className="text-sm font-semibold">{creditBalance.toLocaleString()}</span>
+                </div>
+                <span className="flex items-center gap-0.5 rounded-full bg-primary text-primary-foreground px-2 py-0.5 text-xs font-medium">
+                  <Plus className="h-3 w-3" />
+                  Nạp
+                </span>
+              </Link>
+            </div>
+          )}
 
           <DropdownMenuSeparator />
 
-          <DropdownMenuItem onClick={() => router.push('/profile')} className="cursor-pointer">
+          <DropdownMenuItem onClick={() => router.push(user.role === 'EXPERT' ? '/expert/profile' : '/profile')} className="cursor-pointer">
             <User className="mr-2 h-4 w-4" />
             <span>Hồ sơ</span>
           </DropdownMenuItem>
 
-          <DropdownMenuItem onClick={() => router.push('/transactions')} className="cursor-pointer">
-            <CreditCard className="mr-2 h-4 w-4" />
-            <span>Lịch sử giao dịch</span>
-          </DropdownMenuItem>
+          {user.role === 'USER' && (
+            <>
+              <DropdownMenuItem onClick={() => router.push('/transactions')} className="cursor-pointer">
+                <CreditCard className="mr-2 h-4 w-4" />
+                <span>Lịch sử giao dịch</span>
+              </DropdownMenuItem>
 
-          <DropdownMenuItem onClick={() => router.push('/scoring-history')} className="cursor-pointer">
-            <GraduationCap className="mr-2 h-4 w-4" />
-            <span>Lịch sử chấm điểm</span>
-          </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => router.push('/scoring-history')} className="cursor-pointer">
+                <GraduationCap className="mr-2 h-4 w-4" />
+                <span>Lịch sử chấm điểm</span>
+              </DropdownMenuItem>
+            </>
+          )}
+
+          {user.role === 'EXPERT' && (
+            <DropdownMenuItem onClick={() => router.push('/expert/dashboard')} className="cursor-pointer font-medium text-blue-600 focus:text-blue-600 focus:bg-blue-50">
+              <LayoutDashboard className="mr-2 h-4 w-4" />
+              <span>Expert Dashboard</span>
+            </DropdownMenuItem>
+          )}
 
           {user.role === 'ADMIN' && (
-            <DropdownMenuItem onClick={() => router.push('/admin')} className="cursor-pointer">
+            <DropdownMenuItem onClick={() => router.push('/admin')} className="cursor-pointer font-medium text-purple-600 focus:text-purple-600 focus:bg-purple-50">
               <Shield className="mr-2 h-4 w-4" />
               <span>Admin Panel</span>
             </DropdownMenuItem>

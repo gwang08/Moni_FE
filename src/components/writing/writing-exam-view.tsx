@@ -21,6 +21,11 @@ interface WritingExamViewProps {
   /** Remaining seconds from exam session */
   remainingSeconds?: number;
   testTitle?: string;
+  // Navigation props
+  totalTasks?: number;
+  activeTaskIndex?: number;
+  onTaskChange?: (index: number) => void;
+  taskTypes?: WritingTaskType[];
 }
 
 const INSTRUCTIONS: Record<number, string> = {
@@ -51,6 +56,10 @@ export function WritingExamView({
   countdownDisplay,
   remainingSeconds,
   testTitle,
+  totalTasks = 1,
+  activeTaskIndex = 0,
+  onTaskChange,
+  taskTypes = [2],
 }: WritingExamViewProps) {
   // Resizable divider state
   const [leftWidth, setLeftWidth] = useState(DEFAULT_LEFT_WIDTH);
@@ -62,14 +71,6 @@ export function WritingExamView({
 
   // Local word count for the textarea (computed from content prop)
   const localWordCount = countWords(content);
-
-  const resizeTextarea = useCallback(() => {
-    const el = textareaRef.current;
-    if (!el) return;
-
-    el.style.height = '0px';
-    el.style.height = `${el.scrollHeight}px`;
-  }, []);
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
@@ -125,13 +126,12 @@ export function WritingExamView({
     };
   }, [isDragging]);
 
-  useLayoutEffect(() => {
-    resizeTextarea();
-  }, [content, resizeTextarea, readOnly, submitted, chartImageUrl, taskType]);
-
   // Warn when time is running low (< 5 min)
   const isTimeWarning = remainingSeconds != null && remainingSeconds > 0 && remainingSeconds < 300;
   const isTimeUp = remainingSeconds != null && remainingSeconds <= 0;
+
+  const canGoPrev = activeTaskIndex > 0;
+  const canGoNext = activeTaskIndex < totalTasks - 1;
 
   return (
     <div className="flex flex-col h-[calc(100vh-56px)] bg-white">
@@ -228,53 +228,69 @@ export function WritingExamView({
 
         {/* Right pane - Textarea */}
         <div className="flex-1 overflow-hidden" style={{ width: `${100 - leftWidth}%` }}>
-          <div className="h-full overflow-y-auto px-6 py-6">
-            <div className="h-full flex flex-col">
+          <div className="h-full flex flex-col px-6 py-6">
+            <div className="flex-1 relative border border-gray-400 focus-within:border-gray-600 rounded-sm">
               <textarea
                 ref={textareaRef}
                 value={content}
                 onChange={(e) => {
                   onContentChange(e.target.value);
-                  resizeTextarea();
                 }}
                 placeholder="Write your answer here..."
                 readOnly={readOnly || submitted}
-                className="w-full min-h-[180px] overflow-hidden resize-none border border-gray-400 focus:border-gray-600 focus:outline-none rounded-sm px-4 py-3 text-sm text-gray-800 leading-relaxed placeholder:text-gray-400"
-                style={{ height: 'auto' }}
+                className="absolute inset-0 w-full h-full resize-none focus:outline-none px-4 py-3 text-sm text-gray-800 leading-relaxed placeholder:text-gray-400 overflow-y-auto"
               />
-              <p className="text-xs text-gray-600 text-right mt-1.5 font-medium">
-                Words: {localWordCount}
-              </p>
             </div>
+            <p className="text-xs text-gray-600 text-right mt-1.5 font-medium">
+              Words: {localWordCount}
+            </p>
           </div>
         </div>
       </div>
 
       {/* ===== Bottom navigation bar ===== */}
       <div className="shrink-0 bg-white border-t border-gray-300 px-4 py-1">
-        <div className="flex items-end justify-between gap-2">
-          {/* Part label */}
-          <span className="shrink-0 text-sm font-bold pb-1">
-            Part {taskType}
-          </span>
-
-          {/* Spacer */}
-          <div className="flex-1" />
+        <div className="flex items-center justify-between gap-3">
+          {/* Part navigation (Mini-map style) */}
+          <div className="flex items-center gap-6 overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+            {taskTypes.map((tType, idx) => (
+              <button
+                key={idx}
+                type="button"
+                onClick={() => onTaskChange?.(idx)}
+                className={`shrink-0 text-sm font-bold pb-1 transition-colors border-b-2 ${
+                  idx === activeTaskIndex
+                    ? 'text-gray-900 border-gray-900'
+                    : 'text-gray-400 border-transparent hover:text-gray-600'
+                }`}
+              >
+                Part {tType}
+              </button>
+            ))}
+          </div>
 
           {/* Navigation controls */}
           <div className="flex items-center gap-2 shrink-0 pb-1">
-            {/* Prev button - writing has a single task, so keep navigation disabled */}
             <button
-              disabled
-              className="w-[34px] h-[34px] flex items-center justify-center rounded bg-gray-100 text-gray-400 cursor-not-allowed"
+              onClick={() => canGoPrev && onTaskChange?.(activeTaskIndex - 1)}
+              disabled={!canGoPrev}
+              className={`w-[34px] h-[34px] flex items-center justify-center rounded transition-colors ${
+                canGoPrev
+                  ? 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+              }`}
             >
               <ArrowLeft className="h-[18px] w-[18px]" />
             </button>
 
-            {/* Next button - writing has a single task, so keep navigation disabled */}
             <button
-              disabled
-              className="w-[34px] h-[34px] flex items-center justify-center rounded bg-gray-100 text-gray-400 cursor-not-allowed"
+              onClick={() => canGoNext && onTaskChange?.(activeTaskIndex + 1)}
+              disabled={!canGoNext}
+              className={`w-[34px] h-[34px] flex items-center justify-center rounded transition-colors ${
+                canGoNext
+                  ? 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+              }`}
             >
               <ArrowRight className="h-[18px] w-[18px]" />
             </button>
@@ -282,11 +298,11 @@ export function WritingExamView({
             {/* Submit button */}
             <button
               onClick={onSubmit}
-              disabled={isSubmitting || submitted || localWordCount === 0}
+              disabled={isSubmitting || submitted || wordCount === 0}
               className={`w-[34px] h-[34px] flex items-center justify-center rounded transition-colors ${
                 submitted
                   ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                  : isSubmitting || localWordCount === 0
+                  : isSubmitting || wordCount === 0
                     ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                     : 'bg-green-600 text-white hover:bg-green-700'
               }`}

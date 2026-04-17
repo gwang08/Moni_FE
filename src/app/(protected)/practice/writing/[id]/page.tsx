@@ -1,6 +1,6 @@
 'use client';
 
-import { use, useEffect, useRef, useState, useCallback } from 'react';
+import { use, useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { toast } from 'sonner';
@@ -46,8 +46,7 @@ function draftKey(testId: string) {
 }
 
 interface WritingDraft {
-  content: string;
-  wordCount: number;
+  contents: string[];
   elapsed: number;
 }
 
@@ -69,6 +68,9 @@ export default function WritingExercisePage({ params }: Props) {
   const markCompleted = usePracticeStore((state) => state.markCompleted);
   const refreshProfile = useAuthStore((state) => state.refreshProfile);
 
+  const [activeStimulusIdx, setActiveStimulusIdx] = useState(0);
+  const [taskContents, setTaskContents] = useState<string[]>([]);
+  const [isInitialized, setIsInitialized] = useState(false);
   const [exitOpen, setExitOpen] = useState(false);
   const [showSample, setShowSample] = useState(false);
   const [showScoringDialog, setShowScoringDialog] = useState(false);
@@ -116,34 +118,82 @@ export default function WritingExercisePage({ params }: Props) {
       .catch(() => {});
   }, [reset]);
 
-  // Check draft
+  // 1. Initialize taskContents + Load Draft
   useEffect(() => {
-    if (!testDetail) return;
+    if (!testDetail || isInitialized) return;
+
+    let initialContents = testDetail.stimuli.map(() => '');
     const raw = localStorage.getItem(draftKey(id));
-    if (!raw) return;
-    try {
-      const draft: WritingDraft = JSON.parse(raw);
-      if (draft.content) {
-        setContent(draft.content);
+    
+    if (raw) {
+      try {
+        const draft: WritingDraft = JSON.parse(raw);
+        if (Array.isArray(draft.contents) && draft.contents.length === testDetail.stimuli.length) {
+          initialContents = draft.contents;
+        } else if ((draft as any).content) {
+          // Fallback for old single-task drafts
+          initialContents[0] = (draft as any).content;
+        }
+      } catch {
+        localStorage.removeItem(draftKey(id));
       }
-    } catch {
-      localStorage.removeItem(draftKey(id));
     }
-  }, [testDetail, id, setContent]);
+    
+    setTaskContents(initialContents);
+    if (initialContents[activeStimulusIdx] !== undefined) {
+      setContent(initialContents[activeStimulusIdx]);
+    }
+    setIsInitialized(true);
+  }, [testDetail, id, isInitialized, activeStimulusIdx, setContent]);
 
-  // Auto-save draft
+  // 2. Memoized full contents for saving
+  const allContents = useMemo(() => {
+    const arr = [...taskContents];
+    if (isInitialized && activeStimulusIdx < arr.length) {
+      arr[activeStimulusIdx] = content;
+    }
+    return arr;
+  }, [taskContents, activeStimulusIdx, content, isInitialized]);
+
+  // 3. Handle switching tasks
+  const handleTaskChange = (idx: number) => {
+    if (idx === activeStimulusIdx) return;
+    
+    // Save current content to taskContents before switching
+    setTaskContents(prev => {
+      const next = [...prev];
+      next[activeStimulusIdx] = content;
+      return next;
+    });
+    
+    // Switch task
+    setActiveStimulusIdx(idx);
+    
+    // Load new content from taskContents into store
+    const nextContent = taskContents[idx] || '';
+    setContent(nextContent);
+  };
+
+  // 4. Auto-save allContents to localStorage
   useEffect(() => {
-    if (submitted) return;
-    if (!content && wordCount === 0) return;
-    localStorage.setItem(draftKey(id), JSON.stringify({ content, wordCount, elapsed }));
-  }, [content, wordCount, elapsed, id, submitted]);
+    if (!isInitialized || submitted) return;
+    
+    // Don't save if everything is empty to avoid overwriting with nothing
+    if (allContents.every(c => !c)) return;
 
-  // Submit handler (useCallback so it's a hook, placed before early returns)
+    localStorage.setItem(draftKey(id), JSON.stringify({ contents: allContents, elapsed }));
+  }, [allContents, elapsed, id, submitted, isInitialized]);
+
+  const handleContentChange = (val: string) => {
+    setContent(val);
+  };
+
+  // Submit handler
   const handleSubmit = useCallback(() => {
-    const stimulus = testDetail?.stimuli[0];
+    const stimulus = testDetail?.stimuli[activeStimulusIdx];
     if (!stimulus || isSubmitting || submitted || !testDetail) return Promise.resolve();
     setIsSubmitting(true);
-    const taskType: WritingTaskType = testDetail.section === 1 ? 1 : 2;
+    const taskType: WritingTaskType = stimulus.section === 1 ? 1 : 2;
     return submitWriting({
       testId: Number(id),
       stimulusId: stimulus.id,
@@ -164,25 +214,25 @@ export default function WritingExercisePage({ params }: Props) {
       .finally(() => {
         setIsSubmitting(false);
       });
-  }, [testDetail, isSubmitting, submitted, content, wordCount, id, markCompleted]);
+  }, [testDetail, activeStimulusIdx, isSubmitting, submitted, content, wordCount, id, markCompleted]);
 
   // Sync ref
   useEffect(() => {
     handleSubmitRef.current = handleSubmit;
   }, [handleSubmit]);
 
-  // Grade handler — chart data is pre-computed by Admin, no need to send chartImage
+  // Grade handler
   const handleGrade = useCallback(() => {
-    const stimulus = testDetail?.stimuli[0];
+    const stimulus = testDetail?.stimuli[activeStimulusIdx];
     if (!testDetail || !stimulus) return;
-    const taskType: WritingTaskType = testDetail.section === 1 ? 1 : 2;
+    const taskType: WritingTaskType = stimulus.section === 1 ? 1 : 2;
     const prompt = stimulus.content || testDetail.description || FALLBACK_PROMPT;
     const answer = stripHtml(content);
     submitForGrading({
       taskType, question: prompt, answer,
       stimulusId: stimulus.id, submissionId: submissionId ?? undefined,
     }).then(() => { refreshProfile(); if (submissionId) router.push(`/writing/result/${submissionId}`); });
-  }, [testDetail, content, submissionId, submitForGrading, refreshProfile, router]);
+  }, [testDetail, activeStimulusIdx, content, submissionId, submitForGrading, refreshProfile, router]);
 
   // ===== EARLY RETURNS AFTER ALL HOOKS =====
 
@@ -199,13 +249,15 @@ export default function WritingExercisePage({ params }: Props) {
     );
   }
 
-  // Derived values
-  const taskType: WritingTaskType = testDetail.section === 1 ? 1 : 2;
-  const stimulus = testDetail.stimuli[0];
-  const prompt = stimulus?.content || testDetail.description || FALLBACK_PROMPT;
-  const chartImageUrl = taskType === 1 ? (stimulus?.mediaUrl ?? undefined) : undefined;
-  const sampleAnswer = stimulus?.questionGroups[0]?.instruction || undefined;
-  const canGrade = wordCount > 0 && !isGrading && !submitted;
+  // Derived values for active task
+  const currentStimulus = testDetail.stimuli[activeStimulusIdx] || testDetail.stimuli[0];
+  const taskType: WritingTaskType = currentStimulus.section === 1 ? 1 : 2;
+  const prompt = currentStimulus?.content || testDetail.description || FALLBACK_PROMPT;
+  const chartImageUrl = taskType === 1 ? (currentStimulus?.mediaUrl ?? undefined) : undefined;
+  const sampleAnswer = currentStimulus?.questionGroups[0]?.instruction || undefined;
+
+  const totalTasks = testDetail.stimuli.length;
+  const taskTypes = testDetail.stimuli.map(s => (s.section === 1 ? 1 : 2) as WritingTaskType);
 
   // Exam loading
   if (isExamMode && examSession.loading) return <SkeletonPractice />;
@@ -221,13 +273,17 @@ export default function WritingExercisePage({ params }: Props) {
           content={content}
           wordCount={wordCount}
           readOnly={submitted}
-          onContentChange={setContent}
+          onContentChange={handleContentChange}
           onSubmit={handleSubmit}
           isSubmitting={isSubmitting}
           submitted={submitted}
           countdownDisplay={countdownTimer.formatted}
           remainingSeconds={countdownTimer.remaining}
           testTitle={testDetail.title}
+          totalTasks={totalTasks}
+          activeTaskIndex={activeStimulusIdx}
+          onTaskChange={handleTaskChange}
+          taskTypes={taskTypes}
         />
         <WritingScoringOptionsDialog
           open={showScoringDialog}
@@ -261,12 +317,16 @@ export default function WritingExercisePage({ params }: Props) {
         sampleAnswer={sampleAnswer}
         showSample={showSample}
         onToggleSample={() => setShowSample(v => !v)}
-        onContentChange={setContent}
+        onContentChange={handleContentChange}
         onSubmit={handleSubmit}
         isSubmitting={isSubmitting}
         submitted={submitted}
         elapsedTime={elapsedTime}
         onExit={() => setExitOpen(true)}
+        totalTasks={totalTasks}
+        activeTaskIndex={activeStimulusIdx}
+        onTaskChange={handleTaskChange}
+        taskTypes={taskTypes}
       />
 
       <WritingScoringOptionsDialog

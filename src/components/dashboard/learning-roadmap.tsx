@@ -106,7 +106,7 @@ function SlotCard({ slot, onClick, locked }: { slot: DailySlotResponse; onClick:
           )}
         </div>
         
-        <p className={`text-[10px] leading-tight line-clamp-2 ${locked && !isDone ? 'text-gray-300' : 'text-gray-500'}`}>
+        <p className={`text-[10px] leading-tight truncate ${locked && !isDone ? 'text-gray-300' : 'text-gray-500'}`} title={formattedTitle}>
           {formattedTitle}
         </p>
 

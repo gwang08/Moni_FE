@@ -8,14 +8,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { ChibiMascot, ChibiAnimationStyles } from '@/components/ui/chibi-mascot';
-import { getMySessions, getSessionEvaluation, getExperts, createScoringSession } from '@/lib/expert-api';
+import { getMySessions, getExperts, createScoringSession } from '@/lib/expert-api';
 import { getWritingSubmissions, getWritingSubmissionDetail, type WritingSubmission } from '@/lib/ai-api';
 import { getServices } from '@/lib/payment-api';
 import { SpeakingModeExpertGrid } from '@/components/speaking/speaking-mode-expert-grid';
 import { SpeakingModeExpertInlineConfirm } from '@/components/speaking/speaking-mode-expert-inline-confirm';
 import { useAuthStore } from '@/store/auth-store';
-import { EvaluationDialog } from './evaluation-dialog';
-import type { ScoringSession, ExpertProfile, ExpertEvaluation } from '@/types/expert.types';
+import type { ScoringSession, ExpertProfile } from '@/types/expert.types';
 import { toast } from 'sonner';
 
 type Tab = 'writing' | 'expert';
@@ -57,10 +56,6 @@ export default function ScoringHistoryPage() {
 
   // Expert cost
   const [expertCost, setExpertCost] = useState<number | null>(null);
-
-  // Evaluation dialog
-  const [evalOpen, setEvalOpen] = useState(false);
-  const [evaluation, setEvaluation] = useState<ExpertEvaluation | null>(null);
 
   useEffect(() => {
     Promise.all([
@@ -112,12 +107,14 @@ export default function ScoringHistoryPage() {
     finally { setSubmitting(false); }
   };
 
-  const handleViewEval = async (sessionId: number) => {
-    setEvalOpen(true);
-    try {
-      const data = await getSessionEvaluation(sessionId);
-      setEvaluation(data);
-    } catch { toast.error('Không thể tải kết quả'); setEvalOpen(false); }
+  const handleViewEval = (session: ScoringSession) => {
+    // Writing → existing writing result page (via submission id)
+    if (session.skill === 'WRITING' && session.writingSubmissionId) {
+      router.push(`/writing/result/${session.writingSubmissionId}`);
+      return;
+    }
+    // Speaking → dedicated speaking result page
+    router.push(`/speaking/result/${session.id}`);
   };
 
   return (
@@ -236,7 +233,7 @@ export default function ScoringHistoryPage() {
                     </div>
                     <div className="flex gap-2.5 shrink-0 w-full sm:w-auto mt-2 sm:mt-0">
                       {s.status === 'COMPLETED' && (
-                        <Button className="w-full sm:w-auto h-9 text-[13px] font-bold rounded-xl bg-[#f97316] hover:bg-[#ea580c] text-white shadow-sm border-none" onClick={() => handleViewEval(s.id)}>
+                        <Button className="w-full sm:w-auto h-9 text-[13px] font-bold rounded-xl bg-[#f97316] hover:bg-[#ea580c] text-white shadow-sm border-none" onClick={() => handleViewEval(s)}>
                           Xem nhận xét chuyên gia ➔
                         </Button>
                       )}
@@ -270,8 +267,6 @@ export default function ScoringHistoryPage() {
           </DialogContent>
         </Dialog>
 
-        {/* Evaluation dialog */}
-        <EvaluationDialog open={evalOpen} onClose={() => { setEvalOpen(false); setEvaluation(null); }} evaluation={evaluation} />
       </div>
     </>
   );

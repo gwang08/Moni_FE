@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import {
   Dialog,
   DialogContent,
@@ -10,11 +9,11 @@ import {
 import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
 import { Button } from '@/components/ui/button';
 import { BookOpen } from 'lucide-react';
-import { toast } from 'sonner';
-import { generatePlacement } from '@/lib/placement-api';
 import { PlacementGenerateLoading } from '@/components/placement/placement-generate-loading';
 import { ChibiMascot, ChibiAnimationStyles } from '@/components/ui/chibi-mascot';
 import { useTourStore } from '@/store/tour-store';
+
+export const PLACEMENT_SKIP_KEY = 'placement-dialog-skipped-this-session';
 
 interface Props {
   open: boolean;
@@ -22,15 +21,21 @@ interface Props {
 }
 
 export function PlacementDialog({ open, onOpenChange }: Props) {
-  const router = useRouter();
   const setStep = useTourStore((s) => s.setStep);
-  const [generating, setGenerating] = useState(false);
+  const [generating] = useState(false);
+  const [skipForSession, setSkipForSession] = useState(false);
 
   const handleStartTour = () => {
     onOpenChange(false);
     setStep(1);
-    // Cuộn lên đầu trang để trải nghiệm mượt hơn
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleLater = () => {
+    if (skipForSession && typeof window !== 'undefined') {
+      sessionStorage.setItem(PLACEMENT_SKIP_KEY, '1');
+    }
+    onOpenChange(false);
   };
 
   return (
@@ -63,9 +68,19 @@ export function PlacementDialog({ open, onOpenChange }: Props) {
               Bắt đầu thiết lập
             </Button>
 
+            <label className="flex items-center justify-center gap-2 text-[12px] text-gray-500 cursor-pointer select-none pt-1">
+              <input
+                type="checkbox"
+                checked={skipForSession}
+                onChange={(e) => setSkipForSession(e.target.checked)}
+                className="h-3.5 w-3.5 rounded border-gray-300 text-orange-500 focus:ring-orange-300 cursor-pointer"
+              />
+              Không hỏi lại trong phiên này
+            </label>
+
             <button
-              onClick={() => onOpenChange(false)}
-              className="w-full text-center text-xs text-gray-400 hover:text-gray-600 py-2 transition-colors"
+              onClick={handleLater}
+              className="w-full text-center text-xs text-gray-400 hover:text-gray-600 py-1.5 transition-colors"
             >
               Để sau nhé ~
             </button>

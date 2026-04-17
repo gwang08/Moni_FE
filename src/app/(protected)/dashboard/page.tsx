@@ -13,7 +13,7 @@ import { WeeklyStats } from '@/components/dashboard/weekly-stats';
 import { VocabReviewStats } from '@/components/dashboard/vocab-review-stats';
 import { PracticeHistory } from '@/components/dashboard/practice-history';
 import { useAuthStore } from '@/store/auth-store';
-import { PlacementDialog } from '@/components/dashboard/placement-dialog';
+import { PlacementDialog, PLACEMENT_SKIP_KEY } from '@/components/dashboard/placement-dialog';
 import { LearningRoadmap } from '@/components/dashboard/learning-roadmap';
 import { RoadmapInsights } from '@/components/dashboard/roadmap-insights';
 import { useUserStore } from '@/store/user-store';
@@ -104,12 +104,13 @@ export default function DashboardPage() {
 
     // Fetch placement result
     async function fetchPlacement() {
+      const skipped = typeof window !== 'undefined' && sessionStorage.getItem(PLACEMENT_SKIP_KEY) === '1';
       try {
         const result = await getPlacementResult();
         setPlacementResult(result);
-        if (!result) setShowPlacementDialog(true);
+        if (!result && !skipped) setShowPlacementDialog(true);
       } catch {
-        setShowPlacementDialog(true);
+        if (!skipped) setShowPlacementDialog(true);
       }
     }
 

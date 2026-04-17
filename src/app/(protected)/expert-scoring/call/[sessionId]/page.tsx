@@ -31,6 +31,7 @@ export default function ExpertCallPage({ params }: Props) {
   const [uploadingRecording, setUploadingRecording] = useState(false);
   const recordingBlobRef = useRef<Blob | null>(null);
   const recordingUrlRef = useRef<string | null>(null);
+  const hasRatedRef = useRef(false);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const statusPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -86,14 +87,23 @@ export default function ExpertCallPage({ params }: Props) {
     return () => { if (statusPollRef.current) clearInterval(statusPollRef.current); };
   }, [inCall, sessionId]);
 
-  // When recording blob ready + session completed, upload immediately
+  // Fire-and-forget: upload recording in background; attaches later via PATCH if user already rated
   useEffect(() => {
     if (!recordingReady || !recordingBlobRef.current || recordingUrlRef.current) return;
     const blob = recordingBlobRef.current;
+    const sid = sessionId;
     setUploadingRecording(true);
-    const file = new File([blob], `recording-${sessionId}.webm`, { type: 'audio/webm' });
+    const file = new File([blob], `recording-${sid}.webm`, { type: 'audio/webm' });
     uploadMedia(file)
-      .then((url) => { recordingUrlRef.current = url; })
+      .then((url) => {
+        recordingUrlRef.current = url;
+        // If user already rated & navigated away, attach via PATCH so the backend stores the URL
+        if (hasRatedRef.current) {
+          apiClient
+            .patch(`/api/v1/scoring-sessions/${sid}/recording`, { recordingUrl: url }, true)
+            .catch(() => { /* non-fatal */ });
+        }
+      })
       .catch(() => { /* non-fatal */ })
       .finally(() => setUploadingRecording(false));
   }, [recordingReady, sessionId]);
@@ -112,10 +122,11 @@ export default function ExpertCallPage({ params }: Props) {
 
   const handleSubmitRating = async () => {
     if (rating === 0) { toast.error('Vui lòng chọn số sao'); return; }
-    if (uploadingRecording) { toast.info('Đang lưu bản ghi, vui lòng đợi...'); return; }
     setSubmittingRating(true);
+    hasRatedRef.current = true;
     try {
       const body: Record<string, unknown> = { rating, comment: ratingComment };
+      // Attach URL only if upload already finished; otherwise background upload will PATCH later
       if (recordingUrlRef.current) body.recordingUrl = recordingUrlRef.current;
       await apiClient.post<ApiResponse<unknown>>(
         `/api/v1/scoring-sessions/${sessionId}/rate`,
@@ -184,9 +195,9 @@ export default function ExpertCallPage({ params }: Props) {
           />
 
           {uploadingRecording && (
-            <div className="flex items-center justify-center gap-2 text-[12px] font-medium text-emerald-600 bg-emerald-50 py-2 rounded-lg">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              <span>Đang đồng bộ bản ghi âm lên hệ thống...</span>
+            <div className="flex items-center justify-center gap-2 text-[11.5px] font-medium text-gray-500 bg-gray-50 py-1.5 rounded-lg">
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              <span>Đang lưu bản ghi trong nền — bạn vẫn có thể gửi đánh giá luôn.</span>
             </div>
           )}
 
@@ -194,18 +205,16 @@ export default function ExpertCallPage({ params }: Props) {
             <Button
               variant="outline"
               className="flex-1 rounded-xl h-12 font-bold text-[14px] border-gray-200 text-gray-500 hover:bg-gray-50 hover:text-gray-800 transition-colors"
-              disabled={uploadingRecording}
-              onClick={async () => {
-                // Save recording URL even if user skips rating
-                if (recordingUrlRef.current) {
-                  try {
-                    await apiClient.post<ApiResponse<unknown>>(
-                      `/api/v1/scoring-sessions/${sessionId}/rate`,
-                      { rating: 0, comment: '', recordingUrl: recordingUrlRef.current },
-                      true,
-                    );
-                  } catch { /* non-fatal */ }
-                }
+              onClick={() => {
+                // Mark as "rated" (rating=0) so background upload knows to PATCH later
+                hasRatedRef.current = true;
+                apiClient
+                  .post<ApiResponse<unknown>>(
+                    `/api/v1/scoring-sessions/${sessionId}/rate`,
+                    { rating: 0, comment: '', ...(recordingUrlRef.current ? { recordingUrl: recordingUrlRef.current } : {}) },
+                    true,
+                  )
+                  .catch(() => { /* non-fatal */ });
                 router.push('/scoring-history');
               }}
             >
@@ -214,7 +223,7 @@ export default function ExpertCallPage({ params }: Props) {
             <Button
               className="flex-1 rounded-xl h-12 font-bold text-[14px] bg-[#f97316] hover:bg-[#ea580c] text-white shadow-sm transition-colors"
               onClick={handleSubmitRating}
-              disabled={submittingRating || rating === 0 || uploadingRecording}
+              disabled={submittingRating || rating === 0}
             >
               {submittingRating ? <Loader2 className="h-5 w-5 animate-spin" /> : 'Gửi đánh giá'}
             </Button>

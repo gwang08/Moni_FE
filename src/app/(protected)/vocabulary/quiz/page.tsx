@@ -85,7 +85,11 @@ export default function QuizPage() {
     try {
       const res = await getVocabQuiz(slotId);
       if (!res || !res.questions.length) {
-        toast.error('Không tìm thấy từ vựng cho bài kiểm tra này.');
+        if (res?.isHistory) {
+          toast.error('Lịch sử của bài quiz này không khả dụng (do hoàn thành trước lúc tính năng lịch sử ra mắt).');
+        } else {
+          toast.error('Không tìm thấy từ vựng cho bài kiểm tra này.');
+        }
         setScreen('setup');
         return;
       }

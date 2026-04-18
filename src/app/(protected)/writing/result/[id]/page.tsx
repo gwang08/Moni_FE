@@ -21,21 +21,33 @@ interface Props { params: Promise<{ id: string }> }
 // ---------- colour helpers ----------
 function bc(b: number) {
   if (b >= 8) return 'text-emerald-600';
-  if (b >= 6.5) return 'text-blue-600';
+  if (b >= 6.5) return 'text-teal-600';
   if (b >= 5) return 'text-amber-600';
   return 'text-rose-600';
 }
 function bbg(b: number) {
-  if (b >= 8) return 'bg-emerald-50/40 border-emerald-100';
-  if (b >= 6.5) return 'bg-blue-50/40 border-blue-100';
-  if (b >= 5) return 'bg-amber-50/40 border-amber-100';
-  return 'bg-rose-50/40 border-rose-100';
+  if (b >= 8) return 'bg-emerald-50/50 border-emerald-100';
+  if (b >= 6.5) return 'bg-teal-50/50 border-teal-100';
+  if (b >= 5) return 'bg-amber-50/50 border-amber-100';
+  return 'bg-rose-50/50 border-rose-100';
 }
 function bbc(b: number) {
   if (b >= 8) return 'border-emerald-200';
-  if (b >= 6.5) return 'border-blue-200';
+  if (b >= 6.5) return 'border-teal-200';
   if (b >= 5) return 'border-amber-200';
   return 'border-rose-200';
+}
+function baccent(b: number) {
+  if (b >= 8) return 'bg-emerald-400';
+  if (b >= 6.5) return 'bg-teal-400';
+  if (b >= 5) return 'bg-amber-400';
+  return 'bg-rose-400';
+}
+function bbadge(b: number) {
+  if (b >= 8) return 'bg-emerald-100 text-emerald-700';
+  if (b >= 6.5) return 'bg-teal-100 text-teal-700';
+  if (b >= 5) return 'bg-amber-100 text-amber-700';
+  return 'bg-rose-100 text-rose-700';
 }
 
 // ---------- data normalisation ----------
@@ -71,11 +83,14 @@ function cleanFeedback(text: any): string | undefined {
   if (typeof text !== 'string') return undefined;
   const trimmed = text.trim();
   if (!trimmed) return undefined;
-  // If it starts with [ or { it's likely a JSON leak
-  if (trimmed.startsWith('[') || trimmed.startsWith('{')) return undefined;
-  // If it contains "criterion": or "reason": it's likely a leaked object
+  // If it looks like a raw JSON object/array leak
+  if (trimmed.startsWith('{') || trimmed.startsWith('[{') || trimmed.startsWith('[[')) return undefined;
   if (trimmed.includes('"criterion":') || trimmed.includes('"reason":')) return undefined;
-  return trimmed;
+  // Strip legacy compiled expert feedback markers that may still slip through
+  return trimmed
+    .replace(/^\[NHẬN XÉT CHUNG\]\s*/i, '')
+    .replace(/\n\n\[ĐÁNH GIÁ CHI TIẾT\][\s\S]*$/i, '')
+    .trim() || undefined;
 }
 
 function normalise(raw: Record<string, unknown>): NormalisedData {
@@ -139,15 +154,15 @@ function ScoreOverview({ data }: { data: NormalisedData }) {
     <div className="flex flex-col md:flex-row items-center gap-8 md:gap-10">
       {/* Overall Score prominent display */}
       <div className="flex flex-col items-center justify-center shrink-0">
-        <div className="relative w-32 h-32 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center shadow-xl shadow-blue-500/20 ring-8 ring-blue-50">
+        <div className="relative w-32 h-32 rounded-full bg-gradient-to-tr from-teal-500 to-emerald-400 flex items-center justify-center shadow-xl shadow-teal-500/20 ring-8 ring-teal-50">
           <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-white/20 to-transparent"></div>
           <div className="relative w-28 h-28 rounded-full bg-white flex flex-col items-center justify-center shadow-inner">
-            <span className="text-[40px] font-extrabold tracking-tight text-blue-700 leading-none mb-1">{data.overall.toFixed(1)}</span>
-            <span className="text-[10px] font-black text-blue-400 uppercase tracking-widest">Band</span>
+            <span className="text-[40px] font-extrabold tracking-tight text-teal-700 leading-none mb-1">{data.overall.toFixed(1)}</span>
+            <span className="text-[10px] font-black text-teal-400 uppercase tracking-widest">Band</span>
           </div>
         </div>
       </div>
-      
+
       {/* Criteria Breakdown Grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 w-full">
         {data.criteria.map((c) => (
@@ -167,15 +182,15 @@ function CriterionCard({ c }: { c: NormalisedData['criteria'][number] }) {
     : [];
 
   return (
-    <div className={`group relative rounded-3xl border p-5 md:p-6 ${bbg(c.band)} transition-all hover:shadow-md overflow-hidden flex flex-col h-full bg-white/50 backdrop-blur-sm`}>
+    <div className={`group relative rounded-3xl border p-5 md:p-6 ${bbg(c.band)} transition-all hover:shadow-md overflow-hidden flex flex-col h-full bg-white/60 backdrop-blur-sm`}>
       {/* Decorative top border glow */}
-      <div className={`absolute top-0 left-0 right-0 h-1.5 ${c.band >= 8 ? 'bg-emerald-400' : c.band >= 6.5 ? 'bg-blue-400' : c.band >= 5 ? 'bg-amber-400' : 'bg-rose-400'} opacity-80`}></div>
-      
+      <div className={`absolute top-0 left-0 right-0 h-1.5 ${baccent(c.band)} opacity-80`}></div>
+
       <div className="flex items-start justify-between mb-4 mt-1">
         <div className="flex-1 pr-3">
           <p className="text-[15px] font-extrabold text-gray-900 tracking-tight">{c.label}</p>
           <div className="flex items-center gap-2 mt-2">
-             <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full ${c.band >= 8 ? 'bg-emerald-100 text-emerald-700' : c.band >= 6.5 ? 'bg-blue-100 text-blue-700' : c.band >= 5 ? 'bg-amber-100 text-amber-700' : 'bg-rose-100 text-rose-700'}`}>Band {c.band.toFixed(1)}</span>
+             <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full ${bbadge(c.band)}`}>Band {c.band.toFixed(1)}</span>
           </div>
         </div>
         <div className={`flex items-center justify-center w-12 h-12 rounded-2xl bg-white shadow-sm shrink-0 border ${bbc(c.band)} rotate-3 group-hover:rotate-0 transition-transform`}>
@@ -185,9 +200,9 @@ function CriterionCard({ c }: { c: NormalisedData['criteria'][number] }) {
 
       <div className="flex-1 flex flex-col gap-3">
         {c.justification ? (
-          <p className="text-[13.5px] text-gray-700 font-medium leading-relaxed bg-white/70 p-4 rounded-2xl border border-white/60 shadow-sm">{c.justification}</p>
+          <p className="text-[13.5px] text-gray-700 font-medium leading-relaxed bg-white/80 p-4 rounded-2xl border border-white/70 shadow-sm whitespace-pre-line">{c.justification}</p>
         ) : (
-          <p className="text-[13px] text-gray-400 italic bg-white/40 p-4 rounded-2xl border border-white/40 shadow-sm">Giám khảo không để lại nhận xét chi tiết cho tiêu chí này.</p>
+          <p className="text-[13px] text-gray-400 italic bg-white/50 p-4 rounded-2xl border border-white/60 shadow-sm">Giám khảo không để lại nhận xét chi tiết cho tiêu chí này.</p>
         )}
 
         <div className="flex flex-col gap-3 mt-auto pt-3">
@@ -478,7 +493,7 @@ export default function WritingResultPage({ params }: Props) {
       <div className="max-w-4xl mx-auto p-4 md:p-8 space-y-8 pb-16">
         {/* Prompt at the top */}
         {prompt && (
-          <div className="rounded-3xl border border-indigo-100/60 bg-gradient-to-br from-indigo-50/40 to-blue-50/20 p-5 shadow-sm">
+          <div className="rounded-3xl border border-teal-100/60 bg-gradient-to-br from-teal-50/40 to-emerald-50/20 p-5 shadow-sm">
             <WritingPromptPanel prompt={prompt} chartImageUrl={chartImageUrl || ''} taskType={taskType} />
           </div>
         )}
@@ -486,18 +501,17 @@ export default function WritingResultPage({ params }: Props) {
         {/* Score overview */}
         {normData && (
           <div className="rounded-3xl border border-gray-100 bg-white p-7 md:p-10 shadow-sm relative overflow-hidden">
-            <div className="absolute top-0 left-0 w-1.5 h-full bg-blue-500"></div>
-            <div className="flex items-center justify-between mb-8">
+            <div className="absolute top-0 left-0 w-1.5 h-full bg-teal-500"></div>
+            <div className="mb-8">
               <h2 className="text-xl md:text-2xl font-black text-gray-900 font-sans tracking-tight">Kết quả đánh giá</h2>
-              <span className="text-[10px] text-gray-300 font-mono">v1.1</span>
             </div>
             <ScoreOverview data={normData} />
 
             {/* Overall strategy */}
             {normData?.overall_strategy && (
-              <div className="mt-8 rounded-2xl bg-gradient-to-br from-indigo-50/80 to-blue-50/40 border border-indigo-100 p-6 shadow-sm">
-                <p className="text-[11px] font-black text-indigo-600 uppercase tracking-widest mb-3 flex items-center gap-1.5"><Sparkles className="h-4 w-4" /> Chiến lược bứt phá</p>
-                <p className="text-[14.5px] text-gray-800 leading-relaxed font-semibold">{normData.overall_strategy}</p>
+              <div className="mt-8 rounded-2xl bg-gradient-to-br from-teal-50/80 to-emerald-50/40 border border-teal-100 p-6 shadow-sm">
+                <p className="text-[11px] font-black text-teal-600 uppercase tracking-widest mb-3 flex items-center gap-1.5"><Sparkles className="h-4 w-4" /> Chiến lược bứt phá</p>
+                <p className="text-[14.5px] text-gray-800 leading-relaxed font-semibold whitespace-pre-line">{normData.overall_strategy}</p>
               </div>
             )}
             
@@ -547,7 +561,10 @@ export default function WritingResultPage({ params }: Props) {
         {/* All 4 criteria displayed directly */}
         {normData && (
           <div className="space-y-6">
-            <h2 className="text-xl md:text-2xl font-black text-gray-900 font-sans tracking-tight px-1">Phân tích chuyên sâu</h2>
+            <div className="px-1">
+              <h2 className="text-xl md:text-2xl font-black text-gray-900 font-sans tracking-tight">Phân tích chuyên sâu</h2>
+              <p className="text-[13px] text-gray-500 mt-1 font-medium">Nhận xét theo từng tiêu chí của giám khảo</p>
+            </div>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 lg:gap-6">
               {normData.criteria.map((c) => (
                 <CriterionCard key={c.key} c={c} />
@@ -562,7 +579,7 @@ export default function WritingResultPage({ params }: Props) {
             <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 px-1">
               <div>
                 <h2 className="text-xl md:text-2xl font-black text-gray-900 font-sans tracking-tight flex items-center gap-2">
-                  <FileText className="h-6 w-6 text-blue-600" />
+                  <FileText className="h-6 w-6 text-teal-600" />
                   Chữa bài chi tiết
                 </h2>
                 <p className="text-[13px] text-gray-500 mt-1 font-semibold">Bấm vào các phần được đánh dấu để xem gợi ý sửa đổi</p>
@@ -580,8 +597,8 @@ export default function WritingResultPage({ params }: Props) {
               onClick={() => setEssayOpen((o) => !o)}
             >
               <div className="flex items-center gap-4">
-                <div className="bg-blue-50 group-hover:bg-blue-100 p-2.5 rounded-xl border border-blue-100/50 transition-colors">
-                  <FileText className="h-5 w-5 text-blue-600" />
+                <div className="bg-teal-50 group-hover:bg-teal-100 p-2.5 rounded-xl border border-teal-100/50 transition-colors">
+                  <FileText className="h-5 w-5 text-teal-600" />
                 </div>
                 <div className="flex flex-col items-start gap-1">
                    <span className="text-[15px] font-extrabold text-gray-900">Bài viết của bạn</span>
@@ -606,10 +623,10 @@ export default function WritingResultPage({ params }: Props) {
 
         {/* AI score CTA */}
         {!scored && (
-          <div className="flex flex-col items-center justify-center py-12 px-4 border-2 border-dashed border-gray-200 rounded-3xl bg-gray-50/50 mt-6 shadow-sm">
-             <div className="bg-white p-4 rounded-full shadow-sm border border-gray-100 mb-5 relative overflow-hidden">
-                <div className="absolute inset-0 bg-blue-50 opacity-50 blur-xl"></div>
-                <Sparkles className="h-8 w-8 text-blue-600 relative z-10" />
+          <div className="flex flex-col items-center justify-center py-12 px-4 border-2 border-dashed border-teal-200 rounded-3xl bg-gradient-to-br from-teal-50/60 to-emerald-50/30 mt-6 shadow-sm">
+             <div className="bg-white p-4 rounded-full shadow-sm border border-teal-100 mb-5 relative overflow-hidden">
+                <div className="absolute inset-0 bg-teal-100/60 opacity-50 blur-xl"></div>
+                <Sparkles className="h-8 w-8 text-teal-600 relative z-10" />
              </div>
              <h3 className="text-xl font-extrabold text-gray-900 mb-3 text-center tracking-tight">Chấm điểm bài viết với AI</h3>
              <p className="text-[14px] text-gray-600 text-center max-w-md mb-8 leading-relaxed font-medium">AI sẽ cung cấp cho bạn band điểm dự kiến, phân tích chi tiết theo 4 tiêu chí của IELTS và chữa lỗi trực tiếp trên bài làm của bạn.</p>
@@ -617,7 +634,7 @@ export default function WritingResultPage({ params }: Props) {
               onClick={handleAiScore}
               disabled={isGrading}
               size="lg"
-              className="gap-2.5 bg-gray-900 hover:bg-gray-800 text-white shadow-xl shadow-gray-900/10 px-8 py-6 rounded-full font-bold text-[15px] transition-all hover:-translate-y-0.5"
+              className="gap-2.5 bg-teal-600 hover:bg-teal-700 text-white shadow-xl shadow-teal-500/20 px-8 py-6 rounded-full font-bold text-[15px] transition-all hover:-translate-y-0.5"
             >
               <Sparkles className="h-5 w-5 text-amber-300" />
               Bắt đầu chấm điểm

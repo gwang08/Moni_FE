@@ -193,4 +193,34 @@ if (typeof window !== 'undefined') {
       expiryTime: new Date(customEvent.detail.expiryTime)
     });
   });
+
+  // Cross-tab sync: khi tab khác logout/login, tab hiện tại phải đồng bộ ngay
+  // để user không lỡ vào route protected bằng state cũ trong memory.
+  window.addEventListener('storage', (e: StorageEvent) => {
+    if (e.key !== 'auth-storage') return;
+    try {
+      const parsed = e.newValue ? JSON.parse(e.newValue) : null;
+      const newToken: string | null = parsed?.state?.token ?? null;
+      const currentToken = useAuthStore.getState().token;
+
+      // Tab khác vừa logout → clear memory tab này + hiện dialog session-expired
+      if (!newToken && currentToken) {
+        useAuthStore.setState({
+          token: null,
+          expiryTime: null,
+          user: null,
+          isAuthenticated: false,
+        });
+        window.dispatchEvent(new CustomEvent('session-expired'));
+        return;
+      }
+
+      // Tab khác login user khác → reload để re-fetch toàn bộ data tương ứng
+      if (newToken && currentToken && newToken !== currentToken) {
+        window.location.reload();
+      }
+    } catch {
+      /* ignore parse errors */
+    }
+  });
 }

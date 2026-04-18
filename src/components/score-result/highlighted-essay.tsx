@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Info, X, Check, AlertTriangle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
-import type { NormalisedImprovement } from './result-normalise';
+import type { NormalisedImprovement } from './normalise';
 
 interface HighlightInfo {
   text: string;

@@ -1,7 +1,7 @@
 'use client';
 
 import { Check, Sparkles, TriangleAlert, ArrowRight, Rocket } from 'lucide-react';
-import type { NormalisedData } from './result-normalise';
+import type { NormalisedData } from './normalise';
 
 interface Props {
   data: NormalisedData;

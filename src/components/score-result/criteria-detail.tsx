@@ -2,8 +2,8 @@
 
 import { useState } from 'react';
 import { ChevronDown, Microscope } from 'lucide-react';
-import type { NormalisedCriterion } from './result-normalise';
-import { bandTextColor } from './result-color-helpers';
+import type { NormalisedCriterion } from './normalise';
+import { bandTextColor } from './color-helpers';
 
 interface Props {
   criteria: NormalisedCriterion[];

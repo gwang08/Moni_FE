@@ -3,7 +3,7 @@
 import { use, useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, FileText, Loader2, Sparkles, ChevronDown, ChevronUp, PenLine } from 'lucide-react';
+import { ArrowLeft, FileText, Loader2, Sparkles, ChevronDown, ChevronUp, PenLine, Calendar } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -14,11 +14,11 @@ import { useAuthStore } from '@/store/auth-store';
 import { useWritingStore } from '@/store/writing-store';
 import { getWritingSubmissionDetail, type WritingSubmissionDetail } from '@/lib/ai-api';
 import type { WritingTaskType } from '@/types/writing.types';
-import { normalise } from '@/components/writing-result/result-normalise';
-import { ResultHero } from '@/components/writing-result/result-hero';
-import { ResultInsights } from '@/components/writing-result/result-insights';
-import { ResultCriteriaDetail } from '@/components/writing-result/result-criteria-detail';
-import { ResultHighlightedEssay } from '@/components/writing-result/result-highlighted-essay';
+import { normalise } from '@/components/score-result/normalise';
+import { ResultHero } from '@/components/score-result/hero';
+import { ResultInsights } from '@/components/score-result/insights';
+import { ResultCriteriaDetail } from '@/components/score-result/criteria-detail';
+import { ResultHighlightedEssay } from '@/components/score-result/highlighted-essay';
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -128,10 +128,14 @@ export default function WritingResultPage({ params }: Props) {
         {/* Hero + 4 criterion bars */}
         {normData && (
           <ResultHero
-            data={normData}
-            taskType={taskType}
-            wordCount={submission.wordCount}
-            submittedAt={submittedDate}
+            overall={normData.overall}
+            criteria={normData.criteria}
+            skillChipLabel={`Writing · Task ${taskType}`}
+            title="Kết quả bài viết của bạn"
+            metaItems={[
+              { icon: <Calendar className="h-3.5 w-3.5" />, text: submittedDate },
+              { icon: <FileText className="h-3.5 w-3.5" />, text: `${submission.wordCount} từ` },
+            ]}
           />
         )}
 

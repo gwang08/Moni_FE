@@ -197,7 +197,6 @@ export default function AdminPromptsPage() {
                             <p className="text-[14px] font-bold text-gray-900 group-hover:text-blue-600 transition-colors">
                               {FILENAME_LABELS[p.filename] ?? p.filename}
                             </p>
-                            <p className="text-[11px] text-gray-400 font-mono mt-0.5">{p.path}</p>
                           </div>
                         </div>
                         <div className="flex items-center gap-3">

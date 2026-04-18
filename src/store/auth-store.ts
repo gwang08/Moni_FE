@@ -184,3 +184,13 @@ export const useAuthStore = create<AuthStore>()(
     }
   )
 );
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('token-refreshed', (e: Event) => {
+    const customEvent = e as CustomEvent<{ token: string; expiryTime: string }>;
+    useAuthStore.setState({
+      token: customEvent.detail.token,
+      expiryTime: new Date(customEvent.detail.expiryTime)
+    });
+  });
+}

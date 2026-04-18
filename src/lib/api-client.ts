@@ -37,6 +37,10 @@ function setStoredToken(token: string, expiryTime: string) {
     parsed.state.expiryTime = expiryTime;
     localStorage.setItem('auth-storage', JSON.stringify(parsed));
   } catch { /* ignore */ }
+
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('token-refreshed', { detail: { token, expiryTime } }));
+  }
 }
 
 function clearStoredAuth() {

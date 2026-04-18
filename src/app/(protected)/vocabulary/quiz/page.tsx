@@ -30,6 +30,7 @@ export default function QuizPage() {
   const [score, setScore] = useState(0);
   const [wrongAnswers, setWrongAnswers] = useState<WrongAnswer[]>([]);
   const [correctWords, setCorrectWords] = useState<string[]>([]);
+  const [incorrectWords, setIncorrectWords] = useState<string[]>([]);
   const [activeSlotId, setActiveSlotId] = useState<number | null>(null);
 
   const searchParams = useSearchParams();
@@ -59,6 +60,7 @@ export default function QuizPage() {
       setScore(0);
       setWrongAnswers([]);
       setCorrectWords([]);
+      setIncorrectWords([]);
       setScreen('quiz');
     } catch (err) {
       toast.error('Lỗi khi tải bài thi từ vựng');
@@ -86,6 +88,7 @@ export default function QuizPage() {
       setScore(0);
       setWrongAnswers([]);
       setCorrectWords([]);
+      setIncorrectWords([]);
       setScreen('quiz');
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : 'Không thể tạo quiz');
@@ -97,26 +100,34 @@ export default function QuizPage() {
   const handleNext = (selectedIndex: number) => {
     const question = questions[currentIdx];
     
-    // Determine target correctly answered words for payload if this is the last question
-    const finalCorrectWords = selectedIndex === question.correctIndex 
+    // Track correct and incorrect words
+    const isCorrect = selectedIndex === question.correctIndex;
+    const finalCorrectWords = isCorrect
         ? [...correctWords, question.word] 
         : correctWords;
+    const finalIncorrectWords = !isCorrect
+        ? [...incorrectWords, question.word]
+        : incorrectWords;
 
-    if (selectedIndex === question.correctIndex) {
+    if (isCorrect) {
       setScore((s) => s + 1);
       setCorrectWords(finalCorrectWords);
     } else {
       setWrongAnswers((prev) => [...prev, { question, selectedIndex }]);
+      setIncorrectWords(finalIncorrectWords);
     }
 
     if (currentIdx + 1 >= questions.length) {
       setScreen('result');
-      // If this was a roadmap test, mark it as complete
+      // If this was a roadmap test, mark it as complete with both correct + incorrect words
       if (activeSlotId) {
-        // We set score and total to DONE. For vocab test, score can be percentage?
-        // Let's just mark it done.
-        completeSlot(activeSlotId, score + (selectedIndex === question.correctIndex ? 1 : 0), questions.length, finalCorrectWords)
-          .catch(() => console.error("Failed to complete vocab slot"));
+        completeSlot(
+          activeSlotId,
+          score + (isCorrect ? 1 : 0),
+          questions.length,
+          finalCorrectWords,
+          finalIncorrectWords
+        ).catch(() => console.error("Failed to complete vocab slot"));
       }
     } else {
       setCurrentIdx((i) => i + 1);
@@ -130,6 +141,7 @@ export default function QuizPage() {
     setScore(0);
     setWrongAnswers([]);
     setCorrectWords([]);
+    setIncorrectWords([]);
   };
 
   return (

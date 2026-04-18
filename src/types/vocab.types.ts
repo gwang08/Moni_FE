@@ -75,6 +75,7 @@ export interface QuizQuestion {
   correctIndex: number;
   word: string;
   explanation: string | null;
+  vocabStatus: 'DRAFT' | 'ACTIVE' | null; // "DRAFT" = Sổ biết tuốt, "ACTIVE" = Sổ nhắc lại
 }
 
 export interface QuizResponse {

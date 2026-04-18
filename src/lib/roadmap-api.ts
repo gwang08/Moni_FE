@@ -63,11 +63,12 @@ export async function completeSlot(
   slotId: number,
   score: number,
   totalQuestions: number,
-  correctWords?: string[]
+  correctWords?: string[],
+  incorrectWords?: string[]
 ): Promise<void> {
   await apiClient.patch(
     `/api/v1/learner/weekly-plan/slots/${slotId}/complete`,
-    { score, totalQuestions, correctWords },
+    { score, totalQuestions, correctWords, incorrectWords },
     true
   );
 }

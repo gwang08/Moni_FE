@@ -15,6 +15,7 @@ import {
   Mic,
   Eye,
   Edit3,
+  Tag,
 } from 'lucide-react';
 import { AdminHeader } from '@/components/admin/admin-header';
 import {
@@ -41,6 +42,8 @@ const FILENAME_LABELS: Record<string, string> = {
   'phase3_gra.txt': 'Phase 3 — Grammatical Range',
   'phase4_pr.txt': 'Phase 4 — Pronunciation',
   'phase5_feedback.txt': 'Phase 5 — Feedback',
+  'analyze_chart.txt': 'Vision — Chart/Process Analysis',
+  'quiz_generation.txt': 'Vocab — AI Quiz Generation',
 };
 
 export default function PromptEditorPage() {
@@ -118,7 +121,14 @@ export default function PromptEditorPage() {
     },
   });
 
-  const SkillIcon = skill === 'writing' ? BookOpen : Mic;
+  const SkillIcon =
+    skill === 'writing'
+      ? BookOpen
+      : skill === 'speaking'
+        ? Mic
+        : skill === 'vision'
+          ? Eye
+          : Tag;
   const isDirty = editContent !== (detail?.content ?? '');
 
   return (

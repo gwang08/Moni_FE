@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
-import { BookOpen, Mic, ChevronRight, Tag, RefreshCw, CheckCircle2, Clock } from 'lucide-react';
+import { BookOpen, Mic, ChevronRight, Tag, RefreshCw, CheckCircle2, Clock, Eye } from 'lucide-react';
 import { AdminHeader } from '@/components/admin/admin-header';
 import { listAllPrompts, type PromptInfo } from '@/lib/admin-api';
 
@@ -19,6 +19,18 @@ const SKILL_META: Record<string, { label: string; icon: typeof BookOpen; color: 
     icon: Mic,
     color: 'text-violet-600',
     bg: 'bg-violet-50 border-violet-100',
+  },
+  vision: {
+    label: 'Vision',
+    icon: Eye,
+    color: 'text-pink-600',
+    bg: 'bg-pink-50 border-pink-100',
+  },
+  vocab: {
+    label: 'Vocab',
+    icon: Tag,
+    color: 'text-emerald-600',
+    bg: 'bg-emerald-50 border-emerald-100',
   },
 };
 
@@ -37,10 +49,14 @@ const FILENAME_LABELS: Record<string, string> = {
   'phase3_gra.txt': 'Phase 3 — Grammatical Range',
   'phase4_pr.txt': 'Phase 4 — Pronunciation',
   'phase5_feedback.txt': 'Phase 5 — Feedback',
+  'analyze_chart.txt': 'Vision — Chart/Process Analysis',
+  'quiz_generation.txt': 'Vocab — AI Quiz Generation',
 };
 
 export default function AdminPromptsPage() {
-  const [activeSkill, setActiveSkill] = useState<'all' | 'writing' | 'speaking'>('all');
+  const [activeSkill, setActiveSkill] = useState<'all' | 'writing' | 'speaking' | 'vision' | 'vocab'>(
+    'all'
+  );
 
   const { data: prompts = [], isLoading, refetch } = useQuery({
     queryKey: ['admin-prompts'],
@@ -84,18 +100,26 @@ export default function AdminPromptsPage() {
         </div>
 
         {/* Skill filter tabs */}
-        <div className="flex gap-2 bg-white border border-gray-100 rounded-2xl p-1 shadow-sm w-fit">
-          {(['all', 'writing', 'speaking'] as const).map((skill) => (
+        <div className="flex gap-2 bg-white border border-gray-100 rounded-2xl p-1 shadow-sm w-fit overflow-x-auto max-w-full">
+          {(['all', 'writing', 'speaking', 'vision', 'vocab'] as const).map((skill) => (
             <button
               key={skill}
               onClick={() => setActiveSkill(skill)}
-              className={`px-5 py-2 rounded-xl text-sm font-semibold transition-all ${
+              className={`px-5 py-2 rounded-xl text-sm font-semibold transition-all whitespace-nowrap ${
                 activeSkill === skill
                   ? 'bg-blue-600 text-white shadow-sm'
                   : 'text-gray-600 hover:bg-gray-100'
               }`}
             >
-              {skill === 'all' ? 'Tất cả' : skill === 'writing' ? '📝 Writing' : '🎙️ Speaking'}
+              {skill === 'all'
+                ? 'Tất cả'
+                : skill === 'writing'
+                  ? '📝 Writing'
+                  : skill === 'speaking'
+                    ? '🎙️ Speaking'
+                    : skill === 'vision'
+                      ? '👁️ Vision'
+                      : '🏷️ Vocab'}
             </button>
           ))}
         </div>

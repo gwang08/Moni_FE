@@ -58,6 +58,7 @@ export default function SimulationPage() {
   const handleCompleteDay = (day: number) => callSimApi(`/complete-day/${userId}/${day}`, `Complete Day ${day}`);
   const handleCompleteWeek = () => callSimApi(`/complete-week/${userId}`, 'Complete Week');
   const handleEvaluateAndNext = () => callSimApi(`/evaluate-and-next/${userId}`, 'Evaluate & Generate Next');
+  const handleSkipDay = () => callSimApi(`/skip-day/${userId}`, 'Skip 1 Day');
   const handleFastForward = () => callSimApi(`/fast-forward/${userId}?weeks=${fastForwardWeeks}`, `Fast Forward ${fastForwardWeeks} weeks`);
   const handleReset = () => callSimApi(`/reset/${userId}`, 'Reset All Plans');
 
@@ -123,6 +124,29 @@ export default function SimulationPage() {
                 </button>
               ))}
             </div>
+          </div>
+
+          {/* Skip Day */}
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <FastForward className="h-5 w-5 text-indigo-500" />
+              <h3 className="font-bold text-gray-800">Skip Day</h3>
+            </div>
+            <p className="text-xs text-gray-500 mb-4">
+              Lùi lịch để "hack" thời gian, đưa các task của ngày mai về thành hôm nay
+            </p>
+            <button
+              onClick={handleSkipDay}
+              disabled={isLoading}
+              className="w-full px-4 py-3 rounded-xl text-sm font-bold border-2 border-indigo-100 text-indigo-700 hover:bg-indigo-50 transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              {loading === 'Skip 1 Day' ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <FastForward className="h-4 w-4" />
+              )}
+              Skip 1 Ngày
+            </button>
           </div>
 
           {/* Complete Entire Week */}

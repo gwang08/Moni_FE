@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { useAuthStore } from '@/store/auth-store';
 import { AdminSidebar } from '@/components/admin/admin-sidebar';
-import { SessionExpiredDialog } from '@/components/auth/session-expired-dialog';
 
 type PersistApi = {
   hasHydrated: () => boolean;
@@ -67,7 +66,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     <div className="min-h-screen bg-gray-50">
       <AdminSidebar onCollapseChange={setSidebarCollapsed} />
       <main className={`min-h-screen transition-all duration-300 ${sidebarCollapsed ? 'ml-16' : 'ml-64'}`}>{children}</main>
-      <SessionExpiredDialog />
     </div>
   );
 }

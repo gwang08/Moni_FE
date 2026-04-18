@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
 import { QueryProvider } from "@/components/providers/query-provider";
 import { SessionAuthGuard } from "@/components/auth/session-auth-guard";
+import { SessionExpiredDialog } from "@/components/auth/session-expired-dialog";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -33,6 +34,7 @@ export default function RootLayout({
       >
         <QueryProvider>
           <SessionAuthGuard />
+          <SessionExpiredDialog />
           {children}
         </QueryProvider>
         <Toaster />

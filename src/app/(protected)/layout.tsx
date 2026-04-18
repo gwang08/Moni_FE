@@ -5,7 +5,6 @@ import { useRouter, usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { InnerNavbar } from '@/components/layout/inner-navbar';
-import { SessionExpiredDialog } from '@/components/auth/session-expired-dialog';
 
 // Pages that can be viewed without authentication
 // Note: /practice and /vocabulary are intentionally kept public for browsing
@@ -130,7 +129,6 @@ export default function ProtectedLayout({
     <div className="min-h-screen bg-gray-50">
       {!isExpertRoute && <InnerNavbar />}
       <main className="relative">{children}</main>
-      {isAuthenticated && <SessionExpiredDialog />}
     </div>
   );
 }

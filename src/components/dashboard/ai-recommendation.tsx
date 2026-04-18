@@ -5,7 +5,6 @@ import { useUserStore } from '@/store/user-store';
 import { calculateOverallScore } from '@/lib/calendar-utils';
 import { getAiRecommendation, type AiRecommendation } from '@/lib/placement-api';
 import { apiClient } from '@/lib/api-client';
-import { getRoadmapGoals, updateGoal } from '@/lib/roadmap-api';
 import type { ApiResponse } from '@/types/auth.types';
 import type { SkillKey } from '@/types';
 import {
@@ -79,41 +78,18 @@ export function AiRecommendationDialog({ open, onOpenChange }: Props) {
       if (val > 0) setTargetScore(skill as SkillKey, val);
     }
     // Update user profile targets
-    apiClient.put<ApiResponse<unknown>>('/users/me', {
-      targetReading: recommendation.recommendedReading,
-      targetListening: recommendation.recommendedListening,
-      targetWriting: recommendation.recommendedWriting,
-      targetSpeaking: recommendation.recommendedSpeaking,
-      targetBand: recommendation.recommendedOverall,
-    }, true).catch(() => {});
-
-    // Update roadmap goals with new targetBand, then trigger refresh
-    const skillToRecommended: Record<string, number> = {
-      READING: recommendation.recommendedReading,
-      LISTENING: recommendation.recommendedListening,
-      WRITING: recommendation.recommendedWriting,
-      SPEAKING: recommendation.recommendedSpeaking,
-    };
-    getRoadmapGoals().then(async (goals) => {
-      console.log('Roadmap goals to update:', goals);
-      const updates = goals
-        .filter(goal => {
-          const newTarget = skillToRecommended[goal.skill];
-          console.log(`Goal ${goal.skill}: current target=${goal.targetBand}, new target=${newTarget}`);
-          return newTarget && newTarget > 0 && newTarget !== goal.targetBand;
-        })
-        .map(goal => {
-          const deadline = goal.deadline || examDate || new Date(Date.now() + 180 * 86400000).toISOString().split('T')[0];
-          console.log(`Updating goal ${goal.goalId} (${goal.skill}): targetBand=${skillToRecommended[goal.skill]}, deadline=${deadline}`);
-          return updateGoal(goal.goalId, { targetBand: skillToRecommended[goal.skill], deadline });
-        });
-      await Promise.all(updates);
-      console.log('All goals updated, dispatching roadmap-updated event');
+    try {
+      await apiClient.put<ApiResponse<unknown>>('/users/me', {
+        targetReading: recommendation.recommendedReading,
+        targetListening: recommendation.recommendedListening,
+        targetWriting: recommendation.recommendedWriting,
+        targetSpeaking: recommendation.recommendedSpeaking,
+        targetBand: recommendation.recommendedOverall,
+      }, true);
       window.dispatchEvent(new Event('roadmap-updated'));
-    }).catch((err) => {
-      console.error('Failed to update roadmap goals:', err);
-      toast.error('Không thể cập nhật lộ trình. Vui lòng tải lại trang.');
-    });
+    } catch {
+      toast.error('Không thể cập nhật mục tiêu. Vui lòng tải lại trang.');
+    }
 
     setApplied(true);
     toast.success('Đã áp dụng mục tiêu gợi ý!');

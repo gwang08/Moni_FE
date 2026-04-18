@@ -23,7 +23,6 @@ import { useElapsedTimer } from '@/hooks/use-elapsed-timer';
 import { useCountdownTimer } from '@/hooks/use-countdown-timer';
 import { useExamSession } from '@/hooks/use-exam-session';
 import { submitAttempt } from '@/lib/practice-api';
-import { updateTaskStatus } from '@/lib/roadmap-api';
 import type { SavedAnswer } from '@/lib/exam-api';
 
 function parseSavedAnswers(savedAnswers: SavedAnswer[]) {
@@ -186,7 +185,6 @@ export default function ListeningExercisePage({ params }: Props) {
           testId: id, answers, textAnswers, elapsedSeconds: countdownTimer.elapsed,
         }));
       }
-      if (roadmapTaskId) updateTaskStatus(Number(roadmapTaskId), 'DONE').catch(() => {});
       router.push(`/practice/listening/${id}/result`);
       return;
     }
@@ -209,9 +207,6 @@ export default function ListeningExercisePage({ params }: Props) {
       }
     } else {
       sessionStorage.setItem(`practice-result-${id}`, JSON.stringify({ testId: id, answers, textAnswers, elapsedSeconds: elapsed }));
-    }
-    if (roadmapTaskId) {
-      updateTaskStatus(Number(roadmapTaskId), 'DONE').catch(() => {});
     }
 
     router.push(`/practice/listening/${id}/result`);

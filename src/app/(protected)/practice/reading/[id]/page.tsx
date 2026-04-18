@@ -23,7 +23,6 @@ import { useCountdownTimer } from '@/hooks/use-countdown-timer';
 import { useExamSession } from '@/hooks/use-exam-session';
 import { toMinutes } from '@/lib/duration-utils';
 import { submitAttempt } from '@/lib/practice-api';
-import { updateTaskStatus } from '@/lib/roadmap-api';
 import type { SavedAnswer } from '@/lib/exam-api';
 
 const FALLBACK_PASSAGE = {
@@ -195,7 +194,6 @@ export default function ReadingExercisePage({ params }: Props) {
           testId: id, answers, textAnswers, elapsedSeconds: countdownTimer.elapsed,
         }));
       }
-      if (roadmapTaskId) updateTaskStatus(Number(roadmapTaskId), 'DONE').catch(() => {});
       router.push(`/practice/reading/${id}/result`);
       return;
     }
@@ -230,10 +228,6 @@ export default function ReadingExercisePage({ params }: Props) {
       sessionStorage.setItem(`practice-result-${id}`, JSON.stringify({
         testId: id, answers, textAnswers, elapsedSeconds: elapsed,
       }));
-    }
-
-    if (roadmapTaskId) {
-      updateTaskStatus(Number(roadmapTaskId), 'DONE').catch(() => {});
     }
 
     router.push(`/practice/reading/${id}/result`);

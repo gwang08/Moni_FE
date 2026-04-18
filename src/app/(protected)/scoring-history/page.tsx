@@ -20,7 +20,7 @@ import {
   type SkillFilter,
   type StatusFilter,
 } from '@/components/scoring-history/history-filter-bar';
-import { HistoryEntryCard } from '@/components/scoring-history/history-entry-card';
+import { HistoryTable } from '@/components/scoring-history/history-table';
 
 export default function ScoringHistoryPage() {
   const router = useRouter();
@@ -143,11 +143,7 @@ export default function ScoringHistoryPage() {
         ) : filtered.length === 0 ? (
           <EmptyState hasEntries={entries.length > 0} />
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {filtered.map((e) => (
-              <HistoryEntryCard key={e.id} entry={e} onExpertScore={handleExpertScore} />
-            ))}
-          </div>
+          <HistoryTable entries={filtered} onExpertScore={handleExpertScore} />
         )}
 
         {/* Expert modal */}

@@ -98,7 +98,7 @@ function SlotCard({ slot, onClick, locked }: { slot: DailySlotResponse; onClick:
         disabled={isDisabled}
         className={`w-full rounded-xl border px-2.5 py-2 text-left transition-all relative overflow-hidden ${
           isDone
-            ? `${style.bg} ${style.border} opacity-100 shadow-sm`
+            ? `${style.bg} ${style.border} opacity-100 shadow-sm hover:shadow-md cursor-pointer`
             : locked
               ? 'bg-gray-50/50 border-gray-100 opacity-60 cursor-not-allowed'
               : hasLink
@@ -291,7 +291,18 @@ export function LearningRoadmap({ weekNumber }: { weekNumber?: number }) {
   }
 
   const handleSlotClick = (slot: DailySlotResponse) => {
-    if (slot.status === 'DONE') return;
+    if (slot.status === 'DONE') {
+      if (slot.skill === 'VOCABULARY' && slot.taskType === 'VOCAB_TEST') {
+        router.push(`/vocabulary/quiz?slotId=${slot.id}`);
+        return;
+      }
+      if (slot.skill === 'VOCABULARY' && slot.taskType === 'VOCAB_LEARN') {
+        toast.info('Bạn đã hoàn thành bài học từ vựng này rồi!');
+        return;
+      }
+      toast.info('Vào mục Lịch sử luyện tập để xem lại kết quả bài làm.');
+      return;
+    }
 
     if (slot.skill === 'VOCABULARY') {
       setActiveSlot(slot);

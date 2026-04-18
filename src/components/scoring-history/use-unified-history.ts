@@ -64,6 +64,7 @@ export function useUnifiedHistory() {
         kind: 'writing',
         title: w.testTitle || w.stimulusTitle || `Writing ${w.taskType === 'TASK_1' ? 'Task 1' : 'Task 2'}`,
         subtitle: `${w.wordCount ?? 0} từ`,
+        band: typeof w.overallBand === 'number' && w.overallBand > 0 ? w.overallBand : undefined,
         status: writingStatusFrom(w.evaluationStatus),
         date: w.submittedAt,
         href: `/writing/result/${w.submissionId}`,

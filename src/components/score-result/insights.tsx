@@ -16,8 +16,13 @@ export function ResultInsights({ data }: Props) {
 
   if (!strengthItems.length && !improvementItems.length && !strategy) return null;
 
+  // Đếm số card thực tế → chọn grid columns và dùng items-start để card tự co theo content
+  // (tránh case "Chiến lược bứt phá" ngắn bị kéo dài trống phần dưới)
+  const activeCount = [strengthItems.length > 0, improvementItems.length > 0, !!strategy].filter(Boolean).length;
+  const gridCols = activeCount === 1 ? 'lg:grid-cols-1' : activeCount === 2 ? 'lg:grid-cols-2' : 'lg:grid-cols-3';
+
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+    <div className={`grid grid-cols-1 ${gridCols} gap-5 items-start`}>
       {strengthItems.length > 0 && (
         <InsightCard
           icon={<Sparkles className="h-4 w-4 text-emerald-600" />}
@@ -55,7 +60,7 @@ function InsightCard({
   itemIcon: React.ReactNode;
 }) {
   return (
-    <div className="rounded-2xl bg-white border border-slate-100 shadow-sm p-5 h-full">
+    <div className="rounded-2xl bg-white border border-slate-100 shadow-sm p-5">
       <div className="flex items-center gap-2 mb-3">
         <span className={`h-8 w-8 rounded-xl ${iconBg} grid place-items-center`}>{icon}</span>
         <h3 className="text-[14px] font-extrabold text-slate-900">{title}</h3>
@@ -74,7 +79,7 @@ function InsightCard({
 
 function StrategyCard({ text }: { text: string }) {
   return (
-    <div className="rounded-2xl p-5 relative overflow-hidden bg-gradient-to-br from-teal-600 to-emerald-500 text-white shadow-sm h-full">
+    <div className="rounded-2xl p-5 relative overflow-hidden bg-gradient-to-br from-teal-600 to-emerald-500 text-white shadow-sm">
       <div className="absolute -right-6 -top-6 w-28 h-28 rounded-full bg-white/10 blur-xl pointer-events-none" />
       <div className="relative">
         <div className="flex items-center gap-2 mb-3">

@@ -16,6 +16,7 @@ export interface WritingSubmission {
   wordCount: number | null;
   evaluationStatus: WritingEvaluationStatus;
   submittedAt: string;
+  overallBand?: number | null;
 }
 
 export interface WritingSubmissionDetail {

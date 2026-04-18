@@ -13,6 +13,8 @@ import { QuizQuestion } from '@/types/vocab.types';
 import { toast } from 'sonner';
 import { useSearchParams } from 'next/navigation';
 import { useEffect, useRef } from 'react';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { X } from 'lucide-react';
 
 type Screen = 'setup' | 'quiz' | 'result';
 
@@ -32,9 +34,20 @@ export default function QuizPage() {
   const [correctWords, setCorrectWords] = useState<string[]>([]);
   const [incorrectWords, setIncorrectWords] = useState<string[]>([]);
   const [activeSlotId, setActiveSlotId] = useState<number | null>(null);
+  const [showExitDialog, setShowExitDialog] = useState(false);
 
   const searchParams = useSearchParams();
   const initialized = useRef(false);
+
+  // Sync to localStorage
+  useEffect(() => {
+    if (screen === 'quiz' && questions.length > 0) {
+       const key = activeSlotId ? `vocab_quiz_${activeSlotId}` : 'vocab_quiz_freestyle';
+       localStorage.setItem(key, JSON.stringify({
+         questions, currentIdx, score, wrongAnswers, correctWords, incorrectWords
+       }));
+    }
+  }, [screen, questions, currentIdx, score, wrongAnswers, correctWords, incorrectWords, activeSlotId]);
 
   useEffect(() => {
     const slotIdx = searchParams.get('slotId');
@@ -48,6 +61,26 @@ export default function QuizPage() {
 
   const loadRoadmapQuiz = async (slotId: number) => {
     setLoading(true);
+
+    const key = `vocab_quiz_${slotId}`;
+    const saved = localStorage.getItem(key);
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        setQuestions(parsed.questions);
+        setCurrentIdx(parsed.currentIdx);
+        setScore(parsed.score);
+        setWrongAnswers(parsed.wrongAnswers);
+        setCorrectWords(parsed.correctWords);
+        setIncorrectWords(parsed.incorrectWords);
+        setScreen('quiz');
+        setLoading(false);
+        return;
+      } catch (e) {
+        // ignore
+      }
+    }
+
     try {
       const res = await getVocabQuiz(slotId);
       if (!res || !res.questions.length) {
@@ -91,6 +124,28 @@ export default function QuizPage() {
     topic?: string;
   }) => {
     setLoading(true);
+
+    const key = 'vocab_quiz_freestyle';
+    const saved = localStorage.getItem(key);
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (parsed.questions.length > 0) {
+          setQuestions(parsed.questions);
+          setCurrentIdx(parsed.currentIdx);
+          setScore(parsed.score);
+          setWrongAnswers(parsed.wrongAnswers);
+          setCorrectWords(parsed.correctWords);
+          setIncorrectWords(parsed.incorrectWords);
+          setScreen('quiz');
+          setLoading(false);
+          return;
+        }
+      } catch (e) {
+        // ignore
+      }
+    }
+
     try {
       const res = await generateQuiz(params.count, params.source, undefined, params.band, params.topic);
       if (!res.questions.length) {
@@ -136,6 +191,8 @@ export default function QuizPage() {
     }
 
     if (currentIdx + 1 >= questions.length) {
+      const key = activeSlotId ? `vocab_quiz_${activeSlotId}` : 'vocab_quiz_freestyle';
+      localStorage.removeItem(key);
       setScreen('result');
       // If this was a roadmap test, mark it as complete with both correct + incorrect words
       if (activeSlotId) {
@@ -157,6 +214,8 @@ export default function QuizPage() {
   };
 
   const handleRetry = () => {
+    const key = activeSlotId ? `vocab_quiz_${activeSlotId}` : 'vocab_quiz_freestyle';
+    localStorage.removeItem(key);
     setScreen('setup');
     setQuestions([]);
     setCurrentIdx(0);
@@ -166,14 +225,40 @@ export default function QuizPage() {
     setIncorrectWords([]);
   };
 
+  const forceExit = () => {
+    const key = activeSlotId ? `vocab_quiz_${activeSlotId}` : 'vocab_quiz_freestyle';
+    localStorage.removeItem(key);
+    router.back();
+  };
+
   return (
     <div className="max-w-xl mx-auto px-4 py-8">
+      <ConfirmDialog
+        open={showExitDialog}
+        onOpenChange={setShowExitDialog}
+        title="Bạn muốn thoát bài làm chứ?"
+        description="Bạn đang thoát khỏi phần làm bài, tiến trình có thể sẽ không được lưu. Bạn có chắc chắn muốn thoát?"
+        confirmText="Vẫn thoát"
+        cancelText="Quay lại làm bài"
+        variant="destructive"
+        onConfirm={forceExit}
+      />
+
       {/* Header */}
-      <div className="flex items-center gap-3 mb-8">
-        <Button variant="ghost" size="icon" onClick={() => router.back()}>
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
-        <h1 className="font-semibold text-gray-900">Trắc nghiệm</h1>
+      <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center gap-3">
+          {screen !== 'quiz' && (
+            <Button variant="ghost" size="icon" onClick={() => router.back()}>
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+          )}
+          <h1 className="font-semibold text-gray-900">Trắc nghiệm</h1>
+        </div>
+        {screen === 'quiz' && (
+          <Button variant="ghost" size="icon" className="hover:bg-red-50 text-gray-400 hover:text-red-500 rounded-full" onClick={() => setShowExitDialog(true)}>
+            <X className="h-5 w-5" />
+          </Button>
+        )}
       </div>
 
       {loading && (

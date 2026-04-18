@@ -19,6 +19,7 @@ import {
   LogOut,
   UserCog,
   KeyRound,
+  FlaskConical,
   type LucideIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -75,6 +76,12 @@ const navGroups: NavGroup[] = [
       { href: '/admin/packages', label: 'Gói nạp', icon: Package },
       { href: '/admin/services', label: 'Dịch vụ', icon: Cog },
       { href: '/admin/user-transactions', label: 'Giao dịch', icon: ReceiptText },
+    ],
+  },
+  {
+    label: 'Dev Tools',
+    items: [
+      { href: '/admin/simulation', label: 'Simulation', icon: FlaskConical },
     ],
   },
 ];

@@ -70,6 +70,17 @@ function DifficultyBar({ level }: { level: number }) {
   );
 }
 
+function convertToBand(score: number, total: number): string {
+  if (total === 9) return score.toFixed(1); // Already a band
+  const accuracy = score / total;
+  if (accuracy >= 0.875) return '8.0';
+  if (accuracy >= 0.75) return '7.0';
+  if (accuracy >= 0.625) return '6.0';
+  if (accuracy >= 0.4) return '5.0';
+  if (accuracy >= 0.25) return '4.0';
+  return '3.0';
+}
+
 function SlotCard({ slot, onClick, locked }: { slot: DailySlotResponse; onClick: () => void; locked: boolean }) {
   const style = SKILL_STYLE[slot.skill];
   const isDone = slot.status === 'DONE';
@@ -120,7 +131,9 @@ function SlotCard({ slot, onClick, locked }: { slot: DailySlotResponse; onClick:
         {isDone && slot.score != null && slot.totalQuestions != null && (
           <div className="mt-1 flex items-center justify-between">
             <span className="text-[9px] font-mono font-bold text-green-600 bg-green-100/50 px-1 rounded">
-              {slot.score}/{slot.totalQuestions}
+              {slot.skill === 'VOCABULARY' 
+                ? `${slot.score}/${slot.totalQuestions}` 
+                : `${convertToBand(slot.score, slot.totalQuestions)} / 9`}
             </span>
           </div>
         )}

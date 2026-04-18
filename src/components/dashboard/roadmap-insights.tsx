@@ -6,6 +6,8 @@ import { SkeletonCard } from '@/components/ui/skeleton';
 import { getRoadmapInsights } from '@/lib/roadmap-api';
 import type { LearnerRoadmapInsights, LearnerTagMetric } from '@/types/roadmap.types';
 
+/* ─────────────────── Helpers ─────────────────── */
+
 function fmtBand(val: number | null | undefined): string {
   if (val == null || Number.isNaN(val) || val < 0) return '—';
   return val.toFixed(1);
@@ -27,23 +29,55 @@ function clamp01(val: number | null | undefined): number {
   return Math.max(0, Math.min(1, val));
 }
 
+/* ─────────────────── Skill ↔ TagType mapping ─────────────────── */
+
+type SkillTab = 'overview' | 'reading' | 'listening' | 'writing' | 'speaking';
+
+const SKILL_TABS: { key: SkillTab; label: string }[] = [
+  { key: 'overview', label: 'Tổng quan' },
+  { key: 'reading', label: 'Kỹ năng Đọc' },
+  { key: 'listening', label: 'Kỹ năng Nghe' },
+  { key: 'writing', label: 'Kỹ năng Viết' },
+  { key: 'speaking', label: 'Kỹ năng Nói' },
+];
+
+/** Map tagType to which skill tabs it should appear in */
+const TAG_TYPE_TO_SKILLS: Record<string, SkillTab[]> = {
+  QUESTION_TYPE: ['reading', 'listening'],
+  PASSAGE: ['reading'],
+  SECTION: ['listening'],
+  TASK: ['writing'],
+  WRITING_TYPE: ['writing'],
+  WRITING_TOPIC: ['writing'],
+  PART: ['speaking'],
+  TOPIC: ['reading', 'listening', 'writing', 'speaking'],
+  DIFFICULTY: ['overview'],
+  SKILL: ['overview'],
+};
+
 const TAG_TYPE_LABELS: Record<string, string> = {
-  QUESTION_TYPE: 'Theo Dạng Bài (Question Types)',
-  TOPIC: 'Theo Chủ Đề Từ Vựng (Topics)',
-  DIFFICULTY: 'Theo Độ Khó (Difficulty)',
-  WRITING_TYPE: 'Theo Dạng Bài Viết (Writing Types)',
-  SPEAKING_PART: 'Theo Phần Nói (Speaking Parts)',
-  READING_SUBTYPE: 'Theo Dạng Reading',
-  LISTENING_SUBTYPE: 'Theo Dạng Listening',
-  TA: 'Task Achievement',
-  CC: 'Coherence & Cohesion',
-  LR: 'Lexical Resource',
-  GRA: 'Grammar',
+  QUESTION_TYPE: 'Dạng bài (Question Types)',
+  TOPIC: 'Chủ đề (Topics)',
+  DIFFICULTY: 'Độ khó (Difficulty)',
+  WRITING_TYPE: 'Dạng bài viết (Writing Types)',
+  WRITING_TOPIC: 'Chủ đề bài viết (Writing Topics)',
+  PASSAGE: 'Passage',
+  SECTION: 'Section',
+  TASK: 'Task',
+  PART: 'Part',
+  SKILL: 'Kỹ năng',
 };
 
 function getTagTypeLabel(tagType: string): string {
   return TAG_TYPE_LABELS[tagType] || tagType;
 }
+
+function getSkillsForTagType(tagType: string | null): SkillTab[] {
+  if (!tagType) return ['overview'];
+  return TAG_TYPE_TO_SKILLS[tagType] || ['overview'];
+}
+
+/* ─────────────────── UI Components ─────────────────── */
 
 function MetricBar({
   label,
@@ -87,25 +121,32 @@ function MetricBar({
 function TagRow({ m }: { m: LearnerTagMetric }) {
   const mastery = clamp01(m.masteryLevel);
   const conf = clamp01(m.confidenceScore);
+  const isWeak = mastery < 0.5;
+
   return (
-    <div className="rounded-lg border border-gray-100 bg-white px-3 py-2">
+    <div className={`rounded-lg border px-3 py-2 ${isWeak ? 'border-rose-100 bg-rose-50/30' : 'border-gray-100 bg-white'}`}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="text-sm font-semibold text-gray-800 truncate">
             {m.tagName || m.tagCode || 'Unknown tag'}
           </div>
           <div className="text-[11px] text-gray-400">
-            {m.tagType || 'TAG'} {m.updatedAt ? `• ${fmtDateYmd(m.updatedAt)}` : ''}
+            {m.updatedAt ? fmtDateYmd(m.updatedAt) : 'Chưa có dữ liệu'}
           </div>
         </div>
         <div className="flex-shrink-0 text-right font-mono">
-          <div className="text-[11px] text-gray-500">M {Math.round(mastery * 100)}%</div>
+          <div className={`text-[11px] ${isWeak ? 'text-rose-600 font-semibold' : 'text-gray-500'}`}>
+            M {Math.round(mastery * 100)}%
+          </div>
           <div className="text-[11px] text-gray-500">C {Math.round(conf * 100)}%</div>
         </div>
       </div>
       <div className="mt-2 grid grid-cols-2 gap-2">
         <div className="h-1.5 rounded-full bg-gray-100 overflow-hidden">
-          <div className="h-full bg-gradient-to-r from-sky-500 to-indigo-500" style={{ width: `${Math.round(mastery * 100)}%` }} />
+          <div
+            className={`h-full bg-gradient-to-r ${isWeak ? 'from-rose-400 to-orange-400' : 'from-sky-500 to-indigo-500'}`}
+            style={{ width: `${Math.round(mastery * 100)}%` }}
+          />
         </div>
         <div className="h-1.5 rounded-full bg-gray-100 overflow-hidden">
           <div className="h-full bg-gradient-to-r from-amber-500 to-rose-500" style={{ width: `${Math.round(conf * 100)}%` }} />
@@ -113,20 +154,6 @@ function TagRow({ m }: { m: LearnerTagMetric }) {
       </div>
     </div>
   );
-}
-
-/** Group tags by tagType, returning sorted groups */
-function groupByTagType(tags: LearnerTagMetric[]): { type: string; label: string; items: LearnerTagMetric[] }[] {
-  const grouped: Record<string, LearnerTagMetric[]> = {};
-  for (const t of tags) {
-    const key = t.tagType || 'OTHER';
-    if (!grouped[key]) grouped[key] = [];
-    grouped[key].push(t);
-  }
-  const priority: Record<string, number> = { QUESTION_TYPE: 0, TOPIC: 1, DIFFICULTY: 2 };
-  return Object.entries(grouped)
-    .sort(([a], [b]) => (priority[a] ?? 99) - (priority[b] ?? 99))
-    .map(([type, items]) => ({ type, label: getTagTypeLabel(type), items }));
 }
 
 function TagGroupAccordion({
@@ -137,6 +164,8 @@ function TagGroupAccordion({
   defaultOpen: boolean;
 }) {
   const [open, setOpen] = useState(defaultOpen);
+  const weakCount = group.items.filter(m => clamp01(m.masteryLevel) < 0.5).length;
+
   return (
     <div className="rounded-lg border border-gray-100 overflow-hidden">
       <button
@@ -146,6 +175,9 @@ function TagGroupAccordion({
         <div className="flex items-center gap-2 text-xs font-semibold text-gray-600">
           {open ? '▼' : '►'} {group.label}
           <span className="text-gray-400 font-normal">— {group.items.length} mục</span>
+          {weakCount > 0 && (
+            <span className="text-rose-500 font-normal">({weakCount} cần cải thiện)</span>
+          )}
         </div>
         {open ? (
           <ChevronUp className="h-3.5 w-3.5 text-gray-400" />
@@ -164,31 +196,83 @@ function TagGroupAccordion({
   );
 }
 
-function TagGroupedList({
-  tags,
-  emptyMsg,
-}: {
-  tags: LearnerTagMetric[] | null;
-  emptyMsg: string;
-}) {
-  const groups = useMemo(() => groupByTagType(tags ?? []), [tags]);
+/** Group metrics by tagType for a given skill tab */
+function useSkillMetrics(allMetrics: LearnerTagMetric[], skill: SkillTab) {
+  return useMemo(() => {
+    // Filter metrics that belong to this skill tab
+    const filtered = allMetrics.filter(m =>
+      getSkillsForTagType(m.tagType).includes(skill)
+    );
 
-  if (!tags || tags.length === 0) {
+    // Group by tagType
+    const grouped: Record<string, LearnerTagMetric[]> = {};
+    for (const m of filtered) {
+      const key = m.tagType || 'OTHER';
+      if (!grouped[key]) grouped[key] = [];
+      grouped[key].push(m);
+    }
+
+    // Sort: QUESTION_TYPE/TASK/PART first, then TOPIC, DIFFICULTY last
+    const priority: Record<string, number> = {
+      QUESTION_TYPE: 0, WRITING_TYPE: 0, TASK: 0, PART: 0,
+      TOPIC: 1, WRITING_TOPIC: 1,
+      DIFFICULTY: 2, PASSAGE: 2, SECTION: 2, SKILL: 3,
+    };
+
+    return Object.entries(grouped)
+      .sort(([a], [b]) => (priority[a] ?? 99) - (priority[b] ?? 99))
+      .map(([type, items]) => ({
+        type,
+        label: getTagTypeLabel(type),
+        items: items.sort((a, b) => clamp01(a.masteryLevel) - clamp01(b.masteryLevel)),
+      }));
+  }, [allMetrics, skill]);
+}
+
+/* ─────────────────── Skill Content Panel ─────────────────── */
+
+function SkillMetricsPanel({
+  allMetrics,
+  skill,
+}: {
+  allMetrics: LearnerTagMetric[];
+  skill: SkillTab;
+}) {
+  const groups = useSkillMetrics(allMetrics, skill);
+
+  if (groups.length === 0) {
     return (
-      <div className="text-sm text-gray-400 rounded-lg border border-dashed border-gray-200 px-3 py-2">
-        {emptyMsg}
+      <div className="text-sm text-gray-400 rounded-lg border border-dashed border-gray-200 px-4 py-6 text-center">
+        Chưa có dữ liệu cho kỹ năng này. Hãy làm thêm bài luyện tập để hệ thống phân tích.
       </div>
     );
   }
 
+  const totalMetrics = groups.reduce((sum, g) => sum + g.items.length, 0);
+  const weakMetrics = groups.reduce(
+    (sum, g) => sum + g.items.filter(m => clamp01(m.masteryLevel) < 0.5).length,
+    0
+  );
+
   return (
-    <div className="space-y-2">
+    <div className="space-y-3">
+      <div className="flex items-center gap-3 text-xs text-gray-500">
+        <span>{totalMetrics} chỉ số</span>
+        {weakMetrics > 0 && (
+          <span className="text-rose-500 font-medium">• {weakMetrics} cần cải thiện</span>
+        )}
+        {totalMetrics > 0 && weakMetrics === 0 && (
+          <span className="text-emerald-500 font-medium">• Tất cả đều tốt ✓</span>
+        )}
+      </div>
       {groups.map((group, idx) => (
         <TagGroupAccordion key={group.type} group={group} defaultOpen={idx === 0} />
       ))}
     </div>
   );
 }
+
+/* ─────────────────── Main Component ─────────────────── */
 
 type BandRow = {
   label: string;
@@ -200,6 +284,7 @@ type BandRow = {
 export function RoadmapInsights({ weekNumber }: { weekNumber?: number }) {
   const [loading, setLoading] = useState(true);
   const [insights, setInsights] = useState<LearnerRoadmapInsights | null>(null);
+  const [activeSkill, setActiveSkill] = useState<SkillTab>('overview');
 
   const fetchInsights = async () => {
     setLoading(true);
@@ -224,6 +309,20 @@ export function RoadmapInsights({ weekNumber }: { weekNumber?: number }) {
       window.removeEventListener('roadmap-updated', handler);
     };
   }, []);
+
+  // Merge weakest + strongest into a single deduplicated list
+  const allMetrics = useMemo(() => {
+    if (!insights) return [];
+    const merged = [...(insights.weakestTags ?? []), ...(insights.strongestTags ?? [])];
+    // Deduplicate by tagId
+    const seen = new Set<number>();
+    return merged.filter(m => {
+      if (m.tagId == null) return true;
+      if (seen.has(m.tagId)) return false;
+      seen.add(m.tagId);
+      return true;
+    });
+  }, [insights]);
 
   const rows: BandRow[] = useMemo(() => {
     if (!insights) return [];
@@ -278,6 +377,7 @@ export function RoadmapInsights({ weekNumber }: { weekNumber?: number }) {
 
   return (
     <div className="rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+      {/* Header */}
       <div className="relative bg-[radial-gradient(circle_at_20%_20%,rgba(59,130,246,0.12),transparent_35%),radial-gradient(circle_at_80%_15%,rgba(244,63,94,0.12),transparent_35%),radial-gradient(circle_at_40%_90%,rgba(16,185,129,0.10),transparent_40%)] px-6 py-5">
         <div className="absolute inset-0 opacity-50 pointer-events-none">
           <div className="h-full w-full bg-[linear-gradient(to_right,rgba(0,0,0,0.04)_1px,transparent_1px),linear-gradient(to_bottom,rgba(0,0,0,0.04)_1px,transparent_1px)] bg-[size:22px_22px]" />
@@ -308,6 +408,7 @@ export function RoadmapInsights({ weekNumber }: { weekNumber?: number }) {
       </div>
 
       <div className="bg-white px-6 py-5 space-y-5">
+        {/* Warning */}
         {insights?.targetOverAmbitious && (
           <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 flex items-start gap-3">
             <TriangleAlert className="h-5 w-5 text-amber-600 mt-0.5" />
@@ -326,11 +427,13 @@ export function RoadmapInsights({ weekNumber }: { weekNumber?: number }) {
           </div>
         )}
 
+        {/* Global indices */}
         <div className="grid gap-3 md:grid-cols-2">
           <MetricBar label="Chỉ số thành thạo" value01={insights.masteryIndex} accent="sky" />
           <MetricBar label="Chỉ số tự tin" value01={insights.confidenceIndex} accent="amber" />
         </div>
 
+        {/* Band table */}
         <div className="rounded-2xl border border-gray-100 overflow-hidden">
           <div className="px-4 py-3 bg-gray-50 flex items-center justify-between">
             <div className="text-sm font-semibold text-gray-800">Bảng điểm band</div>
@@ -392,31 +495,46 @@ export function RoadmapInsights({ weekNumber }: { weekNumber?: number }) {
           )}
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2">
-          <div className="space-y-2">
-            <div className="text-sm font-semibold text-gray-800">
-              Điểm yếu cần tập trung
-              {(insights?.weakestTags ?? []).length > 0 && (
-                <span className="text-gray-400 font-normal ml-1">({(insights?.weakestTags ?? []).length})</span>
-              )}
+        {/* ── Skill Tabs ── */}
+        <div className="rounded-2xl border border-gray-100 overflow-hidden">
+          <div className="bg-gray-50 border-b border-gray-100">
+            <div className="flex overflow-x-auto">
+              {SKILL_TABS.map((tab) => {
+                const isActive = activeSkill === tab.key;
+                const skillMetrics = allMetrics.filter(m =>
+                  getSkillsForTagType(m.tagType).includes(tab.key)
+                );
+                const weakCount = skillMetrics.filter(m => clamp01(m.masteryLevel) < 0.5).length;
+
+                return (
+                  <button
+                    key={tab.key}
+                    onClick={() => setActiveSkill(tab.key)}
+                    className={`relative px-4 py-2.5 text-xs font-medium whitespace-nowrap transition-colors ${
+                      isActive
+                        ? 'text-blue-700 bg-white border-b-2 border-blue-600'
+                        : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100/60'
+                    }`}
+                  >
+                    {tab.label}
+                    {weakCount > 0 && (
+                      <span className="ml-1.5 inline-flex items-center justify-center h-4 min-w-[16px] px-1 rounded-full text-[10px] font-bold bg-rose-100 text-rose-600">
+                        {weakCount}
+                      </span>
+                    )}
+                    {weakCount === 0 && skillMetrics.length > 0 && (
+                      <span className="ml-1.5 inline-flex items-center justify-center h-4 min-w-[16px] px-1 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-600">
+                        ✓
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
             </div>
-            <TagGroupedList
-              tags={insights?.weakestTags ?? null}
-              emptyMsg="Chưa có dữ liệu tag. Hãy làm thêm bài luyện tập để hệ thống đo được điểm yếu."
-            />
           </div>
 
-          <div className="space-y-2">
-            <div className="text-sm font-semibold text-gray-800">
-              Điểm mạnh
-              {(insights?.strongestTags ?? []).length > 0 && (
-                <span className="text-gray-400 font-normal ml-1">({(insights?.strongestTags ?? []).length})</span>
-              )}
-            </div>
-            <TagGroupedList
-              tags={insights?.strongestTags ?? null}
-              emptyMsg="Chưa có dữ liệu tag."
-            />
+          <div className="p-4">
+            <SkillMetricsPanel allMetrics={allMetrics} skill={activeSkill} />
           </div>
         </div>
       </div>

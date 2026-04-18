@@ -31,10 +31,9 @@ function clamp01(val: number | null | undefined): number {
 
 /* ─────────────────── Skill ↔ TagType mapping ─────────────────── */
 
-type SkillTab = 'overview' | 'reading' | 'listening' | 'writing' | 'speaking';
+type SkillTab = 'reading' | 'listening' | 'writing' | 'speaking';
 
 const SKILL_TABS: { key: SkillTab; label: string }[] = [
-  { key: 'overview', label: 'Tổng quan' },
   { key: 'reading', label: 'Kỹ năng Đọc' },
   { key: 'listening', label: 'Kỹ năng Nghe' },
   { key: 'writing', label: 'Kỹ năng Viết' },
@@ -48,11 +47,8 @@ const TAG_TYPE_TO_SKILLS: Record<string, SkillTab[]> = {
   SECTION: ['listening'],
   TASK: ['writing'],
   WRITING_TYPE: ['writing'],
-  WRITING_TOPIC: ['writing'],
   PART: ['speaking'],
-  TOPIC: ['reading', 'listening', 'writing', 'speaking'],
-  DIFFICULTY: ['overview'],
-  SKILL: ['overview'],
+  TOPIC: ['speaking'],
 };
 
 const TAG_TYPE_LABELS: Record<string, string> = {
@@ -73,8 +69,8 @@ function getTagTypeLabel(tagType: string): string {
 }
 
 function getSkillsForTagType(tagType: string | null): SkillTab[] {
-  if (!tagType) return ['overview'];
-  return TAG_TYPE_TO_SKILLS[tagType] || ['overview'];
+  if (!tagType) return [];
+  return TAG_TYPE_TO_SKILLS[tagType] || [];
 }
 
 /* ─────────────────── UI Components ─────────────────── */
@@ -284,7 +280,7 @@ type BandRow = {
 export function RoadmapInsights({ weekNumber }: { weekNumber?: number }) {
   const [loading, setLoading] = useState(true);
   const [insights, setInsights] = useState<LearnerRoadmapInsights | null>(null);
-  const [activeSkill, setActiveSkill] = useState<SkillTab>('overview');
+  const [activeSkill, setActiveSkill] = useState<SkillTab>('reading');
 
   const fetchInsights = async () => {
     setLoading(true);

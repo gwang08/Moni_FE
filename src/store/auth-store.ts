@@ -1,5 +1,11 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+
+declare global {
+  interface Window {
+    __moniLogoutInProgress?: boolean;
+  }
+}
 import type {
   AuthStore,
   User,
@@ -70,6 +76,15 @@ export const useAuthStore = create<AuthStore>()(
 
       logout: async () => {
         const { token } = get();
+
+        // Đặt flag để các request đang bay không làm bật dialog "phiên hết hạn"
+        // khi backend invalidate token. Clear sau 5s đủ cho mọi request in-flight.
+        if (typeof window !== 'undefined') {
+          window.__moniLogoutInProgress = true;
+          setTimeout(() => {
+            window.__moniLogoutInProgress = false;
+          }, 5000);
+        }
 
         if (token) {
           try {

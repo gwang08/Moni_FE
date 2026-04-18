@@ -20,7 +20,10 @@ export function SessionExpiredDialog() {
 
   useEffect(() => {
     const handler = () => {
-      clearAuth(); // Immediately logout from Zustand memory
+      // Nếu user vừa chủ động bấm logout thì in-flight requests có thể 401 —
+      // không show dialog vì đã có toast "Đăng xuất thành công"
+      if (typeof window !== 'undefined' && window.__moniLogoutInProgress) return;
+      clearAuth();
       setOpen(true);
     };
     window.addEventListener('session-expired', handler);

@@ -11,7 +11,6 @@ import { ExamCountdown } from '@/components/dashboard/exam-countdown';
 import { ActivityCalendar } from '@/components/dashboard/activity-calendar';
 import { WeeklyStats } from '@/components/dashboard/weekly-stats';
 import { VocabReviewStats } from '@/components/dashboard/vocab-review-stats';
-import { PracticeHistory } from '@/components/dashboard/practice-history';
 import { useAuthStore } from '@/store/auth-store';
 import { PlacementDialog, PLACEMENT_SKIP_KEY } from '@/components/dashboard/placement-dialog';
 import { LearningRoadmap } from '@/components/dashboard/learning-roadmap';
@@ -102,15 +101,21 @@ export default function DashboardPage() {
       }
     }
 
-    // Fetch placement result
+    // Fetch placement result từ backend.
+    // - Thành công + null: user chưa làm placement → clear cache, hiện dialog
+    // - Thành công + có data: lưu vào store
+    // - Lỗi API (mạng/5xx): KHÔNG ép dialog — giữ cache để tránh làm phiền
+    //   user đã thực sự làm placement trước đó.
     async function fetchPlacement() {
       const skipped = typeof window !== 'undefined' && sessionStorage.getItem(PLACEMENT_SKIP_KEY) === '1';
+      const cached = useUserStore.getState().placementResult;
       try {
         const result = await getPlacementResult();
         setPlacementResult(result);
         if (!result && !skipped) setShowPlacementDialog(true);
       } catch {
-        if (!skipped) setShowPlacementDialog(true);
+        // Chỉ hiện dialog nếu cả cache cũng trống
+        if (!cached && !skipped) setShowPlacementDialog(true);
       }
     }
 
@@ -265,9 +270,6 @@ export default function DashboardPage() {
               <ActivityCalendar />
               <WeeklyStats />
             </div>
-
-            {/* Practice History (includes expert sessions in Speaking tab) */}
-            <PracticeHistory />
           </div>
         )}
       </div>

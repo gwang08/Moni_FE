@@ -9,6 +9,14 @@ import type {
 import { apiClient } from '@/lib/api-client';
 import { getRoleFromToken, isTokenExpired } from '@/lib/jwt-utils';
 import { getQueryClient } from '@/components/providers/query-provider';
+import { invalidateAttemptCache } from '@/hooks/use-attempt-history';
+import { useSpeakingStore } from '@/store/speaking-store';
+import { useWritingStore } from '@/store/writing-store';
+import { useReadingStore } from '@/store/reading-store';
+import { useListeningStore } from '@/store/listening-store';
+import { usePaymentStore } from '@/store/payment-store';
+import { useTourStore } from '@/store/tour-store';
+import { useUserStore } from '@/store/user-store';
 
 export const useAuthStore = create<AuthStore>()(
   persist(
@@ -99,10 +107,33 @@ export const useAuthStore = create<AuthStore>()(
           queryClient.clear();
         }
 
-        // Clear other persisted stores and session data
+        // Invalidate module-level caches
+        invalidateAttemptCache();
+
+        // Reset in-memory Zustand stores (not persisted, survive logout without this)
+        useSpeakingStore.getState().reset();
+        useWritingStore.getState().reset();
+        useReadingStore.getState().clearAll();
+        useListeningStore.getState().resetPlayer();
+        usePaymentStore.getState().clear();
+        useTourStore.getState().stopTour();
+
+        // Reset user-store in-memory state (skipHydration keeps memory across localStorage removal)
+        useUserStore.setState({
+          targetScores: { listening: 0, reading: 0, writing: 0, speaking: 0 },
+          examDate: null,
+          activities: [],
+          placementResult: null,
+        });
+
+        // Clear persisted stores and session data
         if (typeof window !== 'undefined') {
           localStorage.removeItem('moni-user-storage');
           localStorage.removeItem('practice-progress');
+          // Writing drafts are keyed per-test, not per-user — wipe all
+          Object.keys(localStorage)
+            .filter((k) => k.startsWith('writing-draft-'))
+            .forEach((k) => localStorage.removeItem(k));
           sessionStorage.clear();
         }
       },

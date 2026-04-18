@@ -14,6 +14,7 @@ import { toast } from 'sonner';
 import { useSearchParams } from 'next/navigation';
 import { useEffect, useRef } from 'react';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { QuizGeneratingDialog } from '@/components/vocabulary/quiz-generating-dialog';
 import { X } from 'lucide-react';
 
 type Screen = 'setup' | 'quiz' | 'result';
@@ -261,11 +262,7 @@ export default function QuizPage() {
         )}
       </div>
 
-      {loading && (
-        <div className="flex justify-center py-16">
-          <Loader2 className="h-8 w-8 animate-spin text-blue-400" />
-        </div>
-      )}
+      <QuizGeneratingDialog open={loading} />
 
       {!loading && screen === 'setup' && (
         <QuizSetup onStart={handleStart} loading={loading} />

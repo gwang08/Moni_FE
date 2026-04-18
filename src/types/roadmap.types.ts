@@ -5,6 +5,7 @@ export interface LearnerTagMetric {
   tagName: string | null;
   tagCode: string | null;
   tagType: string | null;
+  skill?: string;
   masteryLevel: number | null; // 0..1
   confidenceScore: number | null; // 0..1
   updatedAt: string | null; // ISO

@@ -68,9 +68,13 @@ function getTagTypeLabel(tagType: string): string {
   return TAG_TYPE_LABELS[tagType] || tagType;
 }
 
-function getSkillsForTagType(tagType: string | null): SkillTab[] {
-  if (!tagType) return [];
-  return TAG_TYPE_TO_SKILLS[tagType] || [];
+function getSkillsForMetric(m: LearnerTagMetric): SkillTab[] {
+  if (m.skill) {
+    const rawSkill = m.skill.toLowerCase() as SkillTab;
+    return [rawSkill];
+  }
+  if (!m.tagType) return [];
+  return TAG_TYPE_TO_SKILLS[m.tagType] || [];
 }
 
 /* ─────────────────── UI Components ─────────────────── */
@@ -197,7 +201,7 @@ function useSkillMetrics(allMetrics: LearnerTagMetric[], skill: SkillTab) {
   return useMemo(() => {
     // Filter metrics that belong to this skill tab
     const filtered = allMetrics.filter(m =>
-      getSkillsForTagType(m.tagType).includes(skill)
+      getSkillsForMetric(m).includes(skill)
     );
 
     // Group by tagType
@@ -498,7 +502,7 @@ export function RoadmapInsights({ weekNumber }: { weekNumber?: number }) {
               {SKILL_TABS.map((tab) => {
                 const isActive = activeSkill === tab.key;
                 const skillMetrics = allMetrics.filter(m =>
-                  getSkillsForTagType(m.tagType).includes(tab.key)
+                  getSkillsForMetric(m).includes(tab.key)
                 );
                 const weakCount = skillMetrics.filter(m => clamp01(m.masteryLevel) < 0.5).length;
 

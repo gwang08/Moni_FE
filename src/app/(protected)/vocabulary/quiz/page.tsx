@@ -55,6 +55,20 @@ export default function QuizPage() {
         setScreen('setup');
         return;
       }
+      if (res.isHistory) {
+        setQuestions(res.questions);
+        const historicalWrongs: WrongAnswer[] = [];
+        res.questions.forEach((q) => {
+           if (q.userSelected !== undefined && q.userSelected !== q.correctIndex) {
+              historicalWrongs.push({ question: q, selectedIndex: q.userSelected });
+           }
+        });
+        setWrongAnswers(historicalWrongs);
+        setScore(res.score ?? 0);
+        setScreen('result');
+        return;
+      }
+
       setQuestions(res.questions);
       setCurrentIdx(0);
       setScore(0);
@@ -109,6 +123,10 @@ export default function QuizPage() {
         ? [...incorrectWords, question.word]
         : incorrectWords;
 
+    const updatedQuestions = [...questions];
+    updatedQuestions[currentIdx] = { ...question, userSelected: selectedIndex };
+    setQuestions(updatedQuestions);
+
     if (isCorrect) {
       setScore((s) => s + 1);
       setCorrectWords(finalCorrectWords);
@@ -126,7 +144,11 @@ export default function QuizPage() {
           score + (isCorrect ? 1 : 0),
           questions.length,
           finalCorrectWords,
-          finalIncorrectWords
+          finalIncorrectWords,
+          {
+            questions: updatedQuestions,
+            source: 'roadmap_ai'
+          }
         ).catch(() => console.error("Failed to complete vocab slot"));
       }
     } else {

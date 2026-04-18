@@ -76,11 +76,14 @@ export interface QuizQuestion {
   word: string;
   explanation: string | null;
   vocabStatus: 'DRAFT' | 'ACTIVE' | null; // "DRAFT" = Sổ biết tuốt, "ACTIVE" = Sổ nhắc lại
+  userSelected?: number;
 }
 
 export interface QuizResponse {
   questions: QuizQuestion[];
   source: string;
+  isHistory?: boolean;
+  score?: number;
 }
 
 export interface ReviewStats {

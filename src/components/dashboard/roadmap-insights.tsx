@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { Activity, TriangleAlert, Info } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { Activity, TriangleAlert, Info, ChevronDown, ChevronUp } from 'lucide-react';
 import { SkeletonCard } from '@/components/ui/skeleton';
 import { getRoadmapInsights } from '@/lib/roadmap-api';
 import type { LearnerRoadmapInsights, LearnerTagMetric } from '@/types/roadmap.types';
@@ -19,13 +19,30 @@ function fmtPct01(val: number | null | undefined): string {
 
 function fmtDateYmd(date: string | null | undefined): string {
   if (!date) return '—';
-  // Accept either YYYY-MM-DD or full ISO and return YYYY-MM-DD.
   return date.split('T')[0] ?? '—';
 }
 
 function clamp01(val: number | null | undefined): number {
   if (val == null || Number.isNaN(val) || !Number.isFinite(val)) return 0;
   return Math.max(0, Math.min(1, val));
+}
+
+const TAG_TYPE_LABELS: Record<string, string> = {
+  QUESTION_TYPE: 'Theo Dạng Bài (Question Types)',
+  TOPIC: 'Theo Chủ Đề Từ Vựng (Topics)',
+  DIFFICULTY: 'Theo Độ Khó (Difficulty)',
+  WRITING_TYPE: 'Theo Dạng Bài Viết (Writing Types)',
+  SPEAKING_PART: 'Theo Phần Nói (Speaking Parts)',
+  READING_SUBTYPE: 'Theo Dạng Reading',
+  LISTENING_SUBTYPE: 'Theo Dạng Listening',
+  TA: 'Task Achievement',
+  CC: 'Coherence & Cohesion',
+  LR: 'Lexical Resource',
+  GRA: 'Grammar',
+};
+
+function getTagTypeLabel(tagType: string): string {
+  return TAG_TYPE_LABELS[tagType] || tagType;
 }
 
 function MetricBar({
@@ -94,6 +111,81 @@ function TagRow({ m }: { m: LearnerTagMetric }) {
           <div className="h-full bg-gradient-to-r from-amber-500 to-rose-500" style={{ width: `${Math.round(conf * 100)}%` }} />
         </div>
       </div>
+    </div>
+  );
+}
+
+/** Group tags by tagType, returning sorted groups */
+function groupByTagType(tags: LearnerTagMetric[]): { type: string; label: string; items: LearnerTagMetric[] }[] {
+  const grouped: Record<string, LearnerTagMetric[]> = {};
+  for (const t of tags) {
+    const key = t.tagType || 'OTHER';
+    if (!grouped[key]) grouped[key] = [];
+    grouped[key].push(t);
+  }
+  const priority: Record<string, number> = { QUESTION_TYPE: 0, TOPIC: 1, DIFFICULTY: 2 };
+  return Object.entries(grouped)
+    .sort(([a], [b]) => (priority[a] ?? 99) - (priority[b] ?? 99))
+    .map(([type, items]) => ({ type, label: getTagTypeLabel(type), items }));
+}
+
+function TagGroupAccordion({
+  group,
+  defaultOpen,
+}: {
+  group: { type: string; label: string; items: LearnerTagMetric[] };
+  defaultOpen: boolean;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div className="rounded-lg border border-gray-100 overflow-hidden">
+      <button
+        onClick={() => setOpen(!open)}
+        className="w-full flex items-center justify-between px-3 py-2 bg-gray-50/70 hover:bg-gray-100/60 transition-colors"
+      >
+        <div className="flex items-center gap-2 text-xs font-semibold text-gray-600">
+          {open ? '▼' : '►'} {group.label}
+          <span className="text-gray-400 font-normal">— {group.items.length} mục</span>
+        </div>
+        {open ? (
+          <ChevronUp className="h-3.5 w-3.5 text-gray-400" />
+        ) : (
+          <ChevronDown className="h-3.5 w-3.5 text-gray-400" />
+        )}
+      </button>
+      {open && (
+        <div className="space-y-1.5 p-2">
+          {group.items.map((m, idx) => (
+            <TagRow key={`${m.tagId ?? 'x'}-${idx}`} m={m} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function TagGroupedList({
+  tags,
+  emptyMsg,
+}: {
+  tags: LearnerTagMetric[] | null;
+  emptyMsg: string;
+}) {
+  const groups = useMemo(() => groupByTagType(tags ?? []), [tags]);
+
+  if (!tags || tags.length === 0) {
+    return (
+      <div className="text-sm text-gray-400 rounded-lg border border-dashed border-gray-200 px-3 py-2">
+        {emptyMsg}
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-2">
+      {groups.map((group, idx) => (
+        <TagGroupAccordion key={group.type} group={group} defaultOpen={idx === 0} />
+      ))}
     </div>
   );
 }
@@ -241,8 +333,8 @@ export function RoadmapInsights({ weekNumber }: { weekNumber?: number }) {
 
         <div className="rounded-2xl border border-gray-100 overflow-hidden">
           <div className="px-4 py-3 bg-gray-50 flex items-center justify-between">
-              <div className="text-sm font-semibold text-gray-800">Bảng điểm band</div>
-              <div className="text-[11px] text-gray-500">
+            <div className="text-sm font-semibold text-gray-800">Bảng điểm band</div>
+            <div className="text-[11px] text-gray-500">
               {insights.placementCompletedAt ? `Đầu vào: ${fmtDateYmd(insights.placementCompletedAt)}` : ''}
               {insights.lastMetricUpdatedAt ? ` • Cập nhật: ${fmtDateYmd(insights.lastMetricUpdatedAt)}` : ''}
             </div>
@@ -302,31 +394,29 @@ export function RoadmapInsights({ weekNumber }: { weekNumber?: number }) {
 
         <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-2">
-            <div className="text-sm font-semibold text-gray-800">Điểm yếu cần tập trung</div>
-            <div className="space-y-2">
-              {(insights?.weakestTags ?? []).slice(0, 5).map((m, idx) => (
-                <TagRow key={`${m.tagId ?? 'x'}-${idx}`} m={m} />
-              ))}
-              {(insights?.weakestTags ?? []).length === 0 && (
-                <div className="text-sm text-gray-400 rounded-lg border border-dashed border-gray-200 px-3 py-2">
-                  Chưa có dữ liệu tag. Hãy làm thêm bài luyện tập để hệ thống đo được điểm yếu.
-                </div>
+            <div className="text-sm font-semibold text-gray-800">
+              Điểm yếu cần tập trung
+              {(insights?.weakestTags ?? []).length > 0 && (
+                <span className="text-gray-400 font-normal ml-1">({(insights?.weakestTags ?? []).length})</span>
               )}
             </div>
+            <TagGroupedList
+              tags={insights?.weakestTags ?? null}
+              emptyMsg="Chưa có dữ liệu tag. Hãy làm thêm bài luyện tập để hệ thống đo được điểm yếu."
+            />
           </div>
 
           <div className="space-y-2">
-            <div className="text-sm font-semibold text-gray-800">Điểm mạnh</div>
-            <div className="space-y-2">
-              {(insights?.strongestTags ?? []).slice(0, 5).map((m, idx) => (
-                <TagRow key={`${m.tagId ?? 'x'}-${idx}`} m={m} />
-              ))}
-              {(insights?.strongestTags ?? []).length === 0 && (
-                <div className="text-sm text-gray-400 rounded-lg border border-dashed border-gray-200 px-3 py-2">
-                  Chưa có dữ liệu tag.
-                </div>
+            <div className="text-sm font-semibold text-gray-800">
+              Điểm mạnh
+              {(insights?.strongestTags ?? []).length > 0 && (
+                <span className="text-gray-400 font-normal ml-1">({(insights?.strongestTags ?? []).length})</span>
               )}
             </div>
+            <TagGroupedList
+              tags={insights?.strongestTags ?? null}
+              emptyMsg="Chưa có dữ liệu tag."
+            />
           </div>
         </div>
       </div>

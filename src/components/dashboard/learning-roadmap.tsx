@@ -331,6 +331,8 @@ export function LearningRoadmap({ weekNumber }: { weekNumber?: number }) {
             setNotLearnedIds([]);
             setLearnedIds([]);
             setShowVocabModal(true);
+          } else {
+            toast.info('Bạn đã học hết toàn bộ từ vựng đề xuất cho trình độ ở chủ đề này! Hãy xem lại các từ đã thu thập.');
           }
         } catch (err) {
           toast.error('Không khởi tạo được task học từ vựng');

@@ -227,6 +227,29 @@ export default function SimulationPage() {
               </button>
             </div>
           </div>
+
+          {/* Diagnostic: Verify Assessment */}
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <Zap className="h-5 w-5 text-sky-500" />
+              <h3 className="font-bold text-gray-800">Verify Assessment</h3>
+            </div>
+            <p className="text-xs text-gray-500 mb-4">
+              Diagnostic test: Xem các bài test được chọn có đúng với điểm yếu của user không.
+            </p>
+            <button
+              onClick={() => callSimApi(`/verify-assessment/${userId}`, 'Verify Assessment Selection', 'GET')}
+              disabled={isLoading}
+              className="w-full px-4 py-3 rounded-xl text-sm font-bold border-2 border-sky-100 text-sky-700 hover:bg-sky-50 transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              {loading === 'Verify Assessment Selection' ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Zap className="h-4 w-4" />
+              )}
+              Kiểm tra Logic Chọn Bài
+            </button>
+          </div>
         </div>
 
         {/* Danger Zone: Reset */}

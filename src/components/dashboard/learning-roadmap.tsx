@@ -21,7 +21,11 @@ import { ChibiMascot } from '@/components/ui/chibi-mascot';
 import type { WeeklyPlanResponse, DailySlotResponse, RoadmapSkill, PerformanceVerdict } from '@/types/roadmap.types';
 import type { VocabWord } from '@/types/vocab.types';
 
-function formatStimulusTitle(title: string | null | undefined, skill: RoadmapSkill, isAssessment: boolean) {
+function formatStimulusTitle(title: string | null | undefined, skill: RoadmapSkill, isAssessment: boolean, taskType?: string) {
+  if (skill === 'VOCABULARY') {
+    if (taskType === 'VOCAB_TEST') return 'Kiểm tra từ vựng';
+    return title || 'Bài luyện tập';
+  }
   if (!title) return isAssessment ? 'Bài đánh giá kỹ năng' : 'Bài luyện tập';
   
   let formattedTitle = title;
@@ -29,9 +33,6 @@ function formatStimulusTitle(title: string | null | undefined, skill: RoadmapSki
   if (skill === 'LISTENING') formattedTitle = formattedTitle.replace(/^Passage\s+/i, 'Section ');
   else if (skill === 'WRITING') formattedTitle = formattedTitle.replace(/^Passage\s+/i, 'Task ');
   else if (skill === 'SPEAKING') formattedTitle = formattedTitle.replace(/^Passage\s+/i, 'Part ');
-  else if (skill === 'VOCABULARY') {
-    return formattedTitle || 'Ôn tập từ vựng';
-  }
 
   return formattedTitle;
 }
@@ -77,7 +78,7 @@ function SlotCard({ slot, onClick, locked }: { slot: DailySlotResponse; onClick:
   const hasLink = slot.testId != null || slot.stimulusId != null || isVocab;
   const isDisabled = locked || (!hasLink && !isDone);
 
-  const formattedTitle = formatStimulusTitle(slot.stimulusTitle, slot.skill, isAssessment);
+  const formattedTitle = formatStimulusTitle(slot.stimulusTitle, slot.skill, isAssessment, slot.taskType);
 
   return (
     <div className="relative group/slot">
@@ -594,7 +595,7 @@ export function LearningRoadmap({ weekNumber }: { weekNumber?: number }) {
         open={confirmOpen}
         onOpenChange={setConfirmOpen}
         title="Bạn muốn luyện tập luôn chứ?"
-        description={activeSlot ? `Bạn đang chuẩn bị mở bài ${formatStimulusTitle(activeSlot.stimulusTitle, activeSlot.skill, activeSlot.taskType === 'ASSESSMENT')} (${activeSlot.skill}).` : undefined}
+        description={activeSlot ? `Bạn đang chuẩn bị mở bài ${formatStimulusTitle(activeSlot.stimulusTitle, activeSlot.skill, activeSlot.taskType === 'ASSESSMENT', activeSlot.taskType)} (${activeSlot.skill}).` : undefined}
         confirmText="Ok làm luôn"
         cancelText="Đợi xíu"
         variant="default"

@@ -145,6 +145,11 @@ export interface SpeakingSubmissionDetailResponse {
   evaluationStatus: string;
   submittedAt: string;
   audioTranscript?: string;
+  audioUrl?: string; // JSON array of per-question audio URLs
+  test?: {
+    id: number;
+    title: string;
+  };
   evaluation?: {
     overallScore: number;
     analysisResult: Record<string, unknown>;

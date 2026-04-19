@@ -10,6 +10,9 @@ import { getMySessions, getSessionEvaluation } from '@/lib/expert-api';
 import { getSpeakingSubmission } from '@/lib/ai-api';
 import type { SpeakingSubmissionDetailResponse } from '@/lib/ai-api';
 import type { ExpertEvaluation, ScoringSession } from '@/types/expert.types';
+import type { EvaluationEvent, EvaluationFeedback } from '@/types/speaking-exam.types';
+import type { RecordedAnswer } from '@/hooks/use-session-recorder';
+import { ExamEvaluationResult } from '@/components/speaking-exam/exam-evaluation-result';
 import { ResultHero } from '@/components/score-result/hero';
 import { ResultInsights } from '@/components/score-result/insights';
 import { ResultCriteriaDetail } from '@/components/score-result/criteria-detail';
@@ -72,49 +75,118 @@ function buildNormalised(evaluation: ExpertEvaluation, perCrit: Record<string, s
   };
 }
 
-// Build NormalisedData from AI submission analysisResult
-function buildNormalisedFromAI(sub: SpeakingSubmissionDetailResponse): NormalisedData {
+// ── Convert AI submission data to EvaluationEvent (for ExamEvaluationResult) ──
+function buildEvaluationEvent(sub: SpeakingSubmissionDetailResponse): EvaluationEvent {
   const eval_ = sub.evaluation;
-  const analysis = eval_?.analysisResult ?? {};
-  const feedback = eval_?.feedbackResponse ?? {};
+  const analysis = (eval_?.analysisResult ?? {}) as Record<string, unknown>;
+  const feedbackRaw = (eval_?.feedbackResponse ?? {}) as Record<string, unknown>;
 
-  // analysisResult has structure: { criteria: { FC: { band, ... }, LR: { band, ... }, ... }, final_band }
-  const criteriaMap = (analysis.criteria ?? {}) as Record<string, { band?: number; strengths?: string[]; weaknesses?: string[] }>;
+  const criteriaMap = (analysis.criteria ?? {}) as Record<string, {
+    band?: number;
+    adjusted_band?: number;
+    strengths?: string[];
+    weaknesses?: string[];
+    justification?: string;
+    criterion?: string;
+  }>;
 
-  const CRITERIA_KEYS = [
-    { short: 'FC', label: 'Fluency & Coherence' },
-    { short: 'LR', label: 'Lexical Resource' },
-    { short: 'GRA', label: 'Grammatical Range' },
-    { short: 'PR', label: 'Pronunciation' },
-  ];
+  const fc = criteriaMap['FC'] ?? {};
+  const lr = criteriaMap['LR'] ?? {};
+  const gra = criteriaMap['GRA'] ?? {};
+  const pr = criteriaMap['PR'] ?? {};
 
-  const criteria: NormalisedCriterion[] = CRITERIA_KEYS.map((c) => {
-    const crit = criteriaMap[c.short];
-    return {
-      key: c.short,
-      label: c.label,
-      band: Number(crit?.band ?? 0),
-      strengths: crit?.strengths,
-      weaknesses: crit?.weaknesses,
+  const feedback: EvaluationFeedback = {
+    summary: (feedbackRaw.summary as string) ?? '',
+    strengths: (feedbackRaw.strengths as string[]) ?? [],
+    areas_for_improvement: (feedbackRaw.areas_for_improvement as string[]) ?? [],
+    next_steps: (feedbackRaw.next_steps as string[]) ?? [],
+  };
+
+  // Build per-criterion detail matching ExamEvaluationResult's expected shape
+  const criteriaDetail: Record<string, {
+    criterion: string;
+    adjusted_band: number;
+    strengths: string[];
+    weaknesses: string[];
+    justification: string;
+  }> = {};
+
+  for (const [key, obj] of Object.entries(criteriaMap)) {
+    criteriaDetail[key] = {
+      criterion: obj.criterion ?? key,
+      adjusted_band: Number(obj.adjusted_band ?? obj.band ?? 0),
+      strengths: obj.strengths ?? [],
+      weaknesses: obj.weaknesses ?? [],
+      justification: obj.justification ?? '',
     };
-  });
-
-  const feedbackObj = feedback as Record<string, unknown>;
-  const strengthsArr = feedbackObj.strengths;
-  const improvementsArr = feedbackObj.areas_for_improvement;
-  const summaryStr = typeof feedbackObj.summary === 'string' ? feedbackObj.summary : undefined;
-  const strengthsStr = Array.isArray(strengthsArr) ? (strengthsArr as string[]).join('\n') : undefined;
-  const improvementsStr = Array.isArray(improvementsArr) ? (improvementsArr as string[]).join('\n') : undefined;
+  }
 
   return {
-    overall: eval_?.overallScore ?? 0,
-    criteria,
-    improvements: [],
-    overall_strategy: undefined,
-    summary: summaryStr,
-    strengths: strengthsStr,
-    feedbackImprovements: improvementsStr,
+    type: 'evaluation',
+    final_band: eval_?.overallScore ?? 0,
+    fluency: Number(fc.adjusted_band ?? fc.band ?? 0),
+    vocabulary: Number(lr.adjusted_band ?? lr.band ?? 0),
+    grammar: Number(gra.adjusted_band ?? gra.band ?? 0),
+    pronunciation: Number(pr.adjusted_band ?? pr.band ?? 0),
+    criteria: criteriaDetail,
+    feedback,
+    transcript: sub.audioTranscript ?? '',
   };
+}
+
+// ── Parse the raw transcript format to RecordedAnswer[] ──
+function parseTranscriptToRecordings(transcript: string, audioUrlsJson?: string): RecordedAnswer[] {
+  const recordings: RecordedAnswer[] = [];
+
+  let audioUrls: (string | null)[] = [];
+  if (audioUrlsJson) {
+    try {
+      audioUrls = JSON.parse(audioUrlsJson);
+    } catch { /* ignore */ }
+  }
+
+  let audioIdx = 0;
+
+  // Parse format: === PART N ===\nQN [question text]: answer\n
+  const parts = transcript.split(/===\s*PART\s*(\d)\s*===/);
+  // parts: ['', '1', 'content', '2', 'content', '3', 'content']
+
+  for (let i = 1; i < parts.length; i += 2) {
+    const partNum = parseInt(parts[i], 10);
+    const content = parts[i + 1]?.trim() ?? '';
+
+    if (partNum === 2) {
+      // Part 2 is a single long answer
+      const topicMatch = content.match(/\[Topic:\s*([^\]]+)\]/);
+      const topic = topicMatch?.[1] ?? 'Part 2';
+      const answer = content.replace(/\[Topic:[^\]]+\]\s*/, '').trim();
+
+      recordings.push({
+        part: 2,
+        questionText: topic,
+        transcript: answer || '[Không có câu trả lời]',
+        audioUrl: audioUrls[audioIdx] ?? '',
+      });
+      audioIdx++;
+    } else {
+      // Part 1 and 3 - parse Q lines
+      const lines = content.split('\n');
+      for (const line of lines) {
+        const qMatch = line.match(/^Q\d+\s*\[([^\]]+)\]:\s*(.*)/);
+        if (qMatch) {
+          recordings.push({
+            part: partNum,
+            questionText: qMatch[1],
+            transcript: qMatch[2].trim() || '[Không có câu trả lời]',
+            audioUrl: audioUrls[audioIdx] ?? '',
+          });
+          audioIdx++;
+        }
+      }
+    }
+  }
+
+  return recordings;
 }
 
 export default function SpeakingResultPage({ params }: Props) {
@@ -163,18 +235,18 @@ export default function SpeakingResultPage({ params }: Props) {
     );
   }
 
-  // ── AI Submission path ──
+  // ── AI Submission path — reuse ExamEvaluationResult ──
   if (aiSubmission) {
-    const normData = buildNormalisedFromAI(aiSubmission);
-    const metaItems = [
-      aiSubmission.submittedAt
-        ? { icon: <Calendar className="h-3.5 w-3.5" />, text: fmtDate(aiSubmission.submittedAt) }
-        : null,
-      { icon: <Sparkles className="h-3.5 w-3.5" />, text: 'AI Chấm' },
-    ].filter(Boolean) as Array<{ icon: React.ReactNode; text: string }>;
+    const evaluationEvent = buildEvaluationEvent(aiSubmission);
+    const recordings = parseTranscriptToRecordings(
+      aiSubmission.audioTranscript ?? '',
+      aiSubmission.audioUrl
+    );
+    const testTitle = aiSubmission.test?.title ?? 'Speaking Test';
 
     return (
-      <div className="h-[calc(100vh-56px)] overflow-y-auto bg-slate-50">
+      <div className="h-[calc(100vh-56px)] overflow-y-auto bg-[#fcf9f5]">
+        {/* Header */}
         <div className="bg-white border-b px-4 py-3 flex items-center gap-3 sticky top-0 z-10">
           <Link href="/scoring-history">
             <button className="p-1.5 rounded-lg hover:bg-slate-100 transition-colors">
@@ -182,8 +254,10 @@ export default function SpeakingResultPage({ params }: Props) {
             </button>
           </Link>
           <div className="flex-1">
-            <h1 className="font-bold">Kết quả bài thi Speaking</h1>
-            <p className="text-xs text-muted-foreground">AI Chấm · Submission #{sid}</p>
+            <h1 className="font-bold">{testTitle}</h1>
+            <p className="text-xs text-muted-foreground">
+              AI Chấm · {fmtDate(aiSubmission.submittedAt)}
+            </p>
           </div>
           <Badge
             variant="default"
@@ -197,18 +271,12 @@ export default function SpeakingResultPage({ params }: Props) {
           </Badge>
         </div>
 
-        <div className="max-w-5xl mx-auto p-4 md:p-8 space-y-6 pb-16">
-          <ResultHero
-            overall={normData.overall}
-            criteria={normData.criteria}
-            skillChipLabel={`Speaking · AI Chấm`}
-            title="Kết quả đánh giá Speaking"
-            metaItems={metaItems}
+        <div className="max-w-5xl mx-auto p-4 md:p-8 pb-16">
+          <ExamEvaluationResult
+            evaluation={evaluationEvent}
+            recordings={recordings}
+            title={testTitle}
           />
-
-          <ResultInsights data={normData} />
-
-          <ResultCriteriaDetail criteria={normData.criteria} />
         </div>
       </div>
     );

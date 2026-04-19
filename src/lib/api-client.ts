@@ -145,14 +145,22 @@ export class ApiClient {
 
     // Auto-refresh on 401 for authenticated requests
     if (response.status === 401 && requiresAuth) {
-      const newToken = await this.refreshToken();
-      if (newToken) {
-        config.headers = { ...config.headers, Authorization: `Bearer ${newToken}` };
+      // Check if another call already refreshed the token
+      const latestToken = this.getAuthToken();
+      if (latestToken && latestToken !== token) {
+        // Token was already refreshed by another concurrent request — just retry with new token
+        config.headers = { ...config.headers, Authorization: `Bearer ${latestToken}` };
         response = await fetch(url, config);
       } else {
-        clearStoredAuth();
-        fireSessionExpired();
-        throw new ApiError(401, undefined, 'Phiên đăng nhập đã hết hạn');
+        const newToken = await this.refreshToken();
+        if (newToken) {
+          config.headers = { ...config.headers, Authorization: `Bearer ${newToken}` };
+          response = await fetch(url, config);
+        } else {
+          clearStoredAuth();
+          fireSessionExpired();
+          throw new ApiError(401, undefined, 'Phiên đăng nhập đã hết hạn');
+        }
       }
     }
 
@@ -215,11 +223,14 @@ export class ApiClient {
 
     // Auto-refresh on 401 for upload
     if (response.status === 401) {
-      const newToken = await this.refreshToken();
-      if (newToken) {
+      const latestToken = this.getAuthToken();
+      const refreshedToken = (latestToken && latestToken !== token)
+        ? latestToken
+        : await this.refreshToken();
+      if (refreshedToken) {
         response = await fetch(url, {
           method: 'POST',
-          headers: { Authorization: `Bearer ${newToken}` },
+          headers: { Authorization: `Bearer ${refreshedToken}` },
           body: formData,
         });
       } else {

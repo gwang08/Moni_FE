@@ -133,9 +133,11 @@ function SlotCard({ slot, onClick, locked }: { slot: DailySlotResponse; onClick:
             <span className="text-[9px] font-mono font-bold text-green-600 bg-green-100/50 px-1 rounded">
               {slot.skill === 'VOCABULARY'
                 ? `${slot.score}/${slot.totalQuestions}`
-                : (slot.skill === 'SPEAKING' || slot.skill === 'WRITING')
-                  ? `${slot.score.toFixed(1)} / 9`
-                  : `${convertToBand(slot.score, slot.totalQuestions)} / 9`}
+                : slot.skill === 'WRITING'
+                  ? `${(slot.score / 10).toFixed(1)} / 9`
+                  : slot.skill === 'SPEAKING'
+                    ? `${slot.score.toFixed(1)} / 9`
+                    : `${convertToBand(slot.score, slot.totalQuestions)} / 9`}
             </span>
           </div>
         )}

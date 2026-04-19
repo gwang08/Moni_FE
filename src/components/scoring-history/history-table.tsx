@@ -58,8 +58,8 @@ function fmtDate(d: string) {
   });
 }
 
-// Layout cột cho desktop table — fixed width giữ aligned dù nội dung ngắn/dài
-const COLS = 'grid-cols-[120px_1fr_140px_130px_140px_200px]';
+// Layout cột cho desktop table — 1 bài = 1 dòng, tất cả nowrap
+const COLS = 'grid-cols-[96px_1fr_130px_112px_128px_224px]';
 
 export function HistoryTable({ entries, onExpertScore }: Props) {
   return (
@@ -100,31 +100,33 @@ function HistoryRow({ entry, onExpertScore }: { entry: HistoryEntry; onExpertSco
 
   return (
     <div className={`${rowBg} transition-colors`}>
-      {/* Desktop table row */}
+      {/* Desktop table row — nowrap toàn bộ để 1 bài = 1 dòng */}
       <div className={`hidden md:grid ${COLS} gap-3 px-4 py-3 items-center`}>
         <span
-          className={`text-[10.5px] font-black border px-2 py-0.5 rounded-full uppercase tracking-widest w-fit inline-flex items-center gap-1 ${km.tint}`}
+          className={`text-[10.5px] font-black border px-2 py-0.5 rounded-full uppercase tracking-widest w-fit inline-flex items-center gap-1 whitespace-nowrap ${km.tint}`}
         >
           <KindIcon className="h-2.5 w-2.5" />
           {km.label}
-          {entry.tag && <span className="text-slate-400 font-semibold">· {entry.tag}</span>}
         </span>
 
-        <div className="min-w-0">
-          <div className="text-[13px] font-bold text-slate-900 truncate">{entry.title}</div>
+        {/* Title + meta inline — truncate để không xuống dòng */}
+        <div className="min-w-0 flex items-baseline gap-2">
+          <span className="text-[13px] font-bold text-slate-900 truncate">{entry.title}</span>
           {entry.subtitle && (
-            <div className="text-[11px] text-slate-400 font-semibold tabular-nums">{entry.subtitle}</div>
+            <span className="text-[11px] text-slate-400 font-semibold tabular-nums whitespace-nowrap shrink-0">
+              · {entry.subtitle}
+            </span>
           )}
         </div>
 
         <BandCell band={entry.band} status={entry.status} />
 
-        <span className={`text-[10.5px] font-black border px-2 py-0.5 rounded-full uppercase tracking-widest w-fit ${sm.tint}`}>
+        <span className={`text-[10.5px] font-black border px-2 py-0.5 rounded-full uppercase tracking-widest w-fit whitespace-nowrap ${sm.tint}`}>
           {entry.status === 'PROCESSING' && <span className="inline-block h-1.5 w-1.5 bg-indigo-500 rounded-full mr-1 align-middle animate-pulse" />}
           {sm.label}
         </span>
 
-        <span className="text-[11.5px] text-slate-500 font-semibold tabular-nums">{fmtDate(entry.date)}</span>
+        <span className="text-[11.5px] text-slate-500 font-semibold tabular-nums whitespace-nowrap">{fmtDate(entry.date)}</span>
 
         <ActionsCell entry={entry} onExpertScore={onExpertScore} router={router} align="end" />
       </div>
@@ -223,10 +225,10 @@ function ActionsCell({
 
   if (entry.status === 'PENDING' && entry.kind === 'writing') {
     return (
-      <div className={`flex gap-1.5 ${justify} flex-wrap`}>
+      <div className={`flex gap-1.5 ${justify} flex-nowrap whitespace-nowrap`}>
         <button
           onClick={() => router.push(entry.href)}
-          className="px-2.5 py-1.5 rounded-md bg-teal-600 text-white text-[11.5px] font-bold inline-flex items-center gap-1 hover:bg-teal-700"
+          className="px-2.5 py-1.5 rounded-md bg-teal-600 text-white text-[11.5px] font-bold inline-flex items-center gap-1 hover:bg-teal-700 shrink-0"
           title="Chấm bài tự động bằng AI"
         >
           <Sparkles className="h-3 w-3" />
@@ -235,11 +237,11 @@ function ActionsCell({
         {entry.writingSubmissionId && onExpertScore && (
           <button
             onClick={() => onExpertScore(entry.writingSubmissionId!)}
-            className="px-2.5 py-1.5 rounded-md bg-orange-50 text-orange-700 border border-orange-200 text-[11.5px] font-bold inline-flex items-center gap-1 hover:bg-orange-100"
+            className="px-2.5 py-1.5 rounded-md bg-orange-50 text-orange-700 border border-orange-200 text-[11.5px] font-bold inline-flex items-center gap-1 hover:bg-orange-100 shrink-0"
             title="Gửi cho giảng viên chấm"
           >
             <UserCheck className="h-3 w-3" />
-            Gửi giảng viên
+            Gửi GV
           </button>
         )}
       </div>

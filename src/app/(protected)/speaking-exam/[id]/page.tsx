@@ -1,7 +1,7 @@
 'use client';
 
 import { use, useEffect, useCallback, useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Loader2, Play } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useSpeakingExam } from '@/hooks/use-speaking-exam';
@@ -73,6 +73,8 @@ export default function SpeakingExamPage({ params }: Props) {
   const { id } = use(params);
   const testId = Number(id);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const slotId = searchParams.get('slotId');
 
   const [uiStage, setUIStage] = useState<UIStage>('GUIDE');
   const [showQuestionAlways, setShowQuestionAlways] = useState(false);
@@ -346,13 +348,18 @@ export default function SpeakingExamPage({ params }: Props) {
     }
   }, [exam.examState]);
 
-  // ── Refresh credit balance when exam completes ────────────
+  // ── Refresh credit balance & complete slot when exam completes ────────────
   const refreshProfile = useAuthStore((s) => s.refreshProfile);
   useEffect(() => {
     if (exam.examState === 'COMPLETED') {
       refreshProfile();
+      if (slotId) {
+        import('@/lib/roadmap-api').then(({ completeSlot }) => {
+          completeSlot(Number(slotId), 0, 0).catch(() => {});
+        });
+      }
     }
-  }, [exam.examState, refreshProfile]);
+  }, [exam.examState, refreshProfile, slotId]);
 
   // ── Skip prep handler ─────────────────────────────────────
   // ── Skip prep handler ─────────────────────────────────────

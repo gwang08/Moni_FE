@@ -352,10 +352,10 @@ export function LearningRoadmap({ weekNumber }: { weekNumber?: number }) {
         // Must use testId — backend's start_exam expects a real Test ID.
         // Using stimulusId here previously caused wrong test loading, broken titles, and no auto-complete.
         if (activeSlot.testId) {
-          router.push(`/speaking-exam/${activeSlot.testId}`);
+          router.push(`/speaking-exam/${activeSlot.testId}?slotId=${activeSlot.id}`);
         } else if (activeSlot.stimulusId) {
           // Edge-case fallback: slot has stimulus but no test
-          router.push(`/practice/speaking/${activeSlot.stimulusId}`);
+          router.push(`/practice/speaking/${activeSlot.stimulusId}?slotId=${activeSlot.id}`);
         }
         break;
       case 'WRITING':

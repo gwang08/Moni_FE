@@ -47,6 +47,7 @@ const TAG_TYPE_TO_SKILLS: Record<string, SkillTab[]> = {
   SECTION: ['listening'],
   TASK: ['writing'],
   WRITING_TYPE: ['writing'],
+  WRITING_CRITERIA: ['writing'],
   PART: ['speaking'],
   TOPIC: ['speaking'],
 };
@@ -57,6 +58,7 @@ const TAG_TYPE_LABELS: Record<string, string> = {
   DIFFICULTY: 'Độ khó (Difficulty)',
   WRITING_TYPE: 'Dạng bài viết (Writing Types)',
   WRITING_TOPIC: 'Chủ đề bài viết (Writing Topics)',
+  WRITING_CRITERIA: 'Tiêu chí chấm điểm (Scoring Criteria)',
   PASSAGE: 'Passage',
   SECTION: 'Section',
   TASK: 'Task',
@@ -118,6 +120,21 @@ function MetricBar({
   );
 }
 
+const CRITERIA_VI_LABELS: Record<string, string> = {
+  'Task Response': 'Trả lời đúng yêu cầu đề bài',
+  'Task Achievement': 'Trả lời đúng yêu cầu đề bài',
+  'Coherence and Cohesion': 'Tính mạch lạc và liên kết',
+  'Coherence & Cohesion': 'Tính mạch lạc và liên kết',
+  'Lexical Resource': 'Nguồn từ vựng',
+  'Grammatical Range': 'Phạm vi ngữ pháp',
+  'Grammatical Range and Accuracy': 'Phạm vi và độ chính xác ngữ pháp',
+};
+
+function getDisplayName(m: LearnerTagMetric): string {
+  const name = m.tagName || m.tagCode || 'Unknown tag';
+  return CRITERIA_VI_LABELS[name] || name;
+}
+
 function TagRow({ m }: { m: LearnerTagMetric }) {
   const mastery = clamp01(m.masteryLevel);
   const conf = clamp01(m.confidenceScore);
@@ -128,7 +145,7 @@ function TagRow({ m }: { m: LearnerTagMetric }) {
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="text-sm font-semibold text-gray-800 truncate">
-            {m.tagName || m.tagCode || 'Unknown tag'}
+            {getDisplayName(m)}
           </div>
           <div className="text-[11px] text-gray-400">
             {m.updatedAt ? fmtDateYmd(m.updatedAt) : 'Chưa có dữ liệu'}

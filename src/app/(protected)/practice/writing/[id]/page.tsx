@@ -22,6 +22,7 @@ import { useCountdownTimer } from '@/hooks/use-countdown-timer';
 import { toMinutes } from '@/lib/duration-utils';
 import { useExamSession } from '@/hooks/use-exam-session';
 import { submitWriting } from '@/lib/ai-api';
+import { completeSlot } from '@/lib/roadmap-api';
 import type { WritingTaskType } from '@/types/writing.types';
 
 const FALLBACK_PROMPT = 'Hãy viết một bài luận bày tỏ quan điểm của bạn về chủ đề được đề cập.';
@@ -55,6 +56,7 @@ export default function WritingExercisePage({ params }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const isExamMode = searchParams.get('mode') === 'exam';
+  const slotId = searchParams.get('slotId');
   const { testDetail, loading, error } = useTestDetail(id);
 
   const {
@@ -201,12 +203,17 @@ export default function WritingExercisePage({ params }: Props) {
       essayContent: stripHtml(content),
       wordCount,
     })
-      .then((result) => {
+      .then(async (result) => {
         setSubmissionId(result.submissionId);
         localStorage.removeItem(draftKey(id));
         markCompleted(id);
         setSubmitted(true);
         setShowScoringDialog(true);
+        if (slotId) {
+          try {
+            await completeSlot(Number(slotId), wordCount, wordCount);
+          } catch { /* slot completion is best-effort */ }
+        }
       })
       .catch(() => {
         toast.error('Nộp bài thất bại', { description: 'Vui lòng thử lại.' });
@@ -214,7 +221,7 @@ export default function WritingExercisePage({ params }: Props) {
       .finally(() => {
         setIsSubmitting(false);
       });
-  }, [testDetail, activeStimulusIdx, isSubmitting, submitted, content, wordCount, id, markCompleted]);
+  }, [testDetail, activeStimulusIdx, isSubmitting, submitted, content, wordCount, id, markCompleted, slotId]);
 
   // Sync ref
   useEffect(() => {

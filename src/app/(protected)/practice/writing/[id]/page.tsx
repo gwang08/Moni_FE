@@ -237,8 +237,18 @@ export default function WritingExercisePage({ params }: Props) {
     submitForGrading({
       taskType, question: prompt, answer,
       stimulusId: stimulus.id, submissionId: submissionId ?? undefined,
-    }).then(() => { refreshProfile(); if (submissionId) router.push(`/writing/result/${submissionId}`); });
-  }, [testDetail, activeStimulusIdx, content, submissionId, submitForGrading, refreshProfile, router]);
+    }).then(() => {
+      refreshProfile();
+      // Update slot with actual band after grading
+      if (slotId) {
+        const band = useWritingStore.getState().gradingResult?.overallBand ?? 0;
+        if (band > 0) {
+          completeSlot(Number(slotId), Math.round(band * 10), 90).catch(() => {});
+        }
+      }
+      if (submissionId) router.push(`/writing/result/${submissionId}`);
+    });
+  }, [testDetail, activeStimulusIdx, content, submissionId, submitForGrading, refreshProfile, router, slotId]);
 
   // ===== EARLY RETURNS AFTER ALL HOOKS =====
 

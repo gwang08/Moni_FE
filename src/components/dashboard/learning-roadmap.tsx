@@ -349,10 +349,13 @@ export function LearningRoadmap({ weekNumber }: { weekNumber?: number }) {
     // Route based on skill type
     switch (activeSlot.skill) {
       case 'SPEAKING':
-        if (activeSlot.stimulusId) {
-          router.push(`/speaking-exam/${activeSlot.stimulusId}`);
-        } else {
-          router.push(`/practice/speaking/${id}`);
+        // Must use testId — backend's start_exam expects a real Test ID.
+        // Using stimulusId here previously caused wrong test loading, broken titles, and no auto-complete.
+        if (activeSlot.testId) {
+          router.push(`/speaking-exam/${activeSlot.testId}`);
+        } else if (activeSlot.stimulusId) {
+          // Edge-case fallback: slot has stimulus but no test
+          router.push(`/practice/speaking/${activeSlot.stimulusId}`);
         }
         break;
       case 'WRITING':

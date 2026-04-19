@@ -139,3 +139,28 @@ export async function getSpeakingSubmissions(): Promise<SpeakingSubmissionListRe
   );
   return response.result ?? [];
 }
+
+export interface SpeakingSubmissionDetailResponse {
+  id: number;
+  evaluationStatus: string;
+  submittedAt: string;
+  audioTranscript?: string;
+  evaluation?: {
+    overallScore: number;
+    analysisResult: Record<string, unknown>;
+    feedbackResponse: Record<string, unknown>;
+  };
+}
+
+export async function getSpeakingSubmission(id: number): Promise<SpeakingSubmissionDetailResponse | null> {
+  try {
+    const response = await apiClient.get<ApiResponse<SpeakingSubmissionDetailResponse>>(
+      `/api/v1/speaking/submissions/${id}`,
+      true
+    );
+    return response.result ?? null;
+  } catch {
+    return null;
+  }
+}
+

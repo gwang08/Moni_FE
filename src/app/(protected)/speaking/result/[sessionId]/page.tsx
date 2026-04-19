@@ -7,6 +7,8 @@ import { ArrowLeft, Loader2, Calendar, UserCheck, Headphones, Sparkles, BookOpen
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { getMySessions, getSessionEvaluation } from '@/lib/expert-api';
+import { getSpeakingSubmission } from '@/lib/ai-api';
+import type { SpeakingSubmissionDetailResponse } from '@/lib/ai-api';
 import type { ExpertEvaluation, ScoringSession } from '@/types/expert.types';
 import { ResultHero } from '@/components/score-result/hero';
 import { ResultInsights } from '@/components/score-result/insights';
@@ -70,6 +72,51 @@ function buildNormalised(evaluation: ExpertEvaluation, perCrit: Record<string, s
   };
 }
 
+// Build NormalisedData from AI submission analysisResult
+function buildNormalisedFromAI(sub: SpeakingSubmissionDetailResponse): NormalisedData {
+  const eval_ = sub.evaluation;
+  const analysis = eval_?.analysisResult ?? {};
+  const feedback = eval_?.feedbackResponse ?? {};
+
+  // analysisResult has structure: { criteria: { FC: { band, ... }, LR: { band, ... }, ... }, final_band }
+  const criteriaMap = (analysis.criteria ?? {}) as Record<string, { band?: number; strengths?: string[]; weaknesses?: string[] }>;
+
+  const CRITERIA_KEYS = [
+    { short: 'FC', label: 'Fluency & Coherence' },
+    { short: 'LR', label: 'Lexical Resource' },
+    { short: 'GRA', label: 'Grammatical Range' },
+    { short: 'PR', label: 'Pronunciation' },
+  ];
+
+  const criteria: NormalisedCriterion[] = CRITERIA_KEYS.map((c) => {
+    const crit = criteriaMap[c.short];
+    return {
+      key: c.short,
+      label: c.label,
+      band: Number(crit?.band ?? 0),
+      strengths: crit?.strengths,
+      weaknesses: crit?.weaknesses,
+    };
+  });
+
+  const feedbackObj = feedback as Record<string, unknown>;
+  const strengthsArr = feedbackObj.strengths;
+  const improvementsArr = feedbackObj.areas_for_improvement;
+  const summaryStr = typeof feedbackObj.summary === 'string' ? feedbackObj.summary : undefined;
+  const strengthsStr = Array.isArray(strengthsArr) ? (strengthsArr as string[]).join('\n') : undefined;
+  const improvementsStr = Array.isArray(improvementsArr) ? (improvementsArr as string[]).join('\n') : undefined;
+
+  return {
+    overall: eval_?.overallScore ?? 0,
+    criteria,
+    improvements: [],
+    overall_strategy: undefined,
+    summary: summaryStr,
+    strengths: strengthsStr,
+    feedbackImprovements: improvementsStr,
+  };
+}
+
 export default function SpeakingResultPage({ params }: Props) {
   const { sessionId } = use(params);
   const sid = Number(sessionId);
@@ -77,11 +124,13 @@ export default function SpeakingResultPage({ params }: Props) {
 
   const [session, setSession] = useState<ScoringSession | null>(null);
   const [evaluation, setEvaluation] = useState<ExpertEvaluation | null>(null);
+  const [aiSubmission, setAiSubmission] = useState<SpeakingSubmissionDetailResponse | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     (async () => {
       try {
+        // Try expert sessions first
         const [sessions, ev] = await Promise.all([
           getMySessions().catch(() => [] as ScoringSession[]),
           getSessionEvaluation(sid).catch(() => null),
@@ -89,9 +138,16 @@ export default function SpeakingResultPage({ params }: Props) {
         const found = sessions.find((s) => s.id === sid) ?? null;
         setSession(found);
         setEvaluation(ev);
+
+        // If not found in expert system, try AI speaking submissions
         if (!found && !ev) {
-          toast.error('Không tìm thấy phiên');
-          router.replace('/scoring-history');
+          const aiSub = await getSpeakingSubmission(sid);
+          if (aiSub) {
+            setAiSubmission(aiSub);
+          } else {
+            toast.error('Không tìm thấy phiên');
+            router.replace('/scoring-history');
+          }
         }
       } finally {
         setLoading(false);
@@ -107,6 +163,58 @@ export default function SpeakingResultPage({ params }: Props) {
     );
   }
 
+  // ── AI Submission path ──
+  if (aiSubmission) {
+    const normData = buildNormalisedFromAI(aiSubmission);
+    const metaItems = [
+      aiSubmission.submittedAt
+        ? { icon: <Calendar className="h-3.5 w-3.5" />, text: fmtDate(aiSubmission.submittedAt) }
+        : null,
+      { icon: <Sparkles className="h-3.5 w-3.5" />, text: 'AI Chấm' },
+    ].filter(Boolean) as Array<{ icon: React.ReactNode; text: string }>;
+
+    return (
+      <div className="h-[calc(100vh-56px)] overflow-y-auto bg-slate-50">
+        <div className="bg-white border-b px-4 py-3 flex items-center gap-3 sticky top-0 z-10">
+          <Link href="/scoring-history">
+            <button className="p-1.5 rounded-lg hover:bg-slate-100 transition-colors">
+              <ArrowLeft className="h-5 w-5 text-slate-700" />
+            </button>
+          </Link>
+          <div className="flex-1">
+            <h1 className="font-bold">Kết quả bài thi Speaking</h1>
+            <p className="text-xs text-muted-foreground">AI Chấm · Submission #{sid}</p>
+          </div>
+          <Badge
+            variant="default"
+            className={
+              aiSubmission.evaluationStatus === 'COMPLETED'
+                ? 'bg-emerald-100 text-emerald-700 border-0'
+                : ''
+            }
+          >
+            {aiSubmission.evaluationStatus === 'COMPLETED' ? 'Đã chấm điểm' : aiSubmission.evaluationStatus}
+          </Badge>
+        </div>
+
+        <div className="max-w-5xl mx-auto p-4 md:p-8 space-y-6 pb-16">
+          <ResultHero
+            overall={normData.overall}
+            criteria={normData.criteria}
+            skillChipLabel={`Speaking · AI Chấm`}
+            title="Kết quả đánh giá Speaking"
+            metaItems={metaItems}
+          />
+
+          <ResultInsights data={normData} />
+
+          <ResultCriteriaDetail criteria={normData.criteria} />
+        </div>
+      </div>
+    );
+  }
+
+  // ── Expert Session path (original logic) ──
   const createdAt = evaluation?.createdAt ?? session?.createdAt;
   const expertName = evaluation?.expertName ?? session?.expertDisplayName;
   const { general, perCrit } = parseFeedback(evaluation?.feedback ?? '');

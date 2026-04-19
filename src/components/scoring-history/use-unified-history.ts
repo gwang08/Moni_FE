@@ -49,13 +49,29 @@ export function useUnifiedHistory() {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const [writings, sessions, attempts] = await Promise.all([
+    const [writings, sessions, attempts, speakings] = await Promise.all([
       getWritingSubmissions().catch(() => []),
       getMySessions().catch(() => [] as ScoringSession[]),
       getAttemptHistory().catch(() => []),
+      import('@/lib/ai-api').then(m => m.getSpeakingSubmissions()).catch(() => []),
     ]);
 
     const merged: HistoryEntry[] = [];
+
+    // Speaking submissions (AI grading path)
+    for (const s of speakings) {
+      merged.push({
+        id: `sp-${s.id}`,
+        kind: 'speaking',
+        title: s.test?.title || `Speaking Test`,
+        subtitle: `AI Chấm`,
+        band: typeof s.evaluation?.overallScore === 'number' && s.evaluation.overallScore > 0 ? s.evaluation.overallScore : undefined,
+        status: writingStatusFrom(s.evaluationStatus),
+        date: s.createdAt,
+        href: `/speaking/result/${s.id}`, // We don't have speaking result page yet maybe? Yes we do: /practice/speaking/[id]/review probably? Wait 's.id' is submission id.
+        tag: 'Test',
+      });
+    }
 
     // Writing submissions (AI grading path)
     for (const w of writings) {

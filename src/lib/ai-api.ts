@@ -117,3 +117,25 @@ export async function scoreSpeaking(params: {
 
   return response;
 }
+
+export interface SpeakingSubmissionListResponse {
+  id: number;
+  test?: {
+    id: number;
+    title: string;
+  };
+  evaluationStatus: string;
+  createdAt: string;
+  evaluation?: {
+    overallScore: number;
+    analysisResult: Record<string, unknown>;
+  };
+}
+
+export async function getSpeakingSubmissions(): Promise<SpeakingSubmissionListResponse[]> {
+  const response = await apiClient.get<ApiResponse<SpeakingSubmissionListResponse[]>>(
+    '/api/v1/speaking/submissions',
+    true
+  );
+  return response.result ?? [];
+}

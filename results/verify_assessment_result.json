@@ -1,0 +1,71 @@
+{
+  "code": 1000,
+  "result": {
+    "allMetrics": [
+      {
+        "confidence": "96%",
+        "tagType": "QUESTION_TYPE",
+        "isWeak": true,
+        "tagName": "Gap Filling",
+        "mastery": "12%"
+      },
+      {
+        "confidence": "86%",
+        "tagType": "QUESTION_TYPE",
+        "isWeak": true,
+        "tagName": "Matching Features",
+        "mastery": "17%"
+      },
+      {
+        "confidence": "89%",
+        "tagType": "QUESTION_TYPE",
+        "isWeak": true,
+        "tagName": "Multiple Choice",
+        "mastery": "43%"
+      }
+    ],
+    "metricsBootstrapped": false,
+    "totalMetrics": 3,
+    "sundayAssignments": [
+      {
+        "isMatchFound": false,
+        "skill": "READING",
+        "assignedStimulus": "Passage 1",
+        "stimulusTags": [
+          "Passage 1"
+        ],
+        "matchedWeaknesses": []
+      },
+      {
+        "isMatchFound": false,
+        "skill": "LISTENING",
+        "assignedStimulus": "Passage 1",
+        "stimulusTags": [
+          "Section 1 / Part 1"
+        ],
+        "matchedWeaknesses": []
+      },
+      {
+        "isMatchFound": false,
+        "skill": "WRITING",
+        "assignedStimulus": "Passage 1",
+        "stimulusTags": [
+          "Discussion",
+          "Education"
+        ],
+        "matchedWeaknesses": []
+      },
+      {
+        "isMatchFound": false,
+        "skill": "SPEAKING",
+        "assignedStimulus": "Part 1",
+        "stimulusTags": [
+          "Part 1"
+        ],
+        "matchedWeaknesses": []
+      }
+    ],
+    "user": "Quân Lê Văn",
+    "weakTagCount": 3
+  }
+}

@@ -72,14 +72,20 @@ function getTagTypeLabel(tagType: string): string {
   return TAG_TYPE_LABELS[tagType] || tagType;
 }
 
+const CRITERIA_TAG_TYPES = new Set(['WRITING_CRITERIA', 'SPEAKING_CRITERIA']);
+
 function getSkillsForMetric(m: LearnerTagMetric): SkillTab[] {
-  // For criteria-type tags, always use tagType mapping (not skill field)
-  if (m.tagType && TAG_TYPE_TO_SKILLS[m.tagType]) {
+  // For criteria tags, always use tagType mapping (skill field may be wrong)
+  if (m.tagType && CRITERIA_TAG_TYPES.has(m.tagType) && TAG_TYPE_TO_SKILLS[m.tagType]) {
     return TAG_TYPE_TO_SKILLS[m.tagType];
   }
+  // For other tags (QUESTION_TYPE, etc.), use skill field to avoid cross-tab leaking
   if (m.skill) {
     const rawSkill = m.skill.toLowerCase() as SkillTab;
     return [rawSkill];
+  }
+  if (m.tagType && TAG_TYPE_TO_SKILLS[m.tagType]) {
+    return TAG_TYPE_TO_SKILLS[m.tagType];
   }
   return [];
 }

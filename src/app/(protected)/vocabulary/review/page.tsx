@@ -109,32 +109,65 @@ export default function ReviewPage() {
 
   // Completion screen
   if (done) {
+    const masteryPct = stats ? Math.round((stats.masteredCount / Math.max(stats.masteredCount + stats.learningCount, 1)) * 100) : 0;
     return (
-      <div className="max-w-2xl mx-auto px-4 py-16 text-center space-y-6">
+      <div className="max-w-lg mx-auto px-4 py-12">
         <ChibiAnimationStyles />
-        <ChibiMascot mood="excited" size={80} />
-        <h2 className="text-2xl font-bold text-gray-900">Hoàn thành ôn tập!</h2>
-        <p className="text-gray-600">Bạn đã ôn tập {reviewedCount} từ hôm nay.</p>
-        {stats && (
-          <div className="grid grid-cols-2 gap-4 max-w-xs mx-auto">
-            <div className="rounded-xl border bg-blue-50 p-4">
-              <p className="text-2xl font-bold text-blue-600">{reviewedCount}</p>
-              <p className="text-xs text-gray-500 mt-1">Đã ôn hôm nay</p>
-            </div>
-            <div className="rounded-xl border bg-emerald-50 p-4">
-              <p className="text-2xl font-bold text-emerald-600">{stats.masteredCount}</p>
-              <p className="text-xs text-gray-500 mt-1">Đã thành thạo</p>
-            </div>
+        <div className="relative rounded-3xl border border-emerald-100 bg-gradient-to-b from-emerald-50/80 via-white to-white p-8 shadow-lg shadow-emerald-100/40 text-center space-y-6">
+          {/* Confetti accent */}
+          <div className="absolute -top-3 left-1/2 -translate-x-1/2 text-2xl select-none pointer-events-none">
+            &#127881;
           </div>
-        )}
-        <div className="flex gap-3 justify-center pt-2">
-          <Button variant="outline" onClick={loadWords}>
-            <RotateCcw className="h-4 w-4 mr-2" />
-            Ôn lại
-          </Button>
-          <Button onClick={() => router.push('/vocabulary')}>
-            Quay lại từ vựng
-          </Button>
+
+          <ChibiMascot mood="excited" size={88} />
+
+          <div>
+            <h2 className="text-2xl font-extrabold text-gray-900 tracking-tight">Hoàn thành ôn tập!</h2>
+            <p className="text-sm text-gray-500 mt-1">Bạn đã ôn tập <span className="font-semibold text-emerald-600">{reviewedCount}</span> từ hôm nay</p>
+          </div>
+
+          {stats && (
+            <div className="grid grid-cols-3 gap-3">
+              <div className="rounded-2xl bg-blue-50 border border-blue-100 p-4">
+                <p className="text-2xl font-extrabold text-blue-600">{reviewedCount}</p>
+                <p className="text-[11px] font-medium text-blue-400 mt-1">Đã ôn</p>
+              </div>
+              <div className="rounded-2xl bg-emerald-50 border border-emerald-100 p-4">
+                <p className="text-2xl font-extrabold text-emerald-600">{stats.masteredCount}</p>
+                <p className="text-[11px] font-medium text-emerald-400 mt-1">Thành thạo</p>
+              </div>
+              <div className="rounded-2xl bg-amber-50 border border-amber-100 p-4">
+                <p className="text-2xl font-extrabold text-amber-600">{stats.learningCount}</p>
+                <p className="text-[11px] font-medium text-amber-400 mt-1">Đang học</p>
+              </div>
+            </div>
+          )}
+
+          {/* Mastery progress */}
+          {stats && (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-medium text-gray-500">Tiến trình thành thạo</span>
+                <span className="font-bold text-emerald-600">{masteryPct}%</span>
+              </div>
+              <div className="h-2.5 rounded-full bg-gray-100 overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-gradient-to-r from-emerald-400 to-teal-500 transition-all duration-700"
+                  style={{ width: `${masteryPct}%` }}
+                />
+              </div>
+            </div>
+          )}
+
+          <div className="flex gap-3 pt-2">
+            <Button variant="outline" className="flex-1 rounded-xl h-11" onClick={loadWords}>
+              <RotateCcw className="h-4 w-4 mr-2" />
+              Ôn lại
+            </Button>
+            <Button className="flex-1 rounded-xl h-11 bg-emerald-600 hover:bg-emerald-700" onClick={() => router.push('/vocabulary')}>
+              Quay lại từ vựng
+            </Button>
+          </div>
         </div>
       </div>
     );

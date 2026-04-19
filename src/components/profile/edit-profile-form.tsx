@@ -9,6 +9,7 @@ import { apiClient } from '@/lib/api-client';
 import { formatApiError } from '@/lib/error-messages';
 import type { ApiResponse, UpdateProfileRequest } from '@/types/auth.types';
 import { Loader2 } from 'lucide-react';
+import { AvatarUploader } from './avatar-uploader';
 
 export function EditProfileForm() {
   const { user, updateUser } = useAuthStore();
@@ -51,7 +52,14 @@ export function EditProfileForm() {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 max-w-md">
+    <form onSubmit={handleSubmit} className="space-y-5 max-w-xl">
+      <AvatarUploader
+        value={avatarUrl}
+        onChange={setAvatarUrl}
+        fallbackName={fullName || user?.fullName || user?.email || 'U'}
+        disabled={loading}
+      />
+
       <div>
         <Label htmlFor="email">Email</Label>
         <Input
@@ -94,18 +102,6 @@ export function EditProfileForm() {
           type="date"
           value={dateOfBirth}
           onChange={(e) => setDateOfBirth(e.target.value)}
-          disabled={loading}
-        />
-      </div>
-
-      <div>
-        <Label htmlFor="avatarUrl">URL ảnh đại diện</Label>
-        <Input
-          id="avatarUrl"
-          type="url"
-          value={avatarUrl}
-          onChange={(e) => setAvatarUrl(e.target.value)}
-          placeholder="https://example.com/avatar.jpg"
           disabled={loading}
         />
       </div>

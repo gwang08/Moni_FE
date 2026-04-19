@@ -32,7 +32,8 @@ const TYPE_META: Record<string, { label: string; tint: string; icon: React.Eleme
   },
 };
 
-const COLS = 'grid-cols-[40px_110px_1fr_110px_110px_140px]';
+// Nới cột số + gap để "Số đậu" và "Số dư sau" không dính sát nhau
+const COLS = 'grid-cols-[40px_110px_1fr_110px_120px_150px] gap-5';
 
 export function TransactionsTable({ transactions }: Props) {
   if (transactions.length === 0) {
@@ -46,12 +47,12 @@ export function TransactionsTable({ transactions }: Props) {
 
   return (
     <div className="rounded-2xl bg-white border border-slate-100 shadow-sm overflow-hidden">
-      <div className={`hidden md:grid ${COLS} gap-3 px-4 py-2.5 bg-slate-50/70 border-b border-slate-200 text-[10.5px] font-black text-slate-500 uppercase tracking-widest`}>
+      <div className={`hidden md:grid ${COLS} px-4 py-2.5 bg-slate-50/70 border-b border-slate-200 text-[10.5px] font-black text-slate-500 uppercase tracking-widest`}>
         <div></div>
         <div>Loại</div>
         <div>Chi tiết</div>
         <div className="text-right">Số đậu</div>
-        <div>Số dư sau</div>
+        <div className="text-right">Số dư sau</div>
         <div>Thời gian</div>
       </div>
 
@@ -74,7 +75,7 @@ function TransactionRow({ tx }: { tx: CreditTransactionResponse }) {
   return (
     <div>
       {/* Desktop row */}
-      <div className={`hidden md:grid ${COLS} gap-3 px-4 py-3 items-center hover:bg-slate-50/40 transition-colors`}>
+      <div className={`hidden md:grid ${COLS} px-4 py-3 items-center hover:bg-slate-50/40 transition-colors`}>
         <div className={`h-8 w-8 rounded-full grid place-items-center border ${meta.iconBg}`}>
           <Icon className={`h-3.5 w-3.5 ${meta.iconColor}`} />
         </div>
@@ -86,7 +87,7 @@ function TransactionRow({ tx }: { tx: CreditTransactionResponse }) {
           {isPositive ? '+' : ''}
           {tx.delta}
         </span>
-        <span className="text-[12px] font-semibold text-slate-600 tabular-nums">{tx.balanceAfter}</span>
+        <span className="text-right text-[12px] font-semibold text-slate-600 tabular-nums">{tx.balanceAfter}</span>
         <span className="text-[11.5px] text-slate-500 font-semibold tabular-nums whitespace-nowrap">{formatDate(tx.createdAt)}</span>
       </div>
 

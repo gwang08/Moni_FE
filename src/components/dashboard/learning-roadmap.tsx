@@ -371,10 +371,10 @@ export function LearningRoadmap({ weekNumber }: { weekNumber?: number }) {
         router.push(`/practice/writing/${id}?slotId=${activeSlot.id}`);
         break;
       case 'READING':
-        router.push(`/practice/reading/${id}`);
+        router.push(`/practice/reading/${id}?slotId=${activeSlot.id}`);
         break;
       case 'LISTENING':
-        router.push(`/practice/listening/${id}`);
+        router.push(`/practice/listening/${id}?slotId=${activeSlot.id}`);
         break;
     }
   };

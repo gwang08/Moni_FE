@@ -23,6 +23,7 @@ import { useCountdownTimer } from '@/hooks/use-countdown-timer';
 import { useExamSession } from '@/hooks/use-exam-session';
 import { toMinutes } from '@/lib/duration-utils';
 import { submitAttempt } from '@/lib/practice-api';
+import { completeSlot } from '@/lib/roadmap-api';
 import type { SavedAnswer } from '@/lib/exam-api';
 
 const FALLBACK_PASSAGE = {
@@ -49,6 +50,7 @@ export default function ReadingExercisePage({ params }: Props) {
   const searchParams = useSearchParams();
   const modeParam = searchParams.get('mode');
   const roadmapTaskId = searchParams.get('roadmapTaskId');
+  const slotId = searchParams.get('slotId');
   const router = useRouter();
 
   const { testDetail, loading, error } = useTestDetail(id);
@@ -219,6 +221,9 @@ export default function ReadingExercisePage({ params }: Props) {
         sessionStorage.setItem(`practice-result-${id}`, JSON.stringify({
           attemptId: res.attemptId, testId: id, answers, textAnswers, elapsedSeconds: elapsed,
         }));
+        if (slotId) {
+          completeSlot(Number(slotId), res.score, res.totalQuestions).catch(() => {});
+        }
       } catch {
         sessionStorage.setItem(`practice-result-${id}`, JSON.stringify({
           testId: id, answers, textAnswers, elapsedSeconds: elapsed,

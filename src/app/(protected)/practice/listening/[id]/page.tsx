@@ -23,6 +23,7 @@ import { useElapsedTimer } from '@/hooks/use-elapsed-timer';
 import { useCountdownTimer } from '@/hooks/use-countdown-timer';
 import { useExamSession } from '@/hooks/use-exam-session';
 import { submitAttempt } from '@/lib/practice-api';
+import { completeSlot } from '@/lib/roadmap-api';
 import type { SavedAnswer } from '@/lib/exam-api';
 
 function parseSavedAnswers(savedAnswers: SavedAnswer[]) {
@@ -44,6 +45,7 @@ export default function ListeningExercisePage({ params }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const roadmapTaskId = searchParams.get('roadmapTaskId');
+  const slotId = searchParams.get('slotId');
 
   const { testDetail, loading, error } = useTestDetail(id);
   const markCompleted = usePracticeStore((state) => state.markCompleted);
@@ -202,6 +204,9 @@ export default function ListeningExercisePage({ params }: Props) {
       try {
         const res = await submitAttempt({ testId: Number(id), stimulusId: currentStimulus.id, elapsedSeconds: elapsed, answers: answerList });
         sessionStorage.setItem(`practice-result-${id}`, JSON.stringify({ attemptId: res.attemptId, testId: id, answers, textAnswers, elapsedSeconds: elapsed }));
+        if (slotId) {
+          completeSlot(Number(slotId), res.score, res.totalQuestions).catch(() => {});
+        }
       } catch {
         sessionStorage.setItem(`practice-result-${id}`, JSON.stringify({ testId: id, answers, textAnswers, elapsedSeconds: elapsed }));
       }

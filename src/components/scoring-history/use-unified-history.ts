@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { getMySessions } from '@/lib/expert-api';
-import { getWritingSubmissions } from '@/lib/ai-api';
+import { getWritingSubmissions, getSpeakingSubmissions } from '@/lib/ai-api';
 import { getAttemptHistory } from '@/lib/practice-api';
 import { getReadingBand, getListeningBand } from '@/lib/ielts-band';
 import type { ScoringSession } from '@/types/expert.types';
@@ -53,7 +53,7 @@ export function useUnifiedHistory() {
       getWritingSubmissions().catch(() => []),
       getMySessions().catch(() => [] as ScoringSession[]),
       getAttemptHistory().catch(() => []),
-      import('@/lib/ai-api').then(m => m.getSpeakingSubmissions()).catch(() => []),
+      getSpeakingSubmissions().catch(() => []),
     ]);
 
     const merged: HistoryEntry[] = [];

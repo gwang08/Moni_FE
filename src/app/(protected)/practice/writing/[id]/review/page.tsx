@@ -63,7 +63,7 @@ export default function WritingReviewPage({ params }: Props) {
   }, [id, router, attemptIdParam]);
 
   const stimulus = testDetail?.stimuli[0];
-  const taskType: WritingTaskType = stimulus?.section === 1 ? 1 : 2;
+  const taskType: WritingTaskType = testDetail?.section === 1 ? 1 : 2;
   const prompt = stimulus?.content ?? '';
   const chartImageUrl = stimulus?.mediaUrl ?? undefined;
   const wordCount = reviewData ? countWords(reviewData.essayText) : 0;

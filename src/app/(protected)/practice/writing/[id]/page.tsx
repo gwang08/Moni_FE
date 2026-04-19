@@ -193,7 +193,7 @@ export default function WritingExercisePage({ params }: Props) {
     const stimulus = testDetail?.stimuli[activeStimulusIdx];
     if (!stimulus || isSubmitting || submitted || !testDetail) return Promise.resolve();
     setIsSubmitting(true);
-    const taskType: WritingTaskType = stimulus.section === 1 ? 1 : 2;
+    const taskType: WritingTaskType = testDetail.section === 1 ? 1 : 2;
     return submitWriting({
       testId: Number(id),
       stimulusId: stimulus.id,
@@ -225,7 +225,7 @@ export default function WritingExercisePage({ params }: Props) {
   const handleGrade = useCallback(() => {
     const stimulus = testDetail?.stimuli[activeStimulusIdx];
     if (!testDetail || !stimulus) return;
-    const taskType: WritingTaskType = stimulus.section === 1 ? 1 : 2;
+    const taskType: WritingTaskType = testDetail.section === 1 ? 1 : 2;
     const prompt = stimulus.content || testDetail.description || FALLBACK_PROMPT;
     const answer = stripHtml(content);
     submitForGrading({
@@ -251,13 +251,13 @@ export default function WritingExercisePage({ params }: Props) {
 
   // Derived values for active task
   const currentStimulus = testDetail.stimuli[activeStimulusIdx] || testDetail.stimuli[0];
-  const taskType: WritingTaskType = currentStimulus.section === 1 ? 1 : 2;
+  const taskType: WritingTaskType = testDetail.section === 1 ? 1 : 2;
   const prompt = currentStimulus?.content || testDetail.description || FALLBACK_PROMPT;
   const chartImageUrl = taskType === 1 ? (currentStimulus?.mediaUrl ?? undefined) : undefined;
   const sampleAnswer = currentStimulus?.questionGroups[0]?.instruction || undefined;
 
   const totalTasks = testDetail.stimuli.length;
-  const taskTypes = testDetail.stimuli.map(s => (s.section === 1 ? 1 : 2) as WritingTaskType);
+  const taskTypes = testDetail.stimuli.map(() => (testDetail.section === 1 ? 1 : 2) as WritingTaskType);
 
   // Exam loading
   if (isExamMode && examSession.loading) return <SkeletonPractice />;

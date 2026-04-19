@@ -50,6 +50,7 @@ const TAG_TYPE_TO_SKILLS: Record<string, SkillTab[]> = {
   WRITING_CRITERIA: ['writing'],
   PART: ['speaking'],
   TOPIC: ['speaking'],
+  SPEAKING_CRITERIA: ['speaking'],
 };
 
 const TAG_TYPE_LABELS: Record<string, string> = {
@@ -59,6 +60,7 @@ const TAG_TYPE_LABELS: Record<string, string> = {
   WRITING_TYPE: 'Dạng bài viết (Writing Types)',
   WRITING_TOPIC: 'Chủ đề bài viết (Writing Topics)',
   WRITING_CRITERIA: 'Tiêu chí chấm điểm (Scoring Criteria)',
+  SPEAKING_CRITERIA: 'Tiêu chí chấm điểm (Scoring Criteria)',
   PASSAGE: 'Passage',
   SECTION: 'Section',
   TASK: 'Task',
@@ -71,12 +73,15 @@ function getTagTypeLabel(tagType: string): string {
 }
 
 function getSkillsForMetric(m: LearnerTagMetric): SkillTab[] {
+  // For criteria-type tags, always use tagType mapping (not skill field)
+  if (m.tagType && TAG_TYPE_TO_SKILLS[m.tagType]) {
+    return TAG_TYPE_TO_SKILLS[m.tagType];
+  }
   if (m.skill) {
     const rawSkill = m.skill.toLowerCase() as SkillTab;
     return [rawSkill];
   }
-  if (!m.tagType) return [];
-  return TAG_TYPE_TO_SKILLS[m.tagType] || [];
+  return [];
 }
 
 /* ─────────────────── UI Components ─────────────────── */
@@ -121,6 +126,7 @@ function MetricBar({
 }
 
 const CRITERIA_VI_LABELS: Record<string, string> = {
+  // Writing criteria
   'Task Response': 'Trả lời đúng yêu cầu đề bài',
   'Task Achievement': 'Trả lời đúng yêu cầu đề bài',
   'Coherence and Cohesion': 'Tính mạch lạc và liên kết',
@@ -128,6 +134,10 @@ const CRITERIA_VI_LABELS: Record<string, string> = {
   'Lexical Resource': 'Nguồn từ vựng',
   'Grammatical Range': 'Phạm vi ngữ pháp',
   'Grammatical Range and Accuracy': 'Phạm vi và độ chính xác ngữ pháp',
+  // Speaking criteria
+  'Fluency and Coherence': 'Độ trôi chảy và mạch lạc',
+  'Fluency & Coherence': 'Độ trôi chảy và mạch lạc',
+  'Pronunciation': 'Phát âm',
 };
 
 function getDisplayName(m: LearnerTagMetric): string {

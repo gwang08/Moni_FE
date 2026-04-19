@@ -125,7 +125,7 @@ export interface SpeakingSubmissionListResponse {
     title: string;
   };
   evaluationStatus: string;
-  createdAt: string;
+  submittedAt: string;
   evaluation?: {
     overallScore: number;
     analysisResult: Record<string, unknown>;

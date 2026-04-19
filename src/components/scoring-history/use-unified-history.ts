@@ -67,7 +67,7 @@ export function useUnifiedHistory() {
         subtitle: `AI Chấm`,
         band: typeof s.evaluation?.overallScore === 'number' && s.evaluation.overallScore > 0 ? s.evaluation.overallScore : undefined,
         status: writingStatusFrom(s.evaluationStatus),
-        date: s.createdAt,
+        date: s.submittedAt,
         href: `/speaking/result/${s.id}`, // We don't have speaking result page yet maybe? Yes we do: /practice/speaking/[id]/review probably? Wait 's.id' is submission id.
         tag: 'Test',
       });

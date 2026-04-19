@@ -128,12 +128,14 @@ function SlotCard({ slot, onClick, locked }: { slot: DailySlotResponse; onClick:
           {isDone && <Check className="h-3 w-3 text-green-600" />}
         </div>
 
-        {isDone && slot.score != null && slot.totalQuestions != null && (
+        {isDone && slot.score != null && slot.totalQuestions != null && slot.totalQuestions > 0 && (
           <div className="mt-1 flex items-center justify-between">
             <span className="text-[9px] font-mono font-bold text-green-600 bg-green-100/50 px-1 rounded">
-              {slot.skill === 'VOCABULARY' 
-                ? `${slot.score}/${slot.totalQuestions}` 
-                : `${convertToBand(slot.score, slot.totalQuestions)} / 9`}
+              {slot.skill === 'VOCABULARY'
+                ? `${slot.score}/${slot.totalQuestions}`
+                : (slot.skill === 'SPEAKING' || slot.skill === 'WRITING')
+                  ? `${slot.score.toFixed(1)} / 9`
+                  : `${convertToBand(slot.score, slot.totalQuestions)} / 9`}
             </span>
           </div>
         )}

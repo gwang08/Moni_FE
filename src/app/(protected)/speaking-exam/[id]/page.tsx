@@ -354,8 +354,9 @@ export default function SpeakingExamPage({ params }: Props) {
     if (exam.examState === 'COMPLETED') {
       refreshProfile();
       if (slotId) {
+        const band = exam.evaluation?.final_band ?? 0;
         import('@/lib/roadmap-api').then(({ completeSlot }) => {
-          completeSlot(Number(slotId), 0, 0).catch(() => {});
+          completeSlot(Number(slotId), band, 9).catch(() => {});
         });
       }
     }

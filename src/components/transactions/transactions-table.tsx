@@ -51,8 +51,8 @@ export function TransactionsTable({ transactions }: Props) {
         <div></div>
         <div>Loại</div>
         <div>Chi tiết</div>
-        <div className="text-right">Số đậu</div>
-        <div className="text-right">Số dư sau</div>
+        <div className="text-center">Số đậu</div>
+        <div className="text-center">Số dư sau</div>
         <div>Thời gian</div>
       </div>
 
@@ -83,11 +83,11 @@ function TransactionRow({ tx }: { tx: CreditTransactionResponse }) {
           {meta.label}
         </span>
         <div className="text-[13px] font-bold text-slate-900 truncate">{detail}</div>
-        <span className={`text-right text-[14px] font-black tabular-nums ${isPositive ? 'text-emerald-600' : 'text-rose-600'}`}>
+        <span className={`text-center text-[14px] font-black tabular-nums ${isPositive ? 'text-emerald-600' : 'text-rose-600'}`}>
           {isPositive ? '+' : ''}
           {tx.delta}
         </span>
-        <span className="text-right text-[12px] font-semibold text-slate-600 tabular-nums">{tx.balanceAfter}</span>
+        <span className="text-center text-[12px] font-semibold text-slate-600 tabular-nums">{tx.balanceAfter}</span>
         <span className="text-[11.5px] text-slate-500 font-semibold tabular-nums whitespace-nowrap">{formatDate(tx.createdAt)}</span>
       </div>
 

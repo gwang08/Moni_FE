@@ -7,6 +7,7 @@ import {
   Sparkles, ArrowRight,
 } from 'lucide-react';
 import { getWeeklyPlan, startVocabLearning, submitVocabLearning } from '@/lib/roadmap-api';
+import { getReadingBand, getListeningBand } from '@/lib/ielts-band';
 import { SkeletonCard } from '@/components/ui/skeleton';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import {
@@ -70,15 +71,19 @@ function DifficultyBar({ level }: { level: number }) {
   );
 }
 
-function convertToBand(score: number, total: number): string {
-  if (total === 9) return score.toFixed(1); // Already a band
+function convertToBand(score: number, total: number, skill?: string): string {
+  if (total === 0) return '0.0';
+  if (skill === 'READING') return getReadingBand(score, total).toFixed(1);
+  if (skill === 'LISTENING') return getListeningBand(score, total).toFixed(1);
+  // Generic fallback
   const accuracy = score / total;
   if (accuracy >= 0.875) return '8.0';
   if (accuracy >= 0.75) return '7.0';
   if (accuracy >= 0.625) return '6.0';
   if (accuracy >= 0.4) return '5.0';
   if (accuracy >= 0.25) return '4.0';
-  return '3.0';
+  if (accuracy >= 0.1) return '3.0';
+  return '2.0';
 }
 
 function SlotCard({ slot, onClick, locked }: { slot: DailySlotResponse; onClick: () => void; locked: boolean }) {
@@ -137,7 +142,7 @@ function SlotCard({ slot, onClick, locked }: { slot: DailySlotResponse; onClick:
                   ? `${(slot.score / 10).toFixed(1)} / 9`
                   : slot.skill === 'SPEAKING'
                     ? `${slot.score.toFixed(1)} / 9`
-                    : `${convertToBand(slot.score, slot.totalQuestions)} / 9`}
+                    : `${convertToBand(slot.score, slot.totalQuestions, slot.skill)} / 9`}
             </span>
           </div>
         )}

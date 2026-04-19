@@ -347,12 +347,12 @@ export function RoadmapInsights({ weekNumber }: { weekNumber?: number }) {
   const allMetrics = useMemo(() => {
     if (!insights) return [];
     const merged = [...(insights.weakestTags ?? []), ...(insights.strongestTags ?? [])];
-    // Deduplicate by tagId
-    const seen = new Set<number>();
+    // Deduplicate by tagId + skill (same tag can have different metrics per skill)
+    const seen = new Set<string>();
     return merged.filter(m => {
-      if (m.tagId == null) return true;
-      if (seen.has(m.tagId)) return false;
-      seen.add(m.tagId);
+      const key = `${m.tagId ?? 'x'}_${m.skill ?? ''}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
       return true;
     });
   }, [insights]);

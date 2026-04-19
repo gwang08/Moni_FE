@@ -1,20 +1,17 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
-import { Coins } from 'lucide-react';
-import { SkeletonTable } from '@/components/ui/skeleton';
+import { useEffect, useState, useRef, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
+import { Plus, Loader2 } from 'lucide-react';
 import { getCreditTransactions } from '@/lib/payment-api';
-import { Badge } from '@/components/ui/badge';
+import { useAuthStore } from '@/store/auth-store';
 import type { CreditTransactionResponse } from '@/types/payment.types';
-import { formatDate } from '@/lib/format-date';
+import { TransactionsStats } from '@/components/transactions/transactions-stats';
+import { TransactionsTable } from '@/components/transactions/transactions-table';
 
-const TYPE_CONFIG: Record<string, { label: string; color: string }> = {
-  TOPUP: { label: 'Nạp tiền', color: 'bg-green-100 text-green-700' },
-  CONSUME: { label: 'Sử dụng', color: 'bg-orange-100 text-orange-700' },
-  REFUND: { label: 'Hoàn tiền', color: 'bg-blue-100 text-blue-700' },
-};
+type PaymentFilter = 'ALL' | 'TOPUP' | 'CONSUME' | 'REFUND';
 
-const TYPE_FILTERS = [
+const FILTER_OPTIONS: { value: PaymentFilter; label: string }[] = [
   { value: 'ALL', label: 'Tất cả' },
   { value: 'TOPUP', label: 'Nạp tiền' },
   { value: 'CONSUME', label: 'Sử dụng' },
@@ -22,10 +19,12 @@ const TYPE_FILTERS = [
 ];
 
 export default function TransactionsPage() {
+  const router = useRouter();
+  const balance = useAuthStore((s) => s.user?.credit ?? 0);
   const [transactions, setTransactions] = useState<CreditTransactionResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [typeFilter, setTypeFilter] = useState('ALL');
+  const [typeFilter, setTypeFilter] = useState<PaymentFilter>('ALL');
   const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
 
   const fetchedRef = useRef(false);
@@ -38,86 +37,83 @@ export default function TransactionsPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  const filtered = transactions
-    .filter(tx => typeFilter === 'ALL' || tx.paymentType === typeFilter)
-    .sort((a, b) => {
-      const ta = new Date(a.createdAt).getTime();
-      const tb = new Date(b.createdAt).getTime();
-      return sortOrder === 'newest' ? tb - ta : ta - tb;
-    });
+  const filtered = useMemo(() => {
+    return transactions
+      .filter((tx) => typeFilter === 'ALL' || tx.paymentType === typeFilter)
+      .sort((a, b) => {
+        const ta = new Date(a.createdAt).getTime();
+        const tb = new Date(b.createdAt).getTime();
+        return sortOrder === 'newest' ? tb - ta : ta - tb;
+      });
+  }, [transactions, typeFilter, sortOrder]);
+
+  const countByType = (type: PaymentFilter) =>
+    type === 'ALL' ? transactions.length : transactions.filter((t) => t.paymentType === type).length;
 
   return (
-    <div className="max-w-5xl mx-auto p-6 space-y-6">
-      <div className="flex items-center gap-2">
-        <Coins className="h-6 w-6 text-primary" />
-        <h1 className="text-2xl font-bold">Lịch sử tín dụng</h1>
-      </div>
-
-      {/* Filter bar */}
-      {!loading && !error && (
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-0.5">
-            {TYPE_FILTERS.map(f => (
-              <button key={f.value} type="button"
-                onClick={() => setTypeFilter(f.value)}
-                className={`px-3 py-1 text-xs rounded-md transition-colors ${typeFilter === f.value ? 'bg-white shadow-sm font-medium text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}>
-                {f.label}
-              </button>
-            ))}
+    <div className="min-h-[calc(100vh-56px)] bg-slate-50">
+      <div className="max-w-6xl mx-auto p-4 md:p-8 space-y-6">
+        {/* Hero */}
+        <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+          <div>
+            <h1 className="text-[26px] md:text-[30px] font-black tracking-tight">Lịch sử tín dụng</h1>
+            <p className="text-[13.5px] text-slate-500 font-medium mt-1">Theo dõi mọi giao dịch đậu của bạn.</p>
           </div>
-          <select value={sortOrder} onChange={e => setSortOrder(e.target.value as 'newest' | 'oldest')}
-            className="text-xs border rounded-md px-2 py-1.5 bg-white text-gray-700 focus:outline-none focus:ring-1 focus:ring-primary">
+          <button
+            onClick={() => router.push('/payment')}
+            className="px-4 py-2 rounded-xl bg-teal-600 text-white text-[13px] font-bold inline-flex items-center gap-2 hover:bg-teal-700 w-fit"
+          >
+            <Plus className="h-4 w-4" />
+            Nạp đậu
+          </button>
+        </div>
+
+        {/* Stats */}
+        <TransactionsStats balance={balance} transactions={transactions} />
+
+        {/* Filter bar */}
+        <div className="rounded-2xl bg-white border border-slate-100 shadow-sm p-3 flex items-center gap-3 flex-wrap">
+          <div className="flex items-center gap-1 bg-slate-100 rounded-lg p-0.5 overflow-x-auto max-w-full">
+            {FILTER_OPTIONS.map((f) => {
+              const active = typeFilter === f.value;
+              const count = countByType(f.value);
+              return (
+                <button
+                  key={f.value}
+                  onClick={() => setTypeFilter(f.value)}
+                  className={`px-3 py-1.5 rounded-md text-[12.5px] font-bold whitespace-nowrap transition-colors ${
+                    active ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:bg-white/60'
+                  }`}
+                >
+                  {f.label} <span className="text-slate-400 font-semibold">{count}</span>
+                </button>
+              );
+            })}
+          </div>
+          <div className="flex-1" />
+          <select
+            value={sortOrder}
+            onChange={(e) => setSortOrder(e.target.value as 'newest' | 'oldest')}
+            className="px-3 h-9 rounded-lg bg-slate-50 border border-slate-200 text-[12.5px] font-bold text-slate-700 focus:bg-white focus:border-teal-400 focus:outline-none"
+          >
             <option value="newest">Mới nhất</option>
             <option value="oldest">Cũ nhất</option>
           </select>
         </div>
-      )}
 
-      {loading && <SkeletonTable rows={5} cols={5} />}
-
-      {error && <p className="text-center text-red-500 py-8">{error}</p>}
-
-      {!loading && !error && (
-        <div className="border rounded-xl overflow-hidden bg-white">
-          <table className="w-full text-sm">
-            <thead className="bg-gray-50 border-b">
-              <tr>
-                {['Dịch vụ', 'Số credit', 'Loại', 'Số dư sau', 'Thời gian'].map((h) => (
-                  <th key={h} className="text-left px-4 py-3 font-medium text-gray-600 text-xs uppercase tracking-wide">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y">
-              {filtered.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="text-center py-10 text-gray-400">
-                    Không có giao dịch nào
-                  </td>
-                </tr>
-              ) : (
-                filtered.map((tx) => {
-                  const cfg = TYPE_CONFIG[tx.paymentType] ?? { label: tx.paymentType, color: 'bg-gray-100 text-gray-600' };
-                  return (
-                    <tr key={tx.id} className="hover:bg-gray-50 transition-colors">
-                      <td className="px-4 py-3 text-gray-700">
-                        {tx.serviceName || tx.packageName || (tx.paymentType === 'TOPUP' ? 'Nạp credit' : '—')}
-                      </td>
-                      <td className={`px-4 py-3 font-semibold tabular-nums ${tx.delta >= 0 ? 'text-green-600' : 'text-red-500'}`}>
-                        {tx.delta >= 0 ? '+' : ''}{tx.delta}
-                      </td>
-                      <td className="px-4 py-3">
-                        <Badge className={cfg.color}>{cfg.label}</Badge>
-                      </td>
-                      <td className="px-4 py-3 text-gray-600 tabular-nums">{tx.balanceAfter}</td>
-                      <td className="px-4 py-3 text-gray-500 text-xs">{formatDate(tx.createdAt)}</td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
-      )}
+        {/* Content */}
+        {loading ? (
+          <div className="flex justify-center py-16">
+            <Loader2 className="h-6 w-6 animate-spin text-teal-500" />
+          </div>
+        ) : error ? (
+          <div className="rounded-2xl border-2 border-dashed border-rose-200 bg-rose-50/30 p-12 text-center">
+            <p className="text-[14px] font-bold text-rose-700">{error}</p>
+          </div>
+        ) : (
+          <TransactionsTable transactions={filtered} />
+        )}
+      </div>
     </div>
   );
 }

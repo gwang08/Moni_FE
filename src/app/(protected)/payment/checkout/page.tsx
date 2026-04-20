@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   Loader2,
   CheckCircle2,
@@ -154,6 +155,7 @@ export default function CheckoutPage() {
   }, []);
 
   const { refreshProfile, updateUser } = useAuthStore();
+  const queryClient = useQueryClient();
 
   const returnUrl = usePaymentStore((s) => s.returnUrl);
 
@@ -165,13 +167,15 @@ export default function CheckoutPage() {
         updateUser({ credit });
       }
       refreshProfile();
+      // Invalidate subscription query so banner/scoring dialogs pick up new active sub immediately
+      queryClient.invalidateQueries({ queryKey: ['my-active-subscription'] });
       const redirectTo = returnUrl || '/transactions';
       setTimeout(() => {
         clear();
         router.push(redirectTo);
       }, 2500);
     },
-    [clear, router, refreshProfile, updateUser, returnUrl]
+    [clear, router, refreshProfile, updateUser, returnUrl, queryClient]
   );
 
   // SSE realtime listener + polling fallback

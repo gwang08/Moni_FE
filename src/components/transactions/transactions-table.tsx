@@ -108,14 +108,13 @@ function TransactionRow({ tx }: { tx: CreditTransactionResponse }) {
     return m ? m[1] + 'đ' : null;
   })();
 
-  // Quota consume: "-1 lượt · 80 → 79" (AI unlimited: quotaBefore=-1 thì chỉ hiện "-1 lượt")
-  const quotaDisplay = (() => {
-    if (!isQuotaConsume) return null;
-    const before = tx.quotaBefore;
-    const after = tx.quotaAfter;
-    if (before === -1 || after === -1) return '-1 lượt (unlimited)';
-    return `-1 lượt · ${before} → ${after}`;
-  })();
+  // Quota consume: stacked hierarchy — "-1 lượt" trên, "80 → 79" dưới.
+  // Expert dùng màu tím để phân biệt với AI (indigo).
+  const isExpertQuota = tx.quotaType === 'EXPERT';
+  const quotaIsUnlimited = tx.quotaBefore === -1 || tx.quotaAfter === -1;
+  const quotaBeforeAfterText = quotaIsUnlimited
+    ? 'Không giới hạn'
+    : `${tx.quotaBefore} → ${tx.quotaAfter} ${isExpertQuota ? 'GV' : 'AI'}`;
 
   return (
     <div>
@@ -136,10 +135,21 @@ function TransactionRow({ tx }: { tx: CreditTransactionResponse }) {
               ? (subPurchaseAmount ? '-' + subPurchaseAmount : '—')
               : (tx.delta >= 0 ? '+' : '') + formatVnd(Math.abs(tx.delta))}
         </span>
-        {/* Số lượt (quota) */}
-        <span className={`text-center text-[12px] font-black tabular-nums ${isQuotaConsume ? 'text-indigo-600' : 'text-slate-300'}`}>
-          {isQuotaConsume ? quotaDisplay : '—'}
-        </span>
+        {/* Số lượt — stacked: delta to, before→after nhỏ xám */}
+        <div className="text-center">
+          {isQuotaConsume ? (
+            <>
+              <div className={`text-[14px] font-black leading-none ${isExpertQuota ? 'text-purple-600' : 'text-indigo-600'}`}>
+                -1 lượt
+              </div>
+              <div className="text-[10px] font-semibold text-slate-400 tabular-nums mt-1">
+                {quotaBeforeAfterText}
+              </div>
+            </>
+          ) : (
+            <span className="text-slate-300 text-xs">—</span>
+          )}
+        </div>
         {/* Dư sau (VND balance) */}
         <span className="text-center text-[12px] font-semibold text-slate-600 tabular-nums">
           {(isSubPurchase || isQuotaConsume) ? '—' : formatVnd(tx.balanceAfter)}
@@ -162,13 +172,16 @@ function TransactionRow({ tx }: { tx: CreditTransactionResponse }) {
           <div className="text-[11px] text-slate-500 font-semibold tabular-nums">{formatDate(tx.createdAt)}</div>
         </div>
         <div className="text-right shrink-0">
-          <div className={`text-[14px] font-black tabular-nums ${isSubPurchase ? 'text-indigo-600' : isQuotaConsume ? 'text-indigo-600' : isPositive ? 'text-emerald-600' : 'text-rose-600'}`}>
+          <div className={`text-[14px] font-black tabular-nums ${isSubPurchase ? 'text-indigo-600' : isQuotaConsume ? (isExpertQuota ? 'text-purple-600' : 'text-indigo-600') : isPositive ? 'text-emerald-600' : 'text-rose-600'}`}>
             {isQuotaConsume
-              ? quotaDisplay
+              ? '-1 lượt'
               : isSubPurchase
                 ? (subPurchaseAmount ? '-' + subPurchaseAmount : '—')
                 : (isPositive ? '+' : '') + formatVnd(Math.abs(tx.delta))}
           </div>
+          {isQuotaConsume && (
+            <div className="text-[10.5px] text-slate-400 font-semibold tabular-nums">{quotaBeforeAfterText}</div>
+          )}
           {!isSubPurchase && !isQuotaConsume && (
             <div className="text-[10.5px] text-slate-400 font-semibold tabular-nums">Dư {formatVnd(tx.balanceAfter)}</div>
           )}

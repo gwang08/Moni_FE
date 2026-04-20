@@ -52,9 +52,9 @@ function BalanceCard({ balance }: { balance: number }) {
         </div>
         <div className="text-[30px] font-black mt-1 tabular-nums flex items-baseline gap-1">
           {balance.toLocaleString('vi-VN')}
-          <span className="text-[14px] font-bold text-white/80">đậu</span>
+          <span className="text-[14px] font-bold text-white/80">đ</span>
         </div>
-        <div className="text-[11.5px] text-emerald-100 font-bold mt-0.5 truncate">Đậu dùng cho AI &amp; giảng viên</div>
+        <div className="text-[11.5px] text-emerald-100 font-bold mt-0.5 truncate">Số dư dùng cho AI &amp; giảng viên</div>
       </div>
     </div>
   );

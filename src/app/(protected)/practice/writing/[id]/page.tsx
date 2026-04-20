@@ -79,7 +79,7 @@ export default function WritingExercisePage({ params }: Props) {
   const [exitOpen, setExitOpen] = useState(false);
   const [showSample, setShowSample] = useState(false);
   const [showScoringDialog, setShowScoringDialog] = useState(false);
-  // aiQuota phản ánh đúng: nếu user chưa dùng AI hôm nay → effectiveCost=0 (miễn phí), ngược lại = giá đậu thật
+  // aiQuota phản ánh đúng: nếu user chưa dùng AI hôm nay → effectiveCost=0 (miễn phí), ngược lại = giá VND thật
   const [aiQuota, setAiQuota] = useState<ServiceQuotaResponse | null>(null);
   const [expertCost, setExpertCost] = useState<number | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -87,7 +87,7 @@ export default function WritingExercisePage({ params }: Props) {
   const [submissionId, setSubmissionId] = useState<number | null>(null);
   const [showExpertDialog, setShowExpertDialog] = useState(false);
 
-  // Khi thiếu đậu: đóng dialog, set returnUrl='/scoring-history' để sau khi nạp xong
+  // Khi thiếu số dư: đóng dialog, set returnUrl='/scoring-history' để sau khi nạp xong
   // checkout auto-redirect về history → user chấm lại bài vừa submit
   const handleTopUp = useCallback(() => {
     setShowScoringDialog(false);

@@ -1,13 +1,13 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import Image from 'next/image';
 import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
 import { Sparkles, Zap, Receipt, Crown, Star } from 'lucide-react';
 import { getPackages, getServices } from '@/lib/payment-api';
 import { usePaymentStore } from '@/store/payment-store';
 import { Button } from '@/components/ui/button';
+import { formatVnd } from '@/lib/utils';
 import { SkeletonCard, SkeletonLine } from '@/components/ui/skeleton';
 import type { PackagePricingResponse } from '@/types/payment.types';
 
@@ -79,11 +79,11 @@ export default function PaymentPage() {
       <div className="text-center space-y-2">
         <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-medium">
           <Sparkles className="h-4 w-4" />
-          Nạp credit - Sử dụng dịch vụ
+          Nạp tiền - Sử dụng dịch vụ
         </div>
         <h1 className="text-3xl font-bold tracking-tight">Chọn gói phù hợp với bạn</h1>
         <p className="text-muted-foreground text-sm max-w-md mx-auto">
-          Mua credit để sử dụng các tính năng AI luyện IELTS Speaking
+          Nạp tiền để sử dụng các tính năng AI luyện IELTS Speaking
         </p>
       </div>
 
@@ -113,15 +113,8 @@ export default function PaymentPage() {
 
                     <div className="flex items-center gap-2 mb-1">
                       <span className="text-3xl font-extrabold">
-                        {pkg.creditAmount.toLocaleString('vi-VN')}
+                        {formatVnd(pkg.creditAmount)}
                       </span>
-                      <Image
-                        src="/currency.webp"
-                        alt="credit"
-                        width={28}
-                        height={28}
-                        className="h-7 w-7 object-contain"
-                      />
                     </div>
 
                     <p className="text-lg font-semibold text-gray-700 mb-5">
@@ -172,14 +165,7 @@ export default function PaymentPage() {
                   )}
                 </div>
                 <span className="text-primary font-bold text-sm whitespace-nowrap flex items-center gap-1 bg-primary/5 px-2.5 py-1 rounded-full">
-                  {svc.creditCost}
-                  <Image
-                    src="/currency.webp"
-                    alt="credit"
-                    width={16}
-                    height={16}
-                    className="h-4 w-4 object-contain"
-                  />
+                  {formatVnd(svc.creditCost)}
                 </span>
               </div>
             ))}

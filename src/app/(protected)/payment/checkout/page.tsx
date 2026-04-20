@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import Image from 'next/image';
 import {
   Loader2,
   CheckCircle2,
@@ -18,6 +17,7 @@ import { initPayment, getPayments } from '@/lib/payment-api';
 import { usePaymentStore } from '@/store/payment-store';
 import { useAuthStore } from '@/store/auth-store';
 import { Button } from '@/components/ui/button';
+import { formatVnd } from '@/lib/utils';
 
 const formatVND = (price: number) =>
   new Intl.NumberFormat('vi-VN').format(price) + ' đ';
@@ -286,19 +286,10 @@ export default function CheckoutPage() {
         <div className="space-y-5">
           {/* Package card */}
           <div className="rounded-2xl bg-gradient-to-br from-primary/5 to-primary/10 border border-primary/20 p-4 flex items-center gap-4">
-            <div className="p-2.5 rounded-xl bg-white shadow-sm">
-              <Image
-                src="/currency.webp"
-                alt="credit"
-                width={32}
-                height={32}
-                className="h-8 w-8 object-contain"
-              />
-            </div>
             <div className="flex-1 min-w-0">
               <p className="font-bold text-sm">{selectedPackage.name}</p>
               <p className="text-xs text-muted-foreground">
-                {selectedPackage.creditAmount.toLocaleString('vi-VN')} credit
+                Nhận {formatVnd(selectedPackage.creditAmount)} vào ví
               </p>
             </div>
             <p className="text-lg font-extrabold text-primary">

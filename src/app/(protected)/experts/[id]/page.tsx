@@ -2,7 +2,6 @@
 
 import { use, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import Image from 'next/image';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -14,6 +13,7 @@ import { getExpertDetail, createScoringSession } from '@/lib/expert-api';
 import { getServices } from '@/lib/payment-api';
 import { apiClient } from '@/lib/api-client';
 import { useAuthStore } from '@/store/auth-store';
+import { formatVnd } from '@/lib/utils';
 import { toast } from 'sonner';
 import type { ExpertProfile } from '@/types/expert.types';
 import type { ApiResponse } from '@/types/auth.types';
@@ -229,10 +229,9 @@ export default function ExpertProfilePage({ params }: { params: Promise<{ id: st
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-1.5 text-sm font-medium">
                 <span>Chi phí:</span>
-                <span className="text-lg font-bold text-primary">{expertCost}</span>
-                <Image src="/currency.webp" alt="credit" width={20} height={20} className="h-5 w-5" />
+                <span className="text-lg font-bold text-primary">{formatVnd(expertCost)}</span>
               </div>
-              <span className="text-xs text-muted-foreground">Số dư: {balance.toLocaleString()}</span>
+              <span className="text-xs text-muted-foreground">Số dư: {formatVnd(balance)}</span>
             </div>
             <Button
               size="lg"

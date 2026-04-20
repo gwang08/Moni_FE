@@ -1,10 +1,10 @@
 'use client';
 
-import Image from 'next/image';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Bot, GraduationCap, Zap, Video } from 'lucide-react';
+import { formatVnd } from '@/lib/utils';
 
 interface ScoringMethodSelectorProps {
   onSelectAI: () => void;
@@ -18,8 +18,7 @@ interface ScoringMethodSelectorProps {
 function CreditCost({ amount }: { amount: number }) {
   return (
     <span className="inline-flex items-center gap-1 font-semibold">
-      <Image src="/currency.webp" alt="credit" width={14} height={14} className="object-contain" />
-      {amount.toLocaleString()}
+      {formatVnd(amount)}
     </span>
   );
 }

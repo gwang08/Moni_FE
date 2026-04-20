@@ -1,10 +1,10 @@
 'use client';
 
-import Image from 'next/image';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
 import { ChibiMascot, ChibiAnimationStyles } from '@/components/ui/chibi-mascot';
 import type { ServiceQuotaResponse } from '@/lib/payment-api';
+import { formatVnd } from '@/lib/utils';
 
 interface Props {
   open: boolean;
@@ -43,7 +43,7 @@ function OptionCard({ icon, title, description, badge, onClick, colorClass, insu
           <div>
             <p className={`font-semibold text-sm ${insufficient ? 'text-gray-500' : 'text-gray-800'}`}>{title}</p>
             <p className={`text-xs mt-0.5 ${insufficient ? 'text-amber-600' : 'text-gray-500'}`}>
-              {insufficient ? 'Không đủ đậu — bấm để nạp thêm' : description}
+              {insufficient ? 'Không đủ số dư — bấm để nạp thêm' : description}
             </p>
           </div>
         </div>
@@ -64,8 +64,7 @@ function TopUpBadge() {
 function CreditBadge({ cost }: { cost: number }) {
   return (
     <span className="inline-flex items-center gap-1 bg-amber-50 border border-amber-200 rounded-full px-2.5 py-1 text-xs font-semibold text-amber-700 shrink-0">
-      <Image src="/currency.webp" alt="credit" width={12} height={12} className="object-contain" />
-      {cost.toLocaleString()}
+      {formatVnd(cost)}
     </span>
   );
 }

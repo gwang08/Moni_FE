@@ -12,6 +12,7 @@ import { SpeakingModeExpertGrid } from './speaking-mode-expert-grid';
 import { SpeakingModeExpertInlineConfirm } from './speaking-mode-expert-inline-confirm';
 import type { ExpertProfile } from '@/types/expert.types';
 import type { ServiceQuotaResponse } from '@/lib/payment-api';
+import { formatVnd } from '@/lib/utils';
 
 interface Props {
   open: boolean;
@@ -101,9 +102,7 @@ export function SpeakingModeDialog({ open, testId, aiQuota = null, expertCost = 
               {aiQuota != null && (
                 aiQuota.usedToday ? (
                   <span className="flex items-center gap-1 text-xs font-medium text-blue-800 bg-blue-200/60 px-2 py-0.5 rounded-full">
-                    {aiQuota.effectiveCost}{' '}
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src="/currency.webp" alt="credit" className="h-3.5 w-3.5 inline" />
+                    {formatVnd(aiQuota.effectiveCost)}
                   </span>
                 ) : (
                   <span className="text-xs font-semibold text-emerald-700 bg-emerald-100 border border-emerald-200 px-2 py-0.5 rounded-full">
@@ -125,7 +124,7 @@ export function SpeakingModeDialog({ open, testId, aiQuota = null, expertCost = 
               </div>
               {expertCost != null && (
                 <span className="flex items-center gap-1 text-xs font-medium text-orange-800 bg-orange-200/60 px-2 py-0.5 rounded-full">
-                  {expertCost} <img src="/currency.webp" alt="credit" className="h-3.5 w-3.5 inline" />
+                  {formatVnd(expertCost)}
                 </span>
               )}
             </button>

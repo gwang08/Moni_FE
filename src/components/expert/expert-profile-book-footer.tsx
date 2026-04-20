@@ -2,6 +2,7 @@
 
 import { Button } from '@/components/ui/button';
 import type { ExpertProfile } from '@/types/expert.types';
+import { formatVnd } from '@/lib/utils';
 
 interface BookConfirmProps {
   expertName: string;
@@ -20,10 +21,10 @@ function BookConfirm({ expertName, cost, balance, submitting, onConfirm, onCance
         Xác nhận đặt lịch với <span className="text-orange-700">{expertName}</span>
       </p>
       <div className="text-sm space-y-1 text-muted-foreground">
-        <p>Chi phí: <span className="font-semibold text-foreground inline-flex items-center gap-1">{cost} <img src="/currency.webp" alt="credit" className="h-3.5 w-3.5 inline" /></span></p>
-        <p>Số dư: <span className={`font-semibold inline-flex items-center gap-1 ${hasEnough ? 'text-foreground' : 'text-destructive'}`}>{balance} <img src="/currency.webp" alt="credit" className="h-3.5 w-3.5 inline" /></span></p>
+        <p>Chi phí: <span className="font-semibold text-foreground">{formatVnd(cost)}</span></p>
+        <p>Số dư: <span className={`font-semibold ${hasEnough ? 'text-foreground' : 'text-destructive'}`}>{formatVnd(balance)}</span></p>
         {!hasEnough && (
-          <p className="text-destructive font-medium">Không đủ credit! Vui lòng <a href="/payment" className="underline">nạp thêm</a>.</p>
+          <p className="text-destructive font-medium">Không đủ số dư! Vui lòng <a href="/payment" className="underline">nạp thêm</a>.</p>
         )}
       </div>
       <div className="flex gap-2">
@@ -89,7 +90,7 @@ export function ExpertProfileBookFooter({
             >
               {expert.status === 'OFFLINE'
                 ? 'Giảng viên không có mặt'
-                : `Book giảng viên này · ${expertCost} credit`}
+                : `Book giảng viên này · ${formatVnd(expertCost)}`}
             </Button>
           )
         )}

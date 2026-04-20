@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { usePaymentStore } from '@/store/payment-store';
 import type { ExpertProfile } from '@/types/expert.types';
+import { formatVnd } from '@/lib/utils';
 
 interface Props {
   expert: ExpertProfile;
@@ -34,14 +35,14 @@ export function SpeakingModeExpertInlineConfirm({ expert, cost, balance, submitt
       <div className="text-sm space-y-2 text-gray-600 bg-white/60 p-4 rounded-xl border border-orange-100">
         <p className="flex justify-between items-center">
           <span className="font-medium">Chi phí:</span>
-          <span className="font-bold text-gray-800 inline-flex items-center gap-1.5">{cost} <img src="/currency.webp" alt="credit" className="h-4 w-4 inline" /></span>
+          <span className="font-bold text-gray-800">{formatVnd(cost)}</span>
         </p>
         <div className="h-px w-full bg-orange-100/50" />
         <p className="flex justify-between items-center">
           <span className="font-medium">Số dư hiện tại:</span>
-          <span className={`font-bold inline-flex items-center gap-1.5 ${hasEnough ? 'text-green-600' : 'text-red-500'}`}>{balance} <img src="/currency.webp" alt="credit" className="h-4 w-4 inline" /></span>
+          <span className={`font-bold ${hasEnough ? 'text-green-600' : 'text-red-500'}`}>{formatVnd(balance)}</span>
         </p>
-        {!hasEnough && <p className="text-red-500 font-bold text-xs mt-2 bg-red-50 p-2 rounded-lg text-center">Không đủ credit! Vui lòng nạp thêm.</p>}
+        {!hasEnough && <p className="text-red-500 font-bold text-xs mt-2 bg-red-50 p-2 rounded-lg text-center">Không đủ số dư! Vui lòng nạp thêm.</p>}
       </div>
       <div className="flex gap-2.5 pt-1">
         <Button variant="outline" className="flex-1 rounded-xl h-10 font-bold border-orange-200 text-orange-700 hover:bg-orange-100" onClick={onCancel} disabled={submitting}>Huỷ</Button>
@@ -51,7 +52,7 @@ export function SpeakingModeExpertInlineConfirm({ expert, cost, balance, submitt
           </Button>
         ) : (
           <Button className="flex-1 rounded-xl h-10 font-bold bg-[#16a34a] hover:bg-[#15803d] text-white shadow-sm" onClick={handleTopUp}>
-            Nạp credit ngay
+            Nạp tiền ngay
           </Button>
         )}
       </div>

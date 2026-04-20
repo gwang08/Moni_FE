@@ -57,14 +57,14 @@ export default function TransactionsPage() {
         <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
           <div>
             <h1 className="text-[26px] md:text-[30px] font-black tracking-tight">Lịch sử tín dụng</h1>
-            <p className="text-[13.5px] text-slate-500 font-medium mt-1">Theo dõi mọi giao dịch đậu của bạn.</p>
+            <p className="text-[13.5px] text-slate-500 font-medium mt-1">Theo dõi mọi giao dịch của bạn.</p>
           </div>
           <button
             onClick={() => router.push('/payment')}
             className="px-4 py-2 rounded-xl bg-teal-600 text-white text-[13px] font-bold inline-flex items-center gap-2 hover:bg-teal-700 w-fit"
           >
             <Plus className="h-4 w-4" />
-            Nạp đậu
+            Nạp tiền
           </button>
         </div>
 

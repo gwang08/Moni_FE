@@ -32,7 +32,7 @@ const TYPE_META: Record<string, { label: string; tint: string; icon: React.Eleme
   },
 };
 
-// Nới cột số + gap để "Số đậu" và "Số dư sau" không dính sát nhau
+// Nới cột số + gap để "Số tiền" và "Số dư sau" không dính sát nhau
 const COLS = 'grid-cols-[40px_110px_1fr_110px_120px_150px] gap-5';
 
 export function TransactionsTable({ transactions }: Props) {
@@ -40,7 +40,7 @@ export function TransactionsTable({ transactions }: Props) {
     return (
       <div className="rounded-2xl border-2 border-dashed border-slate-200 bg-white/60 p-16 text-center">
         <p className="text-[14px] font-bold text-slate-600">Chưa có giao dịch nào</p>
-        <p className="text-[12.5px] text-slate-400 mt-1 font-medium">Nạp đậu để bắt đầu dùng dịch vụ AI</p>
+        <p className="text-[12.5px] text-slate-400 mt-1 font-medium">Nạp tiền để bắt đầu dùng dịch vụ AI</p>
       </div>
     );
   }
@@ -51,7 +51,7 @@ export function TransactionsTable({ transactions }: Props) {
         <div></div>
         <div>Loại</div>
         <div>Chi tiết</div>
-        <div className="text-center">Số đậu</div>
+        <div className="text-center">Số tiền</div>
         <div className="text-center">Số dư sau</div>
         <div>Thời gian</div>
       </div>
@@ -69,7 +69,7 @@ function TransactionRow({ tx }: { tx: CreditTransactionResponse }) {
   const meta = TYPE_META[tx.paymentType] ?? TYPE_META.CONSUME;
   const Icon = meta.icon;
   const detail =
-    tx.serviceName || tx.packageName || (tx.paymentType === 'TOPUP' ? 'Nạp đậu' : 'Giao dịch');
+    tx.serviceName || tx.packageName || (tx.paymentType === 'TOPUP' ? 'Nạp tiền' : 'Giao dịch');
   const isPositive = tx.delta >= 0;
 
   return (

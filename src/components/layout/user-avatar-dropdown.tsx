@@ -12,8 +12,8 @@ import { useAuthStore } from '@/store/auth-store';
 import { User, LogOut, Shield, CreditCard, Plus, LogIn, GraduationCap, LayoutDashboard } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import Image from 'next/image';
 import { toast } from 'sonner';
+import { formatVnd } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 
 interface UserAvatarDropdownProps {
@@ -69,9 +69,8 @@ export function UserAvatarDropdown({ variant = 'light' }: UserAvatarDropdownProp
               : 'border rounded-full hover:bg-accent'
           }`}
         >
-          <Image src="/currency.webp" alt="credit" width={16} height={16} className="h-4 w-4 object-contain" />
           <span className={`text-sm font-semibold tabular-nums ${isDark ? 'text-white' : ''}`}>
-            {creditBalance.toLocaleString()}
+            {formatVnd(creditBalance)}
           </span>
           <span className="flex items-center gap-0.5 rounded-full bg-primary text-primary-foreground px-2 py-0.5 text-xs font-medium group-hover:bg-primary/90 transition-colors">
             <Plus className="h-3 w-3" />
@@ -113,8 +112,7 @@ export function UserAvatarDropdown({ variant = 'light' }: UserAvatarDropdownProp
                 className="flex items-center justify-between rounded-md border px-2.5 py-2 hover:bg-accent transition-colors"
               >
                 <div className="flex items-center gap-1.5">
-                  <Image src="/currency.webp" alt="credit" width={16} height={16} className="h-4 w-4 object-contain" />
-                  <span className="text-sm font-semibold">{creditBalance.toLocaleString()}</span>
+                  <span className="text-sm font-semibold">{formatVnd(creditBalance)}</span>
                 </div>
                 <span className="flex items-center gap-0.5 rounded-full bg-primary text-primary-foreground px-2 py-0.5 text-xs font-medium">
                   <Plus className="h-3 w-3" />

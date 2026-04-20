@@ -1,7 +1,6 @@
 'use client';
 
 import Link from 'next/link';
-import Image from 'next/image';
 import {
   Dialog,
   DialogContent,
@@ -11,6 +10,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { formatVnd } from '@/lib/utils';
 
 interface CreditConfirmDialogProps {
   open: boolean;
@@ -41,16 +41,14 @@ export function CreditConfirmDialog({
               <p>Dịch vụ: <span className="font-medium text-foreground">{serviceName}</span></p>
               <p>
                 Chi phí:{' '}
-                <span className="font-semibold text-foreground inline-flex items-center gap-1">
-                  <Image src="/currency.webp" alt="credit" width={14} height={14} className="object-contain" />
-                  {creditCost.toLocaleString()}
+                <span className="font-semibold text-foreground">
+                  {formatVnd(creditCost)}
                 </span>
               </p>
               <p>
                 Số dư hiện tại:{' '}
-                <span className={`font-semibold ${hasEnough ? 'text-foreground' : 'text-destructive'} inline-flex items-center gap-1`}>
-                  <Image src="/currency.webp" alt="credit" width={14} height={14} className="object-contain" />
-                  {currentBalance.toLocaleString()}
+                <span className={`font-semibold ${hasEnough ? 'text-foreground' : 'text-destructive'}`}>
+                  {formatVnd(currentBalance)}
                 </span>
               </p>
             </div>
@@ -61,14 +59,14 @@ export function CreditConfirmDialog({
           <div className="flex flex-col items-center gap-3 py-4">
             {/* Sad chibi mascot */}
             <div className="text-6xl select-none">😢</div>
-            <p className="text-destructive font-semibold text-center">Không đủ credit!</p>
+            <p className="text-destructive font-semibold text-center">Không đủ số dư!</p>
             <p className="text-sm text-muted-foreground text-center">
               Bạn cần thêm{' '}
-              <span className="font-semibold text-foreground">{(creditCost - currentBalance).toLocaleString()}</span>{' '}
-              credit để sử dụng dịch vụ này.
+              <span className="font-semibold text-foreground">{formatVnd(creditCost - currentBalance)}</span>{' '}
+              để sử dụng dịch vụ này.
             </p>
             <Button asChild className="mt-1">
-              <Link href="/payment">Nạp credit ngay →</Link>
+              <Link href="/payment">Nạp tiền ngay →</Link>
             </Button>
           </div>
         )}

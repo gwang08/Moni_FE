@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Star } from 'lucide-react';
 import type { ExpertProfile } from '@/types/expert.types';
+import { formatVnd } from '@/lib/utils';
 
 interface Props {
   experts: ExpertProfile[];
@@ -69,7 +70,7 @@ export function SpeakingModeExpertGrid({ experts, expertCost, onBook, onDetail }
               <Stars rating={expert.rating} />
               {expertCost != null && (
                 <span className="flex items-center gap-1.5 text-[12px] font-bold text-[#16a34a] bg-green-50 px-2.5 py-0.5 rounded-full border border-green-100">
-                  {expertCost} <img src="/currency.webp" alt="credit" className="h-3.5 w-3.5" />
+                  {formatVnd(expertCost)}
                 </span>
               )}
             </div>

@@ -20,7 +20,17 @@ import { Button } from '@/components/ui/button';
 import { Loader2, Save, ScanSearch, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
-import { updateStimulus, updateQuestion, updateQuestionGroupContent, updateQuestionGroupTypeCode, analyzeChart as analyzeChartApi, getVisonAnalysis, updateVisonAnalysis } from '@/lib/admin-api';
+import {
+  updateStimulus,
+  updateQuestion,
+  updateQuestionGroupContent,
+  updateQuestionGroupTypeCode,
+  analyzeChart as analyzeChartApi,
+  getVisonAnalysis,
+  updateVisonAnalysis,
+  createQuestionGroup,
+  createQuestion,
+} from '@/lib/admin-api';
 import { ChartDataEditor } from '@/components/admin/chart-data-editor';
 import {
   WRITING_TASK1_TYPES,
@@ -84,6 +94,8 @@ export function TestEditWritingContent({ test }: Props) {
   const firstGroup = stimulus?.questionGroups[0];
   const [saving, setSaving] = useState(false);
   const [contentHtml, setContentHtml] = useState(stimulus?.content || '');
+  // Chặn nút Lưu khi đang upload ảnh trong editor — tránh lưu blob: URL vào DB
+  const [imageUploading, setImageUploading] = useState(false);
 
   // Read bài mẫu from instruction (create flow) or explanation.text (edit flow)
   const firstQuestion = firstGroup?.questions[0];
@@ -183,6 +195,13 @@ export function TestEditWritingContent({ test }: Props) {
   };
 
   const handleSave = async () => {
+    // Chặn save nếu editor còn blob URL (ảnh chưa upload xong lên Cloudinary).
+    // Blob URL chỉ sống trong RAM browser tạo nó → lưu vào DB sẽ 404 mọi nơi khác.
+    if (imageUploading || /src="blob:/.test(contentHtml)) {
+      toast.error('Ảnh đang được tải lên, vui lòng chờ xong rồi lưu');
+      return;
+    }
+
     setSaving(true);
     try {
       await updateStimulus(stimulus.id, {
@@ -190,13 +209,25 @@ export function TestEditWritingContent({ test }: Props) {
         mediaUrl: stimulus.mediaUrl || undefined,
       });
 
-      // Save bài mẫu into first question's explanation
-      const firstQuestion = firstGroup?.questions[0];
+      // Save bài mẫu into first question's explanation. Writing test mới tạo chưa có
+      // group/question → tự tạo 1 group + 1 question ẩn để lưu sample, tránh mất dữ liệu
+      // mà admin đã gõ.
       const sampleText = buildSample(sampleFields);
-      if (firstQuestion && sampleText.replace(/\n---SECTION---\n/g, '').trim()) {
-        await updateQuestion(String(firstQuestion.id), {
-          explanation: { text: sampleText },
-        });
+      const hasSample = sampleText.replace(/\n---SECTION---\n/g, '').trim().length > 0;
+      if (hasSample) {
+        let questionId = firstGroup?.questions[0]?.id;
+        if (!questionId) {
+          const groupId = firstGroup?.id
+            ?? (await createQuestionGroup(stimulus.id, {
+              questionTypeCode: isTask2 ? 'WRITING_TASK_2' : 'WRITING_TASK_1',
+              questions: [],
+            }));
+          questionId = await createQuestion(groupId, {
+            content: 'Writing sample',
+            options: [],
+          });
+        }
+        await updateQuestion(String(questionId), { explanation: { text: sampleText } });
       }
 
       // Save writing type code if group exists and type changed
@@ -227,7 +258,7 @@ export function TestEditWritingContent({ test }: Props) {
           <span className="text-xs text-gray-400 font-normal ml-2">Có thể chèn ảnh biểu đồ trực tiếp vào đề</span>
         </label>
         <div className="border border-input rounded-md bg-white overflow-hidden">
-          <RichTextToolbar editor={editor} />
+          <RichTextToolbar editor={editor} onUploadingChange={setImageUploading} />
           <EditorContent editor={editor} />
         </div>
       </div>
@@ -303,7 +334,7 @@ export function TestEditWritingContent({ test }: Props) {
       </div>
 
       <div className="flex justify-end">
-        <Button onClick={handleSave} disabled={saving} size="sm">
+        <Button onClick={handleSave} disabled={saving || imageUploading} size="sm">
           {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
           Lưu
         </Button>

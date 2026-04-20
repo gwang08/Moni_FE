@@ -15,6 +15,8 @@ import { uploadMedia } from '@/lib/admin-api';
 
 interface Props {
   editor: Editor | null;
+  // Thông báo cho parent form biết đang upload ảnh (để disable nút Lưu, tránh lưu blob URL)
+  onUploadingChange?: (uploading: boolean) => void;
 }
 
 function ToolbarButton({
@@ -49,9 +51,13 @@ function Separator() {
   return <div className="w-px h-5 bg-gray-300 mx-0.5" />;
 }
 
-export function RichTextToolbar({ editor }: Props) {
+export function RichTextToolbar({ editor, onUploadingChange }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [uploading, setUploading] = useState(false);
+  const [uploading, setUploadingState] = useState(false);
+  const setUploading = useCallback((v: boolean) => {
+    setUploadingState(v);
+    onUploadingChange?.(v);
+  }, [onUploadingChange]);
 
   const addImage = useCallback(() => {
     fileInputRef.current?.click();

@@ -37,6 +37,7 @@ export interface CreditTransactionResponse {
   userFullName: string | null;
   serviceId: number | null;
   paymentId: number | null;
+  remark?: string | null;
 }
 
 export interface ServicePricingResponse {

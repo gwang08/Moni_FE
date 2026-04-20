@@ -1,8 +1,9 @@
 'use client';
 
-import { ArrowDown, ArrowUp, RotateCcw } from 'lucide-react';
+import { ArrowDown, ArrowUp, RotateCcw, Sparkles, Wrench } from 'lucide-react';
 import type { CreditTransactionResponse } from '@/types/payment.types';
 import { formatDate } from '@/lib/format-date';
+import { formatVnd } from '@/lib/utils';
 
 interface Props {
   transactions: CreditTransactionResponse[];
@@ -11,6 +12,13 @@ interface Props {
 const TYPE_META: Record<string, { label: string; tint: string; icon: React.ElementType; iconBg: string; iconColor: string }> = {
   TOPUP: {
     label: 'Nạp tiền',
+    tint: 'text-emerald-700 bg-emerald-50 border-emerald-100',
+    icon: ArrowDown,
+    iconBg: 'bg-emerald-50 border-emerald-100',
+    iconColor: 'text-emerald-600',
+  },
+  LATE_PAYMENT_TOPUP: {
+    label: 'Nạp (trễ)',
     tint: 'text-emerald-700 bg-emerald-50 border-emerald-100',
     icon: ArrowDown,
     iconBg: 'bg-emerald-50 border-emerald-100',
@@ -29,6 +37,20 @@ const TYPE_META: Record<string, { label: string; tint: string; icon: React.Eleme
     icon: RotateCcw,
     iconBg: 'bg-blue-50 border-blue-100',
     iconColor: 'text-blue-600',
+  },
+  SUBSCRIPTION_PURCHASE: {
+    label: 'Mua gói',
+    tint: 'text-indigo-700 bg-indigo-50 border-indigo-100',
+    icon: Sparkles,
+    iconBg: 'bg-indigo-50 border-indigo-100',
+    iconColor: 'text-indigo-600',
+  },
+  CREDIT_ADJUSTMENT: {
+    label: 'Điều chỉnh',
+    tint: 'text-amber-700 bg-amber-50 border-amber-100',
+    icon: Wrench,
+    iconBg: 'bg-amber-50 border-amber-100',
+    iconColor: 'text-amber-600',
   },
 };
 
@@ -68,8 +90,13 @@ export function TransactionsTable({ transactions }: Props) {
 function TransactionRow({ tx }: { tx: CreditTransactionResponse }) {
   const meta = TYPE_META[tx.paymentType] ?? TYPE_META.CONSUME;
   const Icon = meta.icon;
+  // Ưu tiên remark (mua sub "Mua Gói Standard · 99,000đ") → serviceName (chấm AI) → packageName (nạp VND)
   const detail =
-    tx.serviceName || tx.packageName || (tx.paymentType === 'TOPUP' ? 'Nạp tiền' : 'Giao dịch');
+    tx.remark ||
+    tx.serviceName ||
+    tx.packageName ||
+    (tx.paymentType === 'TOPUP' ? 'Nạp tiền' : 'Giao dịch');
+  const isSubPurchase = tx.paymentType === 'SUBSCRIPTION_PURCHASE';
   const isPositive = tx.delta >= 0;
 
   return (
@@ -83,11 +110,10 @@ function TransactionRow({ tx }: { tx: CreditTransactionResponse }) {
           {meta.label}
         </span>
         <div className="text-[13px] font-bold text-slate-900 truncate">{detail}</div>
-        <span className={`text-center text-[14px] font-black tabular-nums ${isPositive ? 'text-emerald-600' : 'text-rose-600'}`}>
-          {isPositive ? '+' : ''}
-          {tx.delta}
+        <span className={`text-center text-[14px] font-black tabular-nums ${isSubPurchase ? 'text-slate-400' : isPositive ? 'text-emerald-600' : 'text-rose-600'}`}>
+          {isSubPurchase ? '—' : (tx.delta >= 0 ? '+' : '') + formatVnd(Math.abs(tx.delta))}
         </span>
-        <span className="text-center text-[12px] font-semibold text-slate-600 tabular-nums">{tx.balanceAfter}</span>
+        <span className="text-center text-[12px] font-semibold text-slate-600 tabular-nums">{formatVnd(tx.balanceAfter)}</span>
         <span className="text-[11.5px] text-slate-500 font-semibold tabular-nums whitespace-nowrap">{formatDate(tx.createdAt)}</span>
       </div>
 
@@ -106,11 +132,10 @@ function TransactionRow({ tx }: { tx: CreditTransactionResponse }) {
           <div className="text-[11px] text-slate-500 font-semibold tabular-nums">{formatDate(tx.createdAt)}</div>
         </div>
         <div className="text-right shrink-0">
-          <div className={`text-[16px] font-black tabular-nums ${isPositive ? 'text-emerald-600' : 'text-rose-600'}`}>
-            {isPositive ? '+' : ''}
-            {tx.delta}
+          <div className={`text-[16px] font-black tabular-nums ${isSubPurchase ? 'text-slate-400' : isPositive ? 'text-emerald-600' : 'text-rose-600'}`}>
+            {isSubPurchase ? '—' : (isPositive ? '+' : '') + formatVnd(Math.abs(tx.delta))}
           </div>
-          <div className="text-[10.5px] text-slate-400 font-semibold tabular-nums">Dư {tx.balanceAfter}</div>
+          <div className="text-[10.5px] text-slate-400 font-semibold tabular-nums">Dư {formatVnd(tx.balanceAfter)}</div>
         </div>
       </div>
     </div>

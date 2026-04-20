@@ -99,6 +99,14 @@ function TransactionRow({ tx }: { tx: CreditTransactionResponse }) {
   const isSubPurchase = tx.paymentType === 'SUBSCRIPTION_PURCHASE';
   const isPositive = tx.delta >= 0;
 
+  // Sub purchase: BE ghi remark "Mua Gói X · 2,000đ". Extract amount để hiện trong "Số tiền".
+  // Nếu parse fail thì show "—".
+  const subPurchaseAmount = (() => {
+    if (!isSubPurchase || !tx.remark) return null;
+    const m = tx.remark.match(/·\s*([\d.,]+)đ/);
+    return m ? m[1] + 'đ' : null;
+  })();
+
   return (
     <div>
       {/* Desktop row */}
@@ -110,10 +118,14 @@ function TransactionRow({ tx }: { tx: CreditTransactionResponse }) {
           {meta.label}
         </span>
         <div className="text-[13px] font-bold text-slate-900 truncate">{detail}</div>
-        <span className={`text-center text-[14px] font-black tabular-nums ${isSubPurchase ? 'text-slate-400' : isPositive ? 'text-emerald-600' : 'text-rose-600'}`}>
-          {isSubPurchase ? '—' : (tx.delta >= 0 ? '+' : '') + formatVnd(Math.abs(tx.delta))}
+        <span className={`text-center text-[14px] font-black tabular-nums ${isSubPurchase ? 'text-indigo-600' : isPositive ? 'text-emerald-600' : 'text-rose-600'}`}>
+          {isSubPurchase
+            ? (subPurchaseAmount ? '-' + subPurchaseAmount : '—')
+            : (tx.delta >= 0 ? '+' : '') + formatVnd(Math.abs(tx.delta))}
         </span>
-        <span className="text-center text-[12px] font-semibold text-slate-600 tabular-nums">{formatVnd(tx.balanceAfter)}</span>
+        <span className="text-center text-[12px] font-semibold text-slate-600 tabular-nums">
+          {isSubPurchase ? '—' : formatVnd(tx.balanceAfter)}
+        </span>
         <span className="text-[11.5px] text-slate-500 font-semibold tabular-nums whitespace-nowrap">{formatDate(tx.createdAt)}</span>
       </div>
 
@@ -132,10 +144,14 @@ function TransactionRow({ tx }: { tx: CreditTransactionResponse }) {
           <div className="text-[11px] text-slate-500 font-semibold tabular-nums">{formatDate(tx.createdAt)}</div>
         </div>
         <div className="text-right shrink-0">
-          <div className={`text-[16px] font-black tabular-nums ${isSubPurchase ? 'text-slate-400' : isPositive ? 'text-emerald-600' : 'text-rose-600'}`}>
-            {isSubPurchase ? '—' : (isPositive ? '+' : '') + formatVnd(Math.abs(tx.delta))}
+          <div className={`text-[16px] font-black tabular-nums ${isSubPurchase ? 'text-indigo-600' : isPositive ? 'text-emerald-600' : 'text-rose-600'}`}>
+            {isSubPurchase
+              ? (subPurchaseAmount ? '-' + subPurchaseAmount : '—')
+              : (isPositive ? '+' : '') + formatVnd(Math.abs(tx.delta))}
           </div>
-          <div className="text-[10.5px] text-slate-400 font-semibold tabular-nums">Dư {formatVnd(tx.balanceAfter)}</div>
+          {!isSubPurchase && (
+            <div className="text-[10.5px] text-slate-400 font-semibold tabular-nums">Dư {formatVnd(tx.balanceAfter)}</div>
+          )}
         </div>
       </div>
     </div>

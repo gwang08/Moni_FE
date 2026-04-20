@@ -88,12 +88,16 @@ export default function ScoringHistoryPage() {
         writingSubmissionId: sub.submissionId,
       });
       await refreshProfile();
-      toast.success(expert ? 'Đã gửi bài cho giảng viên!' : 'Đã gửi ngẫu nhiên cho 1 giảng viên!');
+      toast.success(
+        expert
+          ? 'Đã gửi bài cho giảng viên! Bài sẽ sớm được chấm trong giờ làm việc.'
+          : 'Đã gửi ngẫu nhiên cho 1 giảng viên! Bài sẽ sớm được chấm trong giờ làm việc.',
+      );
       setExpertModalOpen(false);
       setConfirming(null);
       refresh();
     } catch {
-      toast.error(expert ? 'Không thể tạo phiên chấm' : 'Không có giảng viên nào khả dụng, thử chọn thủ công');
+      toast.error(expert ? 'Không thể tạo phiên chấm' : 'Không tìm được giảng viên, thử chọn thủ công');
     } finally {
       setSubmitting(false);
     }
@@ -187,7 +191,7 @@ export default function ScoringHistoryPage() {
                 className="w-full mb-3 gap-2 bg-gradient-to-r from-indigo-500 to-purple-600 hover:opacity-90"
               >
                 <Shuffle className="h-4 w-4" />
-                {submitting ? 'Đang gửi...' : 'Gửi ngẫu nhiên cho giảng viên online'}
+                {submitting ? 'Đang gửi...' : 'Gửi ngẫu nhiên cho giảng viên'}
               </Button>
             )}
 

@@ -27,6 +27,9 @@ export function TransactionsStats({ balance, transactions }: Props) {
     .reduce((s, t) => s + parseSubAmount(t.remark), 0);
   const topup = topupFromWallet + topupFromSubs;
   const consume = transactions.filter((t) => t.delta < 0).reduce((s, t) => s + Math.abs(t.delta), 0);
+  // Tổng số lượt đã dùng: gồm cả lượt quota sub + lần chấm VND (mỗi row CONSUME = 1 lượt).
+  // Không count row PENDING/SUBSCRIPTION_PURCHASE/TOPUP.
+  const totalLuotDung = transactions.filter((t) => t.paymentType === 'CONSUME').length;
   const total = transactions.length;
 
   return (
@@ -34,17 +37,17 @@ export function TransactionsStats({ balance, transactions }: Props) {
       <BalanceCard balance={balance} />
       <StatCard
         label="Tổng nạp"
-        value={`+${topup.toLocaleString('vi-VN')}`}
+        value={`+${topup.toLocaleString('vi-VN')}đ`}
         valueClass="text-emerald-600"
         icon={<ArrowDownToLine className="h-4 w-4 text-emerald-500" />}
-        hint="30 ngày gần nhất"
+        hint="Gồm nạp ví + mua gói"
       />
       <StatCard
         label="Tổng tiêu"
-        value={`−${consume.toLocaleString('vi-VN')}`}
+        value={`−${consume.toLocaleString('vi-VN')}đ`}
         valueClass="text-rose-600"
         icon={<ArrowUpFromLine className="h-4 w-4 text-rose-500" />}
-        hint={`${transactions.filter((t) => t.delta < 0).length} lượt dùng`}
+        hint={`${totalLuotDung} lượt dùng (gói + ví)`}
       />
       <StatCard
         label="Giao dịch"

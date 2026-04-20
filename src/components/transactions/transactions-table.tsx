@@ -54,8 +54,8 @@ const TYPE_META: Record<string, { label: string; tint: string; icon: React.Eleme
   },
 };
 
-// Nới cột số + gap để "Số tiền" và "Số dư sau" không dính sát nhau
-const COLS = 'grid-cols-[40px_110px_1fr_110px_120px_150px] gap-5';
+// Cols: icon | loại | chi tiết | số tiền VND | số lượt (quota) | dư sau | thời gian
+const COLS = 'grid-cols-[40px_100px_1fr_100px_140px_100px_140px] gap-4';
 
 export function TransactionsTable({ transactions }: Props) {
   if (transactions.length === 0) {
@@ -74,7 +74,8 @@ export function TransactionsTable({ transactions }: Props) {
         <div>Loại</div>
         <div>Chi tiết</div>
         <div className="text-center">Số tiền</div>
-        <div className="text-center">Số dư sau</div>
+        <div className="text-center">Số lượt</div>
+        <div className="text-center">Dư sau</div>
         <div>Thời gian</div>
       </div>
 
@@ -127,13 +128,19 @@ function TransactionRow({ tx }: { tx: CreditTransactionResponse }) {
           {meta.label}
         </span>
         <div className="text-[13px] font-bold text-slate-900 truncate">{detail}</div>
-        <span className={`text-center text-[13px] font-black tabular-nums ${isSubPurchase ? 'text-indigo-600' : isQuotaConsume ? 'text-indigo-600' : isPositive ? 'text-emerald-600' : 'text-rose-600'}`}>
+        {/* Số tiền (VND only) */}
+        <span className={`text-center text-[13px] font-black tabular-nums ${isSubPurchase ? 'text-indigo-600' : isQuotaConsume ? 'text-slate-300' : isPositive ? 'text-emerald-600' : 'text-rose-600'}`}>
           {isQuotaConsume
-            ? quotaDisplay
+            ? '—'
             : isSubPurchase
               ? (subPurchaseAmount ? '-' + subPurchaseAmount : '—')
               : (tx.delta >= 0 ? '+' : '') + formatVnd(Math.abs(tx.delta))}
         </span>
+        {/* Số lượt (quota) */}
+        <span className={`text-center text-[12px] font-black tabular-nums ${isQuotaConsume ? 'text-indigo-600' : 'text-slate-300'}`}>
+          {isQuotaConsume ? quotaDisplay : '—'}
+        </span>
+        {/* Dư sau (VND balance) */}
         <span className="text-center text-[12px] font-semibold text-slate-600 tabular-nums">
           {(isSubPurchase || isQuotaConsume) ? '—' : formatVnd(tx.balanceAfter)}
         </span>

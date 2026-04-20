@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useQueryClient } from '@tanstack/react-query';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { ArrowLeft, Search } from 'lucide-react';
@@ -31,6 +32,7 @@ interface Props {
 export function SpeakingModeDialog({ open, testId, aiQuota = null, expertCost = null, activeSubscription = null, onSelectAI, onClose }: Props) {
   const router = useRouter();
   const { user, refreshProfile } = useAuthStore();
+  const queryClient = useQueryClient();
   const [step, setStep] = useState<1 | 2>(1);
   const [experts, setExperts] = useState<ExpertProfile[]>([]);
   const [loadingExperts, setLoadingExperts] = useState(false);
@@ -61,6 +63,7 @@ export function SpeakingModeDialog({ open, testId, aiQuota = null, expertCost = 
         testId: Number(testId),
       });
       await refreshProfile();
+      queryClient.invalidateQueries({ queryKey: ['my-active-subscription'] });
       onClose();
       router.push(`/expert-scoring/queue/${session.id}`);
     } catch {

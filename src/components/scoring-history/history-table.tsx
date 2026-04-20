@@ -10,12 +10,14 @@ import {
   Sparkles,
   UserCheck,
   ArrowRight,
+  X,
 } from 'lucide-react';
 import type { HistoryEntry, HistoryKind, HistoryStatus } from './use-unified-history';
 
 interface Props {
   entries: HistoryEntry[];
   onExpertScore?: (submissionId: number) => void;
+  onCancelExpert?: (submissionId: number) => void;
 }
 
 const KIND_META: Record<HistoryKind, { label: string; tint: string; icon: React.ElementType }> = {
@@ -61,7 +63,7 @@ function fmtDate(d: string) {
 // Layout cột cho desktop table — 1 bài = 1 dòng, tất cả nowrap
 const COLS = 'grid-cols-[96px_1fr_130px_112px_128px_224px]';
 
-export function HistoryTable({ entries, onExpertScore }: Props) {
+export function HistoryTable({ entries, onExpertScore, onCancelExpert }: Props) {
   return (
     <div className="rounded-2xl bg-white border border-slate-100 shadow-sm overflow-hidden">
       {/* Header row */}
@@ -78,14 +80,14 @@ export function HistoryTable({ entries, onExpertScore }: Props) {
 
       <div className="divide-y divide-slate-100">
         {entries.map((e) => (
-          <HistoryRow key={e.id} entry={e} onExpertScore={onExpertScore} />
+          <HistoryRow key={e.id} entry={e} onExpertScore={onExpertScore} onCancelExpert={onCancelExpert} />
         ))}
       </div>
     </div>
   );
 }
 
-function HistoryRow({ entry, onExpertScore }: { entry: HistoryEntry; onExpertScore?: (id: number) => void }) {
+function HistoryRow({ entry, onExpertScore, onCancelExpert }: { entry: HistoryEntry; onExpertScore?: (id: number) => void; onCancelExpert?: (id: number) => void }) {
   const router = useRouter();
   const km = KIND_META[entry.kind];
   const sm = STATUS_META[entry.status];
@@ -128,7 +130,7 @@ function HistoryRow({ entry, onExpertScore }: { entry: HistoryEntry; onExpertSco
 
         <span className="text-[11.5px] text-slate-500 font-semibold tabular-nums whitespace-nowrap">{fmtDate(entry.date)}</span>
 
-        <ActionsCell entry={entry} onExpertScore={onExpertScore} router={router} align="end" />
+        <ActionsCell entry={entry} onExpertScore={onExpertScore} onCancelExpert={onCancelExpert} router={router} align="end" />
       </div>
 
       {/* Mobile card fallback */}
@@ -150,7 +152,7 @@ function HistoryRow({ entry, onExpertScore }: { entry: HistoryEntry; onExpertSco
           <span>·</span>
           <span className="tabular-nums">{fmtDate(entry.date)}</span>
         </div>
-        <ActionsCell entry={entry} onExpertScore={onExpertScore} router={router} align="start" />
+        <ActionsCell entry={entry} onExpertScore={onExpertScore} onCancelExpert={onCancelExpert} router={router} align="start" />
       </div>
     </div>
   );
@@ -199,11 +201,13 @@ function BandCell({
 function ActionsCell({
   entry,
   onExpertScore,
+  onCancelExpert,
   router,
   align,
 }: {
   entry: HistoryEntry;
   onExpertScore?: (id: number) => void;
+  onCancelExpert?: (id: number) => void;
   router: ReturnType<typeof useRouter>;
   align: 'start' | 'end';
 }) {
@@ -249,9 +253,20 @@ function ActionsCell({
   }
 
   if (entry.status === 'PROCESSING') {
+    const canCancel = entry.kind === 'writing' && !!entry.writingSubmissionId && !!onCancelExpert;
     return (
-      <div className={`flex ${justify}`}>
+      <div className={`flex gap-1.5 items-center ${justify}`}>
         <span className="text-[11px] text-slate-400 font-bold">Chờ kết quả…</span>
+        {canCancel && (
+          <button
+            onClick={() => onCancelExpert!(entry.writingSubmissionId!)}
+            className="px-2 py-1 rounded-md text-rose-600 border border-rose-200 bg-rose-50 text-[11.5px] font-bold inline-flex items-center gap-1 hover:bg-rose-100"
+            title="Huỷ & chọn giảng viên khác (chỉ được nếu giảng viên chưa nhận)"
+          >
+            <X className="h-3 w-3" />
+            Huỷ
+          </button>
+        )}
       </div>
     );
   }

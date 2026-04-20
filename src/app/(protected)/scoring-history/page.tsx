@@ -2,11 +2,13 @@
 
 import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
+import { useQueryClient } from '@tanstack/react-query';
 import { Loader2, Plus, Search, RefreshCw, Shuffle, Sun, Moon } from 'lucide-react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { getExperts, createScoringSession } from '@/lib/expert-api';
+import { getExperts, createScoringSession, cancelScoringSessionByWritingSubmission } from '@/lib/expert-api';
 import { getWritingSubmissionDetail } from '@/lib/ai-api';
 import { getServices } from '@/lib/payment-api';
 import { SpeakingModeExpertGrid } from '@/components/speaking/speaking-mode-expert-grid';
@@ -33,11 +35,16 @@ export default function ScoringHistoryPage() {
   const router = useRouter();
   const { user, refreshProfile } = useAuthStore();
   const { entries, loading, refresh } = useUnifiedHistory();
+  const queryClient = useQueryClient();
 
   // Filters
   const [skill, setSkill] = useState<SkillFilter>('all');
   const [status, setStatus] = useState<StatusFilter>('all');
   const [search, setSearch] = useState('');
+
+  // Cancel expert scoring (chỉ được khi session QUEUED — expert chưa nhận)
+  const [cancelSubId, setCancelSubId] = useState<number | null>(null);
+  const [cancelling, setCancelling] = useState(false);
 
   // Expert modal
   const [expertModalOpen, setExpertModalOpen] = useState(false);
@@ -88,6 +95,7 @@ export default function ScoringHistoryPage() {
         writingSubmissionId: sub.submissionId,
       });
       await refreshProfile();
+      queryClient.invalidateQueries({ queryKey: ['my-active-subscription'] });
       toast.success(
         expert
           ? 'Đã gửi bài cho giảng viên! Bài sẽ sớm được chấm trong giờ làm việc.'
@@ -100,6 +108,23 @@ export default function ScoringHistoryPage() {
       toast.error(expert ? 'Không thể tạo phiên chấm' : 'Không tìm được giảng viên, thử chọn thủ công');
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleConfirmCancel = async () => {
+    if (cancelSubId == null) return;
+    setCancelling(true);
+    try {
+      await cancelScoringSessionByWritingSubmission(cancelSubId);
+      toast.success('Đã huỷ. Credit đã được hoàn — bạn có thể chọn giảng viên khác.');
+      queryClient.invalidateQueries({ queryKey: ['my-active-subscription'] });
+      refreshProfile();
+      setCancelSubId(null);
+      refresh();
+    } catch {
+      toast.error('Không huỷ được. Có thể giảng viên đã bắt đầu chấm.');
+    } finally {
+      setCancelling(false);
     }
   };
 
@@ -154,7 +179,7 @@ export default function ScoringHistoryPage() {
         ) : filtered.length === 0 ? (
           <EmptyState hasEntries={entries.length > 0} />
         ) : (
-          <HistoryTable entries={filtered} onExpertScore={handleExpertScore} />
+          <HistoryTable entries={filtered} onExpertScore={handleExpertScore} onCancelExpert={setCancelSubId} />
         )}
 
         {/* Expert modal */}
@@ -232,6 +257,18 @@ export default function ScoringHistoryPage() {
             )}
           </DialogContent>
         </Dialog>
+
+        {/* Confirm cancel expert session */}
+        <ConfirmDialog
+          open={cancelSubId != null}
+          onOpenChange={(open) => { if (!open) setCancelSubId(null); }}
+          title="Huỷ gửi bài cho giảng viên?"
+          description="Nếu giảng viên đã bắt đầu chấm, bạn không thể huỷ. Nếu chưa nhận, credit/lượt sẽ được hoàn lại và bạn có thể chọn giảng viên khác."
+          confirmText={cancelling ? 'Đang huỷ...' : 'Huỷ & chọn lại'}
+          cancelText="Không"
+          variant="destructive"
+          onConfirm={handleConfirmCancel}
+        />
       </div>
     </div>
   );

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useQueryClient } from '@tanstack/react-query';
 import { Search, Shuffle, Sun, Moon } from 'lucide-react';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
@@ -33,6 +34,7 @@ interface Props {
 export function WritingExpertSelectionDialog({ open, onOpenChange, submissionId, expertCost }: Props) {
   const router = useRouter();
   const { user, refreshProfile } = useAuthStore();
+  const queryClient = useQueryClient();
 
   const [experts, setExperts] = useState<ExpertProfile[]>([]);
   const [loadingExperts, setLoadingExperts] = useState(false);
@@ -64,6 +66,7 @@ export function WritingExpertSelectionDialog({ open, onOpenChange, submissionId,
         writingSubmissionId: sub.submissionId,
       });
       await refreshProfile();
+      queryClient.invalidateQueries({ queryKey: ['my-active-subscription'] });
       toast.success(
         expert
           ? 'Đã gửi bài cho giảng viên! Bài sẽ sớm được chấm trong giờ làm việc.'

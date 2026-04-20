@@ -2,6 +2,7 @@
 
 import { use, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useQueryClient } from '@tanstack/react-query';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -43,6 +44,7 @@ export default function ExpertProfilePage({ params }: { params: Promise<{ id: st
   const searchParams = useSearchParams();
   const testId = searchParams.get('testId');
   const { user, refreshProfile } = useAuthStore();
+  const queryClient = useQueryClient();
 
   const [expert, setExpert] = useState<ExpertProfile | null>(null);
   const [reviews, setReviews] = useState<Review[]>([]);
@@ -72,6 +74,7 @@ export default function ExpertProfilePage({ params }: { params: Promise<{ id: st
     try {
       const session = await createScoringSession({ expertId: expert.id, skill: 'SPEAKING', content: '', testId: Number(testId) });
       await refreshProfile();
+      queryClient.invalidateQueries({ queryKey: ['my-active-subscription'] });
       router.push(`/expert-scoring/queue/${session.id}`);
     } catch { toast.error('Không thể tạo phiên chấm'); }
     finally { setSubmitting(false); }

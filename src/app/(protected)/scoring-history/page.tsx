@@ -2,9 +2,10 @@
 
 import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { Loader2, Plus, Search, RefreshCw } from 'lucide-react';
+import { Loader2, Plus, Search, RefreshCw, Shuffle, Sun, Moon } from 'lucide-react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import { getExperts, createScoringSession } from '@/lib/expert-api';
 import { getWritingSubmissionDetail } from '@/lib/ai-api';
 import { getServices } from '@/lib/payment-api';
@@ -21,6 +22,12 @@ import {
   type StatusFilter,
 } from '@/components/scoring-history/history-filter-bar';
 import { HistoryTable } from '@/components/scoring-history/history-table';
+
+/** Giờ làm việc 8h-22h theo giờ VN — đồng bộ với writing-expert-selection-dialog. */
+function isWithinWorkingHours(): boolean {
+  const h = new Date().getHours();
+  return h >= 8 && h < 22;
+}
 
 export default function ScoringHistoryPage() {
   const router = useRouter();
@@ -68,25 +75,25 @@ export default function ScoringHistoryPage() {
     }
   };
 
-  const handleBookExpert = async (expert: ExpertProfile) => {
+  const handleBookExpert = async (expert: ExpertProfile | null) => {
     if (!expertSubId) return;
     setSubmitting(true);
     try {
       const sub = await getWritingSubmissionDetail(expertSubId);
       await createScoringSession({
-        expertId: expert.id,
+        expertId: expert?.id ?? null,
         skill: 'WRITING',
         content: sub.essayContent,
         testId: sub.testId ?? undefined,
         writingSubmissionId: sub.submissionId,
       });
       await refreshProfile();
-      toast.success('Đã gửi bài cho giảng viên!');
+      toast.success(expert ? 'Đã gửi bài cho giảng viên!' : 'Đã gửi ngẫu nhiên cho 1 giảng viên!');
       setExpertModalOpen(false);
       setConfirming(null);
       refresh();
     } catch {
-      toast.error('Không thể tạo phiên chấm');
+      toast.error(expert ? 'Không thể tạo phiên chấm' : 'Không có giảng viên nào khả dụng, thử chọn thủ công');
     } finally {
       setSubmitting(false);
     }
@@ -157,7 +164,33 @@ export default function ScoringHistoryPage() {
           }}
         >
           <DialogContent className="sm:max-w-2xl">
-            <h3 className="text-lg font-bold mb-3">Chọn giảng viên chấm Writing</h3>
+            <h3 className="text-lg font-bold mb-2">Chọn giảng viên chấm Writing</h3>
+
+            {/* Working hours banner */}
+            {isWithinWorkingHours() ? (
+              <div className="mb-3 flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-800">
+                <Sun className="h-4 w-4 shrink-0" />
+                <span>Đang trong giờ làm việc (8h–22h) — thường có kết quả trong vài giờ.</span>
+              </div>
+            ) : (
+              <div className="mb-3 flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                <Moon className="h-4 w-4 shrink-0" />
+                <span>Ngoài giờ làm việc (8h–22h) — có thể nhận kết quả vào sáng mai.</span>
+              </div>
+            )}
+
+            {/* Random booking — 1-click lazy option */}
+            {!confirming && (
+              <Button
+                onClick={() => handleBookExpert(null)}
+                disabled={submitting}
+                className="w-full mb-3 gap-2 bg-gradient-to-r from-indigo-500 to-purple-600 hover:opacity-90"
+              >
+                <Shuffle className="h-4 w-4" />
+                {submitting ? 'Đang gửi...' : 'Gửi ngẫu nhiên cho giảng viên online'}
+              </Button>
+            )}
+
             {confirming && (
               <SpeakingModeExpertInlineConfirm
                 expert={confirming}

@@ -60,9 +60,6 @@ export function UserAvatarDropdown({ variant = 'light' }: UserAvatarDropdownProp
 
   return (
     <div className="flex items-center gap-2">
-      {/* Active subscription pill - only for learners */}
-      {user.role === 'USER' && <ActiveSubscriptionBanner />}
-
       {/* Credit balance + Nạp button - only for learners */}
       {user.role === 'USER' && (
         <Link
@@ -125,6 +122,9 @@ export function UserAvatarDropdown({ variant = 'light' }: UserAvatarDropdownProp
               </Link>
             </div>
           )}
+
+          {/* Active subscription detail row — only learners, only if has active sub */}
+          {user.role === 'USER' && <ActiveSubscriptionBanner />}
 
           <DropdownMenuSeparator />
 

@@ -117,8 +117,9 @@ export class ApiClient {
       headers: configHeaders,
     };
 
+    let token: string | null = null;
     if (requiresAuth) {
-      let token = this.getAuthToken();
+      token = this.getAuthToken();
       if (!token) {
         clearStoredAuth();
         fireSessionExpired();

@@ -2,6 +2,7 @@
 
 import { use, useEffect, useCallback, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useQueryClient } from '@tanstack/react-query';
 import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useSpeakingExam } from '@/hooks/use-speaking-exam';
@@ -43,6 +44,7 @@ export default function SpeakingPracticePage({ params }: Props) {
   const exam = useSpeakingExam();
   const stt = useBrowserSTT();
   const startedRef = useRef(false);
+  const queryClient = useQueryClient();
 
   // Update progress bar when current question changes
   useEffect(() => {
@@ -193,8 +195,11 @@ export default function SpeakingPracticePage({ params }: Props) {
     if (uiStage === 'EXAM' && exam.isWsConnected && !startedRef.current) {
       startedRef.current = true;
       examRef.current.startExam(testId);
+      // Backend deducts AI quota khi nhận start_exam → invalidate để banner
+      // refresh số lượt còn lại ngay (thay vì đợi staleTime 5 phút).
+      queryClient.invalidateQueries({ queryKey: ['my-active-subscription'] });
     }
-  }, [uiStage, exam.isWsConnected, testId]);
+  }, [uiStage, exam.isWsConnected, testId, queryClient]);
 
   // ── Auto-start mic when entering RECORDING state (auto mode only) ──
   useEffect(() => {

@@ -3,6 +3,7 @@
 import { use, useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
+import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
@@ -72,6 +73,7 @@ export default function WritingExercisePage({ params }: Props) {
   } = useWritingStore();
   const markCompleted = usePracticeStore((state) => state.markCompleted);
   const refreshProfile = useAuthStore((state) => state.refreshProfile);
+  const queryClient = useQueryClient();
   const balance = useAuthStore((state) => state.user?.credit ?? 0);
   const setPaymentReturnUrl = usePaymentStore((state) => state.setReturnUrl);
 
@@ -257,6 +259,8 @@ export default function WritingExercisePage({ params }: Props) {
       stimulusId: stimulus.id, submissionId: submissionId ?? undefined,
     }).then(() => {
       refreshProfile();
+      // Invalidate subscription query → banner trong user menu refresh quota ngay.
+      queryClient.invalidateQueries({ queryKey: ['my-active-subscription'] });
       // Update slot with actual band after grading
       if (slotId) {
         const band = useWritingStore.getState().gradingResult?.overallBand ?? 0;
@@ -266,7 +270,7 @@ export default function WritingExercisePage({ params }: Props) {
       }
       if (submissionId) router.push(`/writing/result/${submissionId}`);
     });
-  }, [testDetail, activeStimulusIdx, content, submissionId, submitForGrading, refreshProfile, router, slotId]);
+  }, [testDetail, activeStimulusIdx, content, submissionId, submitForGrading, refreshProfile, router, slotId, queryClient]);
 
   // ===== EARLY RETURNS AFTER ALL HOOKS =====
 

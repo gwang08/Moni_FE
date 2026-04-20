@@ -81,3 +81,18 @@ export async function updateService(id: string, data: ServicePricingUpdateReques
 export async function deleteService(id: string): Promise<void> {
   await apiClient.delete(`/services/${id}`, true);
 }
+
+/**
+ * Trạng thái quota miễn phí 1 lượt/ngày cho user hiện tại.
+ * Chỉ có ý nghĩa với AI_WRITING_SCORE và AI_SPEAKING_SCORE.
+ */
+export interface ServiceQuotaResponse {
+  serviceCode: string;
+  defaultCost: number;
+  usedToday: boolean;
+  effectiveCost: number;
+}
+
+export async function getServiceQuota(serviceCode: string): Promise<ServiceQuotaResponse> {
+  return apiClient.get<ServiceQuotaResponse>(`/services/quota/${serviceCode}`, true);
+}

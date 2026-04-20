@@ -4,10 +4,11 @@ import Image from 'next/image';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
 import { ChibiMascot, ChibiAnimationStyles } from '@/components/ui/chibi-mascot';
+import type { ServiceQuotaResponse } from '@/lib/payment-api';
 
 interface Props {
   open: boolean;
-  aiCost: number | null;
+  aiQuota: ServiceQuotaResponse | null;
   expertCost: number | null;
   onAIScore: () => void;
   onExpertScore: () => void;
@@ -52,7 +53,22 @@ function CreditBadge({ cost }: { cost: number }) {
   );
 }
 
-export function WritingScoringOptionsDialog({ open, aiCost, expertCost, onAIScore, onExpertScore, onSkip }: Props) {
+function FreeBadge() {
+  return (
+    <span className="inline-flex items-center text-xs text-emerald-600 font-semibold bg-emerald-50 border border-emerald-200 rounded-full px-2.5 py-1 shrink-0">
+      Miễn phí
+    </span>
+  );
+}
+
+export function WritingScoringOptionsDialog({ open, aiQuota, expertCost, onAIScore, onExpertScore, onSkip }: Props) {
+  // AI badge: nếu chưa dùng hôm nay → hiện "Miễn phí", ngược lại hiện giá đậu thật
+  const aiBadge = aiQuota == null
+    ? <span className="text-xs text-gray-400 shrink-0">…</span>
+    : aiQuota.usedToday
+      ? <CreditBadge cost={aiQuota.effectiveCost} />
+      : <FreeBadge />;
+
   return (
     <>
       <ChibiAnimationStyles />
@@ -60,20 +76,18 @@ export function WritingScoringOptionsDialog({ open, aiCost, expertCost, onAIScor
         <DialogContent className="max-w-sm p-0 overflow-hidden border-0 rounded-3xl shadow-2xl" showCloseButton={false}>
           <VisuallyHidden><DialogTitle>Chọn cách chấm điểm</DialogTitle></VisuallyHidden>
 
-          {/* Header */}
           <div className="bg-gradient-to-b from-teal-50 via-emerald-50/50 to-white pt-6 pb-3 px-6 text-center">
             <ChibiMascot mood="happy" size={64} />
             <h2 className="text-lg font-bold text-gray-800 mt-1">Nộp bài thành công!</h2>
             <p className="text-sm text-gray-500 mt-0.5">Chọn cách chấm điểm</p>
           </div>
 
-          {/* Options */}
           <div className="px-5 pb-5 pt-1 space-y-2.5">
             <OptionCard
               icon="🤖"
               title="Chấm AI ngay"
               description="Nhận kết quả trong 30 giây"
-              badge={aiCost != null ? <CreditBadge cost={aiCost} /> : <span className="text-xs text-gray-400 shrink-0">…</span>}
+              badge={aiBadge}
               onClick={onAIScore}
               colorClass="hover:text-teal-600"
             />
@@ -85,11 +99,12 @@ export function WritingScoringOptionsDialog({ open, aiCost, expertCost, onAIScor
               onClick={onExpertScore}
               colorClass="hover:text-indigo-600"
             />
+            {/* "Để sau" không liên quan credit → không hiện badge */}
             <OptionCard
               icon="⏭️"
               title="Để sau"
               description="Chấm sau trong lịch sử"
-              badge={<span className="text-xs text-emerald-600 font-semibold bg-emerald-50 border border-emerald-200 rounded-full px-2.5 py-1 shrink-0">Miễn phí</span>}
+              badge={null}
               onClick={onSkip}
               colorClass="hover:text-emerald-600"
             />

@@ -12,7 +12,7 @@ import { WritingExamView } from '@/components/writing/writing-exam-view';
 import { WritingScoringProgressDialog } from '@/components/writing/writing-scoring-progress-dialog';
 import { WritingScoringOptionsDialog } from '@/components/writing/writing-scoring-options-dialog';
 import { WritingExpertSelectionDialog } from '@/components/writing/writing-expert-selection-dialog';
-import { getServices } from '@/lib/payment-api';
+import { getServices, getServiceQuota, type ServiceQuotaResponse } from '@/lib/payment-api';
 import { useWritingStore } from '@/store/writing-store';
 import { usePracticeStore } from '@/store/practice-store';
 import { useAuthStore } from '@/store/auth-store';
@@ -76,7 +76,8 @@ export default function WritingExercisePage({ params }: Props) {
   const [exitOpen, setExitOpen] = useState(false);
   const [showSample, setShowSample] = useState(false);
   const [showScoringDialog, setShowScoringDialog] = useState(false);
-  const [aiCost, setAiCost] = useState<number | null>(null);
+  // aiQuota phản ánh đúng: nếu user chưa dùng AI hôm nay → effectiveCost=0 (miễn phí), ngược lại = giá đậu thật
+  const [aiQuota, setAiQuota] = useState<ServiceQuotaResponse | null>(null);
   const [expertCost, setExpertCost] = useState<number | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -112,12 +113,13 @@ export default function WritingExercisePage({ params }: Props) {
   // On mount: reset store + fetch service costs
   useEffect(() => {
     reset();
+    // Lấy expert cost (cố định) từ /services; aiCost lấy từ /services/quota/ để biết còn free hôm nay không
     getServices()
       .then((services) => {
-        setAiCost(services.find((s) => s.serviceCode === 'AI_WRITING_SCORE')?.creditCost ?? null);
         setExpertCost(services.find((s) => s.serviceCode === 'EXPERT_WRITING_SCORE')?.creditCost ?? null);
       })
       .catch(() => {});
+    getServiceQuota('AI_WRITING_SCORE').then(setAiQuota).catch(() => {});
   }, [reset]);
 
   // 1. Initialize taskContents + Load Draft
@@ -303,7 +305,7 @@ export default function WritingExercisePage({ params }: Props) {
         />
         <WritingScoringOptionsDialog
           open={showScoringDialog}
-          aiCost={aiCost}
+          aiQuota={aiQuota}
           expertCost={expertCost}
           onAIScore={() => { setShowScoringDialog(false); handleGrade(); }}
           onExpertScore={() => { setShowScoringDialog(false); setShowExpertDialog(true); }}
@@ -347,7 +349,7 @@ export default function WritingExercisePage({ params }: Props) {
 
       <WritingScoringOptionsDialog
         open={showScoringDialog}
-        aiCost={aiCost}
+        aiQuota={aiQuota}
         expertCost={expertCost}
         onAIScore={() => { setShowScoringDialog(false); handleGrade(); }}
         onExpertScore={() => { setShowScoringDialog(false); setShowExpertDialog(true); }}

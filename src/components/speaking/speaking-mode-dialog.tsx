@@ -11,17 +11,18 @@ import { toast } from 'sonner';
 import { SpeakingModeExpertGrid } from './speaking-mode-expert-grid';
 import { SpeakingModeExpertInlineConfirm } from './speaking-mode-expert-inline-confirm';
 import type { ExpertProfile } from '@/types/expert.types';
+import type { ServiceQuotaResponse } from '@/lib/payment-api';
 
 interface Props {
   open: boolean;
   testId: string;
-  aiCost?: number | null;
+  aiQuota?: ServiceQuotaResponse | null;
   expertCost?: number | null;
   onSelectAI: () => void;
   onClose: () => void;
 }
 
-export function SpeakingModeDialog({ open, testId, aiCost = null, expertCost = null, onSelectAI, onClose }: Props) {
+export function SpeakingModeDialog({ open, testId, aiQuota = null, expertCost = null, onSelectAI, onClose }: Props) {
   const router = useRouter();
   const { user, refreshProfile } = useAuthStore();
   const [step, setStep] = useState<1 | 2>(1);
@@ -97,10 +98,18 @@ export function SpeakingModeDialog({ open, testId, aiCost = null, expertCost = n
                 <p className="font-semibold text-sm text-blue-900">Luyện tập với AI</p>
                 <p className="text-xs text-blue-700/70">Tự ghi âm và nhận phản hồi từ AI ngay lập tức</p>
               </div>
-              {aiCost != null && (
-                <span className="flex items-center gap-1 text-xs font-medium text-blue-800 bg-blue-200/60 px-2 py-0.5 rounded-full">
-                  {aiCost} <img src="/currency.webp" alt="credit" className="h-3.5 w-3.5 inline" />
-                </span>
+              {aiQuota != null && (
+                aiQuota.usedToday ? (
+                  <span className="flex items-center gap-1 text-xs font-medium text-blue-800 bg-blue-200/60 px-2 py-0.5 rounded-full">
+                    {aiQuota.effectiveCost}{' '}
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src="/currency.webp" alt="credit" className="h-3.5 w-3.5 inline" />
+                  </span>
+                ) : (
+                  <span className="text-xs font-semibold text-emerald-700 bg-emerald-100 border border-emerald-200 px-2 py-0.5 rounded-full">
+                    Miễn phí
+                  </span>
+                )
               )}
             </button>
 

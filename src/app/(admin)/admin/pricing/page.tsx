@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
-import { Loader2, Plus, Pencil, Trash2 } from 'lucide-react';
+import { Loader2, Plus, Pencil, Trash2, Cog, Package, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { AdminHeader } from '@/components/admin/admin-header';
@@ -16,40 +16,61 @@ import { formatVnd } from '@/lib/utils';
 import type { ServicePricingResponse, PackagePricingResponse } from '@/types/payment.types';
 import type { SubscriptionPlanResponse } from '@/types/subscription.types';
 
-type Tab = 'services' | 'packages' | 'subscriptions';
-
 export default function AdminPricingPage() {
-  const [activeTab, setActiveTab] = useState<Tab>('services');
-
   return (
     <div>
       <AdminHeader title="Quản lý dịch vụ" />
-      <div className="p-6">
-        {/* Tab bar */}
-        <div className="flex gap-1 mb-6 border-b border-gray-200">
-          {([
-            { key: 'services', label: 'Dịch vụ' },
-            { key: 'packages', label: 'Gói nạp' },
-            { key: 'subscriptions', label: 'Gói Subscription' },
-          ] as { key: Tab; label: string }[]).map(({ key, label }) => (
-            <button
-              key={key}
-              onClick={() => setActiveTab(key)}
-              className={[
-                'px-4 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px',
-                activeTab === key
-                  ? 'border-blue-600 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700',
-              ].join(' ')}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
+      <div className="p-6 grid grid-cols-1 md:grid-cols-12 gap-6 max-w-7xl mx-auto">
+        {/* Sticky anchor nav */}
+        <aside className="md:col-span-3">
+          <nav className="bg-white rounded-xl border shadow-sm p-2 space-y-0.5 sticky top-6 hidden md:block">
+            <a href="#services" className="flex items-center gap-2 px-3 py-2 text-sm rounded-lg text-gray-600 hover:bg-blue-50 hover:text-blue-600 border-l-2 border-transparent hover:border-blue-500 transition-all">
+              <Cog className="h-4 w-4" />
+              Dịch vụ
+            </a>
+            <a href="#packages" className="flex items-center gap-2 px-3 py-2 text-sm rounded-lg text-gray-600 hover:bg-emerald-50 hover:text-emerald-600 border-l-2 border-transparent hover:border-emerald-500 transition-all">
+              <Package className="h-4 w-4" />
+              Gói nạp VND
+            </a>
+            <a href="#subscriptions" className="flex items-center gap-2 px-3 py-2 text-sm rounded-lg text-gray-600 hover:bg-indigo-50 hover:text-indigo-600 border-l-2 border-transparent hover:border-indigo-500 transition-all">
+              <Sparkles className="h-4 w-4" />
+              Gói Subscription
+            </a>
+          </nav>
+        </aside>
 
-        {activeTab === 'services' && <ServicesTab />}
-        {activeTab === 'packages' && <PackagesTab />}
-        {activeTab === 'subscriptions' && <SubscriptionsTab />}
+        {/* Stacked sections */}
+        <div className="md:col-span-9 space-y-6 scroll-smooth">
+          <section id="services" className="bg-white rounded-xl border shadow-sm overflow-hidden scroll-mt-6">
+            <div className="px-5 py-3 bg-gray-50 border-b flex items-center gap-2">
+              <Cog className="h-4 w-4 text-blue-500" />
+              <h3 className="font-bold text-sm">Dịch vụ</h3>
+            </div>
+            <div className="p-6">
+              <ServicesTab />
+            </div>
+          </section>
+
+          <section id="packages" className="bg-white rounded-xl border shadow-sm overflow-hidden scroll-mt-6">
+            <div className="px-5 py-3 bg-gray-50 border-b flex items-center gap-2">
+              <Package className="h-4 w-4 text-emerald-500" />
+              <h3 className="font-bold text-sm">Gói nạp VND</h3>
+            </div>
+            <div className="p-6">
+              <PackagesTab />
+            </div>
+          </section>
+
+          <section id="subscriptions" className="bg-white rounded-xl border shadow-sm overflow-hidden scroll-mt-6">
+            <div className="px-5 py-3 bg-gray-50 border-b flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-indigo-500" />
+              <h3 className="font-bold text-sm">Gói Subscription</h3>
+            </div>
+            <div className="p-6">
+              <SubscriptionsTab />
+            </div>
+          </section>
+        </div>
       </div>
     </div>
   );

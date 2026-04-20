@@ -6,10 +6,9 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { ArrowLeft, Loader2, Camera, ImagePlus, X, Save, Star, MessageSquare } from 'lucide-react';
+import { ArrowLeft, Loader2, Camera, ImagePlus, X, Save, Star, MessageSquare, User } from 'lucide-react';
 import { getAdminExperts, updateExpert } from '@/lib/admin-expert-api';
 import { uploadMedia } from '@/lib/admin-api';
 import { apiClient } from '@/lib/api-client';
@@ -136,13 +135,13 @@ export default function AdminExpertDetailPage({ params }: PageProps) {
   };
 
   return (
-    <div className="p-6 max-w-4xl mx-auto">
-      <div className="flex items-center gap-4 mb-8">
+    <div className="p-6 max-w-7xl mx-auto">
+      <div className="flex items-center gap-4 mb-6">
         <Button variant="ghost" size="icon" onClick={() => router.back()}>
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div>
-          <h1 className="text-2xl font-bold">{expert.displayName || 'Giám khảo'}</h1>
+          <h1 className="text-2xl font-bold">{expert.displayName || 'Chuyên gia'}</h1>
           <p className="text-sm text-muted-foreground">{expert.email || '-'}</p>
         </div>
         <div className="ml-auto">
@@ -153,9 +152,9 @@ export default function AdminExpertDetailPage({ params }: PageProps) {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        {/* Left Col: Avatar & Status */}
-        <div className="space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+        {/* Left Col: Avatar/Status card + sticky Anchor Nav */}
+        <aside className="md:col-span-3 space-y-4">
           <div className="bg-white p-6 rounded-xl border shadow-sm flex flex-col items-center">
              <div className="relative group h-32 w-32 mb-4">
                 <Avatar className="h-full w-full border-4 border-white shadow-md">
@@ -205,21 +204,30 @@ export default function AdminExpertDetailPage({ params }: PageProps) {
                 </div>
              </div>
           </div>
-        </div>
 
-        {/* Right Col: Details */}
-        <div className="md:col-span-2">
-          <div className="bg-white rounded-xl border shadow-sm overflow-hidden">
-            <Tabs defaultValue="info" className="w-full">
-              <TabsList className="w-full justify-start rounded-none border-b h-12 bg-gray-50/50 px-4">
-                <TabsTrigger value="info" className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none h-full text-xs">Thông tin chuyên môn</TabsTrigger>
-                <TabsTrigger value="certs" className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none h-full text-xs">Bằng cấp & Chứng chỉ</TabsTrigger>
-                <TabsTrigger value="reviews" className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none h-full text-xs">
-                  Đánh giá ({sessionsWithReview.length})
-                </TabsTrigger>
-              </TabsList>
-              
-              <TabsContent value="info" className="p-6 space-y-6">
+          {/* Sticky anchor nav — scroll tới section trong right col */}
+          <nav className="bg-white rounded-xl border shadow-sm p-2 space-y-0.5 sticky top-6 hidden md:block">
+            <a href="#info" className="block px-3 py-2 text-sm rounded-lg text-gray-600 hover:bg-gray-50 hover:text-indigo-600 border-l-2 border-transparent hover:border-indigo-500 transition-all">
+              Thông tin chuyên môn
+            </a>
+            <a href="#certs" className="block px-3 py-2 text-sm rounded-lg text-gray-600 hover:bg-gray-50 hover:text-indigo-600 border-l-2 border-transparent hover:border-indigo-500 transition-all">
+              Bằng cấp & Chứng chỉ
+            </a>
+            <a href="#reviews" className="flex items-center justify-between px-3 py-2 text-sm rounded-lg text-gray-600 hover:bg-gray-50 hover:text-indigo-600 border-l-2 border-transparent hover:border-indigo-500 transition-all">
+              <span>Đánh giá</span>
+              <span className="text-xs bg-gray-100 text-gray-600 rounded-full px-1.5">{sessionsWithReview.length}</span>
+            </a>
+          </nav>
+        </aside>
+
+        {/* Right Col: stacked sections */}
+        <div className="md:col-span-9 space-y-5 scroll-smooth">
+          <section id="info" className="bg-white rounded-xl border shadow-sm overflow-hidden scroll-mt-6">
+            <div className="px-5 py-3 bg-gray-50 border-b flex items-center gap-2">
+              <User className="h-4 w-4 text-indigo-500" />
+              <h3 className="font-bold text-sm">Thông tin chuyên môn</h3>
+            </div>
+            <div className="p-6 space-y-6">
                 <div className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
@@ -265,9 +273,15 @@ export default function AdminExpertDetailPage({ params }: PageProps) {
                     />
                   </div>
                 </div>
-              </TabsContent>
+            </div>
+          </section>
 
-              <TabsContent value="certs" className="p-6 space-y-6">
+          <section id="certs" className="bg-white rounded-xl border shadow-sm overflow-hidden scroll-mt-6">
+            <div className="px-5 py-3 bg-gray-50 border-b flex items-center gap-2">
+              <ImagePlus className="h-4 w-4 text-amber-500" />
+              <h3 className="font-bold text-sm">Bằng cấp & Chứng chỉ</h3>
+            </div>
+            <div className="p-6 space-y-6">
                 <div className="flex items-center justify-between mb-4">
                   <p className="text-xs text-muted-foreground">Tải lên bằng cấp, chứng chỉ IELTS để tăng độ tin cậy.</p>
                   <Button variant="outline" size="sm" onClick={() => document.getElementById('cert-upload')?.click()} className="h-8 text-xs">
@@ -313,9 +327,20 @@ export default function AdminExpertDetailPage({ params }: PageProps) {
                     </div>
                   ))}
                 </div>
-              </TabsContent>
+            </div>
+          </section>
 
-              <TabsContent value="reviews" className="p-6 space-y-4">
+          <section id="reviews" className="bg-white rounded-xl border shadow-sm overflow-hidden scroll-mt-6">
+            <div className="px-5 py-3 bg-gradient-to-r from-amber-50 to-transparent border-b flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Star className="h-4 w-4 text-amber-500" />
+                <div>
+                  <h3 className="font-bold text-sm">Phiên chấm & Đánh giá</h3>
+                  <p className="text-[11px] text-gray-500">{expertSessions.length} phiên · {sessionsWithReview.length} có review</p>
+                </div>
+              </div>
+            </div>
+            <div className="p-6 space-y-4">
                 {sessionsWithReview.length === 0 ? (
                   <div className="text-center py-12 text-muted-foreground">
                     <MessageSquare className="h-10 w-10 mx-auto mb-3 opacity-30" />
@@ -356,9 +381,8 @@ export default function AdminExpertDetailPage({ params }: PageProps) {
                     </div>
                   </>
                 )}
-              </TabsContent>
-            </Tabs>
-          </div>
+            </div>
+          </section>
         </div>
       </div>
     </div>

@@ -65,7 +65,7 @@ const navGroups: NavGroup[] = [
     items: [
       { href: '/admin/prompts', label: 'AI Prompts', icon: FileText }, // Changed BrainCircuit to FileText as placeholder
       { href: '/admin/scoring-sessions', label: 'Chấm điểm', icon: Headphones },
-      { href: '/admin/experts', label: 'Giám khảo', icon: GraduationCap },
+      { href: '/admin/experts', label: 'Quản lý chuyên gia', icon: GraduationCap },
     ],
   },
   {

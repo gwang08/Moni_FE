@@ -40,6 +40,7 @@ export interface ScoringSession {
   recordingUrl?: string;
   expertRecordingUrl?: string;
   userRating?: number;
+  userComment?: string | null;
 }
 
 export interface ExpertEvaluation {

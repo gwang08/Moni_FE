@@ -9,11 +9,19 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { ArrowLeft, Loader2, Camera, ImagePlus, X, Save } from 'lucide-react';
+import { ArrowLeft, Loader2, Camera, ImagePlus, X, Save, Star, MessageSquare } from 'lucide-react';
 import { getAdminExperts, updateExpert } from '@/lib/admin-expert-api';
 import { uploadMedia } from '@/lib/admin-api';
+import { apiClient } from '@/lib/api-client';
 import { toast } from 'sonner';
-import type { ExpertProfile, UpdateExpertRequest } from '@/types/expert.types';
+import type { ExpertProfile, UpdateExpertRequest, ScoringSession } from '@/types/expert.types';
+import type { ApiResponse } from '@/types/auth.types';
+
+function formatSessionDate(value?: string | null): string {
+  if (!value) return '-';
+  const s = value.includes('Z') || value.includes('+') ? value : `${value}Z`;
+  return new Date(s).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
+}
 
 const BAND_FIELDS = [
   { key: 'bandReading', label: 'Reading' },
@@ -52,6 +60,18 @@ export default function AdminExpertDetailPage({ params }: PageProps) {
   });
 
   const expert = experts.find(e => e.id === expertId);
+
+  // Sessions của expert này (lọc client-side từ danh sách toàn hệ thống)
+  const { data: expertSessions = [] } = useQuery({
+    queryKey: ['admin-expert-sessions', expertId],
+    queryFn: async () => {
+      const res = await apiClient.get<ApiResponse<ScoringSession[]>>('/api/v1/scoring-sessions/admin/all', true);
+      return (res.result ?? []).filter((s) => s.expertId === expertId);
+    },
+    enabled: !!expertId,
+  });
+
+  const sessionsWithReview = expertSessions.filter((s) => s.userRating != null || (s.userComment && s.userComment.trim()));
 
   useEffect(() => {
     if (expert) {
@@ -194,6 +214,9 @@ export default function AdminExpertDetailPage({ params }: PageProps) {
               <TabsList className="w-full justify-start rounded-none border-b h-12 bg-gray-50/50 px-4">
                 <TabsTrigger value="info" className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none h-full text-xs">Thông tin chuyên môn</TabsTrigger>
                 <TabsTrigger value="certs" className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none h-full text-xs">Bằng cấp & Chứng chỉ</TabsTrigger>
+                <TabsTrigger value="reviews" className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none h-full text-xs">
+                  Đánh giá ({sessionsWithReview.length})
+                </TabsTrigger>
               </TabsList>
               
               <TabsContent value="info" className="p-6 space-y-6">
@@ -290,6 +313,49 @@ export default function AdminExpertDetailPage({ params }: PageProps) {
                     </div>
                   ))}
                 </div>
+              </TabsContent>
+
+              <TabsContent value="reviews" className="p-6 space-y-4">
+                {sessionsWithReview.length === 0 ? (
+                  <div className="text-center py-12 text-muted-foreground">
+                    <MessageSquare className="h-10 w-10 mx-auto mb-3 opacity-30" />
+                    <p className="text-sm">Chưa có đánh giá nào từ học viên.</p>
+                    <p className="text-xs mt-1">Tổng phiên đã chấm: {expertSessions.length}</p>
+                  </div>
+                ) : (
+                  <>
+                    <p className="text-xs text-muted-foreground">
+                      Hiển thị {sessionsWithReview.length} đánh giá từ học viên sau khi chấm xong.
+                    </p>
+                    <div className="space-y-3">
+                      {sessionsWithReview.map((s) => (
+                        <div key={s.id} className="rounded-lg border bg-white p-4 space-y-2">
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="font-medium text-gray-700">{s.userDisplayName || 'Học viên ẩn danh'}</span>
+                            <span className="text-muted-foreground">{formatSessionDate(s.endedAt || s.submittedAt || s.createdAt)}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {s.userRating ? (
+                              <div className="flex items-center gap-0.5">
+                                {Array.from({ length: 5 }).map((_, i) => (
+                                  <Star key={i} className={`h-3.5 w-3.5 ${i < s.userRating! ? 'fill-yellow-400 text-yellow-400' : 'text-gray-200'}`} />
+                                ))}
+                              </div>
+                            ) : (
+                              <span className="text-[11px] text-muted-foreground italic">Chưa chấm sao</span>
+                            )}
+                            <span className="text-[11px] text-muted-foreground">· {s.skill} · phiên #{s.id}</span>
+                          </div>
+                          {s.userComment && s.userComment.trim() ? (
+                            <p className="text-sm text-gray-700 leading-relaxed">{s.userComment}</p>
+                          ) : (
+                            <p className="text-xs text-muted-foreground italic">Học viên không để lại bình luận.</p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
               </TabsContent>
             </Tabs>
           </div>

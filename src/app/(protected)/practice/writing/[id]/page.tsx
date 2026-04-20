@@ -13,6 +13,8 @@ import { WritingScoringProgressDialog } from '@/components/writing/writing-scori
 import { WritingScoringOptionsDialog } from '@/components/writing/writing-scoring-options-dialog';
 import { WritingExpertSelectionDialog } from '@/components/writing/writing-expert-selection-dialog';
 import { getServices, getServiceQuota, type ServiceQuotaResponse } from '@/lib/payment-api';
+import { getMyActiveSubscription } from '@/lib/subscription-api';
+import type { UserSubscriptionResponse } from '@/types/subscription.types';
 import { useWritingStore } from '@/store/writing-store';
 import { usePracticeStore } from '@/store/practice-store';
 import { useAuthStore } from '@/store/auth-store';
@@ -86,6 +88,7 @@ export default function WritingExercisePage({ params }: Props) {
   const [submitted, setSubmitted] = useState(false);
   const [submissionId, setSubmissionId] = useState<number | null>(null);
   const [showExpertDialog, setShowExpertDialog] = useState(false);
+  const [activeSubscription, setActiveSubscription] = useState<UserSubscriptionResponse | null>(null);
 
   // Khi thiếu số dư: đóng dialog, set returnUrl='/scoring-history' để sau khi nạp xong
   // checkout auto-redirect về history → user chấm lại bài vừa submit
@@ -131,6 +134,8 @@ export default function WritingExercisePage({ params }: Props) {
       })
       .catch(() => {});
     getServiceQuota('AI_WRITING_SCORE').then(setAiQuota).catch(() => {});
+    // Fetch active subscription to display quota source in scoring dialog
+    getMyActiveSubscription().then(setActiveSubscription).catch(() => {});
   }, [reset]);
 
   // 1. Initialize taskContents + Load Draft
@@ -323,6 +328,7 @@ export default function WritingExercisePage({ params }: Props) {
           aiQuota={aiQuota}
           expertCost={expertCost}
           balance={balance}
+          activeSubscription={activeSubscription}
           onAIScore={() => { setShowScoringDialog(false); handleGrade(); }}
           onExpertScore={() => { setShowScoringDialog(false); setShowExpertDialog(true); }}
           onSkip={() => { setShowScoringDialog(false); router.push('/scoring-history'); }}
@@ -369,6 +375,7 @@ export default function WritingExercisePage({ params }: Props) {
         aiQuota={aiQuota}
         expertCost={expertCost}
         balance={balance}
+        activeSubscription={activeSubscription}
         onAIScore={() => { setShowScoringDialog(false); handleGrade(); }}
         onExpertScore={() => { setShowScoringDialog(false); setShowExpertDialog(true); }}
         onSkip={() => { setShowScoringDialog(false); router.push('/scoring-history'); }}

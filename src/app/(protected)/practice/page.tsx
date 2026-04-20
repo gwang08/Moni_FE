@@ -8,6 +8,8 @@ import { usePracticeExercises } from '@/hooks/use-practice-exercises';
 import { ModeSelectionModal } from '@/components/practice/mode-selection-modal';
 import { SpeakingModeDialog } from '@/components/speaking/speaking-mode-dialog';
 import { getServices, getServiceQuota, type ServiceQuotaResponse } from '@/lib/payment-api';
+import { getMyActiveSubscription } from '@/lib/subscription-api';
+import type { UserSubscriptionResponse } from '@/types/subscription.types';
 import { PracticeSidebar } from '@/components/practice/practice-sidebar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -95,6 +97,7 @@ function PracticePage() {
   // aiQuota phản ánh free-daily-quota của Speaking AI: chưa dùng hôm nay → effectiveCost=0 (miễn phí)
   const [aiQuota, setAiQuota] = useState<ServiceQuotaResponse | null>(null);
   const [expertCost, setExpertCost] = useState<number | null>(null);
+  const [activeSubscription, setActiveSubscription] = useState<UserSubscriptionResponse | null>(null);
   const servicesFetched = useRef(false);
   const [activeSessions, setActiveSessions] = useState<Map<number, ExamSession>>(new Map());
 
@@ -185,6 +188,7 @@ function PracticePage() {
       })
       .catch(() => {});
     getServiceQuota('AI_SPEAKING_SCORE').then(setAiQuota).catch(() => {});
+    getMyActiveSubscription().then(setActiveSubscription).catch(() => {});
     // Fetch active exam sessions
     getAllActiveSessions()
       .then((sessions) => {
@@ -505,6 +509,7 @@ function PracticePage() {
         testId={speakingTestId}
         aiQuota={aiQuota}
         expertCost={expertCost}
+        activeSubscription={activeSubscription}
         onSelectAI={() => {
           setSpeakingModeOpen(false);
           router.push(`/speaking-exam/${speakingTestId}`);

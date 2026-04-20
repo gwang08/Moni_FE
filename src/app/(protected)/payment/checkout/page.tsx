@@ -13,7 +13,7 @@ import {
   QrCode,
   ShieldCheck,
 } from 'lucide-react';
-import { initPayment, getPayments } from '@/lib/payment-api';
+import { initPayment, initPaymentForSubscription, getPayments } from '@/lib/payment-api';
 import { usePaymentStore } from '@/store/payment-store';
 import { useAuthStore } from '@/store/auth-store';
 import { Button } from '@/components/ui/button';
@@ -78,7 +78,7 @@ function CopyButton({ text }: { text: string }) {
 
 export default function CheckoutPage() {
   const router = useRouter();
-  const { selectedPackage, pendingPayment, setPendingPayment, clear } = usePaymentStore();
+  const { selectedPackage, checkoutItem, pendingPayment, setPendingPayment, clear } = usePaymentStore();
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState<'pending' | 'completed' | 'expired' | 'error'>(
     'pending'
@@ -88,9 +88,31 @@ export default function CheckoutPage() {
     pendingPayment?.expiredAt ?? null
   );
 
+  // Derive a display-friendly item for the receipt card (works for both package & subscription)
+  const displayItem = checkoutItem
+    ? checkoutItem.type === 'subscription'
+      ? {
+          name: checkoutItem.data.name,
+          subtitle: `Gói tháng · ${checkoutItem.data.durationDays} ngày`,
+          amount: checkoutItem.data.priceVnd,
+        }
+      : {
+          name: checkoutItem.data.name,
+          subtitle: `Nhận ${formatVnd(checkoutItem.data.creditAmount)} vào ví`,
+          amount: checkoutItem.data.price,
+        }
+    : selectedPackage
+    ? {
+        name: selectedPackage.name,
+        subtitle: `Nhận ${formatVnd(selectedPackage.creditAmount)} vào ví`,
+        amount: selectedPackage.price,
+      }
+    : null;
+
   const initCalled = useRef(false);
   useEffect(() => {
-    if (!selectedPackage) {
+    // Need either a checkoutItem or legacy selectedPackage
+    if (!checkoutItem && !selectedPackage) {
       router.replace('/payment');
       return;
     }
@@ -98,7 +120,17 @@ export default function CheckoutPage() {
     initCalled.current = true;
     const init = async () => {
       try {
-        const payment = await initPayment(selectedPackage.id, selectedPackage.price);
+        let payment;
+        if (checkoutItem?.type === 'subscription') {
+          payment = await initPaymentForSubscription(
+            checkoutItem.data.id,
+            checkoutItem.data.priceVnd
+          );
+        } else {
+          // Legacy package top-up
+          const pkg = checkoutItem?.type === 'package' ? checkoutItem.data : selectedPackage!;
+          payment = await initPayment(pkg.id, pkg.price);
+        }
         // Fix backend QR URL where acc/bank params are swapped
         if (payment.qrCodeUrl) {
           const url = new URL(payment.qrCodeUrl);
@@ -128,12 +160,11 @@ export default function CheckoutPage() {
   const handlePaymentSuccess = useCallback(
     (credit?: number) => {
       setStatus('completed');
-      // Update credit in store instantly if provided by SSE
+      // Update credit in store instantly if provided by SSE; always refresh profile
       if (credit != null) {
         updateUser({ credit });
-      } else {
-        refreshProfile();
       }
+      refreshProfile();
       const redirectTo = returnUrl || '/transactions';
       setTimeout(() => {
         clear();
@@ -206,7 +237,7 @@ export default function CheckoutPage() {
     };
   }, [pendingPayment, status, expired, handlePaymentSuccess]);
 
-  if (!selectedPackage) return null;
+  if (!displayItem) return null;
 
   if (loading) {
     return (
@@ -255,7 +286,9 @@ export default function CheckoutPage() {
           </div>
           <h2 className="text-xl font-bold text-green-700">Thanh toán thành công!</h2>
           <p className="text-sm text-green-600">
-            Credit đã được cộng vào tài khoản
+            {checkoutItem?.type === 'subscription'
+              ? 'Gói tháng đã được kích hoạt'
+              : 'VND đã được cộng vào ví'}
           </p>
           <div className="flex items-center justify-center gap-2 text-sm text-gray-500 pt-2">
             <Loader2 className="h-4 w-4 animate-spin" />
@@ -284,16 +317,14 @@ export default function CheckoutPage() {
       {/* Pending state */}
       {status === 'pending' && pendingPayment && (
         <div className="space-y-5">
-          {/* Package card */}
+          {/* Item summary card */}
           <div className="rounded-2xl bg-gradient-to-br from-primary/5 to-primary/10 border border-primary/20 p-4 flex items-center gap-4">
             <div className="flex-1 min-w-0">
-              <p className="font-bold text-sm">{selectedPackage.name}</p>
-              <p className="text-xs text-muted-foreground">
-                Nhận {formatVnd(selectedPackage.creditAmount)} vào ví
-              </p>
+              <p className="font-bold text-sm">{displayItem.name}</p>
+              <p className="text-xs text-muted-foreground">{displayItem.subtitle}</p>
             </div>
             <p className="text-lg font-extrabold text-primary">
-              {formatVND(selectedPackage.price)}
+              {formatVND(displayItem.amount)}
             </p>
           </div>
 

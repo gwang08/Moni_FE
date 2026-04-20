@@ -15,6 +15,7 @@ import Link from 'next/link';
 import { toast } from 'sonner';
 import { formatVnd } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { ActiveSubscriptionBanner } from '@/components/subscription/active-subscription-banner';
 
 interface UserAvatarDropdownProps {
   /** 'dark' = navbar on dark bg (unscrolled landing), 'light' = normal white bg */
@@ -59,6 +60,9 @@ export function UserAvatarDropdown({ variant = 'light' }: UserAvatarDropdownProp
 
   return (
     <div className="flex items-center gap-2">
+      {/* Active subscription pill - only for learners */}
+      {user.role === 'USER' && <ActiveSubscriptionBanner />}
+
       {/* Credit balance + Nạp button - only for learners */}
       {user.role === 'USER' && (
         <Link

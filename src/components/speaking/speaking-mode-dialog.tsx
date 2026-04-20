@@ -12,18 +12,23 @@ import { SpeakingModeExpertGrid } from './speaking-mode-expert-grid';
 import { SpeakingModeExpertInlineConfirm } from './speaking-mode-expert-inline-confirm';
 import type { ExpertProfile } from '@/types/expert.types';
 import type { ServiceQuotaResponse } from '@/lib/payment-api';
+import type { UserSubscriptionResponse } from '@/types/subscription.types';
 import { formatVnd } from '@/lib/utils';
+
+/** AI unlimited cap: same constant as writing dialog. */
+const AI_UNLIMITED_CAP = 500;
 
 interface Props {
   open: boolean;
   testId: string;
   aiQuota?: ServiceQuotaResponse | null;
   expertCost?: number | null;
+  activeSubscription?: UserSubscriptionResponse | null;
   onSelectAI: () => void;
   onClose: () => void;
 }
 
-export function SpeakingModeDialog({ open, testId, aiQuota = null, expertCost = null, onSelectAI, onClose }: Props) {
+export function SpeakingModeDialog({ open, testId, aiQuota = null, expertCost = null, activeSubscription = null, onSelectAI, onClose }: Props) {
   const router = useRouter();
   const { user, refreshProfile } = useAuthStore();
   const [step, setStep] = useState<1 | 2>(1);
@@ -99,8 +104,25 @@ export function SpeakingModeDialog({ open, testId, aiQuota = null, expertCost = 
                 <p className="font-semibold text-sm text-blue-900">Luyện tập với AI</p>
                 <p className="text-xs text-blue-700/70">Tự ghi âm và nhận phản hồi từ AI ngay lập tức</p>
               </div>
-              {aiQuota != null && (
-                aiQuota.usedToday ? (
+              {/* Subscription takes priority over free/pay-per-use display */}
+              {(() => {
+                const subCoversAi = activeSubscription && (
+                  activeSubscription.remainAi === -1
+                    ? activeSubscription.usedAi < AI_UNLIMITED_CAP
+                    : activeSubscription.remainAi > 0
+                );
+                if (subCoversAi && activeSubscription) {
+                  const rem = activeSubscription.remainAi === -1
+                    ? AI_UNLIMITED_CAP - activeSubscription.usedAi
+                    : activeSubscription.remainAi;
+                  return (
+                    <span className="text-xs font-semibold text-indigo-700 bg-indigo-100 border border-indigo-200 px-2 py-0.5 rounded-full">
+                      Trong gói · còn {rem} lượt
+                    </span>
+                  );
+                }
+                if (aiQuota == null) return null;
+                return aiQuota.usedToday ? (
                   <span className="flex items-center gap-1 text-xs font-medium text-blue-800 bg-blue-200/60 px-2 py-0.5 rounded-full">
                     {formatVnd(aiQuota.effectiveCost)}
                   </span>
@@ -108,8 +130,8 @@ export function SpeakingModeDialog({ open, testId, aiQuota = null, expertCost = 
                   <span className="text-xs font-semibold text-emerald-700 bg-emerald-100 border border-emerald-200 px-2 py-0.5 rounded-full">
                     Miễn phí
                   </span>
-                )
-              )}
+                );
+              })()}
             </button>
 
             {/* Expert option */}
@@ -122,11 +144,15 @@ export function SpeakingModeDialog({ open, testId, aiQuota = null, expertCost = 
                 <p className="font-semibold text-sm text-orange-900">Nói với Giảng viên</p>
                 <p className="text-xs text-orange-700/70">Video call trực tiếp và được chấm bởi giảng viên</p>
               </div>
-              {expertCost != null && (
+              {activeSubscription && activeSubscription.remainExpert > 0 ? (
+                <span className="text-xs font-semibold text-indigo-700 bg-indigo-100 border border-indigo-200 px-2 py-0.5 rounded-full">
+                  Trong gói · còn {activeSubscription.remainExpert} lượt
+                </span>
+              ) : expertCost != null ? (
                 <span className="flex items-center gap-1 text-xs font-medium text-orange-800 bg-orange-200/60 px-2 py-0.5 rounded-full">
                   {formatVnd(expertCost)}
                 </span>
-              )}
+              ) : null}
             </button>
           </div>
         )}

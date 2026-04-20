@@ -20,6 +20,7 @@ import {
   UserCog,
   KeyRound,
   FlaskConical,
+  BadgeDollarSign,
   type LucideIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -73,6 +74,7 @@ const navGroups: NavGroup[] = [
     label: 'Người dùng & Tài chính',
     items: [
       { href: '/admin/users', label: 'Người dùng', icon: Users },
+      { href: '/admin/pricing', label: 'Quản lý giá cả', icon: BadgeDollarSign },
       { href: '/admin/packages', label: 'Gói nạp', icon: Package },
       { href: '/admin/services', label: 'Dịch vụ', icon: Cog },
       { href: '/admin/user-transactions', label: 'Giao dịch', icon: ReceiptText },

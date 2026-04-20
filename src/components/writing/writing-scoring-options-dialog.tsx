@@ -4,13 +4,18 @@ import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
 import { ChibiMascot, ChibiAnimationStyles } from '@/components/ui/chibi-mascot';
 import type { ServiceQuotaResponse } from '@/lib/payment-api';
+import type { UserSubscriptionResponse } from '@/types/subscription.types';
 import { formatVnd } from '@/lib/utils';
+
+/** AI unlimited cap used alongside quotaAi === -1. */
+const AI_UNLIMITED_CAP = 500;
 
 interface Props {
   open: boolean;
   aiQuota: ServiceQuotaResponse | null;
   expertCost: number | null;
   balance: number;
+  activeSubscription: UserSubscriptionResponse | null;
   onAIScore: () => void;
   onExpertScore: () => void;
   onSkip: () => void;
@@ -61,7 +66,7 @@ function TopUpBadge() {
   );
 }
 
-function CreditBadge({ cost }: { cost: number }) {
+function VndBadge({ cost }: { cost: number }) {
   return (
     <span className="inline-flex items-center gap-1 bg-amber-50 border border-amber-200 rounded-full px-2.5 py-1 text-xs font-semibold text-amber-700 shrink-0">
       {formatVnd(cost)}
@@ -77,26 +82,86 @@ function FreeBadge() {
   );
 }
 
-export function WritingScoringOptionsDialog({ open, aiQuota, expertCost, balance, onAIScore, onExpertScore, onSkip, onTopUp }: Props) {
-  // AI free nếu chưa dùng hôm nay → không cần check balance
-  const aiIsFree = aiQuota != null && !aiQuota.usedToday;
-  const aiCost = aiQuota?.effectiveCost ?? 0;
-  const aiInsufficient = aiQuota != null && !aiIsFree && balance < aiCost;
-  const expertInsufficient = expertCost != null && balance < expertCost;
+function SubBadge({ label }: { label: string }) {
+  return (
+    <span className="inline-flex items-center text-xs text-indigo-700 font-semibold bg-indigo-50 border border-indigo-200 rounded-full px-2.5 py-1 shrink-0 whitespace-nowrap">
+      {label}
+    </span>
+  );
+}
 
-  const aiBadge = aiQuota == null
-    ? <span className="text-xs text-gray-400 shrink-0">…</span>
-    : aiInsufficient
-      ? <TopUpBadge />
-      : aiIsFree
-        ? <FreeBadge />
-        : <CreditBadge cost={aiCost} />;
+/** Determine if the active subscription covers AI usage. */
+function aiCoveredBySub(sub: UserSubscriptionResponse): boolean {
+  if (sub.remainAi === -1) {
+    // quotaAi=-1 means unlimited but capped at AI_UNLIMITED_CAP
+    return sub.usedAi < AI_UNLIMITED_CAP;
+  }
+  return sub.remainAi > 0;
+}
 
-  const expertBadge = expertCost == null
-    ? <span className="text-xs text-gray-400 shrink-0">…</span>
-    : expertInsufficient
-      ? <TopUpBadge />
-      : <CreditBadge cost={expertCost} />;
+export function WritingScoringOptionsDialog({
+  open,
+  aiQuota,
+  expertCost,
+  balance,
+  activeSubscription,
+  onAIScore,
+  onExpertScore,
+  onSkip,
+  onTopUp,
+}: Props) {
+  // ── AI badge + description logic ──
+  let aiBadge: React.ReactNode;
+  let aiDescription = 'Nhận kết quả trong 30 giây';
+  let aiInsufficient = false;
+  let aiHandler = onAIScore;
+
+  if (activeSubscription && aiCoveredBySub(activeSubscription)) {
+    const remaining =
+      activeSubscription.remainAi === -1
+        ? AI_UNLIMITED_CAP - activeSubscription.usedAi
+        : activeSubscription.remainAi;
+    aiBadge = <SubBadge label={`Trong gói · còn ${remaining} lượt`} />;
+    aiDescription = `Dùng gói ${activeSubscription.planName}`;
+  } else if (aiQuota == null) {
+    aiBadge = <span className="text-xs text-gray-400 shrink-0">…</span>;
+  } else {
+    const aiIsFree = !aiQuota.usedToday;
+    const aiCost = aiQuota.effectiveCost ?? 0;
+    aiInsufficient = !aiIsFree && balance < aiCost;
+
+    if (aiInsufficient) {
+      aiBadge = <TopUpBadge />;
+      aiHandler = onTopUp;
+    } else if (aiIsFree) {
+      aiBadge = <FreeBadge />;
+    } else {
+      aiBadge = <VndBadge cost={aiCost} />;
+      aiDescription = `Trừ ${formatVnd(aiCost)} từ ví (còn ${formatVnd(balance)})`;
+    }
+  }
+
+  // ── Expert badge + description logic ──
+  let expertBadge: React.ReactNode;
+  let expertDescription = 'Giảng viên chấm và gửi feedback';
+  let expertInsufficient = false;
+  let expertHandler = onExpertScore;
+
+  if (activeSubscription && activeSubscription.remainExpert > 0) {
+    expertBadge = <SubBadge label={`Trong gói · còn ${activeSubscription.remainExpert} lượt`} />;
+    expertDescription = `Dùng gói ${activeSubscription.planName}`;
+  } else if (expertCost == null) {
+    expertBadge = <span className="text-xs text-gray-400 shrink-0">…</span>;
+  } else {
+    expertInsufficient = balance < expertCost;
+    if (expertInsufficient) {
+      expertBadge = <TopUpBadge />;
+      expertHandler = onTopUp;
+    } else {
+      expertBadge = <VndBadge cost={expertCost} />;
+      expertDescription = `Trừ ${formatVnd(expertCost)} từ ví (còn ${formatVnd(balance)})`;
+    }
+  }
 
   return (
     <>
@@ -115,22 +180,22 @@ export function WritingScoringOptionsDialog({ open, aiQuota, expertCost, balance
             <OptionCard
               icon="🤖"
               title="Chấm AI ngay"
-              description="Nhận kết quả trong 30 giây"
+              description={aiDescription}
               badge={aiBadge}
-              onClick={aiInsufficient ? onTopUp : onAIScore}
+              onClick={aiInsufficient ? onTopUp : aiHandler}
               colorClass="hover:text-teal-600"
               insufficient={aiInsufficient}
             />
             <OptionCard
               icon="👨‍🏫"
               title="Gửi Giảng viên chấm"
-              description="Giảng viên chấm và gửi feedback"
+              description={expertDescription}
               badge={expertBadge}
-              onClick={expertInsufficient ? onTopUp : onExpertScore}
+              onClick={expertInsufficient ? onTopUp : expertHandler}
               colorClass="hover:text-indigo-600"
               insufficient={expertInsufficient}
             />
-            {/* "Để sau" không liên quan credit → không hiện badge */}
+            {/* "Để sau" has no cost → no badge */}
             <OptionCard
               icon="⏭️"
               title="Để sau"

@@ -41,6 +41,15 @@ export async function initPayment(packageId: number, amount: number): Promise<Pa
   );
 }
 
+/** Initiate payment for a subscription plan (uses subscriptionPlanId field). */
+export async function initPaymentForSubscription(subscriptionPlanId: number, amount: number): Promise<PaymentInitResponse> {
+  return apiClient.post<PaymentInitResponse>(
+    '/payments/init',
+    { subscriptionPlanId, amount },
+    true
+  );
+}
+
 export async function getPaymentStatus(paymentId: string): Promise<PaymentResponse> {
   const response = await apiClient.get<ApiResponse<PaymentResponse>>(
     `/payments/${paymentId}`,

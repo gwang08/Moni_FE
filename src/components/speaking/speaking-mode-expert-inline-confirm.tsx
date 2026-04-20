@@ -27,11 +27,20 @@ export function SpeakingModeExpertInlineConfirm({ expert, cost, balance, submitt
     router.push('/payment');
   };
 
+  const isOffline = expert.status === 'OFFLINE';
+
   return (
     <div className="border border-orange-200 rounded-2xl p-5 bg-orange-50/80 shadow-sm space-y-4">
       <p className="font-bold text-[15px] flex items-center gap-2">
          ✨ Xác nhận đặt lịch với <span className="text-orange-700">{expert.displayName}</span>
       </p>
+      {isOffline && (
+        <div className="rounded-xl border border-amber-300 bg-amber-50 px-3 py-2.5 text-xs text-amber-900">
+          ⚠️ <b>Giảng viên đang ngoại tuyến.</b> Bài của bạn sẽ vào hàng đợi và được chấm
+          khi giảng viên online trở lại. Nếu không muốn đợi, bạn có thể huỷ ở
+          <span className="font-semibold"> Lịch sử chấm</span> để chọn giảng viên khác (credit sẽ được hoàn lại).
+        </div>
+      )}
       <div className="text-sm space-y-2 text-gray-600 bg-white/60 p-4 rounded-xl border border-orange-100">
         <p className="flex justify-between items-center">
           <span className="font-medium">Chi phí:</span>

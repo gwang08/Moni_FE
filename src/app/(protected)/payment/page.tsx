@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
-import { Sparkles, Zap, Receipt, Crown, Star, CheckCircle2, BadgeCheck } from 'lucide-react';
+import { Sparkles, Zap, Receipt, Crown, CheckCircle2, BadgeCheck } from 'lucide-react';
 import { getPackages, getServices } from '@/lib/payment-api';
 import { listPlans, getMyActiveSubscription } from '@/lib/subscription-api';
 import { usePaymentStore } from '@/store/payment-store';
@@ -15,30 +15,6 @@ import type { SubscriptionPlanResponse, UserSubscriptionResponse } from '@/types
 
 const formatVND = (price: number) =>
   new Intl.NumberFormat('vi-VN').format(price) + ' đ';
-
-const TIER_STYLES = [
-  {
-    gradient: 'from-emerald-50 to-teal-50',
-    border: 'border-emerald-200 hover:border-emerald-400',
-    badge: 'bg-emerald-100 text-emerald-700',
-    icon: <Star className="h-5 w-5 text-emerald-500" />,
-    btn: 'bg-emerald-500 hover:bg-emerald-600',
-  },
-  {
-    gradient: 'from-violet-50 to-purple-50',
-    border: 'border-violet-200 hover:border-violet-400',
-    badge: 'bg-violet-100 text-violet-700',
-    icon: <Crown className="h-5 w-5 text-violet-500" />,
-    btn: 'bg-violet-500 hover:bg-violet-600',
-  },
-  {
-    gradient: 'from-amber-50 to-orange-50',
-    border: 'border-amber-200 hover:border-amber-400',
-    badge: 'bg-amber-100 text-amber-700',
-    icon: <Sparkles className="h-5 w-5 text-amber-500" />,
-    btn: 'bg-amber-500 hover:bg-amber-600',
-  },
-];
 
 /** Subscription plan highlight styles (index 1 = "popular") */
 const SUB_STYLES = [
@@ -241,46 +217,36 @@ export default function PaymentPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {loading
-            ? Array.from({ length: 3 }).map((_, i) => <PackageSkeleton key={i} />)
+            ? Array.from({ length: 4 }).map((_, i) => <PackageSkeleton key={i} />)
             : packages.map((pkg, idx) => {
-                const style = TIER_STYLES[idx % TIER_STYLES.length];
-                const isPopular = idx === 1;
+                const bonus = pkg.creditAmount - pkg.price;
+                const bonusPct = pkg.price > 0 ? Math.round((bonus / pkg.price) * 100) : 0;
+                const hasBonus = bonus > 0;
                 return (
-                  <div
+                  <button
+                    type="button"
                     key={pkg.id}
-                    className={`relative rounded-2xl p-6 bg-gradient-to-br ${style.gradient} border-2 ${style.border} transition-all duration-200 hover:shadow-lg hover:-translate-y-1 flex flex-col`}
+                    onClick={() => handleSelectPackage(pkg)}
+                    className={`relative text-left rounded-xl border-2 p-4 transition-all hover:shadow-md hover:-translate-y-0.5 ${
+                      hasBonus
+                        ? 'border-emerald-300 bg-emerald-50/40 hover:border-emerald-500'
+                        : 'border-gray-200 bg-white hover:border-emerald-400'
+                    }`}
                   >
-                    {isPopular && (
-                      <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-0.5 rounded-full bg-violet-500 text-white text-xs font-semibold shadow-md">
-                        Phổ biến
-                      </div>
-                    )}
-
-                    <div className="flex items-center gap-2 mb-4">
-                      {style.icon}
-                      <h3 className="font-bold text-lg">{pkg.name}</h3>
-                    </div>
-
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-3xl font-extrabold">
-                        {formatVnd(pkg.creditAmount)}
+                    {hasBonus && (
+                      <span className="absolute -top-2 right-3 bg-emerald-500 text-white text-[10px] font-semibold px-2 py-0.5 rounded-full shadow">
+                        +{bonusPct}%
                       </span>
-                    </div>
-
-                    <p className="text-lg font-semibold text-gray-700 mb-5">
+                    )}
+                    <div className="text-xl font-bold text-gray-800">
                       {formatVND(pkg.price)}
-                    </p>
-
-                    <Button
-                      onClick={() => handleSelectPackage(pkg)}
-                      className={`w-full rounded-xl h-11 text-white font-semibold ${style.btn} mt-auto`}
-                    >
-                      <Zap className="h-4 w-4 mr-1.5" />
-                      Chọn gói này
-                    </Button>
-                  </div>
+                    </div>
+                    <div className={`text-xs mt-1 ${hasBonus ? 'text-emerald-600 font-semibold' : 'text-gray-500'}`}>
+                      Nhận {formatVnd(pkg.creditAmount)}
+                    </div>
+                  </button>
                 );
               })}
         </div>

@@ -83,6 +83,14 @@ function buildSample(fields: Record<string, string>): string {
     .join(SEPARATOR);
 }
 
+/**
+ * Strip thẻ <img> có src="blob:" khỏi HTML — blob URL từ lần save trước chỉ sống
+ * trong RAM tab tạo nó, giờ đã die → hiện icon "ảnh vỡ". Xoá hẳn để admin upload lại.
+ */
+function stripDeadBlobImages(html: string): string {
+  return html.replace(/<img\b[^>]*\bsrc=["']blob:[^"']*["'][^>]*>/gi, '');
+}
+
 interface Props {
   test: TestDetailResponse;
 }
@@ -93,7 +101,7 @@ export function TestEditWritingContent({ test }: Props) {
   const stimulus = test.stimuli[0];
   const firstGroup = stimulus?.questionGroups[0];
   const [saving, setSaving] = useState(false);
-  const [contentHtml, setContentHtml] = useState(stimulus?.content || '');
+  const [contentHtml, setContentHtml] = useState(() => stripDeadBlobImages(stimulus?.content || ''));
   // Chặn nút Lưu khi đang upload ảnh trong editor — tránh lưu blob: URL vào DB
   const [imageUploading, setImageUploading] = useState(false);
 
@@ -176,7 +184,8 @@ export function TestEditWritingContent({ test }: Props) {
 
   const editor = useEditor({
     extensions: EDITOR_EXTENSIONS,
-    content: stimulus?.content || '',
+    // Strip dead blob: src khỏi HTML cũ để editor không render icon "ảnh vỡ"
+    content: stripDeadBlobImages(stimulus?.content || ''),
     immediatelyRender: false,
     editorProps: {
       attributes: {

@@ -23,7 +23,7 @@ export default function AdminPricingPage() {
 
   return (
     <div>
-      <AdminHeader title="Quản lý giá cả" />
+      <AdminHeader title="Quản lý dịch vụ" />
       <div className="p-6">
         {/* Tab bar */}
         <div className="flex gap-1 mb-6 border-b border-gray-200">

@@ -30,7 +30,8 @@ export async function getExpertDetail(id: number): Promise<ExpertProfile> {
 }
 
 export async function createScoringSession(data: {
-  expertId: number;
+  /** Null/undefined → BE pick random expert AVAILABLE (least-queued). */
+  expertId?: number | null;
   skill: string;
   content: string;
   testId?: number;
@@ -47,6 +48,11 @@ export async function createScoringSession(data: {
 
 export async function cancelScoringSession(id: number): Promise<void> {
   await apiClient.patch(`/api/v1/scoring-sessions/${id}/cancel`, undefined, true);
+}
+
+/** Huỷ session theo writingSubmissionId — dùng từ /scoring-history khi FE chỉ có submissionId. */
+export async function cancelScoringSessionByWritingSubmission(submissionId: number): Promise<void> {
+  await apiClient.patch(`/api/v1/scoring-sessions/by-submission/${submissionId}/cancel`, undefined, true);
 }
 
 export async function getQueuePosition(id: number): Promise<{ position: number; status: string; roomUrl: string }> {

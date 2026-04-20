@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Search } from 'lucide-react';
+import { Search, Shuffle, Sun, Moon } from 'lucide-react';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
 import { SpeakingModeExpertGrid } from '@/components/speaking/speaking-mode-expert-grid';
@@ -13,6 +14,14 @@ import { getExperts, createScoringSession } from '@/lib/expert-api';
 import { getWritingSubmissionDetail } from '@/lib/ai-api';
 import { useAuthStore } from '@/store/auth-store';
 import type { ExpertProfile } from '@/types/expert.types';
+
+/** Giờ làm việc 8h-22h theo giờ VN. Ngoài khung này có thể không có kết quả ngay. */
+function isWithinWorkingHours(): boolean {
+  // Hàm chạy client-side, lấy giờ local. Đa số user VN ở GMT+7 → đúng. Nếu cần chính xác
+  // tuyệt đối có thể tính qua Asia/Ho_Chi_Minh timezone, nhưng YAGNI cho giờ.
+  const h = new Date().getHours();
+  return h >= 8 && h < 22;
+}
 
 interface Props {
   open: boolean;
@@ -42,25 +51,25 @@ export function WritingExpertSelectionDialog({ open, onOpenChange, submissionId,
     }
   }, [open, experts.length]);
 
-  const handleBook = async (expert: ExpertProfile) => {
+  const handleBook = async (expert: ExpertProfile | null) => {
     if (!submissionId) return;
     setSubmitting(true);
     try {
       const sub = await getWritingSubmissionDetail(submissionId);
       await createScoringSession({
-        expertId: expert.id,
+        expertId: expert?.id ?? null, // null → BE pick random AVAILABLE expert
         skill: 'WRITING',
         content: sub.essayContent,
         testId: sub.testId ?? undefined,
         writingSubmissionId: sub.submissionId,
       });
       await refreshProfile();
-      toast.success('Đã gửi bài cho giảng viên!');
+      toast.success(expert ? 'Đã gửi bài cho giảng viên!' : 'Đã gửi ngẫu nhiên cho 1 giảng viên online!');
       onOpenChange(false);
       setConfirming(null);
       router.push('/scoring-history');
     } catch {
-      toast.error('Không thể tạo phiên chấm');
+      toast.error(expert ? 'Không thể tạo phiên chấm' : 'Không có giảng viên nào online, thử chọn thủ công');
     } finally {
       setSubmitting(false);
     }
@@ -84,7 +93,32 @@ export function WritingExpertSelectionDialog({ open, onOpenChange, submissionId,
         <VisuallyHidden>
           <DialogTitle>Chọn giảng viên chấm Writing</DialogTitle>
         </VisuallyHidden>
-        <h3 className="text-lg font-bold mb-3">Chọn giảng viên chấm Writing</h3>
+        <h3 className="text-lg font-bold mb-2">Chọn giảng viên chấm Writing</h3>
+
+        {/* Working hours banner */}
+        {isWithinWorkingHours() ? (
+          <div className="mb-3 flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-800">
+            <Sun className="h-4 w-4 shrink-0" />
+            <span>Đang trong giờ làm việc (8h–22h) — thường có kết quả trong vài giờ.</span>
+          </div>
+        ) : (
+          <div className="mb-3 flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+            <Moon className="h-4 w-4 shrink-0" />
+            <span>Ngoài giờ làm việc (8h–22h) — có thể nhận kết quả vào sáng mai.</span>
+          </div>
+        )}
+
+        {/* Random booking — 1-click lazy option */}
+        {!confirming && (
+          <Button
+            onClick={() => handleBook(null)}
+            disabled={submitting}
+            className="w-full mb-3 gap-2 bg-gradient-to-r from-indigo-500 to-purple-600 hover:opacity-90"
+          >
+            <Shuffle className="h-4 w-4" />
+            {submitting ? 'Đang gửi...' : 'Gửi ngẫu nhiên cho giảng viên online'}
+          </Button>
+        )}
 
         {confirming && (
           <SpeakingModeExpertInlineConfirm

@@ -1,9 +1,13 @@
 'use client';
 
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Loader2, PenLine, RefreshCw } from 'lucide-react';
+import { Loader2, PenLine, RefreshCw, X } from 'lucide-react';
+import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { cancelScoringSessionByWritingSubmission } from '@/lib/expert-api';
 import type { WritingSubmission, WritingEvaluationStatus } from '@/lib/ai-api';
 
 function formatDate(dateStr: string): string {
@@ -52,6 +56,23 @@ export function WritingSubmissionsSection({
   onExpertScore,
 }: WritingSubmissionsSectionProps) {
   const router = useRouter();
+  const [cancelSubId, setCancelSubId] = useState<number | null>(null);
+  const [cancelling, setCancelling] = useState(false);
+
+  const handleConfirmCancel = async () => {
+    if (cancelSubId == null) return;
+    setCancelling(true);
+    try {
+      await cancelScoringSessionByWritingSubmission(cancelSubId);
+      toast.success('Đã huỷ. Bạn có thể chọn giảng viên khác.');
+      setCancelSubId(null);
+      onRefresh();
+    } catch {
+      toast.error('Huỷ thất bại. Có thể giảng viên đã bắt đầu chấm.');
+    } finally {
+      setCancelling(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -112,9 +133,19 @@ export function WritingSubmissionsSection({
               </>
             )}
             {sub.evaluationStatus === 'PROCESSING' && (
-              <Button size="sm" variant="ghost" className="h-7 text-xs gap-1" onClick={onRefresh}>
-                <RefreshCw className="h-3 w-3" /> Làm mới
-              </Button>
+              <>
+                <Button size="sm" variant="ghost" className="h-7 text-xs gap-1" onClick={onRefresh}>
+                  <RefreshCw className="h-3 w-3" /> Làm mới
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-7 text-xs gap-1 text-red-600 hover:text-red-700 hover:bg-red-50"
+                  onClick={() => setCancelSubId(sub.submissionId)}
+                >
+                  <X className="h-3 w-3" /> Huỷ & chọn lại
+                </Button>
+              </>
             )}
             {sub.evaluationStatus === 'COMPLETED' && (
               <Button
@@ -139,6 +170,17 @@ export function WritingSubmissionsSection({
           </div>
         </div>
       ))}
+
+      <ConfirmDialog
+        open={cancelSubId != null}
+        onOpenChange={(open) => { if (!open) setCancelSubId(null); }}
+        title="Huỷ gửi bài cho giảng viên?"
+        description="Nếu giảng viên đã bắt đầu chấm, bạn không thể huỷ được. Nếu chưa, credit/lượt sẽ được hoàn và bạn có thể chọn giảng viên khác."
+        confirmText={cancelling ? 'Đang huỷ...' : 'Huỷ & chọn lại'}
+        cancelText="Không"
+        variant="destructive"
+        onConfirm={handleConfirmCancel}
+      />
     </div>
   );
 }

@@ -7,14 +7,13 @@ import type {
 } from '@/types/subscription.types';
 import type { PaymentInitResponse } from '@/types/payment.types';
 
-/** List all active subscription plans (public endpoint). */
+/** List all active subscription plans. Requires auth (same pattern as /packages, /services). */
 export async function listPlans(): Promise<SubscriptionPlanResponse[]> {
-  return apiClient.get<SubscriptionPlanResponse[]>('/subscriptions/plans', false);
+  return apiClient.get<SubscriptionPlanResponse[]>('/subscriptions/plans', true);
 }
 
-/** Get a single plan by ID (public). */
 export async function getPlan(id: number): Promise<SubscriptionPlanResponse> {
-  return apiClient.get<SubscriptionPlanResponse>(`/subscriptions/plans/${id}`, false);
+  return apiClient.get<SubscriptionPlanResponse>(`/subscriptions/plans/${id}`, true);
 }
 
 /**

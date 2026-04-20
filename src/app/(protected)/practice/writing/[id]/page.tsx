@@ -16,6 +16,7 @@ import { getServices, getServiceQuota, type ServiceQuotaResponse } from '@/lib/p
 import { useWritingStore } from '@/store/writing-store';
 import { usePracticeStore } from '@/store/practice-store';
 import { useAuthStore } from '@/store/auth-store';
+import { usePaymentStore } from '@/store/payment-store';
 import { useTestDetail } from '@/hooks/use-test-detail';
 import { useElapsedTimer } from '@/hooks/use-elapsed-timer';
 import { useCountdownTimer } from '@/hooks/use-countdown-timer';
@@ -69,6 +70,8 @@ export default function WritingExercisePage({ params }: Props) {
   } = useWritingStore();
   const markCompleted = usePracticeStore((state) => state.markCompleted);
   const refreshProfile = useAuthStore((state) => state.refreshProfile);
+  const balance = useAuthStore((state) => state.user?.credit ?? 0);
+  const setPaymentReturnUrl = usePaymentStore((state) => state.setReturnUrl);
 
   const [activeStimulusIdx, setActiveStimulusIdx] = useState(0);
   const [taskContents, setTaskContents] = useState<string[]>([]);
@@ -83,6 +86,14 @@ export default function WritingExercisePage({ params }: Props) {
   const [submitted, setSubmitted] = useState(false);
   const [submissionId, setSubmissionId] = useState<number | null>(null);
   const [showExpertDialog, setShowExpertDialog] = useState(false);
+
+  // Khi thiếu đậu: đóng dialog, set returnUrl='/scoring-history' để sau khi nạp xong
+  // checkout auto-redirect về history → user chấm lại bài vừa submit
+  const handleTopUp = useCallback(() => {
+    setShowScoringDialog(false);
+    setPaymentReturnUrl('/scoring-history');
+    router.push('/payment');
+  }, [router, setPaymentReturnUrl]);
 
   const handleSubmitRef = useRef<() => Promise<void>>(() => Promise.resolve());
 
@@ -311,9 +322,11 @@ export default function WritingExercisePage({ params }: Props) {
           open={showScoringDialog}
           aiQuota={aiQuota}
           expertCost={expertCost}
+          balance={balance}
           onAIScore={() => { setShowScoringDialog(false); handleGrade(); }}
           onExpertScore={() => { setShowScoringDialog(false); setShowExpertDialog(true); }}
           onSkip={() => { setShowScoringDialog(false); router.push('/scoring-history'); }}
+          onTopUp={handleTopUp}
         />
         <WritingExpertSelectionDialog
           open={showExpertDialog}
@@ -355,9 +368,11 @@ export default function WritingExercisePage({ params }: Props) {
         open={showScoringDialog}
         aiQuota={aiQuota}
         expertCost={expertCost}
+        balance={balance}
         onAIScore={() => { setShowScoringDialog(false); handleGrade(); }}
         onExpertScore={() => { setShowScoringDialog(false); setShowExpertDialog(true); }}
         onSkip={() => { setShowScoringDialog(false); router.push('/scoring-history'); }}
+        onTopUp={handleTopUp}
       />
       <WritingExpertSelectionDialog
         open={showExpertDialog}

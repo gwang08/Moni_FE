@@ -33,7 +33,7 @@ import type { TestEditAddQuestionFormHandle } from '@/components/admin/test-edit
 import { useTestEditMutations } from '@/components/admin/use-test-edit-mutations';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { applyHighlights, type EvidenceEntry } from '@/components/admin/test-edit-highlight-evidence';
-import { TestEditWritingContent } from '@/components/admin/test-edit-writing-content';
+import { TestEditWritingContent, type TestEditWritingContentHandle } from '@/components/admin/test-edit-writing-content';
 import { TestEditSpeakingContent } from '@/components/admin/test-edit-speaking-content';
 import { MediaUploadZone } from '@/components/admin/media-upload-zone';
 import { AudioUploadSection } from '@/components/admin/audio-upload-section';
@@ -288,6 +288,7 @@ export const TestEditContentTab = forwardRef<TestEditContentHandle, Props>(funct
   const [savingPassage, setSavingPassage] = useState(false);
   const addGroupFormRef = useRef<TestEditAddQuestionGroupFormHandle>(null);
   const addQuestionFormRef = useRef<TestEditAddQuestionFormHandle>(null);
+  const writingContentRef = useRef<TestEditWritingContentHandle>(null);
 
   const [evidenceMap, setEvidenceMap] = useState<Record<number, string>>(() => {
     const map: Record<number, string> = {};
@@ -460,6 +461,11 @@ export const TestEditContentTab = forwardRef<TestEditContentHandle, Props>(funct
   }, [groupDrafts, queryClient, testId]);
 
   const saveAll = useCallback(async () => {
+    // Writing: delegate to child component (owns its own editor/sample state)
+    if (test.skill === 'WRITING') {
+      if (!writingContentRef.current) return true;
+      return writingContentRef.current.saveAll();
+    }
     if (!stimulus) return true;
 
     let ok = true;
@@ -541,6 +547,7 @@ export const TestEditContentTab = forwardRef<TestEditContentHandle, Props>(funct
     handleSavePassage,
     passageEdit,
     stimulus,
+    test.skill,
   ]);
 
   useImperativeHandle(ref, () => ({
@@ -772,7 +779,7 @@ export const TestEditContentTab = forwardRef<TestEditContentHandle, Props>(funct
     setAddingQuestionForGroup(activeGroupId);
   };
 
-  if (test.skill === 'WRITING') return <TestEditWritingContent test={test} />;
+  if (test.skill === 'WRITING') return <TestEditWritingContent ref={writingContentRef} test={test} />;
   if (test.skill === 'SPEAKING') return <TestEditSpeakingContent test={test} onBeforeSaveBasicInfo={onBeforeSaveBasicInfo} />;
 
   if (!stimulus) return <p className="py-8 text-center text-gray-400">Bai thi chua co noi dung</p>;

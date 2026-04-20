@@ -272,7 +272,11 @@ export default function WritingExercisePage({ params }: Props) {
   const taskType: WritingTaskType = testDetail.section === 1 ? 1 : 2;
   const prompt = currentStimulus?.content || testDetail.description || FALLBACK_PROMPT;
   const chartImageUrl = taskType === 1 ? (currentStimulus?.mediaUrl ?? undefined) : undefined;
-  const sampleAnswer = currentStimulus?.questionGroups[0]?.instruction || undefined;
+  // Bài mẫu admin lưu vào explanation.text (edit flow); fallback instruction (legacy create flow)
+  const firstGroup = currentStimulus?.questionGroups[0];
+  const firstQuestion = firstGroup?.questions[0];
+  const sampleFromExplanation = (firstQuestion?.explanation as { text?: string } | undefined)?.text;
+  const sampleAnswer = sampleFromExplanation || firstGroup?.instruction || undefined;
 
   const totalTasks = testDetail.stimuli.length;
   const taskTypes = testDetail.stimuli.map(() => (testDetail.section === 1 ? 1 : 2) as WritingTaskType);

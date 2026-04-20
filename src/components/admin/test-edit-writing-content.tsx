@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
@@ -95,7 +95,11 @@ interface Props {
   test: TestDetailResponse;
 }
 
-export function TestEditWritingContent({ test }: Props) {
+export interface TestEditWritingContentHandle {
+  saveAll: () => Promise<boolean>;
+}
+
+export const TestEditWritingContent = forwardRef<TestEditWritingContentHandle, Props>(function TestEditWritingContent({ test }: Props, ref) {
   const queryClient = useQueryClient();
   const testId = String(test.id);
   const stimulus = test.stimuli[0];
@@ -197,18 +201,13 @@ export function TestEditWritingContent({ test }: Props) {
     },
   });
 
-  if (!stimulus) return <p className="text-gray-400 text-center py-8">Chưa có nội dung</p>;
-
-  const updateSampleField = (key: string, value: string) => {
-    setSampleFields((prev) => ({ ...prev, [key]: value }));
-  };
-
-  const handleSave = async () => {
+  const doSave = async (silent = false): Promise<boolean> => {
+    if (!stimulus) return true;
     // Chặn save nếu editor còn blob URL (ảnh chưa upload xong lên Cloudinary).
     // Blob URL chỉ sống trong RAM browser tạo nó → lưu vào DB sẽ 404 mọi nơi khác.
     if (imageUploading || /src="blob:/.test(contentHtml)) {
-      toast.error('Ảnh đang được tải lên, vui lòng chờ xong rồi lưu');
-      return;
+      if (!silent) toast.error('Ảnh đang được tải lên, vui lòng chờ xong rồi lưu');
+      return false;
     }
 
     setSaving(true);
@@ -249,14 +248,28 @@ export function TestEditWritingContent({ test }: Props) {
         await updateQuestionGroupContent(firstGroup.id, topic);
       }
 
-      toast.success('Đã lưu nội dung Writing');
+      if (!silent) toast.success('Đã lưu nội dung Writing');
       queryClient.invalidateQueries({ queryKey: ['admin', 'test', testId] });
+      return true;
     } catch {
-      toast.error('Lưu thất bại');
+      if (!silent) toast.error('Lưu thất bại');
+      return false;
     } finally {
       setSaving(false);
     }
   };
+
+  useImperativeHandle(ref, () => ({
+    saveAll: () => doSave(true),
+  }));
+
+  if (!stimulus) return <p className="text-gray-400 text-center py-8">Chưa có nội dung</p>;
+
+  const updateSampleField = (key: string, value: string) => {
+    setSampleFields((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const handleSave = () => { void doSave(false); };
 
   return (
     <div className="space-y-5 max-w-3xl">
@@ -350,4 +363,4 @@ export function TestEditWritingContent({ test }: Props) {
       </div>
     </div>
   );
-}
+});

@@ -77,13 +77,20 @@ export function RichTextToolbar({ editor, onUploadingChange }: Props) {
       const { state } = editor.view;
       const { tr } = state;
       let replaced = false;
+      // Match rộng hơn: mọi image có src blob: (Tiptap có thể normalize URL gốc).
+      // Chỉ có 1 lần upload đồng thời nên thay all blob đều an toàn.
       state.doc.descendants((node, pos) => {
-        if (!replaced && node.type.name === 'image' && node.attrs.src === localUrl) {
+        const src = node.attrs?.src;
+        if (node.type.name === 'image' && typeof src === 'string' && src.startsWith('blob:')) {
           tr.setNodeMarkup(pos, undefined, { ...node.attrs, src: url, alt: '' });
           replaced = true;
         }
       });
-      if (replaced) editor.view.dispatch(tr);
+      if (replaced) {
+        // setMeta('addToHistory', false) giữ ngoài undo stack; dispatch sẽ fire onUpdate
+        // của useEditor → parent state contentHtml sync URL Cloudinary
+        editor.view.dispatch(tr);
+      }
       URL.revokeObjectURL(localUrl);
     } catch {
       editor.commands.undo();

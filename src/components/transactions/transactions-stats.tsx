@@ -8,9 +8,24 @@ interface Props {
   transactions: CreditTransactionResponse[];
 }
 
+/** Extract số tiền VND từ remark của SUBSCRIPTION_PURCHASE (BE format "Mua Gói X · 2,000đ"). */
+function parseSubAmount(remark: string | null | undefined): number {
+  if (!remark) return 0;
+  const m = remark.match(/·\s*([\d.,]+)đ/);
+  if (!m) return 0;
+  const n = parseInt(m[1].replace(/[.,]/g, ''), 10);
+  return Number.isFinite(n) ? n : 0;
+}
+
 // 4 stats cards: Số dư (gradient) + Tổng nạp / Tổng tiêu / Giao dịch
+// Tổng nạp = TOPUP vào ví + SUBSCRIPTION_PURCHASE (user chi tiền ra ngoài → vào Moni)
+// Tổng tiêu = CONSUME (VND trừ khỏi ví)
 export function TransactionsStats({ balance, transactions }: Props) {
-  const topup = transactions.filter((t) => t.delta > 0).reduce((s, t) => s + t.delta, 0);
+  const topupFromWallet = transactions.filter((t) => t.delta > 0).reduce((s, t) => s + t.delta, 0);
+  const topupFromSubs = transactions
+    .filter((t) => t.paymentType === 'SUBSCRIPTION_PURCHASE')
+    .reduce((s, t) => s + parseSubAmount(t.remark), 0);
+  const topup = topupFromWallet + topupFromSubs;
   const consume = transactions.filter((t) => t.delta < 0).reduce((s, t) => s + Math.abs(t.delta), 0);
   const total = transactions.length;
 

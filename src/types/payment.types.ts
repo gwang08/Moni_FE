@@ -38,6 +38,9 @@ export interface CreditTransactionResponse {
   serviceId: number | null;
   paymentId: number | null;
   remark?: string | null;
+  quotaType?: string | null; // 'AI' | 'EXPERT' khi dùng quota sub
+  quotaBefore?: number | null;
+  quotaAfter?: number | null;
 }
 
 export interface ServicePricingResponse {

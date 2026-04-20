@@ -1,6 +1,6 @@
 'use client';
 
-import { Wallet, ArrowDownToLine, ArrowUpFromLine, Receipt } from 'lucide-react';
+import { Wallet, ArrowDownToLine, ArrowUpFromLine, Receipt, RotateCcw } from 'lucide-react';
 import type { CreditTransactionResponse } from '@/types/payment.types';
 
 interface Props {
@@ -17,23 +17,50 @@ function parseSubAmount(remark: string | null | undefined): number {
   return Number.isFinite(n) ? n : 0;
 }
 
-// 4 stats cards: Số dư (gradient) + Tổng nạp / Tổng tiêu / Giao dịch
-// Tổng nạp = TOPUP vào ví + SUBSCRIPTION_PURCHASE (user chi tiền ra ngoài → vào Moni)
-// Tổng tiêu = CONSUME (VND trừ khỏi ví)
+// 5 stats cards: Số dư + Tổng nạp / Tổng tiêu / Tổng hoàn / Giao dịch
+// - Tổng nạp = TOPUP/LATE_PAYMENT_TOPUP + SUBSCRIPTION_PURCHASE (user nạp tiền vào Moni)
+// - Tổng tiêu = CONSUME VND (delta âm) — KHÔNG bao gồm quota consume (delta=0)
+// - Tổng hoàn = REFUND (VND vào ví + số lượt quota được hoàn lại)
 export function TransactionsStats({ balance, transactions }: Props) {
-  const topupFromWallet = transactions.filter((t) => t.delta > 0).reduce((s, t) => s + t.delta, 0);
+  // Nạp ví: chỉ TOPUP và LATE_PAYMENT_TOPUP (KHÔNG gồm REFUND dù delta>0).
+  const topupFromWallet = transactions
+    .filter((t) => t.paymentType === 'TOPUP' || t.paymentType === 'LATE_PAYMENT_TOPUP')
+    .reduce((s, t) => s + t.delta, 0);
   const topupFromSubs = transactions
     .filter((t) => t.paymentType === 'SUBSCRIPTION_PURCHASE')
     .reduce((s, t) => s + parseSubAmount(t.remark), 0);
   const topup = topupFromWallet + topupFromSubs;
-  const consume = transactions.filter((t) => t.delta < 0).reduce((s, t) => s + Math.abs(t.delta), 0);
-  // Tổng số lượt đã dùng: gồm cả lượt quota sub + lần chấm VND (mỗi row CONSUME = 1 lượt).
-  // Không count row PENDING/SUBSCRIPTION_PURCHASE/TOPUP.
+
+  // Tiêu: chỉ CONSUME có delta<0 (trừ VND). Quota consume có delta=0 nên không count ở đây.
+  const consume = transactions
+    .filter((t) => t.paymentType === 'CONSUME' && t.delta < 0)
+    .reduce((s, t) => s + Math.abs(t.delta), 0);
+
+  // Hoàn: REFUND tiền VND (quotaType=null, delta>0) + số lượt quota được hoàn (quotaType!=null).
+  const refunds = transactions.filter((t) => t.paymentType === 'REFUND');
+  const refundVnd = refunds
+    .filter((t) => !t.quotaType && t.delta > 0)
+    .reduce((s, t) => s + t.delta, 0);
+  const refundQuotaCount = refunds.filter((t) => !!t.quotaType).length;
+
   const totalLuotDung = transactions.filter((t) => t.paymentType === 'CONSUME').length;
   const total = transactions.length;
 
+  const refundValue = refundVnd > 0
+    ? `+${refundVnd.toLocaleString('vi-VN')}đ`
+    : refundQuotaCount > 0
+      ? `+${refundQuotaCount} lượt`
+      : '0đ';
+  const refundHint = refundVnd > 0 && refundQuotaCount > 0
+    ? `Kèm ${refundQuotaCount} lượt quota hoàn`
+    : refundQuotaCount > 0 && refundVnd === 0
+      ? 'Hoàn vào gói subscription'
+      : refundVnd > 0
+        ? 'Hoàn vào ví'
+        : 'Chưa có hoàn';
+
   return (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+    <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
       <BalanceCard balance={balance} />
       <StatCard
         label="Tổng nạp"
@@ -48,6 +75,13 @@ export function TransactionsStats({ balance, transactions }: Props) {
         valueClass="text-rose-600"
         icon={<ArrowUpFromLine className="h-4 w-4 text-rose-500" />}
         hint={`${totalLuotDung} lượt dùng (gói + ví)`}
+      />
+      <StatCard
+        label="Tổng hoàn"
+        value={refundValue}
+        valueClass="text-blue-600"
+        icon={<RotateCcw className="h-4 w-4 text-blue-500" />}
+        hint={refundHint}
       />
       <StatCard
         label="Giao dịch"

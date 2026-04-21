@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Settings, Coins, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -91,20 +91,31 @@ export function ServiceFormDialog({ open, onOpenChange, service, onSuccess, exis
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle>{isEditing ? 'Chỉnh sửa dịch vụ' : 'Tạo dịch vụ mới'}</DialogTitle>
-        </DialogHeader>
+      <DialogContent className="max-w-md p-0 overflow-hidden">
+        {/* Header */}
+        <div className="bg-gradient-to-r from-gray-900 to-gray-800 px-6 py-5">
+          <DialogHeader>
+            <DialogTitle className="text-white flex items-center gap-2.5">
+              <div className="p-2 rounded-lg bg-white/10">
+                <Settings className="h-4.5 w-4.5" />
+              </div>
+              {isEditing ? 'Chỉnh sửa dịch vụ' : 'Tạo dịch vụ mới'}
+            </DialogTitle>
+          </DialogHeader>
+        </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="px-6 py-5 space-y-5">
           <div>
-            <Label htmlFor="svc-select" className="mb-1.5 block text-sm font-medium">Dịch vụ *</Label>
+            <Label htmlFor="svc-select" className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">
+              <Settings className="h-3.5 w-3.5" />
+              Dịch vụ
+            </Label>
             <select
               id="svc-select"
               value={form.serviceCode}
               onChange={e => handleSelectService(e.target.value)}
               disabled={isEditing}
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
+              className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
             >
               <option value="">-- Chọn dịch vụ --</option>
               {SERVICE_OPTIONS
@@ -116,26 +127,37 @@ export function ServiceFormDialog({ open, onOpenChange, service, onSuccess, exis
           </div>
 
           <div>
-            <Label htmlFor="svc-cost" className="mb-1.5 block text-sm font-medium">Chi phí (credits) *</Label>
+            <Label htmlFor="svc-cost" className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">
+              <Coins className="h-3.5 w-3.5" />
+              Chi phí (credits)
+            </Label>
             <Input id="svc-cost" type="number" min={1} value={form.creditCost || ''}
               onChange={e => setForm(p => ({ ...p, creditCost: Number(e.target.value) }))}
-              placeholder="Số credits cần dùng" />
+              placeholder="Số credits cần dùng" className="h-10" />
           </div>
 
           <div>
-            <Label htmlFor="svc-desc" className="mb-1.5 block text-sm font-medium">Mô tả</Label>
+            <Label htmlFor="svc-desc" className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">
+              <FileText className="h-3.5 w-3.5" />
+              Mô tả
+            </Label>
             <textarea id="svc-desc" value={form.description}
               onChange={e => setForm(p => ({ ...p, description: e.target.value }))}
-              placeholder="Mô tả dịch vụ (tùy chọn)" rows={3}
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-none" />
+              placeholder="Mô tả dịch vụ (tùy chọn)" rows={2}
+              className="w-full rounded-md border border-input bg-background px-3 py-2.5 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-none" />
           </div>
 
-          {error && <p className="text-red-500 text-sm">{error}</p>}
+          {error && (
+            <div className="rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-600 font-medium">
+              {error}
+            </div>
+          )}
 
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Hủy</Button>
-            <Button type="submit" disabled={submitting}>
-              {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : isEditing ? 'Lưu' : 'Tạo'}
+          <DialogFooter className="pt-2 gap-2 sm:gap-0">
+            <Button type="button" variant="outline" className="h-10 rounded-xl px-5" onClick={() => onOpenChange(false)}>Hủy</Button>
+            <Button type="submit" disabled={submitting} className="h-10 rounded-xl px-6 bg-gray-900 hover:bg-gray-800">
+              {submitting ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : null}
+              {isEditing ? 'Lưu thay đổi' : 'Tạo dịch vụ'}
             </Button>
           </DialogFooter>
         </form>

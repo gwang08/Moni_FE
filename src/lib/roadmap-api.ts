@@ -91,6 +91,23 @@ export async function submitVocabLearning(slotId: number, notLearnedIds: number[
   return res.code === 1000;
 }
 
+export interface LearnMetricStatus {
+  hasExistingMetrics: boolean;
+  lastMetricDate?: string;
+  metricCount?: number;
+  lastWeekNumber?: number;
+  lastMonthCycle?: number;
+  hasPlacementResult: boolean;
+}
+
+export async function getLearnMetricStatus(): Promise<LearnMetricStatus> {
+  const res = await apiClient.get<ApiResponse<LearnMetricStatus>>(
+    '/api/v1/learner/weekly-plan/learn-metric-status',
+    true
+  );
+  return res.result ?? { hasExistingMetrics: false, hasPlacementResult: false };
+}
+
 export async function getVocabQuiz(slotId: number): Promise<QuizResponse | null> {
   const res = await apiClient.get<ApiResponse<QuizResponse>>(
     `/api/v1/learner/weekly-plan/slots/${slotId}/vocab-test`,

@@ -3,9 +3,9 @@
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
-import { Sparkles, Zap, Receipt, Crown, CheckCircle2, BadgeCheck } from 'lucide-react';
+import { Sparkles, Zap, Receipt, Crown, CheckCircle2, BadgeCheck, Route, CalendarCheck, Target, Brain, Award } from 'lucide-react';
 import { getPackages, getServices } from '@/lib/payment-api';
-import { listPlans, getMyActiveSubscription } from '@/lib/subscription-api';
+import { listPlans, getMyActiveSubscription, getRoadmapSubscriptionStatus } from '@/lib/subscription-api';
 import { usePaymentStore } from '@/store/payment-store';
 import { Button } from '@/components/ui/button';
 import { formatVnd } from '@/lib/utils';
@@ -141,8 +141,23 @@ export default function PaymentPage() {
     queryKey: ['subscription-plans'],
     queryFn: async () => {
       const all = await listPlans();
-      return all.filter((p) => p.isActive);
+      return all.filter((p) => p.isActive && (p.category === 'SCORING' || !p.category));
     },
+  });
+
+  const { data: roadmapPlans = [], isLoading: roadmapPlansLoading } = useQuery({
+    queryKey: ['roadmap-plans'],
+    queryFn: async () => {
+      const all = await listPlans();
+      return all.filter((p) => p.isActive && p.category === 'ROADMAP');
+    },
+  });
+
+  const { data: roadmapStatus } = useQuery({
+    queryKey: ['my-roadmap-subscription'],
+    queryFn: getRoadmapSubscriptionStatus,
+    staleTime: 5 * 60 * 1000,
+    retry: false,
   });
 
   const { data: activeSub = null } = useQuery<UserSubscriptionResponse | null>({
@@ -170,22 +185,100 @@ export default function PaymentPage() {
       <div className="text-center space-y-2">
         <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-medium">
           <Sparkles className="h-4 w-4" />
-          Nạp tiền & Gói tháng
+          Nạp tiền & Gói chấm điểm tháng
         </div>
         <h1 className="text-3xl font-bold tracking-tight">Chọn gói phù hợp với bạn</h1>
         <p className="text-muted-foreground text-sm max-w-md mx-auto">
-          Nạp ví trả phí theo lượt hoặc mua gói tháng để tiết kiệm hơn
+          Nạp ví trả phí theo lượt hoặc mua gói chấm điểm tháng để tiết kiệm hơn
         </p>
       </div>
 
-      {/* ── Section 1: Gói tháng ── */}
+      {/* ── Section 0: Gói Lộ Trình ── */}
+      <section className="space-y-4">
+        <div className="flex items-center gap-2">
+          <div className="p-2 rounded-lg bg-gradient-to-br from-indigo-100 to-purple-100">
+            <Route className="h-5 w-5 text-indigo-600" />
+          </div>
+          <div>
+            <h2 className="text-lg font-bold">Gói Lộ Trình Học</h2>
+            <p className="text-xs text-muted-foreground">Được AI lên kế hoạch học tập cá nhân, tối ưu hóa ôn luyện IELTS</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          {roadmapPlansLoading
+            ? Array.from({ length: 1 }).map((_, i) => <PackageSkeleton key={i} />)
+            : roadmapPlans.length > 0
+            ? roadmapPlans.map((plan, idx) => {
+                const isActive = roadmapStatus?.subscription?.planId === plan.id && roadmapStatus?.hasActiveSubscription;
+                const roadmapFeatures = [
+                  { icon: CalendarCheck, text: 'Lộ trình học từng tuần được AI cá nhân hóa' },
+                  { icon: Target, text: 'Bài tập tập trung vào điểm yếu của bạn' },
+                  { icon: Brain, text: 'Phân tích mastery & confidence từng chủ đề' },
+                  { icon: Award, text: 'Đánh giá tổng hợp cuối tháng' },
+                ];
+
+                let btnLabel = 'Đăng ký ngay';
+                if (isActive) btnLabel = 'Gia hạn';
+
+                return (
+                  <div
+                    key={plan.id}
+                    className="relative rounded-2xl p-5 bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 border-2 border-indigo-300 hover:border-indigo-500 transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5 flex flex-col"
+                  >
+                    {isActive && (
+                      <div className="absolute -top-3 right-4 flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-500 text-white text-xs font-semibold shadow-md">
+                        <BadgeCheck className="h-3 w-3" />
+                        Đang dùng
+                      </div>
+                    )}
+
+                    <h3 className="font-bold text-lg mb-1">{plan.name}</h3>
+
+                    <div className="flex items-baseline gap-1 mb-2">
+                      <span className="text-3xl font-extrabold">{formatVND(plan.priceVnd)}</span>
+                      <span className="text-sm text-gray-500">/{plan.durationDays} ngày</span>
+                    </div>
+
+                    {plan.description && (
+                      <p className="text-xs text-gray-600 mb-3">{plan.description}</p>
+                    )}
+
+                    <ul className="space-y-2 mb-5 flex-1">
+                      {roadmapFeatures.map((f) => (
+                        <li key={f.text} className="flex items-start gap-2 text-sm text-gray-700">
+                          <f.icon className="h-4 w-4 text-indigo-500 mt-0.5 shrink-0" />
+                          {f.text}
+                        </li>
+                      ))}
+                    </ul>
+
+                    <Button
+                      onClick={() => handleSelectPlan(plan)}
+                      className="w-full rounded-xl h-11 text-white font-semibold bg-indigo-600 hover:bg-indigo-700"
+                    >
+                      <Sparkles className="h-4 w-4 mr-1.5" />
+                      {btnLabel}
+                    </Button>
+                  </div>
+                );
+              })
+            : (
+              <div className="col-span-full text-center py-8 text-gray-400 text-sm">
+                Chưa có gói Lộ Trình nào. Vui lòng liên hệ admin.
+              </div>
+            )}
+        </div>
+      </section>
+
+      {/* ── Section 1: Gói chấm điểm tháng ── */}
       <section className="space-y-4">
         <div className="flex items-center gap-2">
           <div className="p-2 rounded-lg bg-indigo-100">
             <Crown className="h-5 w-5 text-indigo-600" />
           </div>
           <div>
-            <h2 className="text-lg font-bold">Gói tháng</h2>
+            <h2 className="text-lg font-bold">Gói chấm điểm tháng</h2>
             <p className="text-xs text-muted-foreground">Mua một lần, dùng suốt tháng — tiết kiệm hơn trả theo lượt</p>
           </div>
         </div>

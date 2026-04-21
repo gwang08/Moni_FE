@@ -94,7 +94,7 @@ export default function CheckoutPage() {
     ? checkoutItem.type === 'subscription'
       ? {
           name: checkoutItem.data.name,
-          subtitle: `Gói tháng · ${checkoutItem.data.durationDays} ngày`,
+          subtitle: `Gói chấm điểm tháng · ${checkoutItem.data.durationDays} ngày`,
           amount: checkoutItem.data.priceVnd,
         }
       : {
@@ -291,7 +291,7 @@ export default function CheckoutPage() {
           <h2 className="text-xl font-bold text-green-700">Thanh toán thành công!</h2>
           <p className="text-sm text-green-600">
             {checkoutItem?.type === 'subscription'
-              ? 'Gói tháng đã được kích hoạt'
+              ? 'Gói chấm điểm tháng đã được kích hoạt'
               : 'VND đã được cộng vào ví'}
           </p>
           <div className="flex items-center justify-center gap-2 text-sm text-gray-500 pt-2">

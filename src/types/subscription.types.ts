@@ -1,3 +1,5 @@
+export type SubscriptionCategory = 'SCORING' | 'ROADMAP';
+
 export interface SubscriptionPlanResponse {
   id: number;
   code: string;
@@ -7,6 +9,7 @@ export interface SubscriptionPlanResponse {
   durationDays: number;
   quotaAi: number; // -1 = unlimited
   quotaExpert: number;
+  category: SubscriptionCategory;
   isActive: boolean;
 }
 
@@ -20,6 +23,7 @@ export interface SubscriptionPlanUpsertRequest {
   /** -1 = unlimited */
   quotaAi?: number;
   quotaExpert?: number;
+  category?: SubscriptionCategory;
   isActive?: boolean;
 }
 
@@ -35,4 +39,9 @@ export interface UserSubscriptionResponse {
   usedAi: number;
   usedExpert: number;
   isActive: boolean;
+}
+
+export interface RoadmapSubscriptionStatus {
+  hasActiveSubscription: boolean;
+  subscription?: UserSubscriptionResponse;
 }

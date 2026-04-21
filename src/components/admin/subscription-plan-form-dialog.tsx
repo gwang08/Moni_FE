@@ -28,6 +28,7 @@ interface FormState {
   durationDays: number;
   quotaAi: number;
   quotaExpert: number;
+  category: string;
   isActive: boolean;
 }
 
@@ -39,6 +40,7 @@ const defaultForm: FormState = {
   durationDays: 30,
   quotaAi: 0,
   quotaExpert: 0,
+  category: 'SCORING',
   isActive: true,
 };
 
@@ -62,6 +64,7 @@ export function SubscriptionPlanFormDialog({ open, onOpenChange, plan, onSuccess
             durationDays: plan.durationDays,
             quotaAi: plan.quotaAi,
             quotaExpert: plan.quotaExpert,
+            category: plan.category || 'SCORING',
             isActive: plan.isActive,
           }
         : defaultForm,
@@ -88,6 +91,7 @@ export function SubscriptionPlanFormDialog({ open, onOpenChange, plan, onSuccess
         durationDays: form.durationDays,
         quotaAi: form.quotaAi,
         quotaExpert: form.quotaExpert,
+        category: form.category as 'SCORING' | 'ROADMAP',
         isActive: form.isActive,
       };
       if (plan) {
@@ -137,14 +141,29 @@ export function SubscriptionPlanFormDialog({ open, onOpenChange, plan, onSuccess
             </div>
           </div>
 
-          <div>
-            <Label htmlFor="sp-name" className="mb-1.5 block text-sm font-medium">Tên gói *</Label>
-            <Input
-              id="sp-name"
-              value={form.name}
-              onChange={e => setForm(p => ({ ...p, name: e.target.value }))}
-              placeholder="VD: Gói Cơ Bản"
-            />
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label htmlFor="sp-name" className="mb-1.5 block text-sm font-medium">Tên gói *</Label>
+              <Input
+                id="sp-name"
+                value={form.name}
+                onChange={e => setForm(p => ({ ...p, name: e.target.value }))}
+                placeholder="VD: Gói Cơ Bản"
+              />
+            </div>
+            <div>
+              <Label htmlFor="sp-category" className="mb-1.5 block text-sm font-medium">Loại gói</Label>
+              <select
+                id="sp-category"
+                value={form.category}
+                onChange={e => setForm(p => ({ ...p, category: e.target.value }))}
+                className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                disabled={isEditing}
+              >
+                <option value="SCORING">Chấm điểm</option>
+                <option value="ROADMAP">Lộ trình</option>
+              </select>
+            </div>
           </div>
 
           <div>

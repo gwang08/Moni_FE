@@ -4,6 +4,7 @@ import type {
   SubscriptionPlanResponse,
   SubscriptionPlanUpsertRequest,
   UserSubscriptionResponse,
+  RoadmapSubscriptionStatus,
 } from '@/types/subscription.types';
 import type { PaymentInitResponse } from '@/types/payment.types';
 
@@ -39,6 +40,18 @@ export async function getMyActiveSubscription(): Promise<UserSubscriptionRespons
  */
 export async function buyPlan(planId: number, amount: number): Promise<PaymentInitResponse> {
   return initPaymentForSubscription(planId, amount);
+}
+
+/**
+ * Check if the user has an active ROADMAP subscription.
+ * Used by the dashboard to gate roadmap features.
+ */
+export async function getRoadmapSubscriptionStatus(): Promise<RoadmapSubscriptionStatus> {
+  const raw = await apiClient.get<Record<string, unknown>>('/subscriptions/my/roadmap', true);
+  return {
+    hasActiveSubscription: raw?.hasActiveSubscription === true,
+    subscription: raw?.subscription as UserSubscriptionResponse | undefined,
+  };
 }
 
 // ---- Admin-only endpoints (requires ROLE_ADMIN) ----

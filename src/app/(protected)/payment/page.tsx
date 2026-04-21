@@ -1,13 +1,17 @@
 'use client';
 
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { useQuery } from '@tanstack/react-query';
-import { Sparkles, Zap, Receipt, Crown, CheckCircle2, BadgeCheck, Route, CalendarCheck, Target, Brain, Award } from 'lucide-react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { Sparkles, Zap, Receipt, Crown, CheckCircle2, BadgeCheck, Route, CalendarCheck, Target, Brain, Award, Wallet, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 import { getPackages, getServices } from '@/lib/payment-api';
-import { listPlans, getMyActiveSubscription, getRoadmapSubscriptionStatus } from '@/lib/subscription-api';
+import { listPlans, getMyActiveSubscription, getRoadmapSubscriptionStatus, purchaseWithCredit } from '@/lib/subscription-api';
 import { usePaymentStore } from '@/store/payment-store';
+import { useAuthStore } from '@/store/auth-store';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { formatVnd } from '@/lib/utils';
 import { SkeletonCard, SkeletonLine } from '@/components/ui/skeleton';
 import type { PackagePricingResponse } from '@/types/payment.types';
@@ -122,7 +126,17 @@ function SubscriptionCard({ plan, idx, activeSub, onSelect }: SubscriptionCardPr
 
 export default function PaymentPage() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { setSelectedPackage, setCheckoutItem } = usePaymentStore();
+  const creditBalance = useAuthStore((s) => s.user?.credit ?? 0);
+  const refreshProfile = useAuthStore((s) => s.refreshProfile);
+
+  // Credit purchase dialog state
+  const [creditDialog, setCreditDialog] = useState<{ open: boolean; plan: SubscriptionPlanResponse | null }>({
+    open: false,
+    plan: null,
+  });
+  const [purchasing, setPurchasing] = useState(false);
 
   const { data: packages = [], isLoading: pkgLoading } = useQuery({
     queryKey: ['packages'],
@@ -175,8 +189,32 @@ export default function PaymentPage() {
   };
 
   const handleSelectPlan = (plan: SubscriptionPlanResponse) => {
-    setCheckoutItem({ type: 'subscription', data: plan });
-    router.push('/payment/checkout');
+    if (creditBalance >= plan.priceVnd) {
+      // Đủ tiền → hiện dialog xác nhận trừ credit
+      setCreditDialog({ open: true, plan });
+    } else {
+      // Không đủ → qua checkout QR
+      setCheckoutItem({ type: 'subscription', data: plan });
+      router.push('/payment/checkout');
+    }
+  };
+
+  const handleCreditPurchase = async () => {
+    if (!creditDialog.plan) return;
+    setPurchasing(true);
+    try {
+      await purchaseWithCredit(creditDialog.plan.id);
+      toast.success(`Đã kích hoạt ${creditDialog.plan.name} thành công!`);
+      setCreditDialog({ open: false, plan: null });
+      // Refresh data
+      refreshProfile();
+      queryClient.invalidateQueries({ queryKey: ['my-active-subscription'] });
+      queryClient.invalidateQueries({ queryKey: ['my-roadmap-subscription'] });
+    } catch {
+      toast.error('Mua gói thất bại. Vui lòng thử lại.');
+    } finally {
+      setPurchasing(false);
+    }
   };
 
   return (
@@ -393,6 +431,62 @@ export default function PaymentPage() {
           </Link>
         </Button>
       </div>
+
+      {/* Credit Purchase Confirmation Dialog */}
+      <Dialog open={creditDialog.open} onOpenChange={(open) => !purchasing && setCreditDialog({ open, plan: open ? creditDialog.plan : null })}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Wallet className="h-5 w-5 text-emerald-600" />
+              Xác nhận mua gói
+            </DialogTitle>
+          </DialogHeader>
+
+          {creditDialog.plan && (
+            <div className="space-y-4">
+              <div className="bg-gray-50 rounded-xl p-4 space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600">Gói:</span>
+                  <span className="font-semibold">{creditDialog.plan.name}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600">Thời hạn:</span>
+                  <span className="font-semibold">{creditDialog.plan.durationDays} ngày</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600">Giá:</span>
+                  <span className="font-bold text-indigo-600">{formatVND(creditDialog.plan.priceVnd)}</span>
+                </div>
+                <hr className="border-gray-200" />
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600">Số dư hiện tại:</span>
+                  <span className="font-semibold">{formatVnd(creditBalance)}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600">Sau khi mua:</span>
+                  <span className="font-semibold text-emerald-600">
+                    {formatVnd(creditBalance - creditDialog.plan.priceVnd)}
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setCreditDialog({ open: false, plan: null })} disabled={purchasing}>
+              Hủy
+            </Button>
+            <Button
+              onClick={handleCreditPurchase}
+              disabled={purchasing}
+              className="bg-emerald-600 hover:bg-emerald-700"
+            >
+              {purchasing ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : <Wallet className="h-4 w-4 mr-1.5" />}
+              Thanh toán bằng ví
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

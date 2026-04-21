@@ -4,10 +4,9 @@ import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Menu, X, Lock } from 'lucide-react';
+import { Menu, X } from 'lucide-react';
 import { UserAvatarDropdown } from '@/components/layout/user-avatar-dropdown';
 import { getDueReview } from '@/lib/vocab-api';
-import { getRoadmapSubscriptionStatus } from '@/lib/subscription-api';
 import { Badge } from '@/components/ui/badge';
 import { useAuthStore } from '@/store/auth-store';
 
@@ -38,32 +37,6 @@ function VocabNavItem() {
         <Badge className="h-4 min-w-4 px-1 text-[9px] bg-red-500 hover:bg-red-500 text-white font-bold">
           {dueCount > 99 ? '99+' : dueCount}
         </Badge>
-      )}
-    </Link>
-  );
-}
-
-function RoadmapNavItem() {
-  const pathname = usePathname();
-  const isActive = pathname === '/';
-  const [hasRoadmapSub, setHasRoadmapSub] = useState<boolean | null>(null);
-
-  useEffect(() => {
-    getRoadmapSubscriptionStatus()
-      .then(status => setHasRoadmapSub(status.hasActiveSubscription))
-      .catch(() => setHasRoadmapSub(false));
-  }, []);
-
-  return (
-    <Link
-      href="/"
-      className={`relative text-sm font-medium transition-colors hover:text-primary flex items-center gap-1.5 ${
-        isActive ? 'text-primary' : 'text-gray-700'
-      }`}
-    >
-      Lộ Trình
-      {hasRoadmapSub === false && (
-        <Lock className="h-3 w-3 text-gray-400" />
       )}
     </Link>
   );
@@ -103,7 +76,6 @@ export function InnerNavbar() {
         <div className="hidden md:flex items-center gap-8">
           {filteredNavLinks.map((link) => {
             if (link.label === 'Từ vựng') return <VocabNavItem key={link.label} />;
-            if (link.label === 'Lộ Trình') return <RoadmapNavItem key={link.label} />;
             const isActive = pathname === link.href || (link.href !== '/' && pathname.startsWith(link.href));
             return (
               <Link

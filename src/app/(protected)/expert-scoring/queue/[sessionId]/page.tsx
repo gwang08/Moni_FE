@@ -3,10 +3,9 @@
 import { use, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
 import { cancelScoringSession, getQueuePosition } from '@/lib/expert-api';
 import { toast } from 'sonner';
-import { Loader2, Users } from 'lucide-react';
+import { Loader2, Clock, XCircle } from 'lucide-react';
 
 interface Props {
   params: Promise<{ sessionId: string }>;
@@ -68,60 +67,69 @@ export default function QueueWaitingPage({ params }: Props) {
   const estimatedMinutes = position != null ? Math.max(1, position * 5) : null;
 
   return (
-    <div className="min-h-[calc(100vh-56px)] flex items-center justify-center bg-gradient-to-br from-amber-50 to-orange-50/30 px-4">
-      <Card className="w-full max-w-md p-8 text-center space-y-6">
-        <div className="flex flex-col items-center gap-3">
-          <div className="p-4 rounded-full bg-amber-100">
-            <Users className="h-8 w-8 text-amber-600" />
-          </div>
-          <h1 className="text-xl font-bold">Đang chờ giảng viên</h1>
-          <p className="text-sm text-muted-foreground">
-            Phiên #{sessionId}
-          </p>
-        </div>
-
-        {position === null ? (
-          <div className="flex items-center justify-center gap-2 text-muted-foreground">
-            <Loader2 className="h-5 w-5 animate-spin" />
-            <span className="text-sm">Đang kiểm tra vị trí...</span>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            <div className="rounded-xl bg-amber-50 border border-amber-200 p-4">
-              <p className="text-3xl font-bold text-amber-700">#{position}</p>
-              <p className="text-sm text-amber-600 mt-1">Vị trí trong hàng chờ</p>
+    <div className="min-h-[calc(100vh-56px)] flex items-center justify-center bg-gradient-to-br from-slate-50 via-white to-indigo-50/30 px-4">
+      <div className="w-full max-w-sm">
+        <div className="rounded-2xl border border-gray-100 bg-white shadow-xl shadow-gray-100/50 overflow-hidden">
+          {/* Header */}
+          <div className="bg-gradient-to-br from-indigo-500 to-purple-600 px-6 pt-8 pb-6 text-center text-white">
+            <div className="inline-flex p-3.5 rounded-2xl bg-white/15 backdrop-blur-sm mb-4">
+              <Clock className="h-7 w-7" />
             </div>
+            <h1 className="text-xl font-bold">Đang chờ giảng viên</h1>
+            <p className="text-indigo-100 text-sm mt-1">Phiên #{sessionId}</p>
+          </div>
 
-            {estimatedMinutes !== null && (
-              <p className="text-sm text-muted-foreground">
-                Thời gian chờ ước tính: ~{estimatedMinutes} phút
-              </p>
+          {/* Body */}
+          <div className="px-6 py-6 space-y-5">
+            {position === null ? (
+              <div className="flex flex-col items-center gap-3 py-4">
+                <Loader2 className="h-8 w-8 animate-spin text-indigo-400" />
+                <span className="text-sm text-gray-500">Đang kiểm tra vị trí...</span>
+              </div>
+            ) : (
+              <div className="text-center space-y-4">
+                {/* Position display */}
+                <div className="inline-flex flex-col items-center px-10 py-5 rounded-2xl bg-gradient-to-br from-indigo-50 to-purple-50 border border-indigo-100">
+                  <span className="text-4xl font-extrabold text-indigo-600">#{position}</span>
+                  <span className="text-xs font-medium text-indigo-500 mt-1">trong hàng chờ</span>
+                </div>
+
+                {/* Meta info */}
+                <div className="space-y-1">
+                  {estimatedMinutes !== null && (
+                    <p className="text-sm text-gray-500">
+                      Chờ khoảng <span className="font-semibold text-gray-700">~{estimatedMinutes} phút</span>
+                    </p>
+                  )}
+                </div>
+              </div>
             )}
 
-            <p className="text-xs text-muted-foreground">
-              Trạng thái: <span className="font-medium">{status}</span>
-            </p>
+            {/* Auto-refresh indicator */}
+            <div className="flex items-center justify-center gap-1.5 text-xs text-gray-400">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500" />
+              </span>
+              Tự động cập nhật
+            </div>
+
+            {/* Cancel button */}
+            <Button
+              variant="ghost"
+              className="w-full h-11 rounded-xl text-sm font-medium text-gray-500 hover:text-red-600 hover:bg-red-50 transition-colors"
+              onClick={handleCancel}
+              disabled={cancelling}
+            >
+              {cancelling ? (
+                <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Đang huỷ...</>
+              ) : (
+                <><XCircle className="h-4 w-4 mr-2" />Huỷ & chọn giảng viên khác</>
+              )}
+            </Button>
           </div>
-        )}
-
-        <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
-          <Loader2 className="h-3 w-3 animate-spin" />
-          <span>Tự động cập nhật mỗi 3 giây...</span>
         </div>
-
-        <Button
-          variant="outline"
-          className="w-full text-destructive hover:text-destructive border-destructive/30 hover:bg-destructive/5"
-          onClick={handleCancel}
-          disabled={cancelling}
-        >
-          {cancelling ? (
-            <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Đang huỷ...</>
-          ) : (
-            'Huỷ & chọn Expert khác'
-          )}
-        </Button>
-      </Card>
+      </div>
     </div>
   );
 }

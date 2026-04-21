@@ -434,57 +434,59 @@ export default function PaymentPage() {
 
       {/* Credit Purchase Confirmation Dialog */}
       <Dialog open={creditDialog.open} onOpenChange={(open) => !purchasing && setCreditDialog({ open, plan: open ? creditDialog.plan : null })}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Wallet className="h-5 w-5 text-emerald-600" />
-              Xác nhận mua gói
-            </DialogTitle>
-          </DialogHeader>
-
+        <DialogContent className="max-w-[400px] p-0 overflow-hidden">
           {creditDialog.plan && (
-            <div className="space-y-4">
-              <div className="bg-gray-50 rounded-xl p-4 space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Gói:</span>
-                  <span className="font-semibold">{creditDialog.plan.name}</span>
+            <>
+              {/* Header gradient */}
+              <div className="bg-gradient-to-br from-indigo-500 to-purple-600 px-6 pt-6 pb-5 text-white">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="p-2.5 rounded-xl bg-white/20 backdrop-blur-sm">
+                    <Wallet className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-lg leading-tight">{creditDialog.plan.name}</h3>
+                    <p className="text-indigo-100 text-xs mt-0.5">{creditDialog.plan.durationDays} ngày sử dụng</p>
+                  </div>
                 </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Thời hạn:</span>
-                  <span className="font-semibold">{creditDialog.plan.durationDays} ngày</span>
+                <div className="text-3xl font-extrabold tracking-tight">
+                  {formatVND(creditDialog.plan.priceVnd)}
                 </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Giá:</span>
-                  <span className="font-bold text-indigo-600">{formatVND(creditDialog.plan.priceVnd)}</span>
+              </div>
+
+              {/* Body */}
+              <div className="px-6 py-5 space-y-4">
+                <div className="flex items-center justify-between py-2.5 border-b border-dashed border-gray-200">
+                  <span className="text-sm text-gray-500">Số dư hiện tại</span>
+                  <span className="text-sm font-bold text-gray-800">{formatVnd(creditBalance)}</span>
                 </div>
-                <hr className="border-gray-200" />
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Số dư hiện tại:</span>
-                  <span className="font-semibold">{formatVnd(creditBalance)}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Sau khi mua:</span>
-                  <span className="font-semibold text-emerald-600">
+                <div className="flex items-center justify-between py-2.5">
+                  <span className="text-sm text-gray-500">Số dư sau khi mua</span>
+                  <span className="text-sm font-bold text-emerald-600">
                     {formatVnd(creditBalance - creditDialog.plan.priceVnd)}
                   </span>
                 </div>
-              </div>
-            </div>
-          )}
 
-          <DialogFooter className="gap-2 sm:gap-0">
-            <Button variant="outline" onClick={() => setCreditDialog({ open: false, plan: null })} disabled={purchasing}>
-              Hủy
-            </Button>
-            <Button
-              onClick={handleCreditPurchase}
-              disabled={purchasing}
-              className="bg-emerald-600 hover:bg-emerald-700"
-            >
-              {purchasing ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : <Wallet className="h-4 w-4 mr-1.5" />}
-              Thanh toán bằng ví
-            </Button>
-          </DialogFooter>
+                <div className="flex gap-3 pt-2">
+                  <Button
+                    variant="outline"
+                    className="flex-1 h-11 rounded-xl font-semibold"
+                    onClick={() => setCreditDialog({ open: false, plan: null })}
+                    disabled={purchasing}
+                  >
+                    Hủy
+                  </Button>
+                  <Button
+                    onClick={handleCreditPurchase}
+                    disabled={purchasing}
+                    className="flex-1 h-11 rounded-xl font-semibold bg-indigo-600 hover:bg-indigo-700"
+                  >
+                    {purchasing ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : <CheckCircle2 className="h-4 w-4 mr-1.5" />}
+                    Xác nhận
+                  </Button>
+                </div>
+              </div>
+            </>
+          )}
         </DialogContent>
       </Dialog>
     </div>

@@ -8,6 +8,7 @@ import { getMyActiveSubscription } from '@/lib/subscription-api';
 import type { ExpertProfile } from '@/types/expert.types';
 import type { UserSubscriptionResponse } from '@/types/subscription.types';
 import { formatVnd } from '@/lib/utils';
+import { AlertTriangle, CheckCircle2, Loader2, Wallet } from 'lucide-react';
 
 interface Props {
   expert: ExpertProfile;
@@ -24,8 +25,6 @@ export function SpeakingModeExpertInlineConfirm({ expert, cost, balance, submitt
   const router = useRouter();
   const setReturnUrl = usePaymentStore((s) => s.setReturnUrl);
 
-  // Khi user còn quota Expert (hoặc unlimited = -1) → trừ lượt thay vì trừ tiền.
-  // Match logic backend CreditServiceImpl: ưu tiên subscription quota, chỉ trừ VND khi hết.
   const { data: sub } = useQuery<UserSubscriptionResponse | null>({
     queryKey: ['my-active-subscription'],
     queryFn: getMyActiveSubscription,
@@ -45,55 +44,93 @@ export function SpeakingModeExpertInlineConfirm({ expert, cost, balance, submitt
   const isOffline = expert.status === 'OFFLINE';
 
   return (
-    <div className="border border-orange-200 rounded-2xl p-5 bg-orange-50/80 shadow-sm space-y-4">
-      <p className="font-bold text-[15px] flex items-center gap-2">
-         ✨ Xác nhận đặt lịch với <span className="text-orange-700">{expert.displayName}</span>
-      </p>
+    <div className="rounded-2xl border border-indigo-200 bg-gradient-to-br from-indigo-50/80 to-purple-50/40 p-5 space-y-3 shadow-sm">
+      {/* Title */}
+      <div className="flex items-center gap-2">
+        <CheckCircle2 className="h-4.5 w-4.5 text-indigo-600 shrink-0" />
+        <p className="font-bold text-sm text-gray-800">
+          Xác nhận đặt lịch với <span className="text-indigo-700">{expert.displayName}</span>
+        </p>
+      </div>
+
+      {/* Offline Warning */}
       {isOffline && (
-        <div className="rounded-xl border border-amber-300 bg-amber-50 px-3 py-2.5 text-xs text-amber-900">
-          ⚠️ <b>Giảng viên đang ngoại tuyến.</b> Bài của bạn sẽ vào hàng đợi và được chấm
-          khi giảng viên online trở lại. Nếu không muốn đợi, bạn có thể huỷ ở
-          <span className="font-semibold"> Lịch sử chấm</span> để chọn giảng viên khác (credit sẽ được hoàn lại).
+        <div className="flex gap-2.5 rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-2.5 text-xs text-amber-800">
+          <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
+          <div>
+            <b>Giảng viên đang ngoại tuyến.</b> Bài của bạn sẽ vào hàng đợi và được chấm
+            khi giảng viên online trở lại.
+          </div>
         </div>
       )}
-      <div className="text-sm space-y-2 text-gray-600 bg-white/60 p-4 rounded-xl border border-orange-100">
+
+      {/* Cost breakdown */}
+      <div className="bg-white rounded-xl p-4 border border-indigo-100/60 space-y-2.5">
         {willUseQuota ? (
           <>
-            <p className="flex justify-between items-center">
-              <span className="font-medium">Chi phí:</span>
-              <span className="font-bold text-indigo-700">−1 lượt Giảng viên</span>
-            </p>
-            <div className="h-px w-full bg-orange-100/50" />
-            <p className="flex justify-between items-center">
-              <span className="font-medium">Lượt còn lại (gói {sub!.planName}):</span>
-              <span className="font-bold text-green-600">
+            <div className="flex justify-between items-center text-sm">
+              <span className="text-gray-500">Chi phí</span>
+              <span className="font-bold text-indigo-700">-1 lượt Giảng viên</span>
+            </div>
+            <div className="h-px bg-gray-100" />
+            <div className="flex justify-between items-center text-sm">
+              <span className="text-gray-500">Còn lại ({sub!.planName})</span>
+              <span className="font-bold text-emerald-600">
                 {sub!.remainExpert === -1 ? 'Không giới hạn' : `${sub!.remainExpert}/${totalExpert}`}
               </span>
-            </p>
+            </div>
           </>
         ) : (
           <>
-            <p className="flex justify-between items-center">
-              <span className="font-medium">Chi phí:</span>
+            <div className="flex justify-between items-center text-sm">
+              <span className="text-gray-500">Chi phí</span>
               <span className="font-bold text-gray-800">{formatVnd(cost)}</span>
-            </p>
-            <div className="h-px w-full bg-orange-100/50" />
-            <p className="flex justify-between items-center">
-              <span className="font-medium">Số dư hiện tại:</span>
-              <span className={`font-bold ${hasEnough ? 'text-green-600' : 'text-red-500'}`}>{formatVnd(balance)}</span>
-            </p>
-            {!hasEnough && <p className="text-red-500 font-bold text-xs mt-2 bg-red-50 p-2 rounded-lg text-center">Không đủ số dư! Vui lòng nạp thêm.</p>}
+            </div>
+            <div className="h-px bg-gray-100" />
+            <div className="flex justify-between items-center text-sm">
+              <span className="text-gray-500">Số dư</span>
+              <span className={`font-bold ${hasEnough ? 'text-emerald-600' : 'text-red-500'}`}>
+                {formatVnd(balance)}
+              </span>
+            </div>
+            {!hasEnough && (
+              <div className="flex items-center gap-1.5 mt-1 text-xs text-red-500 font-semibold bg-red-50 px-3 py-1.5 rounded-lg">
+                <Wallet className="h-3.5 w-3.5" />
+                Không đủ số dư. Vui lòng nạp thêm.
+              </div>
+            )}
           </>
         )}
       </div>
+
+      {/* Actions */}
       <div className="flex gap-2.5 pt-1">
-        <Button variant="outline" className="flex-1 rounded-xl h-10 font-bold border-orange-200 text-orange-700 hover:bg-orange-100" onClick={onCancel} disabled={submitting}>Huỷ</Button>
+        <Button
+          variant="outline"
+          className="flex-1 h-10 rounded-xl font-semibold border-gray-200 text-gray-600 hover:bg-gray-50"
+          onClick={onCancel}
+          disabled={submitting}
+        >
+          Huỷ
+        </Button>
         {hasEnough ? (
-          <Button className="flex-1 rounded-xl h-10 font-bold bg-[#16a34a] hover:bg-[#15803d] text-white shadow-sm" onClick={onConfirm} disabled={submitting}>
-            {submitting ? 'Đang đặt...' : 'Xác nhận đặt lịch'}
+          <Button
+            className="flex-1 h-10 rounded-xl font-semibold bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm"
+            onClick={onConfirm}
+            disabled={submitting}
+          >
+            {submitting ? (
+              <><Loader2 className="h-4 w-4 mr-1.5 animate-spin" />Đang đặt...</>
+            ) : (
+              'Xác nhận đặt lịch'
+            )}
           </Button>
         ) : (
-          <Button className="flex-1 rounded-xl h-10 font-bold bg-[#16a34a] hover:bg-[#15803d] text-white shadow-sm" onClick={handleTopUp}>
+          <Button
+            className="flex-1 h-10 rounded-xl font-semibold bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm"
+            onClick={handleTopUp}
+          >
+            <Wallet className="h-4 w-4 mr-1.5" />
             Nạp tiền ngay
           </Button>
         )}

@@ -17,24 +17,43 @@ function parseSubAmount(remark: string | null | undefined): number {
   return Number.isFinite(n) ? n : 0;
 }
 
+/**
+ * Rút gọn số tiền lớn thành K/M/B để không vỡ layout card stats.
+ * < 1M giữ nguyên format VND; >= 1M chuyển thành 1.2M, 504M, 1.5B (vi-VN locale).
+ */
+function formatCompactVnd(amount: number): string {
+  const abs = Math.abs(amount);
+  const sign = amount < 0 ? '-' : '';
+  if (abs >= 1_000_000_000) return `${sign}${(abs / 1_000_000_000).toLocaleString('vi-VN', { maximumFractionDigits: 2 })}B`;
+  if (abs >= 1_000_000) return `${sign}${(abs / 1_000_000).toLocaleString('vi-VN', { maximumFractionDigits: 2 })}M`;
+  if (abs >= 10_000) return `${sign}${(abs / 1_000).toLocaleString('vi-VN', { maximumFractionDigits: 1 })}K`;
+  return `${sign}${abs.toLocaleString('vi-VN')}`;
+}
+
 // 5 stats cards: Số dư + Tổng nạp / Tổng tiêu / Tổng hoàn / Giao dịch
-// - Tổng nạp = TOPUP/LATE_PAYMENT_TOPUP + SUBSCRIPTION_PURCHASE (user nạp tiền vào Moni)
-// - Tổng tiêu = CONSUME VND (delta âm) — KHÔNG bao gồm quota consume (delta=0)
+// - Tổng nạp = TOPUP/LATE_PAYMENT_TOPUP + SUBSCRIPTION_PURCHASE mua bằng QR (delta=0, tiền vào hệ thống)
+// - Tổng tiêu = CONSUME delta<0 + SUBSCRIPTION_PURCHASE mua bằng ví (delta<0, trừ tiền ví)
 // - Tổng hoàn = REFUND (VND vào ví + số lượt quota được hoàn lại)
 export function TransactionsStats({ balance, transactions }: Props) {
-  // Nạp ví: chỉ TOPUP và LATE_PAYMENT_TOPUP (KHÔNG gồm REFUND dù delta>0).
+  // Nạp ví: TOPUP/LATE_PAYMENT_TOPUP + SUBSCRIPTION_PURCHASE qua QR (delta=0 vì tiền
+  // đi thẳng vào hệ thống, không qua số dư ví). KHÔNG gồm REFUND dù delta>0.
   const topupFromWallet = transactions
     .filter((t) => t.paymentType === 'TOPUP' || t.paymentType === 'LATE_PAYMENT_TOPUP')
     .reduce((s, t) => s + t.delta, 0);
-  const topupFromSubs = transactions
-    .filter((t) => t.paymentType === 'SUBSCRIPTION_PURCHASE')
+  const topupFromSubsQr = transactions
+    .filter((t) => t.paymentType === 'SUBSCRIPTION_PURCHASE' && t.delta === 0)
     .reduce((s, t) => s + parseSubAmount(t.remark), 0);
-  const topup = topupFromWallet + topupFromSubs;
+  const topup = topupFromWallet + topupFromSubsQr;
 
-  // Tiêu: chỉ CONSUME có delta<0 (trừ VND). Quota consume có delta=0 nên không count ở đây.
-  const consume = transactions
+  // Tiêu: CONSUME delta<0 + SUBSCRIPTION_PURCHASE mua bằng ví (delta<0, trừ trực tiếp
+  // từ số dư ví). Quota consume có delta=0 nên không count ở đây.
+  const consumeFromUsage = transactions
     .filter((t) => t.paymentType === 'CONSUME' && t.delta < 0)
     .reduce((s, t) => s + Math.abs(t.delta), 0);
+  const consumeFromSubsWallet = transactions
+    .filter((t) => t.paymentType === 'SUBSCRIPTION_PURCHASE' && t.delta < 0)
+    .reduce((s, t) => s + Math.abs(t.delta), 0);
+  const consume = consumeFromUsage + consumeFromSubsWallet;
 
   // Hoàn: REFUND tiền VND (quotaType=null, delta>0) + số lượt quota được hoàn (quotaType!=null).
   const refunds = transactions.filter((t) => t.paymentType === 'REFUND');
@@ -47,10 +66,13 @@ export function TransactionsStats({ balance, transactions }: Props) {
   const total = transactions.length;
 
   const refundValue = refundVnd > 0
-    ? `+${refundVnd.toLocaleString('vi-VN')}đ`
+    ? `+${formatCompactVnd(refundVnd)}đ`
     : refundQuotaCount > 0
       ? `+${refundQuotaCount} lượt`
       : '0đ';
+  const refundFullValue = refundVnd > 0
+    ? `+${refundVnd.toLocaleString('vi-VN')}đ`
+    : refundValue;
   const refundHint = refundVnd > 0 && refundQuotaCount > 0
     ? `Kèm ${refundQuotaCount} lượt quota hoàn`
     : refundQuotaCount > 0 && refundVnd === 0
@@ -64,14 +86,16 @@ export function TransactionsStats({ balance, transactions }: Props) {
       <BalanceCard balance={balance} />
       <StatCard
         label="Tổng nạp"
-        value={`+${topup.toLocaleString('vi-VN')}đ`}
+        value={`+${formatCompactVnd(topup)}đ`}
+        fullValue={`+${topup.toLocaleString('vi-VN')}đ`}
         valueClass="text-emerald-600"
         icon={<ArrowDownToLine className="h-4 w-4 text-emerald-500" />}
         hint="Gồm nạp ví + mua gói"
       />
       <StatCard
         label="Tổng tiêu"
-        value={`−${consume.toLocaleString('vi-VN')}đ`}
+        value={`−${formatCompactVnd(consume)}đ`}
+        fullValue={`−${consume.toLocaleString('vi-VN')}đ`}
         valueClass="text-rose-600"
         icon={<ArrowUpFromLine className="h-4 w-4 text-rose-500" />}
         hint={`${totalLuotDung} lượt dùng (gói + ví)`}
@@ -79,6 +103,7 @@ export function TransactionsStats({ balance, transactions }: Props) {
       <StatCard
         label="Tổng hoàn"
         value={refundValue}
+        fullValue={refundFullValue}
         valueClass="text-blue-600"
         icon={<RotateCcw className="h-4 w-4 text-blue-500" />}
         hint={refundHint}
@@ -102,8 +127,11 @@ function BalanceCard({ balance }: { balance: number }) {
           <span className="text-[11px] font-black text-white/80 uppercase tracking-widest">Số dư</span>
           <Wallet className="h-4 w-4 text-white" />
         </div>
-        <div className="text-[30px] font-black mt-1 tabular-nums flex items-baseline gap-1">
-          {balance.toLocaleString('vi-VN')}
+        <div
+          className="text-[30px] font-black mt-1 tabular-nums flex items-baseline gap-1 truncate"
+          title={`${balance.toLocaleString('vi-VN')}đ`}
+        >
+          {formatCompactVnd(balance)}
           <span className="text-[14px] font-bold text-white/80">đ</span>
         </div>
         <div className="text-[11.5px] text-emerald-100 font-bold mt-0.5 truncate">Số dư dùng cho AI &amp; giảng viên</div>
@@ -115,12 +143,15 @@ function BalanceCard({ balance }: { balance: number }) {
 function StatCard({
   label,
   value,
+  fullValue,
   valueClass = '',
   icon,
   hint,
 }: {
   label: string;
   value: string;
+  /** Số tiền đầy đủ hiển thị qua tooltip khi giá trị đã rút gọn (K/M/B). */
+  fullValue?: string;
   valueClass?: string;
   icon: React.ReactNode;
   hint: string;
@@ -131,7 +162,12 @@ function StatCard({
         <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest">{label}</span>
         {icon}
       </div>
-      <div className={`text-[30px] font-black mt-1 tabular-nums ${valueClass}`}>{value}</div>
+      <div
+        className={`text-[30px] font-black mt-1 tabular-nums truncate ${valueClass}`}
+        title={fullValue ?? value}
+      >
+        {value}
+      </div>
       <div className="text-[11.5px] text-slate-500 font-bold mt-0.5 truncate">{hint}</div>
     </div>
   );

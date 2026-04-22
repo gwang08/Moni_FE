@@ -6,11 +6,14 @@ import { Sparkles } from 'lucide-react';
 import { getMyActiveSubscription } from '@/lib/subscription-api';
 import type { UserSubscriptionResponse } from '@/types/subscription.types';
 
-/** Format endAt ISO → "DD/MM" */
+/** Format endAt ISO → "DD/MM/YYYY" (hiển thị đủ năm để user biết rõ hạn). */
 function formatEndDate(endAt: string): string {
   try {
     const d = new Date(endAt);
-    return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`;
+    const dd = String(d.getDate()).padStart(2, '0');
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const yyyy = d.getFullYear();
+    return `${dd}/${mm}/${yyyy}`;
   } catch {
     return '';
   }
@@ -75,12 +78,17 @@ export function ActiveSubscriptionBanner() {
       className="block px-2 py-1.5 group"
     >
       <div className="rounded-lg border border-indigo-100 bg-gradient-to-br from-indigo-50 to-purple-50/50 p-2.5 space-y-2 group-hover:border-indigo-300 transition-colors">
-        <div className="flex items-center justify-between gap-2">
-          <span className="inline-flex items-center gap-1 text-xs font-bold text-indigo-700">
-            <Sparkles className="h-3 w-3" />
-            {sub.planName}
+        <div className="space-y-0.5">
+          <span
+            className="flex items-center gap-1 text-xs font-bold text-indigo-700 min-w-0"
+            title={sub.planName}
+          >
+            <Sparkles className="h-3 w-3 shrink-0" />
+            <span className="truncate">{sub.planName}</span>
           </span>
-          <span className="text-[10px] text-gray-500">Hết {formatEndDate(sub.endAt)}</span>
+          <span className="block text-[10px] text-gray-500 whitespace-nowrap">
+            Hết hạn {formatEndDate(sub.endAt)}
+          </span>
         </div>
         <div className="space-y-1.5">
           <QuotaRow label="AI" remain={sub.remainAi} total={totalAi} colorClass="bg-indigo-500" />

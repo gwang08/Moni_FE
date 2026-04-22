@@ -282,6 +282,22 @@ export default function PaymentPage() {
                       <p className="text-xs text-gray-600 mb-3">{plan.description}</p>
                     )}
 
+                    {/* Quota highlight — cho user biết rõ được bao nhiêu lượt AI + Giảng viên */}
+                    <div className="grid grid-cols-2 gap-2 mb-4">
+                      <div className="rounded-lg bg-white/70 border border-indigo-200 px-2.5 py-2 text-center">
+                        <div className="text-[10px] font-bold uppercase tracking-wider text-indigo-600">Lượt AI</div>
+                        <div className="text-lg font-extrabold text-indigo-700 tabular-nums">
+                          {plan.quotaAi === -1 ? '∞' : plan.quotaAi.toLocaleString('vi-VN')}
+                        </div>
+                      </div>
+                      <div className="rounded-lg bg-white/70 border border-purple-200 px-2.5 py-2 text-center">
+                        <div className="text-[10px] font-bold uppercase tracking-wider text-purple-600">Giảng viên</div>
+                        <div className="text-lg font-extrabold text-purple-700 tabular-nums">
+                          {plan.quotaExpert === -1 ? '∞' : plan.quotaExpert.toLocaleString('vi-VN')}
+                        </div>
+                      </div>
+                    </div>
+
                     <ul className="space-y-2 mb-5 flex-1">
                       {roadmapFeatures.map((f) => (
                         <li key={f.text} className="flex items-start gap-2 text-sm text-gray-700">

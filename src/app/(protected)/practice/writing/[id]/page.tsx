@@ -91,6 +91,7 @@ export default function WritingExercisePage({ params }: Props) {
   const [submissionId, setSubmissionId] = useState<number | null>(null);
   const [showExpertDialog, setShowExpertDialog] = useState(false);
   const [activeSubscription, setActiveSubscription] = useState<UserSubscriptionResponse | null>(null);
+  const [confirmSubmitOpen, setConfirmSubmitOpen] = useState(false);
 
   // Khi thiếu số dư: đóng dialog, set returnUrl='/scoring-history' để sau khi nạp xong
   // checkout auto-redirect về history → user chấm lại bài vừa submit
@@ -247,6 +248,12 @@ export default function WritingExercisePage({ params }: Props) {
     handleSubmitRef.current = handleSubmit;
   }, [handleSubmit]);
 
+  // Mở confirm dialog trước khi submit — tránh user lỡ tay nộp bài thiếu nội dung.
+  const requestSubmit = useCallback(() => {
+    if (isSubmitting || submitted) return;
+    setConfirmSubmitOpen(true);
+  }, [isSubmitting, submitted]);
+
   // Grade handler
   const handleGrade = useCallback(() => {
     const stimulus = testDetail?.stimuli[activeStimulusIdx];
@@ -316,7 +323,7 @@ export default function WritingExercisePage({ params }: Props) {
           wordCount={wordCount}
           readOnly={submitted}
           onContentChange={handleContentChange}
-          onSubmit={handleSubmit}
+          onSubmit={requestSubmit}
           isSubmitting={isSubmitting}
           submitted={submitted}
           countdownDisplay={countdownTimer.formatted}
@@ -345,6 +352,21 @@ export default function WritingExercisePage({ params }: Props) {
           expertCost={expertCost}
         />
         <WritingScoringProgressDialog open={isGrading} />
+        <ConfirmDialog
+          open={confirmSubmitOpen}
+          onOpenChange={setConfirmSubmitOpen}
+          title="Nộp bài Writing?"
+          description={(() => {
+            const min = taskType === 1 ? 150 : 250;
+            const short = wordCount < min;
+            const base = `Bạn đã viết ${wordCount} từ (tối thiểu ${min}). Sau khi nộp, bạn sẽ chọn cách chấm điểm (AI hoặc Giảng viên).`;
+            return short ? `⚠️ Bài chưa đạt số từ tối thiểu. ${base}` : base;
+          })()}
+          confirmText="Nộp bài"
+          cancelText="Viết tiếp"
+          variant={wordCount < (taskType === 1 ? 150 : 250) ? 'destructive' : 'default'}
+          onConfirm={() => handleSubmit()}
+        />
       </div>
     );
   }
@@ -363,7 +385,7 @@ export default function WritingExercisePage({ params }: Props) {
         showSample={showSample}
         onToggleSample={() => setShowSample(v => !v)}
         onContentChange={handleContentChange}
-        onSubmit={handleSubmit}
+        onSubmit={requestSubmit}
         isSubmitting={isSubmitting}
         submitted={submitted}
         elapsedTime={elapsedTime}
@@ -402,6 +424,22 @@ export default function WritingExercisePage({ params }: Props) {
         cancelText="Quay lại làm bài"
         variant="destructive"
         onConfirm={() => router.push('/practice?skill=writing')}
+      />
+
+      <ConfirmDialog
+        open={confirmSubmitOpen}
+        onOpenChange={setConfirmSubmitOpen}
+        title="Nộp bài Writing?"
+        description={(() => {
+          const min = taskType === 1 ? 150 : 250;
+          const short = wordCount < min;
+          const base = `Bạn đã viết ${wordCount} từ (tối thiểu ${min}). Sau khi nộp, bạn sẽ chọn cách chấm điểm (AI hoặc Giảng viên).`;
+          return short ? `⚠️ Bài chưa đạt số từ tối thiểu. ${base}` : base;
+        })()}
+        confirmText="Nộp bài"
+        cancelText="Viết tiếp"
+        variant={wordCount < (taskType === 1 ? 150 : 250) ? 'destructive' : 'default'}
+        onConfirm={() => handleSubmit()}
       />
     </>
   );

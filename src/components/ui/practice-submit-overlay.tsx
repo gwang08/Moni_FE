@@ -56,10 +56,10 @@ export function PracticeSubmitOverlay({ isSubmitting, submitted }: Props) {
 
         <div className="text-center space-y-2">
           <h3 className="text-xl font-black text-gray-900 uppercase tracking-tighter italic">
-            {stage === 'loading' ? 'Đang chấm điểm...' : 'Hoàn tất!'}
+            {stage === 'loading' ? 'Đang nộp bài...' : 'Đã nộp bài!'}
           </h3>
           <p className="text-sm text-gray-400 font-bold uppercase tracking-widest leading-none">
-            {stage === 'loading' ? 'Hệ thống AI đang xử lý bài làm' : 'Đang chuẩn bị kết quả cho bạn'}
+            {stage === 'loading' ? 'Hệ thống đang lưu bài làm' : 'Tiếp theo: chọn cách chấm điểm'}
           </p>
         </div>
 

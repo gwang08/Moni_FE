@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { StimulusCard } from '@/components/admin/test-import-stimulus-card';
 import {
-  WRITING_TASK1_TYPES,
   WRITING_TASK1_TYPE_CODES,
   WRITING_TASK2_TYPE_CODES,
 } from '@/components/practice/writing-filter-constants';
@@ -18,34 +17,6 @@ interface Props {
   onBack: () => void;
   /** Section number: 1 = Task 1, 2 = Task 2 */
   section?: number | null;
-}
-
-const SAMPLE_FIELDS = [
-  { key: 'introduction', label: 'Introduction', placeholder: 'Nhập đoạn mở bài mẫu...', rows: 3 },
-  { key: 'overview', label: 'Overview', placeholder: 'Nhập đoạn tổng quan mẫu...', rows: 3 },
-  { key: 'body1', label: 'Body 1', placeholder: 'Nhập đoạn thân bài 1 mẫu...', rows: 4 },
-  { key: 'body2', label: 'Body 2', placeholder: 'Nhập đoạn thân bài 2 mẫu...', rows: 4 },
-];
-
-const SEPARATOR = '\n---SECTION---\n';
-
-function parseSampleAnswer(raw: string): Record<string, string> {
-  const parts = raw.split(SEPARATOR);
-  return {
-    introduction: parts[0]?.trim() || '',
-    overview: parts[1]?.trim() || '',
-    body1: parts[2]?.trim() || '',
-    body2: parts[3]?.trim() || '',
-  };
-}
-
-function buildSampleAnswer(fields: Record<string, string>): string {
-  return [
-    fields.introduction || '',
-    fields.overview || '',
-    fields.body1 || '',
-    fields.body2 || '',
-  ].join(SEPARATOR);
 }
 
 const emptyStimulus = (): StimulusRequest => ({
@@ -64,7 +35,8 @@ export function TestImportStep2Writing({ stimuli, onChange, onNext, onBack, sect
   // Fetch tags by type from API once on mount
   useEffect(() => {
     getTags().then((all) => {
-      setWritingTypeTags(all.filter((t) => t.type === 'WRITING_TYPE'));
+      // Corrected filter to include both WRITING_TYPE and QUESTION_TYPE as per DB structure
+      setWritingTypeTags(all.filter((t) => t.type === 'WRITING_TYPE' || t.type === 'QUESTION_TYPE'));
       setTopicTags(all.filter((t) => t.type === 'TOPIC'));
     }).catch(console.error);
   }, []);
@@ -77,13 +49,9 @@ export function TestImportStep2Writing({ stimuli, onChange, onNext, onBack, sect
 
   const stimulus = stimuli[0];
   const update = (patch: Partial<StimulusRequest>) => onChange([{ ...stimulus, ...patch }]);
-  const isValid = stimulus.content.trim().length > 0;
-
-  const rawSample = stimulus.questionGroups[0]?.instruction || '';
-  const sampleFields = parseSampleAnswer(rawSample);
-
+  
   // Determine writing type options based on section
-  const isTask1 = section === 1;
+  const isTask1 = section === 1 || section === 3;
   const isTask2 = section === 2;
   const typeCodes = isTask1 ? WRITING_TASK1_TYPE_CODES : isTask2 ? WRITING_TASK2_TYPE_CODES : {};
 
@@ -91,12 +59,29 @@ export function TestImportStep2Writing({ stimuli, onChange, onNext, onBack, sect
   const currentTypeCode = stimulus.questionGroups[0]?.questionTypeCode || '';
 
   // Derive currently selected writing type tag ID from questionTypeCode
-  const validWritingTypeTags = writingTypeTags.filter((t) => t.name in typeCodes);
+  const validWritingTypeTags = writingTypeTags.filter((t) => 
+    Object.keys(typeCodes).some(label => {
+      const normalizedLabel = label.replace('Task 1: ', '').replace('Task 2: ', '').toLowerCase();
+      const normalizedTagName = t.name.toLowerCase();
+      return normalizedTagName === normalizedLabel || 
+             (normalizedLabel === 'mixed chart' && (normalizedTagName.includes('multi chart') || normalizedTagName.includes('mixed'))) ||
+             (normalizedTagName === 'mixed graph' && normalizedLabel === 'mixed chart');
+    })
+  );
+
   const selectedWritingTypeTag = validWritingTypeTags.find((t) => {
     // Match by looking up label from code
     const label = Object.keys(typeCodes).find((l) => typeCodes[l] === currentTypeCode);
-    return label && t.name === label;
+    if (!label) return false;
+    
+    const normalizedLabel = label.replace('Task 1: ', '').replace('Task 2: ', '').toLowerCase();
+    const normalizedTagName = t.name.toLowerCase();
+    return normalizedTagName === normalizedLabel || 
+           (normalizedLabel === 'mixed chart' && (normalizedTagName.includes('multi chart') || normalizedTagName.includes('mixed'))) ||
+           (normalizedTagName === 'mixed graph' && normalizedLabel === 'mixed chart');
   });
+
+  const isValid = stimulus.content.trim().length > 0 && (selectedWritingTypeTag !== undefined);
 
   // Derive currently selected topic tag (first topic in tagIds)
   const selectedTopicTag = topicTags.find((t) => currentTagIds.includes(t.id));
@@ -109,25 +94,40 @@ export function TestImportStep2Writing({ stimuli, onChange, onNext, onBack, sect
 
   const updateWritingType = (tagId: number) => {
     const tag = validWritingTypeTags.find((t) => t.id === tagId);
-    if (!tag) {
-      // Cleared
-      const code = '';
-      const writingTypeIds = validWritingTypeTags.map((t) => t.id);
-      const otherTags = currentTagIds.filter((id) => !writingTypeIds.includes(id));
-      updateGroup({ questionTypeCode: code as QuestionTypeCode });
-      update({ tagIds: otherTags });
-      return;
-    }
-
-    // Get questionTypeCode from tag name
-    const code = (typeCodes[tag.name] || '') as QuestionTypeCode;
-
+    
     // Replace old writing type tag, keep others
     const writingTypeIds = validWritingTypeTags.map((t) => t.id);
     const otherTags = currentTagIds.filter((id) => !writingTypeIds.includes(id));
+    const existing = stimulus.questionGroups[0] || { questionTypeCode: 'SHORT_ANSWER', instruction: '', questions: [] };
 
-    updateGroup({ questionTypeCode: code });
-    update({ tagIds: [...otherTags, tag.id] });
+    if (!tag) {
+      // Cleared
+      onChange([{
+        ...stimulus,
+        questionGroups: [{ ...existing, questionTypeCode: '' as QuestionTypeCode }],
+        tagIds: otherTags
+      }]);
+      return;
+    }
+
+    // Find the matching code from typeCodes using the same logic as filtering
+    const matchingLabel = Object.keys(typeCodes).find(label => {
+      const normalizedLabel = label.replace('Task 1: ', '').replace('Task 2: ', '').toLowerCase();
+      const normalizedTagName = tag.name.toLowerCase();
+      
+      // Strict matching to avoid "Map Labeling" matching "Map"
+      return normalizedTagName === normalizedLabel || 
+             (normalizedLabel === 'mixed chart' && (normalizedTagName.includes('multi chart') || normalizedTagName.includes('mixed'))) ||
+             (normalizedTagName === 'mixed graph' && normalizedLabel === 'mixed chart');
+    });
+
+    const code = (matchingLabel ? typeCodes[matchingLabel] : Object.values(typeCodes)[0] || '') as QuestionTypeCode;
+
+    onChange([{
+      ...stimulus,
+      questionGroups: [{ ...existing, questionTypeCode: code }],
+      tagIds: [...otherTags, tag.id]
+    }]);
   };
 
   const updateTopic = (tagId: number) => {
@@ -142,57 +142,55 @@ export function TestImportStep2Writing({ stimuli, onChange, onNext, onBack, sect
     update({ tagIds: [...otherTags, tagId] });
   };
 
-  const updateSampleField = (key: string, value: string) => {
-    const updated = { ...sampleFields, [key]: value };
-    updateGroup({ instruction: buildSampleAnswer(updated) });
-  };
-
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-5">
-      {/* Dạng đề — Task 1 & Task 2 (dynamic from API, filtered by Task) */}
-      {(isTask1 || isTask2) && (
-        <div>
-          <label className="text-sm font-medium text-gray-700 mb-1.5 block">
-            Dạng đề
-            <span className="text-xs text-gray-400 font-normal ml-2">Task {section}</span>
-          </label>
-          <select
-            value={selectedWritingTypeTag?.id ?? ''}
-            onChange={(e) => updateWritingType(Number(e.target.value))}
-            className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="">-- Chọn dạng đề --</option>
-            {validWritingTypeTags.map((tag) => (
-              <option key={tag.id} value={tag.id}>{tag.name}</option>
-            ))}
-          </select>
-        </div>
-      )}
+    <div className="flex flex-col gap-6">
+      {/* Settings Row */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Dạng đề */}
+        {(isTask1 || isTask2) && (
+          <div className={isTask1 && !isTask2 ? "md:col-span-2" : ""}>
+            <label className="text-sm font-medium text-gray-700 mb-1.5 block">
+              Dạng đề
+              <span className="text-xs text-gray-400 font-normal ml-2">Task {section}</span>
+            </label>
+            <select
+              value={selectedWritingTypeTag?.id ?? ''}
+              onChange={(e) => updateWritingType(Number(e.target.value))}
+              className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">-- Chọn dạng đề --</option>
+              {validWritingTypeTags.map((tag) => (
+                <option key={tag.id} value={tag.id}>{tag.name}</option>
+              ))}
+            </select>
+          </div>
+        )}
 
-      {/* Chủ đề — chỉ hiển thị khi là Task 2 (dynamic from API) */}
-      {isTask2 && (
-        <div>
-          <label className="text-sm font-medium text-gray-700 mb-1.5 block">Chủ đề</label>
-          <select
-            value={selectedTopicTag?.id ?? ''}
-            onChange={(e) => updateTopic(Number(e.target.value))}
-            className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="">-- Chọn chủ đề --</option>
-            {topicTags.map((tag) => (
-              <option key={tag.id} value={tag.id}>{tag.name}</option>
-            ))}
-          </select>
-        </div>
-      )}
+        {/* Chủ đề */}
+        {isTask2 && (
+          <div>
+            <label className="text-sm font-medium text-gray-700 mb-1.5 block">Chủ đề</label>
+            <select
+              value={selectedTopicTag?.id ?? ''}
+              onChange={(e) => updateTopic(Number(e.target.value))}
+              className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">-- Chọn chủ đề --</option>
+              {topicTags.map((tag) => (
+                <option key={tag.id} value={tag.id}>{tag.name}</option>
+              ))}
+            </select>
+          </div>
+        )}
+      </div>
 
-      {/* Đề bài - Rich Text Editor giống Reading */}
-      <div className="flex min-h-0 flex-1 flex-col">
-        <label className="text-sm font-medium text-gray-700 mb-2 block">
-          Đề bài Writing
-          <span className="text-xs text-gray-400 font-normal ml-2">Có thể chèn ảnh biểu đồ trực tiếp vào đề</span>
+      {/* Đề bài - Higher height */}
+      <div className="flex flex-col">
+        <label className="text-sm font-medium text-gray-700 mb-2 block font-black uppercase tracking-tight">
+          1. Đề bài Writing
+          <span className="text-xs text-gray-400 font-normal ml-2 normal-case">Có thể chèn ảnh biểu đồ trực tiếp vào đề</span>
         </label>
-        <div className="flex min-h-0 flex-1">
+        <div className="h-[400px]">
           <StimulusCard
             stimulus={stimulus}
             onChange={(updated) => onChange([updated])}
@@ -200,30 +198,26 @@ export function TestImportStep2Writing({ stimuli, onChange, onNext, onBack, sect
         </div>
       </div>
 
-      {/* Bài mẫu - 4 fields */}
-      <div>
-        <label className="text-sm font-medium text-gray-700 mb-3 block">
-          Bài mẫu (tuỳ chọn)
+      {/* Bài mẫu - Single Rich Text Editor */}
+      <div className="flex flex-col">
+        <label className="text-sm font-medium text-gray-700 mb-2 block font-black uppercase tracking-tight">
+          2. Bài mẫu (Sample Answer)
+          <span className="text-xs text-gray-400 font-normal ml-2 normal-case">Nhập toàn bộ bài mẫu, hệ thống sẽ tự tách đoạn cho người học</span>
         </label>
-        <div className="space-y-3">
-          {SAMPLE_FIELDS.map((field) => (
-            <div key={field.key}>
-              <label className="text-xs font-medium text-gray-500 mb-1 block">{field.label}</label>
-              <textarea
-                value={sampleFields[field.key] || ''}
-                onChange={(e) => updateSampleField(field.key, e.target.value)}
-                placeholder={field.placeholder}
-                rows={field.rows}
-                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y"
-              />
-            </div>
-          ))}
+        <div className="h-[400px]">
+          <StimulusCard
+            stimulus={{
+              ...emptyStimulus(),
+              content: stimulus.questionGroups[0]?.instruction || '',
+            }}
+            onChange={(updated) => updateGroup({ instruction: updated.content })}
+          />
         </div>
       </div>
 
-      <div className="flex justify-between pt-2">
+      <div className="flex justify-between pt-4 border-t border-gray-100">
         <Button variant="outline" onClick={onBack}>Quay lại</Button>
-        <Button onClick={onNext} disabled={!isValid}>Tiếp theo</Button>
+        <Button onClick={onNext} disabled={!isValid} size="lg" className="px-10">Tiếp theo</Button>
       </div>
     </div>
   );

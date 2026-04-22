@@ -27,6 +27,7 @@ const GAP_TYPES = ['GAP_FILLING', 'DIAGRAM_LABEL'];
 interface Props {
   stimulus: StimulusDetail;
   submitted?: boolean;
+  readOnly?: boolean;
   answers: Record<number, number>;
   onAnswer: (questionId: number, optionId: number) => void;
   textAnswers?: Record<number, string>;
@@ -36,9 +37,22 @@ interface Props {
   examMode?: boolean;
 }
 
-export function ReadingQuestionsPanel({ stimulus, submitted = false, answers, onAnswer, textAnswers = {}, onTextAnswer, selectedPillId = null, onPillSelect, examMode = false }: Props) {
+export function ReadingQuestionsPanel({ 
+  stimulus, 
+  submitted = false, 
+  readOnly = false,
+  answers, 
+  onAnswer, 
+  textAnswers = {}, 
+  onTextAnswer, 
+  selectedPillId = null, 
+  onPillSelect, 
+  examMode = false 
+}: Props) {
+  const isDisabled = submitted || readOnly;
+
   const selectAnswer = (questionId: number, optionId: number) => {
-    if (submitted) return;
+    if (isDisabled) return;
     onAnswer(questionId, optionId);
   };
 
@@ -70,11 +84,9 @@ export function ReadingQuestionsPanel({ stimulus, submitted = false, answers, on
 
       {stimulus.questionGroups.map((group, gi) => {
         const isMatching = MATCHING_TYPES.includes(group.questionTypeCode || '');
-        // Calculate global question offset (sum of all previous groups' question counts)
         const questionOffset = stimulus.questionGroups
           .slice(0, gi)
           .reduce((sum, g) => sum + g.questions.length, 0);
-        // Remap questions with global position so all child components show correct numbers
         const globalQuestions = group.questions.map(q => ({
           ...q,
           position: questionOffset + q.position,
@@ -97,6 +109,7 @@ export function ReadingQuestionsPanel({ stimulus, submitted = false, answers, on
                 questions={globalQuestions}
                 answers={answers}
                 submitted={submitted}
+                readOnly={readOnly}
                 selectedPillId={selectedPillId}
                 onPillSelect={onPillSelect || (() => {})}
               />
@@ -105,6 +118,7 @@ export function ReadingQuestionsPanel({ stimulus, submitted = false, answers, on
                 questions={globalQuestions}
                 answers={answers}
                 submitted={submitted}
+                readOnly={readOnly}
                 onAnswer={selectAnswer}
               />
             ) : group.questionTypeCode === 'MATCHING_FEATURE' ? (
@@ -112,6 +126,7 @@ export function ReadingQuestionsPanel({ stimulus, submitted = false, answers, on
                 questions={globalQuestions}
                 answers={answers}
                 submitted={submitted}
+                readOnly={readOnly}
                 onAnswer={selectAnswer}
               />
             ) : isMatching ? (
@@ -119,6 +134,7 @@ export function ReadingQuestionsPanel({ stimulus, submitted = false, answers, on
                 questions={globalQuestions}
                 answers={answers}
                 submitted={submitted}
+                readOnly={readOnly}
                 onAnswer={selectAnswer}
               />
             ) : GAP_TYPES.includes(group.questionTypeCode || '') ? (
@@ -127,6 +143,7 @@ export function ReadingQuestionsPanel({ stimulus, submitted = false, answers, on
                 groupContent={group.groupContent}
                 imageUrl={group.imageUrl}
                 submitted={submitted}
+                readOnly={readOnly}
                 textAnswers={textAnswers}
                 onTextAnswer={onTextAnswer || (() => {})}
                 examMode={examMode}
@@ -145,6 +162,7 @@ export function ReadingQuestionsPanel({ stimulus, submitted = false, answers, on
                       selectedId={answers[question.id]}
                       multiple={group.questionTypeCode === 'MCQ_MULTIPLE'}
                       submitted={submitted}
+                      readOnly={readOnly}
                       explanation={question.explanation}
                       onAnswer={selectAnswer}
                       examMode={examMode}

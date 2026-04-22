@@ -47,7 +47,7 @@ interface Props {
 }
 
 export interface TestEditBasicInfoHandle {
-  save: () => Promise<boolean>;
+  save: (silent?: boolean) => Promise<boolean>;
 }
 
 export const TestEditBasicInfoTab = forwardRef<TestEditBasicInfoHandle, Props>(function TestEditBasicInfoTab(
@@ -80,18 +80,20 @@ export const TestEditBasicInfoTab = forwardRef<TestEditBasicInfoHandle, Props>(f
   const needsSection = sections.length > 0;
   const isWriting = skill === 'WRITING';
   const isSpeaking = skill === 'SPEAKING';
-  const isTask1 = test.section === 1;
+  const isTask1 = test.section === 1 || test.section === 3;
   const isTask2 = test.section === 2;
 
   // Derive valid writing type tags for the current task
   const taskTypeCodes = isTask1 ? WRITING_TASK1_TYPE_CODES : isTask2 ? WRITING_TASK2_TYPE_CODES : {};
-  const validWritingTypeTags = writingTypeTags.filter((t) => t.name in taskTypeCodes);
+  const validWritingTypeTags = writingTypeTags.filter((t) => 
+    Object.keys(taskTypeCodes).some(label => label.toLowerCase() === t.name.toLowerCase())
+  );
 
   // Load tags from API
   useEffect(() => {
     if (!isWriting && !isSpeaking) return;
     getTags().then(allTags => {
-      const wt = allTags.filter(t => t.type === 'WRITING_TYPE');
+      const wt = allTags.filter(t => t.type === 'WRITING_TYPE' || t.type === 'QUESTION_TYPE');
       const tp = allTags.filter(t => t.type === 'TOPIC');
       setWritingTypeTags(wt);
       setTopicTags(tp);
@@ -106,7 +108,7 @@ export const TestEditBasicInfoTab = forwardRef<TestEditBasicInfoHandle, Props>(f
         if (!existingWt && firstGroup?.questionTypeCode) {
           const typeCodes = isTask1 ? WRITING_TASK1_TYPE_CODES : isTask2 ? WRITING_TASK2_TYPE_CODES : {};
           const label = Object.keys(typeCodes).find((l) => typeCodes[l] === firstGroup.questionTypeCode);
-          const fallbackWt = wt.find(t => t.name === label);
+          const fallbackWt = wt.find(t => t.name.toLowerCase() === (label || '').toLowerCase());
           if (fallbackWt) setSelectedWritingTypeId(fallbackWt.id);
         } else if (existingWt) {
           setSelectedWritingTypeId(existingWt.id);
@@ -124,13 +126,13 @@ export const TestEditBasicInfoTab = forwardRef<TestEditBasicInfoHandle, Props>(f
     setTestTagIds(newTags);
   };
 
-  const handleSave = async () => {
+  const handleSave = async (silent = false) => {
     if (!title.trim()) {
-      toast.error('Vui lòng nhập tiêu đề');
+      if (!silent) toast.error('Vui lòng nhập tiêu đề');
       return false;
     }
     if (skill !== 'LISTENING' && (!duration || Number(duration) <= 0)) {
-      toast.error('Vui lòng nhập thời gian làm bài');
+      if (!silent) toast.error('Vui lòng nhập thời gian làm bài');
       return false;
     }
 
@@ -180,13 +182,16 @@ export const TestEditBasicInfoTab = forwardRef<TestEditBasicInfoHandle, Props>(f
         }
       }
 
-      toast.success('Cập nhật thành công!');
       queryClient.invalidateQueries({ queryKey: ['admin', 'test', String(test.id)] });
-      if (onSaved) onSaved();
-      else router.push(`/admin/tests/${test.id}`);
+      
+      if (!silent) {
+        toast.success('Cập nhật thành công!');
+        if (onSaved) onSaved();
+        else router.push(`/admin/tests/${test.id}`);
+      }
       return true;
     } catch {
-      toast.error('Cập nhật thất bại');
+      if (!silent) toast.error('Cập nhật thất bại');
       return false;
     }
   };

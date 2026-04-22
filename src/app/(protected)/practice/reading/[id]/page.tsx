@@ -57,6 +57,7 @@ export default function ReadingExercisePage({ params }: Props) {
   const markCompleted = usePracticeStore((state) => state.markCompleted);
   const { setMode, setActiveTool, clearAll } = useReadingStore();
   const [submitted, setSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [exitOpen, setExitOpen] = useState(false);
   const [activeStimulusIdx] = useState(0);
@@ -178,7 +179,8 @@ export default function ReadingExercisePage({ params }: Props) {
   };
 
   const handleComplete = async () => {
-    if (submitted) return; // guard against double-submit
+    if (submitted || isSubmitting) return; // guard against double-submit
+    setIsSubmitting(true);
     setSubmitted(true);
     setConfirmOpen(false);
     markCompleted(id);
@@ -195,6 +197,8 @@ export default function ReadingExercisePage({ params }: Props) {
         sessionStorage.setItem(`practice-result-${id}`, JSON.stringify({
           testId: id, answers, textAnswers, elapsedSeconds: countdownTimer.elapsed,
         }));
+      } finally {
+        setIsSubmitting(false);
       }
       router.push(`/practice/reading/${id}/result`);
       return;
@@ -228,11 +232,14 @@ export default function ReadingExercisePage({ params }: Props) {
         sessionStorage.setItem(`practice-result-${id}`, JSON.stringify({
           testId: id, answers, textAnswers, elapsedSeconds: elapsed,
         }));
+      } finally {
+        setIsSubmitting(false);
       }
     } else {
       sessionStorage.setItem(`practice-result-${id}`, JSON.stringify({
         testId: id, answers, textAnswers, elapsedSeconds: elapsed,
       }));
+      setIsSubmitting(false);
     }
 
     router.push(`/practice/reading/${id}/result`);
@@ -317,7 +324,9 @@ export default function ReadingExercisePage({ params }: Props) {
           onAnswer={handleAnswer}
           onTextAnswer={handleTextAnswer}
           onSubmit={() => setConfirmOpen(true)}
-          submitted={submitted}
+          isSubmitting={isSubmitting}
+          submitted={false} // Don't show results on this page
+          readOnly={submitted} // Disable inputs after clicking submit
           elapsedTime={displayTime}
         />
       ) : (
@@ -328,7 +337,9 @@ export default function ReadingExercisePage({ params }: Props) {
           onAnswer={handleAnswer}
           onTextAnswer={handleTextAnswer}
           onSubmit={() => setConfirmOpen(true)}
-          submitted={submitted}
+          isSubmitting={isSubmitting}
+          submitted={false} // Don't show results on this page
+          readOnly={submitted} // Disable inputs after clicking submit
           elapsedTime={displayTime}
           selectedPillId={selectedPillId}
           onPillSelect={setSelectedPillId}

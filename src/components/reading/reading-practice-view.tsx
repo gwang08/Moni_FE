@@ -19,7 +19,9 @@ interface Props {
   onAnswer: (questionId: number, optionId: number) => void;
   onTextAnswer: (questionId: number, text: string) => void;
   onSubmit?: () => void;
+  isSubmitting?: boolean;
   submitted: boolean;
+  readOnly?: boolean;
   elapsedTime?: string;
   selectedPillId: number | null;
   onPillSelect: (id: number | null) => void;
@@ -81,7 +83,9 @@ export function ReadingPracticeView({
   onAnswer,
   onTextAnswer,
   onSubmit,
+  isSubmitting = false,
   submitted,
+  readOnly = false,
   elapsedTime,
   selectedPillId,
   onPillSelect,

@@ -18,12 +18,15 @@ interface Props {
   questions: QuestionDetail[];
   answers: Record<number, number>;
   submitted: boolean;
+  readOnly?: boolean;
   selectedPillId: number | null;
   onPillSelect: (id: number | null) => void;
 }
 
 /** Heading pills for matching headings - click to select, then click drop zone on passage */
-export function ReadingMatchingPills({ questions, answers, submitted, selectedPillId, onPillSelect }: Props) {
+export function ReadingMatchingPills({ questions, answers, submitted, readOnly = false, selectedPillId, onPillSelect }: Props) {
+  const isDisabled = submitted || readOnly;
+
   const allOptions = useMemo(() => {
     const opts = questions[0]?.options || [];
     return seededShuffle(opts, questions[0]?.id || 0);
@@ -43,13 +46,17 @@ export function ReadingMatchingPills({ questions, answers, submitted, selectedPi
   }, [questions, answers]);
 
   const handleClick = (optionId: number) => {
-    if (submitted) return;
+    if (isDisabled) return;
     onPillSelect(selectedPillId === optionId ? null : optionId);
   };
 
   const handleDragStart = (e: React.DragEvent, optionId: number) => {
-    e.dataTransfer.setData('text/plain', String(optionId));
-    e.dataTransfer.effectAllowed = 'move';
+    if (isDisabled) {
+      e.preventDefault();
+      return;
+    }
+    onPillSelect(optionId);
+    e.dataTransfer.setData('text/plain', optionId.toString());
   };
 
   return (

@@ -8,12 +8,15 @@ interface Props {
   questions: QuestionDetail[];
   answers: Record<number, number>;
   submitted: boolean;
+  readOnly?: boolean;
   onAnswer: (questionId: number, optionId: number) => void;
   examMode?: boolean;
   questionPositionById?: Record<number, number>;
 }
 
-export function ReadingMatchingInformation({ questions, answers, submitted, onAnswer, questionPositionById = {} }: Props) {
+export function ReadingMatchingInformation({ questions, answers, submitted, readOnly = false, onAnswer, questionPositionById = {} }: Props) {
+  const isDisabled = submitted || readOnly;
+
   // Extract unique paragraph labels from options (A, B, C, D...)
   const paraLabels = useMemo(() => {
     const labels = new Set<string>();
@@ -66,13 +69,13 @@ export function ReadingMatchingInformation({ questions, answers, submitted, onAn
                       <td key={label} className="text-center py-3 px-1">
                         <button
                           type="button"
-                          onClick={() => !submitted && onAnswer(q.id, opt.id)}
-                          disabled={submitted}
+                          onClick={() => !isDisabled && onAnswer(q.id, opt.id)}
+                          disabled={isDisabled}
                           className="inline-flex items-center justify-center"
                         >
                           <span className={`
                             inline-flex items-center justify-center h-5 w-5 rounded-full border-2 transition-all
-                            ${submitted
+                            ${isDisabled
                               ? isSelected && isThisCorrect
                                 ? 'border-blue-600 bg-blue-600'
                                 : isSelected && !isThisCorrect
@@ -85,7 +88,7 @@ export function ReadingMatchingInformation({ questions, answers, submitted, onAn
                                 : 'border-gray-300 hover:border-gray-500'
                             }
                           `}>
-                            {(isSelected || (submitted && isThisCorrect)) && <span className="h-2 w-2 rounded-full bg-white" />}
+                            {(isSelected || (isDisabled && isThisCorrect)) && <span className="h-2 w-2 rounded-full bg-white" />}
                           </span>
                         </button>
                       </td>

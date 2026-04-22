@@ -35,7 +35,7 @@ export default function TestDetailPage() {
         return;
       }
 
-      const basicSaved = await basicInfoRef.current.save();
+      const basicSaved = await basicInfoRef.current.save(true);
       if (!basicSaved) {
         toast.error('Lưu thông tin cơ bản thất bại');
         return;
@@ -47,7 +47,7 @@ export default function TestDetailPage() {
         return;
       }
 
-      const contentSaved = await contentRef.current.saveAll();
+      const contentSaved = await contentRef.current.saveAll(true);
       if (contentSaved === false) {
         toast.error('Lưu nội dung bài thi thất bại');
         return;

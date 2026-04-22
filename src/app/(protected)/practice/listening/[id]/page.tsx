@@ -52,6 +52,7 @@ export default function ListeningExercisePage({ params }: Props) {
   const { resetPlayer } = useListeningStore();
 
   const [submitted, setSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [exitOpen, setExitOpen] = useState(false);
   const [notesOpen, setNotesOpen] = useState(false);
@@ -169,7 +170,8 @@ export default function ListeningExercisePage({ params }: Props) {
   };
 
   const handleComplete = async () => {
-    if (submitted) return; // guard against double-submit
+    if (submitted || isSubmitting) return; // guard against double-submit
+    setIsSubmitting(true);
     setSubmitted(true);
     setConfirmOpen(false);
     markCompleted(id);
@@ -186,6 +188,8 @@ export default function ListeningExercisePage({ params }: Props) {
         sessionStorage.setItem(`practice-result-${id}`, JSON.stringify({
           testId: id, answers, textAnswers, elapsedSeconds: countdownTimer.elapsed,
         }));
+      } finally {
+        setIsSubmitting(false);
       }
       router.push(`/practice/listening/${id}/result`);
       return;
@@ -209,9 +213,12 @@ export default function ListeningExercisePage({ params }: Props) {
         }
       } catch {
         sessionStorage.setItem(`practice-result-${id}`, JSON.stringify({ testId: id, answers, textAnswers, elapsedSeconds: elapsed }));
+      } finally {
+        setIsSubmitting(false);
       }
     } else {
       sessionStorage.setItem(`practice-result-${id}`, JSON.stringify({ testId: id, answers, textAnswers, elapsedSeconds: elapsed }));
+      setIsSubmitting(false);
     }
 
     router.push(`/practice/listening/${id}/result`);
@@ -244,7 +251,9 @@ export default function ListeningExercisePage({ params }: Props) {
           onAnswer={handleAnswer}
           onTextAnswer={handleTextAnswer}
           onSubmit={() => setConfirmOpen(true)}
-          submitted={submitted}
+          isSubmitting={isSubmitting}
+          submitted={false} // Don't show results on this page
+          readOnly={submitted} // Disable inputs after clicking submit
           isPlaying={isPlaying}
           elapsedTime={elapsedTime}
         />
@@ -256,7 +265,9 @@ export default function ListeningExercisePage({ params }: Props) {
           onAnswer={handleAnswer}
           onTextAnswer={handleTextAnswer}
           onSubmit={() => setConfirmOpen(true)}
-          submitted={submitted}
+          isSubmitting={isSubmitting}
+          submitted={false} // Don't show results on this page
+          readOnly={submitted} // Disable inputs after clicking submit
           isPlaying={isPlaying}
           elapsedTime={elapsedTime}
         />

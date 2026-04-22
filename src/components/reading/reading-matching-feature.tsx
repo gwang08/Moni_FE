@@ -8,12 +8,15 @@ interface Props {
   questions: QuestionDetail[];
   answers: Record<number, number>;
   submitted: boolean;
+  readOnly?: boolean;
   onAnswer: (questionId: number, optionId: number) => void;
   examMode?: boolean;
   questionPositionById?: Record<number, number>;
 }
 
-export function ReadingMatchingFeature({ questions, answers, submitted, onAnswer, examMode = false, questionPositionById = {} }: Props) {
+export function ReadingMatchingFeature({ questions, answers, submitted, readOnly = false, onAnswer, examMode = false, questionPositionById = {} }: Props) {
+  const isDisabled = submitted || readOnly;
+
   // Extract unique categories from options (A → "Howard Gardner", B → "Sternberg", etc.)
   const categories = useMemo(() => {
     const map = new Map<string, string>();
@@ -82,13 +85,13 @@ export function ReadingMatchingFeature({ questions, answers, submitted, onAnswer
                       <td key={c.label} className="text-center py-3 px-2">
                         <button
                           type="button"
-                          onClick={() => !submitted && onAnswer(q.id, opt.id)}
-                          disabled={submitted}
+                          onClick={() => !isDisabled && onAnswer(q.id, opt.id)}
+                          disabled={isDisabled}
                           className="inline-flex items-center justify-center"
                         >
                           <span className={`
                             inline-flex items-center justify-center h-5 w-5 rounded-full border-2 transition-all
-                            ${submitted
+                            ${isDisabled
                               ? isSelected && isThisCorrect
                                 ? 'border-gray-900 bg-gray-900'
                                 : isSelected && !isThisCorrect
@@ -101,7 +104,7 @@ export function ReadingMatchingFeature({ questions, answers, submitted, onAnswer
                                 : 'border-gray-300 hover:border-gray-500'
                             }
                           `}>
-                            {(isSelected || (submitted && isThisCorrect)) && (
+                            {(isSelected || (isDisabled && isThisCorrect)) && (
                               <span className={`h-2 w-2 rounded-full ${
                                 'bg-white'
                               }`} />

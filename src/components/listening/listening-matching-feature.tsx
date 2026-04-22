@@ -8,12 +8,23 @@ interface Props {
   questions: QuestionDetail[];
   answers: Record<number, number>;
   submitted: boolean;
+  readOnly?: boolean;
   onAnswer: (questionId: number, optionId: number) => void;
   examMode?: boolean;
   questionPositionById?: Record<number, number>;
 }
 
-export function ListeningMatchingFeature({ questions, answers, submitted, onAnswer, examMode = false, questionPositionById = {} }: Props) {
+export function ListeningMatchingFeature({ 
+  questions, 
+  answers, 
+  submitted, 
+  readOnly = false,
+  onAnswer, 
+  examMode = false, 
+  questionPositionById = {} 
+}: Props) {
+  const isDisabled = submitted || readOnly;
+
   // Extract unique categories from options (A → "Howard Gardner", B → "Sternberg", etc.)
   const categories = useMemo(() => {
     const map = new Map<string, string>();
@@ -61,7 +72,6 @@ export function ListeningMatchingFeature({ questions, answers, submitted, onAnsw
             {questions.map(q => {
               const selectedOptId = answers[q.id];
               const selectedOpt = q.options.find(o => o.id === selectedOptId);
-              const correctOpt = q.options.find(o => o.isCorrect);
               const isCorrect = selectedOpt?.isCorrect;
 
               return (
@@ -82,8 +92,8 @@ export function ListeningMatchingFeature({ questions, answers, submitted, onAnsw
                       <td key={c.label} className="text-center py-3 px-2">
                         <button
                           type="button"
-                          onClick={() => !submitted && onAnswer(q.id, opt.id)}
-                          disabled={submitted}
+                          onClick={() => !isDisabled && onAnswer(q.id, opt.id)}
+                          disabled={isDisabled}
                           className="inline-flex items-center justify-center"
                         >
                           <span className={`
@@ -156,8 +166,8 @@ export function ListeningMatchingFeature({ questions, answers, submitted, onAnsw
                     <button
                       key={c.label}
                       type="button"
-                      onClick={() => !submitted && onAnswer(q.id, opt.id)}
-                      disabled={submitted}
+                      onClick={() => !isDisabled && onAnswer(q.id, opt.id)}
+                      disabled={isDisabled}
                       className={`
                         h-8 w-8 rounded-lg border-2 text-xs font-bold transition-all
                         ${submitted

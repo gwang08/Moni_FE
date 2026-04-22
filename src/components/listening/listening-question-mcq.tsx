@@ -28,6 +28,7 @@ interface Props {
   selectedIds?: number[];
   multiple?: boolean;
   submitted: boolean;
+  readOnly?: boolean;
   explanation?: { text?: string; evidence?: string };
   onAnswer: (questionId: number, optionId: number) => void;
   onLocateEvidence?: (evidence: string) => void;
@@ -44,90 +45,130 @@ export function ListeningQuestionMcq({
   selectedIds,
   multiple,
   submitted,
+  readOnly = false,
   explanation,
   onAnswer,
   onLocateEvidence,
   examMode = false,
 }: Props) {
+  const [showExplanation, setShowExplanation] = useState(false);
   const selected = multiple ? (selectedIds ?? []) : (selectedId != null ? [selectedId] : []);
-  const hasAnswer = selected.length > 0;
+  const isDisabled = submitted || readOnly;
 
-  if (examMode) {
+  if (submitted && !examMode) {
+    // Review mode: Direct highlights on options (like Reading)
     return (
-      <div id={`question-${questionId}`} className="bg-white">
-        <div className="flex items-start gap-4 mb-3">
-          <span className="min-w-[20px] text-sm font-bold text-gray-900 mt-0.5">{position}</span>
-          <p className="flex-1 text-sm text-gray-800 font-normal leading-relaxed mb-3">{content}</p>
+      <div id={`question-${questionId}`} className="py-6 border-b border-slate-100 last:border-0 group">
+        <div className="flex items-start gap-4 mb-5">
+          <span className="min-w-[28px] h-7 flex items-center justify-center rounded-full bg-slate-900 text-[12px] font-black text-white mt-0.5 shadow-sm">
+            {position}
+          </span>
+          <p className="flex-1 text-[15px] text-slate-800 font-bold leading-relaxed">{content}</p>
         </div>
 
-        <div className="space-y-1.5">
+        <div className="space-y-2.5 ml-11">
           {options.map((option) => {
             const isSelected = selected.includes(option.id);
+            const isOptCorrect = option.isCorrect;
+            
+            // Highlight Logic matching Reading review style
+            let variantClass = "border-slate-200 text-slate-600 bg-white";
+            
+            if (isSelected && isOptCorrect) {
+              variantClass = "bg-green-100 border-green-500 text-green-800 font-bold shadow-sm ring-1 ring-green-500/20";
+            } else if (isSelected && !isOptCorrect) {
+              variantClass = "bg-red-50 border-red-400 text-red-700 font-bold shadow-sm ring-1 ring-red-400/20";
+            } else if (!isSelected && isOptCorrect) {
+              variantClass = "bg-green-50/50 border-green-300 text-green-700 font-medium italic";
+            }
 
             return (
-              <label
-                key={option.id}
-                className={`flex items-center gap-3 rounded-sm px-1 py-1.5 transition-colors ${
-                  isSelected
-                    ? 'bg-gray-50 text-gray-900'
-                    : 'text-gray-800 hover:bg-gray-50/60'
-                } ${submitted ? 'cursor-default opacity-90' : 'cursor-pointer'}`}
-              >
-                <input
-                  type={multiple ? 'checkbox' : 'radio'}
-                  name={`question-${questionId}`}
-                  value={option.id}
-                  checked={isSelected}
-                  disabled={submitted}
-                  onChange={() => !submitted && onAnswer(questionId, option.id)}
-                  className="h-4 w-4 shrink-0 border-gray-400 text-gray-900 focus:ring-gray-900"
-                />
-                <span className={`text-sm font-normal leading-5 ${isSelected ? 'font-medium' : ''}`}>
+              <div key={option.id} className={`flex items-center gap-3 px-4 py-3.5 rounded-xl border transition-all ${variantClass}`}>
+                <div className={`h-4.5 w-4.5 rounded-full border-2 shrink-0 flex items-center justify-center ${
+                  isSelected ? (isOptCorrect ? 'border-green-600' : 'border-red-500') : (isOptCorrect ? 'border-green-400' : 'border-slate-300')
+                }`}>
+                  {(isSelected || isOptCorrect) && (
+                    <div className={`h-2 w-2 rounded-full ${isOptCorrect ? 'bg-green-600' : 'bg-red-500'}`} />
+                  )}
+                </div>
+                <span className="text-[14px] leading-snug">
                   {option.content}
                 </span>
-              </label>
+                {isSelected && isOptCorrect && <CheckCircle2 className="h-4.5 w-4.5 ml-auto text-green-600 shrink-0" />}
+                {isSelected && !isOptCorrect && <XCircle className="h-4.5 w-4.5 ml-auto text-red-500 shrink-0" />}
+              </div>
             );
           })}
         </div>
 
-        {submitted && !hasAnswer && (
-          <p className="mt-3 text-xs text-gray-500 italic">Chưa trả lời</p>
+        {/* Action Icons (Evidence & Explanation) */}
+        <div className="mt-5 ml-11 flex items-center gap-3">
+          {explanation?.evidence && (
+            <button
+              onClick={() => onLocateEvidence?.(explanation.evidence!)}
+              className="flex items-center gap-2 px-3 py-1.5 hover:bg-slate-100 rounded-full transition-colors text-slate-900 border border-slate-100 shadow-sm"
+            >
+              <TargetIcon className="h-4 w-4" />
+              <span className="text-[11px] font-black uppercase tracking-wider">Dẫn chứng</span>
+            </button>
+          )}
+          {explanation?.text && (
+            <button
+              onClick={() => setShowExplanation(!showExplanation)}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-full transition-colors border shadow-sm ${
+                showExplanation 
+                  ? 'bg-yellow-100 text-yellow-800 border-yellow-200' 
+                  : 'hover:bg-slate-100 text-slate-600 border-slate-100'
+              }`}
+            >
+              <Lightbulb className="h-4 w-4" />
+              <span className="text-[11px] font-black uppercase tracking-wider">
+                {showExplanation ? 'Đóng giải thích' : 'Giải thích đáp án'}
+              </span>
+            </button>
+          )}
+        </div>
+
+        {showExplanation && explanation?.text && (
+          <div className="mt-4 ml-11 p-5 bg-yellow-50/50 rounded-2xl text-[14px] text-yellow-900 leading-relaxed border border-yellow-100 shadow-inner animate-in fade-in slide-in-from-top-2 duration-300">
+             {explanation.text.replace(/^Câu\s+\d+\s*[-–—]\s*Giải thích đáp án\s*/i, '')}
+          </div>
         )}
       </div>
     );
   }
 
-  // Non-exam mode rendering (review mode)
-  const correctOption = options.find(o => o.isCorrect);
-  const isCorrect = selectedId != null && correctOption?.id === selectedId;
-  const isSkipped = selectedId == null;
-
+  // Regular/Exam Mode
   return (
-    <div id={`question-${questionId}`} className="mb-4">
-      <div className="flex items-start gap-2 mb-3">
-        <span className="font-bold text-gray-900 min-w-[20px]">{position}</span>
-        <p className="text-sm text-gray-900 flex-1 leading-6">{content}</p>
+    <div id={`question-${questionId}`} className="bg-white">
+      <div className="flex items-start gap-4 mb-3">
+        <span className="min-w-[20px] text-sm font-bold text-gray-900 mt-0.5">{position}</span>
+        <p className="flex-1 text-sm text-gray-800 font-normal leading-relaxed mb-3">{content}</p>
       </div>
 
-      <div className="space-y-3 ml-2">
+      <div className="space-y-1.5">
         {options.map((option) => {
           const isSelected = selected.includes(option.id);
 
           return (
             <label
               key={option.id}
-              className={`flex items-start gap-3 cursor-pointer ${submitted ? 'cursor-default' : ''}`}
+              className={`flex items-center gap-3 rounded-sm px-1 py-1.5 transition-colors ${
+                isSelected
+                  ? 'bg-gray-50 text-gray-900'
+                  : 'text-gray-800 hover:bg-gray-50/60'
+              } ${isDisabled ? 'cursor-default opacity-90' : 'cursor-pointer'}`}
             >
               <input
                 type={multiple ? 'checkbox' : 'radio'}
                 name={`question-${questionId}`}
                 value={option.id}
                 checked={isSelected}
-                disabled={submitted}
-                onChange={() => !submitted && onAnswer(questionId, option.id)}
-                className="mt-0.5 h-4 w-4 shrink-0 border-2 border-gray-400 text-blue-600 focus:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-60"
+                disabled={isDisabled}
+                onChange={() => !isDisabled && onAnswer(questionId, option.id)}
+                className="h-4 w-4 shrink-0 border-gray-400 text-gray-900 focus:ring-gray-900"
               />
-              <span className="text-sm text-gray-900 leading-6">
+              <span className={`text-sm font-normal leading-5 ${isSelected ? 'font-medium' : ''}`}>
                 {option.content}
               </span>
             </label>
@@ -135,105 +176,8 @@ export function ListeningQuestionMcq({
         })}
       </div>
 
-      {submitted && (
-        <MCQReviewSection
-          position={position}
-          isSkipped={isSkipped}
-          isCorrect={isCorrect}
-          correctOption={correctOption}
-          explanation={explanation}
-          onLocateEvidence={onLocateEvidence}
-        />
-      )}
-    </div>
-  );
-}
-
-/** Separate component for MCQ review section */
-function MCQReviewSection({ position, isSkipped, isCorrect, correctOption, explanation, onLocateEvidence }: {
-  position: number;
-  isSkipped: boolean;
-  isCorrect: boolean;
-  correctOption: OptionDetail | undefined;
-  explanation?: { text?: string; evidence?: string };
-  onLocateEvidence?: (evidence: string) => void;
-}) {
-  return (
-    <div className="mt-4 pt-4 border-t border-gray-200">
-      <div className="flex items-center gap-2 flex-wrap">
-        <span className="font-bold text-gray-900 min-w-[20px]">{position}.</span>
-        {isSkipped && (
-          <span className="text-gray-500 italic">
-            Chưa trả lời — Đáp án: <strong className="text-green-600">{correctOption?.content}</strong>
-          </span>
-        )}
-        {!isSkipped && isCorrect && (
-          <span className="flex items-center gap-2">
-            <CheckCircle2 className="h-4 w-4 text-gray-900" />
-            <span className="text-gray-900 font-semibold">Đúng</span>
-          </span>
-        )}
-        {!isSkipped && !isCorrect && (
-          <span className="flex items-center gap-2">
-            <XCircle className="h-4 w-4 text-gray-700" />
-            <span className="text-gray-800">
-              Đáp án: <strong className="text-green-600">{correctOption?.content}</strong>
-            </span>
-          </span>
-        )}
-      </div>
-
-      {explanation && (explanation.text || explanation.evidence) && (
-        <ExplanationSection explanation={explanation} onLocateEvidence={onLocateEvidence} />
-      )}
-    </div>
-  );
-}
-
-/** Reusable explanation section with toggleable explanation text */
-function ExplanationSection({ explanation, onLocateEvidence }: {
-  explanation: { text?: string; evidence?: string };
-  onLocateEvidence?: (evidence: string) => void;
-}) {
-  const [showExplanation, setShowExplanation] = useState(false);
-
-  // Remove "Câu X - Giải thích đáp án" prefix from explanation text
-  const cleanExplanation = explanation.text?.replace(/^Câu\s+\d+\s*[-–—]\s*Giải thích đáp án\s*/i, '') || explanation.text;
-
-  return (
-    <div className="mt-3">
-      <div className="flex items-center gap-2">
-        {explanation.evidence && onLocateEvidence && (
-          <button
-            type="button"
-            onClick={() => {
-              const evidenceStr = explanation.evidence || '';
-              const chunks = evidenceStr.split('\n---\n').filter((e: string) => e.trim());
-              if (chunks.length > 0) onLocateEvidence(chunks[0].trim());
-            }}
-            className="w-6 h-6 rounded-full flex items-center justify-center hover:bg-gray-100 transition-colors cursor-pointer"
-            title="Xem dẫn chứng"
-          >
-            <TargetIcon className="h-4 w-4 text-gray-900" strokeWidth={2} />
-          </button>
-        )}
-        {explanation.text && (
-          <button
-            type="button"
-            onClick={() => setShowExplanation(!showExplanation)}
-            className={`w-6 h-6 rounded-full flex items-center justify-center transition-colors cursor-pointer ${
-              showExplanation ? 'bg-yellow-200 hover:bg-yellow-300' : 'bg-yellow-100 hover:bg-yellow-200'
-            }`}
-            title="Xem giải thích"
-          >
-            <Lightbulb className={`h-4 w-4 ${showExplanation ? 'text-yellow-800' : 'text-yellow-700'}`} />
-          </button>
-        )}
-      </div>
-      {showExplanation && cleanExplanation && (
-        <div className="mt-2 text-sm text-gray-700 bg-gray-50 rounded px-3 py-2">
-          {cleanExplanation}
-        </div>
+      {submitted && (selected.length === 0) && (
+        <p className="mt-3 text-xs text-gray-500 italic">Chưa trả lời</p>
       )}
     </div>
   );

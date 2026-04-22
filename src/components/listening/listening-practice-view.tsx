@@ -23,7 +23,9 @@ interface Props {
   onAnswer: (questionId: number, optionId: number) => void;
   onTextAnswer: (questionId: number, text: string) => void;
   onSubmit?: () => void;
+  isSubmitting?: boolean;
   submitted: boolean;
+  readOnly?: boolean;
   isPlaying: boolean;
   elapsedTime?: string;
 }
@@ -35,7 +37,9 @@ export function ListeningPracticeView({
   onAnswer,
   onTextAnswer,
   onSubmit,
+  isSubmitting = false,
   submitted,
+  readOnly = false,
   isPlaying,
   elapsedTime,
 }: Props) {

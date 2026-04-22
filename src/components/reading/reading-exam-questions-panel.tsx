@@ -11,6 +11,7 @@ import { ReadingGapFilling } from '@/components/reading/reading-gap-filling';
 interface Props {
   stimulus: StimulusDetail;
   submitted?: boolean;
+  readOnly?: boolean;
   answers: Record<number, number>;
   onAnswer: (questionId: number, optionId: number) => void;
   textAnswers?: Record<number, string>;
@@ -90,14 +91,17 @@ function IELTSMCQBox({
 export function ReadingExamQuestionsPanel({
   stimulus,
   submitted = false,
+  readOnly = false,
   answers,
   onAnswer,
   textAnswers = {},
-  onTextAnswer,
+  onTextAnswer = () => {},
   selectedPillId = null,
-  onPillSelect,
-  globalQuestionOffset,
+  onPillSelect = () => {},
+  globalQuestionOffset = 1,
 }: Props) {
+  const isDisabled = submitted || readOnly;
+
   const questionMeta = useMemo(() => {
     const questionPositionById: Record<number, number> = {};
     const questionRangeByGroupId: Record<number, { start: number; end: number }> = {};
@@ -155,7 +159,7 @@ export function ReadingExamQuestionsPanel({
                 questions={groupQuestions}
                 groupContent={group.groupContent}
                 imageUrl={group.imageUrl}
-                submitted={submitted}
+                submitted={isDisabled}
                 textAnswers={textAnswers}
                 onTextAnswer={onTextAnswer || (() => {})}
                 questionPositionById={questionMeta.questionPositionById}
@@ -166,7 +170,7 @@ export function ReadingExamQuestionsPanel({
                 <ReadingMatchingPills
                   questions={groupQuestions}
                   answers={answers}
-                  submitted={submitted}
+                  submitted={isDisabled}
                   selectedPillId={selectedPillId}
                   onPillSelect={onPillSelect || (() => {})}
                 />
@@ -176,7 +180,7 @@ export function ReadingExamQuestionsPanel({
                 <ReadingMatchingInformation
                   questions={groupQuestions}
                   answers={answers}
-                  submitted={submitted}
+                  submitted={isDisabled}
                   onAnswer={onAnswer}
                   examMode
                   questionPositionById={questionMeta.questionPositionById}
@@ -187,7 +191,7 @@ export function ReadingExamQuestionsPanel({
                 <ReadingMatchingFeature
                   questions={groupQuestions}
                   answers={answers}
-                  submitted={submitted}
+                  submitted={isDisabled}
                   onAnswer={onAnswer}
                   examMode
                   questionPositionById={questionMeta.questionPositionById}
@@ -197,7 +201,7 @@ export function ReadingExamQuestionsPanel({
               <IELTSMCQBox
                 questions={groupQuestions}
                 answers={answers}
-                submitted={submitted}
+                submitted={isDisabled}
                 onAnswer={onAnswer}
                 questionPositionById={questionMeta.questionPositionById}
               />
@@ -209,7 +213,7 @@ export function ReadingExamQuestionsPanel({
                   content={groupQuestions[0]?.content}
                   options={groupQuestions[0]?.options}
                   selectedId={answers[groupQuestions[0]?.id]}
-                  submitted={submitted}
+                  submitted={isDisabled}
                   onAnswer={onAnswer}
                   examMode
                 />

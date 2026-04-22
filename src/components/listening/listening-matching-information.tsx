@@ -8,12 +8,23 @@ interface Props {
   questions: QuestionDetail[];
   answers: Record<number, number>;
   submitted: boolean;
+  readOnly?: boolean;
   onAnswer: (questionId: number, optionId: number) => void;
   examMode?: boolean;
   questionPositionById?: Record<number, number>;
 }
 
-export function ListeningMatchingInformation({ questions, answers, submitted, onAnswer, examMode = false, questionPositionById = {} }: Props) {
+export function ListeningMatchingInformation({ 
+  questions, 
+  answers, 
+  submitted, 
+  readOnly = false,
+  onAnswer, 
+  examMode = false, 
+  questionPositionById = {} 
+}: Props) {
+  const isDisabled = submitted || readOnly;
+
   // Extract unique paragraph labels from options (A, B, C, D...)
   const paraLabels = useMemo(() => {
     const labels = new Set<string>();
@@ -66,8 +77,8 @@ export function ListeningMatchingInformation({ questions, answers, submitted, on
                       <td key={label} className="text-center py-3 px-1">
                         <button
                           type="button"
-                          onClick={() => !submitted && onAnswer(q.id, opt.id)}
-                          disabled={submitted}
+                          onClick={() => !isDisabled && onAnswer(q.id, opt.id)}
+                          disabled={isDisabled}
                           className="inline-flex items-center justify-center"
                         >
                           <span className={`
@@ -135,8 +146,8 @@ export function ListeningMatchingInformation({ questions, answers, submitted, on
                     <button
                       key={label}
                       type="button"
-                      onClick={() => !submitted && onAnswer(q.id, opt.id)}
-                      disabled={submitted}
+                      onClick={() => !isDisabled && onAnswer(q.id, opt.id)}
+                      disabled={isDisabled}
                       className={`
                         h-8 w-8 rounded-lg border-2 text-xs font-bold transition-all
                         ${submitted

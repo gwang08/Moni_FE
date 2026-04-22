@@ -23,7 +23,9 @@ interface Props {
   onAnswer: (questionId: number, optionId: number) => void;
   onTextAnswer: (questionId: number, text: string) => void;
   onSubmit?: () => void;
+  isSubmitting?: boolean;
   submitted: boolean;
+  readOnly?: boolean;
   isPlaying: boolean;
   elapsedTime?: string;
 }
@@ -35,7 +37,9 @@ export function ListeningExamView({
   onAnswer,
   onTextAnswer,
   onSubmit,
+  isSubmitting = false,
   submitted,
+  readOnly = false,
   isPlaying,
   elapsedTime,
 }: Props) {
@@ -43,6 +47,7 @@ export function ListeningExamView({
   const [activeQuestionId, setActiveQuestionId] = useState<number | null>(null);
 
   const currentStimulus = stimuli[activeStimulusIdx];
+  const isDisabled = submitted || readOnly || isSubmitting;
 
   // Flatten all questions for navigation
   const allQuestionIds = useMemo(
@@ -151,6 +156,7 @@ export function ListeningExamView({
           groupContent={group.groupContent}
           imageUrl={group.imageUrl}
           submitted={submitted}
+          readOnly={isDisabled}
           textAnswers={textAnswers}
           onTextAnswer={onTextAnswer}
           examMode={true}
@@ -166,6 +172,7 @@ export function ListeningExamView({
           questions={group.questions}
           answers={answers}
           submitted={submitted}
+          readOnly={isDisabled}
           onAnswer={onAnswer}
           examMode
           questionPositionById={questionPositionById}
@@ -180,6 +187,7 @@ export function ListeningExamView({
           questions={group.questions}
           answers={answers}
           submitted={submitted}
+          readOnly={isDisabled}
           onAnswer={onAnswer}
           examMode
           questionPositionById={questionPositionById}
@@ -198,6 +206,7 @@ export function ListeningExamView({
             options={question.options}
             selectedId={answers[question.id]}
             submitted={submitted}
+            readOnly={isDisabled}
             explanation={question.explanation}
             onAnswer={onAnswer}
             examMode
@@ -212,7 +221,20 @@ export function ListeningExamView({
   }
 
   return (
-    <div className="h-[calc(100vh-56px)] flex flex-col bg-white">
+    <div className="h-[calc(100vh-56px)] flex flex-col bg-white relative">
+      {/* ===== Loading Overlay ===== */}
+      {(isSubmitting || (readOnly && !submitted)) && (
+        <div className="absolute inset-0 z-[100] flex flex-col items-center justify-center bg-white/80 backdrop-blur-[2px] animate-in fade-in duration-500">
+          <div className="bg-white p-8 rounded-2xl shadow-xl border border-gray-100 flex flex-col items-center gap-4 scale-in-95 animate-in zoom-in-95 duration-300">
+            <div className="h-12 w-12 rounded-full border-4 border-gray-100 border-t-blue-600 animate-spin" />
+            <div className="text-center">
+              <h3 className="font-bold text-gray-900 text-lg">Đang nộp bài...</h3>
+              <p className="text-sm text-gray-500 mt-1">Hệ thống đang lưu kết quả của bạn</p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <ListeningExamHeader isPlaying={isPlaying} elapsedTime={elapsedTime} />
 
@@ -258,7 +280,7 @@ export function ListeningExamView({
           stimuli={stimuli}
           questionGroups={currentStimulus.questionGroups}
           answeredQuestions={answeredQuestionIds}
-          submitted={submitted}
+          submitted={submitted || readOnly || isSubmitting}
           onPrev={handlePrev}
           onNext={handleNext}
           onSubmit={onSubmit}

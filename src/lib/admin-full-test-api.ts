@@ -31,9 +31,11 @@ export async function getFullTests(): Promise<FullTestResponse[]> {
   return res.result ?? [];
 }
 
-export async function getAvailableStimuli(skill: string): Promise<Record<number, StimulusOption[]>> {
+export async function getAvailableStimuli(skill: string, testType?: string): Promise<Record<number, StimulusOption[]>> {
+  const params = new URLSearchParams({ skill });
+  if (testType) params.append('testType', testType);
   const res = await apiClient.get<ApiResponse<Record<number, StimulusOption[]>>>(
-    `/api/v1/admin/full-tests/available-stimuli?skill=${skill}`,
+    `/api/v1/admin/full-tests/available-stimuli?${params}`,
     true
   );
   return res.result ?? {};

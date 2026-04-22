@@ -58,34 +58,20 @@ const EDITOR_EXTENSIONS = [
   TableHeader,
 ];
 
-const SAMPLE_FIELDS = [
-  { key: 'introduction', label: 'Introduction', placeholder: 'Đoạn mở bài mẫu...', rows: 3 },
-  { key: 'overview', label: 'Overview', placeholder: 'Đoạn tổng quan mẫu...', rows: 3 },
-  { key: 'body1', label: 'Body 1', placeholder: 'Đoạn thân bài 1 mẫu...', rows: 4 },
-  { key: 'body2', label: 'Body 2', placeholder: 'Đoạn thân bài 2 mẫu...', rows: 4 },
-];
-
 const SEPARATOR = '\n---SECTION---\n';
 
-function parseSample(raw: string): Record<string, string> {
-  const parts = raw.split(SEPARATOR);
-  return {
-    introduction: parts[0]?.trim() || '',
-    overview: parts[1]?.trim() || '',
-    body1: parts[2]?.trim() || '',
-    body2: parts[3]?.trim() || '',
-  };
+function parseSample(raw: string): string {
+  if (!raw) return '';
+  // Convert old multi-section format to single string if needed
+  return raw.split(SEPARATOR).filter(s => s.trim()).join('\n\n').trim();
 }
 
-function buildSample(fields: Record<string, string>): string {
-  return [fields.introduction, fields.overview, fields.body1, fields.body2]
-    .map((s) => s || '')
-    .join(SEPARATOR);
+function buildSample(content: string): string {
+  return content.trim();
 }
 
 /**
- * Strip thẻ <img> có src="blob:" khỏi HTML — blob URL từ lần save trước chỉ sống
- * trong RAM tab tạo nó, giờ đã die → hiện icon "ảnh vỡ". Xoá hẳn để admin upload lại.
+ * Strip thẻ <img> có src="blob:" khỏi HTML
  */
 function stripDeadBlobImages(html: string): string {
   return html.replace(/<img\b[^>]*\bsrc=["']blob:[^"']*["'][^>]*>/gi, '');
@@ -96,7 +82,7 @@ interface Props {
 }
 
 export interface TestEditWritingContentHandle {
-  saveAll: () => Promise<boolean>;
+  saveAll: (silent?: boolean) => Promise<boolean>;
 }
 
 export const TestEditWritingContent = forwardRef<TestEditWritingContentHandle, Props>(function TestEditWritingContent({ test }: Props, ref) {
@@ -106,15 +92,14 @@ export const TestEditWritingContent = forwardRef<TestEditWritingContentHandle, P
   const firstGroup = stimulus?.questionGroups[0];
   const [saving, setSaving] = useState(false);
   const [contentHtml, setContentHtml] = useState(() => stripDeadBlobImages(stimulus?.content || ''));
-  // Chặn nút Lưu khi đang upload ảnh trong editor — tránh lưu blob: URL vào DB
   const [imageUploading, setImageUploading] = useState(false);
 
   // Read bài mẫu from instruction (create flow) or explanation.text (edit flow)
   const firstQuestion = firstGroup?.questions[0];
   const rawSample = firstGroup?.instruction || (firstQuestion?.explanation as { text?: string })?.text || '';
-  const [sampleFields, setSampleFields] = useState<Record<string, string>>(() => parseSample(rawSample));
+  const [sampleContent, setSampleContent] = useState<string>(() => parseSample(rawSample));
 
-  // Writing type/topic state — initialized from existing data
+  // Writing type/topic state
   const [questionTypeCode, setQuestionTypeCode] = useState(firstGroup?.questionTypeCode || '');
   const [topic, setTopic] = useState(firstGroup?.groupContent || '');
 
@@ -122,7 +107,6 @@ export const TestEditWritingContent = forwardRef<TestEditWritingContentHandle, P
   const section = test.section;
   const isTask1 = section === 1;
   const isTask2 = section === 2;
-  const typeOptions = isTask1 ? WRITING_TASK1_TYPES : isTask2 ? WRITING_TASK2_TYPES : [];
   const typeCodes = isTask1 ? WRITING_TASK1_TYPE_CODES : isTask2 ? WRITING_TASK2_TYPE_CODES : {};
 
   // Chart analysis state (Task 1 only)
@@ -175,20 +159,8 @@ export const TestEditWritingContent = forwardRef<TestEditWritingContentHandle, P
     }
   };
 
-  // Reverse lookup: code → label for the select value
-  const codeToLabel: Record<string, string> = Object.fromEntries(
-    Object.entries(typeCodes).map(([label, code]) => [code, label])
-  );
-  const selectedTypeLabel = codeToLabel[questionTypeCode] || '';
-
-  const handleTypeChange = (label: string) => {
-    const code = typeCodes[label] || '';
-    setQuestionTypeCode(code);
-  };
-
   const editor = useEditor({
     extensions: EDITOR_EXTENSIONS,
-    // Strip dead blob: src khỏi HTML cũ để editor không render icon "ảnh vỡ"
     content: stripDeadBlobImages(stimulus?.content || ''),
     immediatelyRender: false,
     editorProps: {
@@ -203,8 +175,6 @@ export const TestEditWritingContent = forwardRef<TestEditWritingContentHandle, P
 
   const doSave = async (silent = false): Promise<boolean> => {
     if (!stimulus) return true;
-    // Chặn save nếu editor còn blob URL (ảnh chưa upload xong lên Cloudinary).
-    // Blob URL chỉ sống trong RAM browser tạo nó → lưu vào DB sẽ 404 mọi nơi khác.
     if (imageUploading || /src="blob:/.test(contentHtml)) {
       if (!silent) toast.error('Ảnh đang được tải lên, vui lòng chờ xong rồi lưu');
       return false;
@@ -217,11 +187,9 @@ export const TestEditWritingContent = forwardRef<TestEditWritingContentHandle, P
         mediaUrl: stimulus.mediaUrl || undefined,
       });
 
-      // Save bài mẫu into first question's explanation. Writing test mới tạo chưa có
-      // group/question → tự tạo 1 group + 1 question ẩn để lưu sample, tránh mất dữ liệu
-      // mà admin đã gõ.
-      const sampleText = buildSample(sampleFields);
-      const hasSample = sampleText.replace(/\n---SECTION---\n/g, '').trim().length > 0;
+      const sampleText = buildSample(sampleContent);
+      const hasSample = sampleText.trim().length > 0;
+      
       if (hasSample) {
         let questionId = firstGroup?.questions[0]?.id;
         if (!questionId) {
@@ -238,12 +206,10 @@ export const TestEditWritingContent = forwardRef<TestEditWritingContentHandle, P
         await updateQuestion(String(questionId), { explanation: { text: sampleText } });
       }
 
-      // Save writing type code if group exists and type changed
       if (firstGroup && questionTypeCode && questionTypeCode !== firstGroup.questionTypeCode) {
         await updateQuestionGroupTypeCode(firstGroup.id, questionTypeCode);
       }
 
-      // Save topic (groupContent) if group exists and topic changed
       if (firstGroup && topic !== (firstGroup.groupContent || '')) {
         await updateQuestionGroupContent(firstGroup.id, topic);
       }
@@ -260,16 +226,10 @@ export const TestEditWritingContent = forwardRef<TestEditWritingContentHandle, P
   };
 
   useImperativeHandle(ref, () => ({
-    saveAll: () => doSave(true),
+    saveAll: (silent?: boolean) => doSave(silent),
   }));
 
   if (!stimulus) return <p className="text-gray-400 text-center py-8">Chưa có nội dung</p>;
-
-  const updateSampleField = (key: string, value: string) => {
-    setSampleFields((prev) => ({ ...prev, [key]: value }));
-  };
-
-  const handleSave = () => { void doSave(false); };
 
   return (
     <div className="space-y-5 max-w-3xl">
@@ -336,31 +296,18 @@ export const TestEditWritingContent = forwardRef<TestEditWritingContentHandle, P
         </div>
       )}
 
-      {/* Bài mẫu - 4 fields */}
+      {/* Bài mẫu - 1 field */}
       <div>
         <label className="text-sm font-medium text-gray-700 mb-3 block">Bài mẫu</label>
-        <div className="space-y-3">
-          {SAMPLE_FIELDS.map((field) => (
-            <div key={field.key}>
-              <label className="text-xs font-medium text-gray-500 mb-1 block">{field.label}</label>
-              <textarea
-                value={sampleFields[field.key] || ''}
-                onChange={(e) => updateSampleField(field.key, e.target.value)}
-                placeholder={field.placeholder}
-                rows={field.rows}
-                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y"
-              />
-            </div>
-          ))}
-        </div>
+        <textarea
+          value={sampleContent}
+          onChange={(e) => setSampleContent(e.target.value)}
+          placeholder="Nhập bài mẫu Writing..."
+          rows={12}
+          className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y"
+        />
       </div>
 
-      <div className="flex justify-end">
-        <Button onClick={handleSave} disabled={saving || imageUploading} size="sm">
-          {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
-          Lưu
-        </Button>
-      </div>
     </div>
   );
 });

@@ -19,13 +19,16 @@ interface Props {
   questions: QuestionDetail[];
   answers: Record<number, number>;
   submitted: boolean;
+  readOnly?: boolean;
   onAnswer: (questionId: number, optionId: number) => void;
   examMode?: boolean;
 }
 
 /** Matching group: shows heading pills at top, question slots below. Click pill -> click slot to assign. */
-export function ReadingMatchingGroup({ questions, answers, submitted, onAnswer, examMode = false }: Props) {
+export function ReadingMatchingGroup({ questions, answers, submitted, readOnly = false, onAnswer, examMode = false }: Props) {
+  const isDisabled = submitted || readOnly;
   const [selectedPillId, setSelectedPillId] = useState<number | null>(null);
+
 
   // All options are the same across questions in a matching group - take from first question, shuffle
   const allOptions = useMemo(() => {
@@ -40,18 +43,18 @@ export function ReadingMatchingGroup({ questions, answers, submitted, onAnswer, 
   );
 
   const handlePillClick = (optionId: number) => {
-    if (submitted) return;
+    if (isDisabled) return;
     setSelectedPillId(prev => (prev === optionId ? null : optionId));
   };
 
   const handleSlotClick = (questionId: number) => {
-    if (submitted || !selectedPillId) return;
+    if (isDisabled || !selectedPillId) return;
     onAnswer(questionId, selectedPillId);
     setSelectedPillId(null);
   };
 
   const handleClearSlot = (questionId: number) => {
-    if (submitted) return;
+    if (isDisabled) return;
   // Clear by setting to 0 (no valid option) - parent handles removal
     onAnswer(questionId, 0);
   };
@@ -69,7 +72,7 @@ export function ReadingMatchingGroup({ questions, answers, submitted, onAnswer, 
               key={opt.id}
               type="button"
               onClick={() => handlePillClick(opt.id)}
-              disabled={submitted}
+              disabled={isDisabled}
               className={`w-full rounded-lg border px-3 py-1.5 text-left text-sm transition-all ${
                 isActive
                   ? examMode
@@ -80,7 +83,7 @@ export function ReadingMatchingGroup({ questions, answers, submitted, onAnswer, 
                     : examMode
                       ? 'bg-white text-gray-900 border-gray-300 hover:border-gray-500 hover:bg-gray-50'
                       : 'bg-white text-gray-700 border-gray-300 hover:border-blue-400 hover:bg-blue-50'
-              } ${submitted ? 'cursor-default' : 'cursor-pointer'}`}
+              } ${isDisabled ? 'cursor-default' : 'cursor-pointer'}`}
             >
               {opt.content}
             </button>
@@ -88,7 +91,7 @@ export function ReadingMatchingGroup({ questions, answers, submitted, onAnswer, 
         })}
       </div>
 
-      {selectedPillId && !submitted && (
+      {selectedPillId && !isDisabled && (
         <p className={`text-xs animate-pulse ${examMode ? 'text-gray-600' : 'text-blue-600'}`}>Select a question below to assign the heading.</p>
       )}
 
@@ -111,7 +114,7 @@ export function ReadingMatchingGroup({ questions, answers, submitted, onAnswer, 
               <div className="mt-2 ml-7">
                 {assignedOpt ? (
                   <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-sm ${
-                    submitted
+                    isDisabled
                       ? isCorrect
                         ? 'bg-gray-50 text-gray-900 border-gray-300'
                         : 'bg-gray-50 text-gray-900 border-gray-300'
@@ -120,7 +123,7 @@ export function ReadingMatchingGroup({ questions, answers, submitted, onAnswer, 
                         : 'bg-blue-50 text-blue-700 border-blue-300'
                   }`}>
                     <span>{assignedOpt.content}</span>
-                    {!submitted && (
+                    {!isDisabled && (
                       <button type="button" onClick={() => handleClearSlot(question.id)} className={`hover:opacity-70 ${examMode ? 'text-gray-600' : 'text-blue-400 hover:text-blue-600'}`}>
                         <X className="h-3.5 w-3.5" />
                       </button>
@@ -130,7 +133,7 @@ export function ReadingMatchingGroup({ questions, answers, submitted, onAnswer, 
                   <button
                     type="button"
                     onClick={() => handleSlotClick(question.id)}
-                    disabled={submitted}
+                    disabled={isDisabled}
                     className={`px-3 py-1.5 rounded-lg border-2 border-dashed text-sm transition-colors ${
                       selectedPillId
                         ? examMode
@@ -145,7 +148,7 @@ export function ReadingMatchingGroup({ questions, answers, submitted, onAnswer, 
               </div>
 
               {/* Result after submit */}
-              {submitted && correctOpt && assignedId != null && (
+              {isDisabled && correctOpt && assignedId != null && (
                 <div className="mt-2 ml-7 flex items-center gap-1.5 text-xs">
                   {isCorrect ? (
                     <><CheckCircle2 className="h-3.5 w-3.5 text-gray-900" /><span className="text-gray-900 font-medium">Correct</span></>
@@ -155,7 +158,7 @@ export function ReadingMatchingGroup({ questions, answers, submitted, onAnswer, 
                 </div>
               )}
 
-              {submitted && question.explanation?.text && (
+              {isDisabled && question.explanation?.text && (
                 <div className="mt-2 ml-7 pt-2 border-t border-gray-200">
                   <p className="text-xs text-gray-500"><strong>Explanation:</strong> {question.explanation.text}</p>
                   {question.explanation.evidence && (
@@ -166,7 +169,7 @@ export function ReadingMatchingGroup({ questions, answers, submitted, onAnswer, 
                 </div>
               )}
 
-              {submitted && assignedId == null && (
+              {isDisabled && assignedId == null && (
                 <p className="mt-2 ml-7 text-xs text-gray-400 italic">Not answered</p>
               )}
             </div>

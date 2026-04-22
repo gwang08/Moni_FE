@@ -132,15 +132,36 @@ export default function AdminDashboardPage() {
   // Stacked bar chart data for scoring sessions
   const stackedBarData = useMemo(() => {
     if (!currentData?.dailyExpertJobs) return [];
-    return currentData.dailyExpertJobs.map(d => ({
-      date: new Date(d.date).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' }),
-      fullDate: d.date,
-      expWriting: d.writingJobs,
-      expSpeaking: d.speakingJobs,
-      aiWriting: d.aiWritingJobs ?? 0,
-      aiSpeaking: d.aiSpeakingJobs ?? 0,
-    }));
-  }, [currentData]);
+
+    const jobMap = new Map<string, any>();
+    currentData.dailyExpertJobs.forEach((d) => {
+      jobMap.set(d.date, d);
+    });
+
+    // Get all dates in range and fill missing dates with 0
+    const startDate = new Date(revenueRange.startDate);
+    const endDate = new Date(revenueRange.endDate);
+    const allDates: string[] = [];
+
+    const currentDate = new Date(startDate);
+    while (currentDate <= endDate) {
+      const dateStr = currentDate.toISOString().split('T')[0];
+      allDates.push(dateStr);
+      currentDate.setDate(currentDate.getDate() + 1);
+    }
+
+    return allDates.map((date) => {
+      const d = jobMap.get(date);
+      return {
+        date: new Date(date).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' }),
+        fullDate: date,
+        expWriting: d?.writingJobs ?? 0,
+        expSpeaking: d?.speakingJobs ?? 0,
+        aiWriting: d?.aiWritingJobs ?? 0,
+        aiSpeaking: d?.aiSpeakingJobs ?? 0,
+      };
+    });
+  }, [currentData, revenueRange]);
 
   const isLoading = isCurrentLoading;
   const hasError = Boolean(currentError);

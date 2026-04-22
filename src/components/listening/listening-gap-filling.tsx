@@ -24,6 +24,7 @@ interface Props {
   groupContent?: string;
   imageUrl?: string;
   submitted: boolean;
+  readOnly?: boolean;
   textAnswers: Record<number, string>;
   onTextAnswer: (questionId: number, text: string) => void;
   questionPositionById?: Record<number, number>;
@@ -450,6 +451,7 @@ export function ListeningGapFilling({
   groupContent,
   imageUrl,
   submitted,
+  readOnly = false,
   textAnswers,
   onTextAnswer,
   questionPositionById = {},
@@ -458,6 +460,8 @@ export function ListeningGapFilling({
 }: Props) {
   // Detect if groupContent exists and has placeholders
   const hasGroupContent = !!groupContent && groupContent.includes('__');
+
+  const isDisabled = submitted || readOnly;
 
   // ── NEW: If groupContent has placeholders, ALWAYS use ParagraphGapFilling for ALL questions ──
   if (hasGroupContent) {
@@ -472,7 +476,7 @@ export function ListeningGapFilling({
         <ParagraphGapFilling
           groupContent={groupContent!}
           questions={questions}
-          submitted={submitted}
+          submitted={isDisabled}
           textAnswers={textAnswers}
           onTextAnswer={onTextAnswer}
           questionPositionById={questionPositionById}
@@ -496,7 +500,7 @@ export function ListeningGapFilling({
 
         <IELTSBoxedGapFilling
           questions={questions}
-          submitted={submitted}
+          submitted={isDisabled}
           textAnswers={textAnswers}
           onTextAnswer={onTextAnswer}
           questionPositionById={questionPositionById}
@@ -508,7 +512,7 @@ export function ListeningGapFilling({
           <ParagraphGapFilling
             groupContent={groupContent}
             questions={questions}
-            submitted={submitted}
+            submitted={isDisabled}
             textAnswers={textAnswers}
             onTextAnswer={onTextAnswer}
             questionPositionById={questionPositionById}
@@ -540,7 +544,7 @@ export function ListeningGapFilling({
           question={question}
           displayPosition={questionPositionById[question.id] ?? question.position}
           userAnswer={textAnswers[question.id] ?? ''}
-          submitted={submitted}
+          submitted={isDisabled}
           onTextAnswer={onTextAnswer}
           onLocateEvidence={onLocateEvidence}
         />
@@ -551,7 +555,7 @@ export function ListeningGapFilling({
         <ParagraphGapFilling
           groupContent={groupContent}
           questions={questions}
-          submitted={submitted}
+          submitted={isDisabled}
           textAnswers={textAnswers}
           onTextAnswer={onTextAnswer}
           questionPositionById={questionPositionById}

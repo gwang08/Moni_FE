@@ -160,25 +160,17 @@ export default function TestImportPage() {
         })),
       });
       sessionStorage.removeItem(STORAGE_KEY);
+      toast.success('Tạo bài thi thành công!');
 
       if (skill === 'LISTENING') {
-        toast.success('Tạo bài thi thành công! Đang tạo transcript tự động...');
         getTestDetail(String(testId))
           .then((detail) => {
             const audioStimuli = detail.stimuli.filter((s) => s.mediaUrl);
             audioStimuli.forEach((s) => {
-              transcribeStimulus(s.id)
-                .then(() => {
-                  toast.success(`Transcript đã tạo xong cho "${s.title || 'Section ' + s.section}"`);
-                })
-                .catch(() => {
-                  toast.error(`Tạo transcript thất bại cho "${s.title || 'Section ' + s.section}"`);
-                });
+              transcribeStimulus(s.id).catch(console.error);
             });
           })
-          .catch(() => {
-            toast.error('Không thể tải chi tiết bài thi để tạo transcript');
-          });
+          .catch(console.error);
       }
 
       router.push('/admin/tests');

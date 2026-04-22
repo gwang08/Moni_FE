@@ -30,17 +30,18 @@ export const WRITING_TOPICS = [
 
 /** Mapping: display label → questionTypeCode (for Task 1) */
 export const WRITING_TASK1_TYPE_CODES: Record<string, string> = {
-  'Line Graph': 'LINE_GRAPH',
-  'Bar Chart': 'BAR_CHART',
-  'Pie Chart': 'PIE_CHART',
-  'Table': 'TABLE',
-  'Mixed Graph': 'MIXED_GRAPH',
-  'Map': 'MAP',
-  'Process': 'PROCESS',
+  'Task 1: Line Graph': 'LINE_GRAPH',
+  'Task 1: Bar Chart': 'BAR_CHART',
+  'Task 1: Pie Chart': 'PIE_CHART',
+  'Task 1: Table': 'TABLE',
+  'Task 1: Mixed Chart': 'MIXED_GRAPH',
+  'Task 1: Map': 'MAP',
+  'Task 1: Process': 'PROCESS',
 };
 
 /** Mapping: display label → questionTypeCode (for Task 2) */
 export const WRITING_TASK2_TYPE_CODES: Record<string, string> = {
+  'Task 2: Essay': 'W2_ESSAY',
   'Agree or Disagree': 'AGREE_DISAGREE',
   'Discussion': 'DISCUSSION',
   'Advantages and Disadvantages': 'ADVANTAGES_DISADVANTAGES',
@@ -58,6 +59,7 @@ export const WRITING_TYPE_CODE_LABELS: Record<string, string> = {
   MIXED_GRAPH: 'Mixed Graph',
   MAP: 'Map',
   PROCESS: 'Process',
+  W2_ESSAY: 'Task 2 Essay',
   AGREE_DISAGREE: 'Agree or Disagree',
   DISCUSSION: 'Discussion',
   ADVANTAGES_DISADVANTAGES: 'Advantages and Disadvantages',

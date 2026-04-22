@@ -25,6 +25,7 @@ interface Props {
   groupContent?: string;
   imageUrl?: string;
   submitted: boolean;
+  readOnly?: boolean;
   textAnswers: Record<number, string>;
   onTextAnswer: (questionId: number, text: string) => void;
   questionPositionById?: Record<number, number>;
@@ -525,6 +526,7 @@ export function ReadingGapFilling({
   groupContent,
   imageUrl,
   submitted,
+  readOnly = false,
   textAnswers,
   onTextAnswer,
   questionPositionById = {},
@@ -533,6 +535,8 @@ export function ReadingGapFilling({
 }: Props) {
   // Detect if groupContent exists and has placeholders
   const hasGroupContent = !!groupContent && groupContent.includes('__');
+
+  const isDisabled = submitted || readOnly;
 
   // ── NEW: If groupContent has placeholders, ALWAYS use ParagraphGapFilling for ALL questions ──
   // (the passage HTML has __ for every gap, so we match by position order)
@@ -548,7 +552,7 @@ export function ReadingGapFilling({
         <ParagraphGapFilling
           groupContent={groupContent!}
           questions={questions}
-          submitted={submitted}
+          submitted={isDisabled}
           textAnswers={textAnswers}
           onTextAnswer={onTextAnswer}
           questionPositionById={questionPositionById}
@@ -578,7 +582,7 @@ export function ReadingGapFilling({
 
         <IELTSBoxedGapFilling
           questions={questions}
-          submitted={submitted}
+          submitted={isDisabled}
           textAnswers={textAnswers}
           onTextAnswer={onTextAnswer}
           questionPositionById={questionPositionById}
@@ -589,7 +593,7 @@ export function ReadingGapFilling({
           <ParagraphGapFilling
             groupContent={groupContent}
             questions={questions}
-            submitted={submitted}
+            submitted={isDisabled}
             textAnswers={textAnswers}
             onTextAnswer={onTextAnswer}
             questionPositionById={questionPositionById}
@@ -623,7 +627,7 @@ export function ReadingGapFilling({
           question={question}
           displayPosition={questionPositionById[question.id] ?? question.position}
           userAnswer={textAnswers[question.id] ?? ''}
-          submitted={submitted}
+          submitted={isDisabled}
           onTextAnswer={onTextAnswer}
           onLocateEvidence={onLocateEvidence}
           examMode={examMode}
@@ -635,7 +639,7 @@ export function ReadingGapFilling({
         <ParagraphGapFilling
           groupContent={groupContent}
           questions={questions}
-          submitted={submitted}
+          submitted={isDisabled}
           textAnswers={textAnswers}
           onTextAnswer={onTextAnswer}
           questionPositionById={questionPositionById}

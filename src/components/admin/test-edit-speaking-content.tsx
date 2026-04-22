@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { forwardRef, useImperativeHandle, useMemo, useState } from 'react';
 import { Loader2, Save } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -12,6 +12,10 @@ import type { TestDetailResponse } from '@/types/test.types';
 interface Props {
   test: TestDetailResponse;
   onBeforeSaveBasicInfo?: () => Promise<boolean> | boolean;
+}
+
+export interface TestEditSpeakingContentHandle {
+  saveAll: (silent?: boolean) => Promise<boolean>;
 }
 
 type QuestionEdit = {
@@ -31,7 +35,10 @@ function getPartTone(index: number): 'blue' | 'amber' | 'emerald' {
   return 'emerald';
 }
 
-export function TestEditSpeakingContent({ test, onBeforeSaveBasicInfo }: Props) {
+export const TestEditSpeakingContent = forwardRef<TestEditSpeakingContentHandle, Props>(function TestEditSpeakingContent(
+  { test, onBeforeSaveBasicInfo },
+  ref
+) {
   const queryClient = useQueryClient();
   const testId = String(test.id);
   const [saving, setSaving] = useState(false);
@@ -88,12 +95,12 @@ export function TestEditSpeakingContent({ test, onBeforeSaveBasicInfo }: Props) 
     }));
   };
 
-  const handleSaveAll = async () => {
+  const handleSaveAll = async (silent = false) => {
     setSaving(true);
     try {
-      if (onBeforeSaveBasicInfo) {
+      if (!silent && onBeforeSaveBasicInfo) {
         const canContinue = await onBeforeSaveBasicInfo();
-        if (canContinue === false) return;
+        if (canContinue === false) return false;
       }
 
       const updates: Promise<void>[] = [];
@@ -121,14 +128,20 @@ export function TestEditSpeakingContent({ test, onBeforeSaveBasicInfo }: Props) 
       }
 
       await Promise.all(updates);
-      toast.success('Đã lưu Speaking');
+      if (!silent) toast.success('Đã lưu Speaking');
       queryClient.invalidateQueries({ queryKey: ['admin', 'test', testId] });
+      return true;
     } catch {
-      toast.error('Lưu thất bại');
+      if (!silent) toast.error('Lưu thất bại');
+      return false;
     } finally {
       setSaving(false);
     }
   };
+
+  useImperativeHandle(ref, () => ({
+    saveAll: (silent?: boolean) => handleSaveAll(silent),
+  }));
 
   if (parts.length === 0) return <p className="py-8 text-center text-sm text-gray-400">Chưa có nội dung Speaking</p>;
 
@@ -211,13 +224,6 @@ export function TestEditSpeakingContent({ test, onBeforeSaveBasicInfo }: Props) 
           </section>
         );
       })}
-
-      <div className="flex justify-end">
-        <Button onClick={handleSaveAll} disabled={saving} size="sm">
-          {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
-          Lưu tất cả
-        </Button>
-      </div>
     </div>
   );
-}
+});

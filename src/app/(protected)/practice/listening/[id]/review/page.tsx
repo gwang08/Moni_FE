@@ -1,13 +1,12 @@
 'use client';
 
-import { use, useEffect, useRef, useState, useMemo } from 'react';
+import { use, useEffect, useRef, useState, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Play, Pause, RotateCcw, RotateCw, Volume2, VolumeX, Gauge, Check } from 'lucide-react';
 import { SkeletonPractice } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { ListeningReviewPanel } from '@/components/listening/listening-review-panel';
-import { ListeningPracticeAudioPlayer } from '@/components/listening/listening-practice-audio-player';
 import { useTestDetail } from '@/hooks/use-test-detail';
 import { getAttemptResult } from '@/lib/practice-api';
 import type { TranscriptSegment } from '@/types/listening.types';
@@ -28,6 +27,8 @@ interface Props {
 
 type TranscriptLike = TranscriptSegment & { content?: string };
 
+const PLAYBACK_RATES = [0.5, 0.75, 1, 1.25, 1.5, 2];
+
 function normalizeText(value: string) {
   return value.toLowerCase().replace(/\s+/g, ' ').trim();
 }
@@ -37,6 +38,20 @@ function splitEvidenceChunks(evidence: string) {
     .split(/\n---\n|\r?\n/)
     .map((chunk) => chunk.trim())
     .filter(Boolean);
+}
+
+function isChunkMatched(text: string, chunk: string) {
+  const normalizedText = normalizeText(text);
+  const normalizedChunk = normalizeText(chunk);
+  if (!normalizedText || !normalizedChunk) return false;
+
+  if (normalizedText.includes(normalizedChunk)) return true;
+
+  const phrase = normalizedChunk.length > 20
+    ? normalizedChunk.split(/\s+/).slice(0, 5).join(' ')
+    : normalizedChunk;
+
+  return phrase.length > 10 && normalizedText.includes(phrase);
 }
 
 function findTranscriptMatches(segments: TranscriptSegment[], evidenceChunks: string[]) {
@@ -65,81 +80,30 @@ function findTranscriptMatches(segments: TranscriptSegment[], evidenceChunks: st
   return matches.sort((a, b) => a.chunkIndex - b.chunkIndex);
 }
 
-function isChunkMatched(text: string, chunk: string) {
-  if (chunk.length < 2) return false;
-  if (text.includes(chunk)) return true;
-  if (chunk.length > 20) {
-    const words = chunk.split(/\s+/).slice(0, 5).join(' ');
-    return words.length > 10 && text.includes(words);
-  }
-  return false;
-}
-
-function getActiveContentSegmentIndex(container: HTMLDivElement, currentTime: number, audioDuration: number) {
-  const segmentNodes = Array.from(container.querySelectorAll<HTMLElement>('[data-transcript-segment]'));
-  if (segmentNodes.length > 0) {
-    for (let i = 0; i < segmentNodes.length; i++) {
-      const startTime = Number(segmentNodes[i].dataset.startTime);
-      const endTime = Number(segmentNodes[i].dataset.endTime);
-      if (Number.isFinite(startTime) && Number.isFinite(endTime)) {
-        if (currentTime >= startTime && currentTime < endTime) return i;
-      }
-    }
-    return Math.max(0, Math.min(segmentNodes.length - 1, Math.floor((currentTime / Math.max(1, audioDuration)) * segmentNodes.length)));
-  }
-
-  const paragraphs = Array.from(container.querySelectorAll<HTMLElement>('p'));
-  if (paragraphs.length === 0) return null;
-
-  const ratio = Number.isFinite(audioDuration) && audioDuration > 0 ? currentTime / audioDuration : 0;
-  return Math.max(0, Math.min(paragraphs.length - 1, Math.floor(ratio * paragraphs.length)));
-}
-
-function seekAudioToTranscriptTarget(audio: HTMLAudioElement | null, target: HTMLElement) {
-  if (!audio) return;
-
-  const directStart = Number(target.dataset.startTime);
-  if (Number.isFinite(directStart)) {
-    try {
-      audio.pause();
-      audio.currentTime = Math.max(0, directStart);
-      void audio.play().catch(() => {});
-    } catch (error) {
-      console.error('Failed to seek audio before play:', error);
-    }
-    return;
-  }
-
-  const container = target.closest('[data-transcript-panel]');
-  if (!container) return;
-  const items = Array.from(container.querySelectorAll<HTMLElement>('[data-transcript-segment], p'));
-  const idx = items.indexOf(target);
-  if (idx < 0) return;
-
-  const duration = audio.duration || 0;
-  const ratio = items.length > 1 ? idx / (items.length - 1) : 0;
-  const estimated = Math.max(0, duration > 0 ? Math.min(duration - 0.1, duration * ratio) : 0);
-  try {
-    audio.pause();
-    audio.currentTime = estimated;
-    void audio.play().catch(() => {});
-  } catch (error) {
-    console.error('Failed to seek audio before play:', error);
-  }
-}
-
 export default function ListeningReviewPage({ params }: Props) {
   const { id } = use(params);
   const router = useRouter();
   const searchParams = useSearchParams();
   const attemptIdParam = searchParams.get('attemptId');
   const { testDetail, loading, error } = useTestDetail(id);
+  
   const [resultData, setResultData] = useState<ResultData | null>(null);
   const [activeStimulusIdx, setActiveStimulusIdx] = useState(0);
   const [activeSegmentIdx, setActiveSegmentIdx] = useState<number | null>(null);
+  
+  // Audio state
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [volume, setVolume] = useState(1);
+  const [isMuted, setIsMuted] = useState(false);
+  const [playbackRate, setPlaybackRate] = useState(1);
+  const [showSpeedMenu, setShowSpeedMenu] = useState(false);
+  
   const loadedRef = useRef(false);
   const audioRef = useRef<HTMLAudioElement>(null);
   const transcriptRef = useRef<HTMLDivElement>(null);
+  const speedMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (loadedRef.current) return;
@@ -149,11 +113,9 @@ export default function ListeningReviewPage({ params }: Props) {
     if (raw) {
       try {
         const parsed = JSON.parse(raw) as ResultData;
-        Promise.resolve().then(() => setResultData(parsed));
+        setResultData(parsed);
         return;
-      } catch {
-        /* fall through */
-      }
+      } catch { /* fall through */ }
     }
 
     if (attemptIdParam) {
@@ -181,11 +143,11 @@ export default function ListeningReviewPage({ params }: Props) {
     router.replace(`/practice/listening/${id}`);
   }, [id, router, attemptIdParam]);
 
-  // Merge API explanation/evidence into stimulus questions (must be before early returns)
   const stimuli = testDetail?.stimuli ?? [];
   const safeActiveStimulusIdx = activeStimulusIdx < stimuli.length ? activeStimulusIdx : 0;
   const rawStimulus = stimuli[safeActiveStimulusIdx] ?? null;
   const explanationsJson = resultData?.explanations ? JSON.stringify(resultData.explanations) : '';
+  
   const stimulus = useMemo(() => {
     if (!rawStimulus || !explanationsJson) return rawStimulus;
     const explanations: Record<number, { text?: string; evidence?: string }> = JSON.parse(explanationsJson);
@@ -209,70 +171,101 @@ export default function ListeningReviewPage({ params }: Props) {
     };
   }, [rawStimulus, explanationsJson]) as StimulusDetail | null;
 
-  // Audio time update handler for transcript highlighting
+  // Handle speed menu outside click
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (speedMenuRef.current && !speedMenuRef.current.contains(e.target as Node)) {
+        setShowSpeedMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Sync audio metadata and state
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
 
     const handleTimeUpdate = () => {
-      const currentTime = audio.currentTime;
-      // Find the active segment based on current time
+      setCurrentTime(audio.currentTime);
+      
+      // Update transcript highlighting
       if (!stimulus) return;
       const parsedTranscript: TranscriptLike[] = Array.isArray(stimulus.transcript) ? stimulus.transcript : [];
-
       if (parsedTranscript.length > 0) {
-        // Find the segment that contains the current time
         let activeIdx: number | null = null;
         for (let i = 0; i < parsedTranscript.length; i++) {
           const segStartTime = Number(parsedTranscript[i].startTime) || 0;
           const segEndTime = i < parsedTranscript.length - 1 
             ? (Number(parsedTranscript[i + 1].startTime) || 0) 
-            : segStartTime + 30; // Assume 30 seconds for last segment
+            : segStartTime + 30;
           
-          if (currentTime >= segStartTime && currentTime < segEndTime) {
+          if (audio.currentTime >= segStartTime && audio.currentTime < segEndTime) {
             activeIdx = i;
             break;
           }
         }
-        
         setActiveSegmentIdx(activeIdx);
         
         // Auto-scroll to active segment
         if (activeIdx !== null && transcriptRef.current) {
-          const buttons = transcriptRef.current.querySelectorAll<HTMLButtonElement>('button[data-segment-idx]');
+          const buttons = transcriptRef.current.querySelectorAll<HTMLElement>('[data-segment-idx]');
           const activeButton = buttons[activeIdx];
           if (activeButton) {
-            activeButton.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            // Check if it's already in view to avoid annoying jumps
+            const rect = activeButton.getBoundingClientRect();
+            const containerRect = transcriptRef.current.getBoundingClientRect();
+            if (rect.top < containerRect.top || rect.bottom > containerRect.bottom) {
+              activeButton.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
           }
-        }
-        return;
-      }
-
-      if (transcriptRef.current) {
-        const activeContentIdx = getActiveContentSegmentIndex(transcriptRef.current, currentTime, audio.duration || 0);
-        const contentSegments = Array.from(transcriptRef.current.querySelectorAll<HTMLElement>('[data-transcript-segment], p'));
-        contentSegments.forEach((el, idx) => {
-          const isActive = activeContentIdx === idx;
-          el.classList.toggle('text-green-700', isActive);
-          el.classList.toggle('font-medium', isActive);
-          if (!isActive) {
-            el.classList.remove('text-green-700', 'font-medium');
-          }
-        });
-        if (activeContentIdx !== null) {
-          const activeNode = contentSegments[activeContentIdx];
-          activeNode?.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
       }
     };
+    const handleMetadata = () => setDuration(audio.duration);
+    const handlePlay = () => setIsPlaying(true);
+    const handlePause = () => setIsPlaying(false);
+    const handleEnded = () => setIsPlaying(false);
 
     audio.addEventListener('timeupdate', handleTimeUpdate);
-    return () => audio.removeEventListener('timeupdate', handleTimeUpdate);
+    audio.addEventListener('loadedmetadata', handleMetadata);
+    audio.addEventListener('play', handlePlay);
+    audio.addEventListener('pause', handlePause);
+    audio.addEventListener('ended', handleEnded);
+
+    return () => {
+      audio.removeEventListener('timeupdate', handleTimeUpdate);
+      audio.removeEventListener('loadedmetadata', handleMetadata);
+      audio.removeEventListener('play', handlePlay);
+      audio.removeEventListener('pause', handlePause);
+      audio.removeEventListener('ended', handleEnded);
+    };
   }, [stimulus]);
 
-  if (loading || !resultData) {
-    return <SkeletonPractice />;
-  }
+  const togglePlay = useCallback(async () => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    try {
+      if (isPlaying) audio.pause();
+      else await audio.play();
+    } catch (err) { console.error('Play failed:', err); }
+  }, [isPlaying]);
+
+  const skip = (seconds: number) => {
+    if (audioRef.current) {
+      audioRef.current.currentTime = Math.max(0, Math.min(duration, audioRef.current.currentTime + seconds));
+    }
+  };
+
+  const formatTime = (time: number) => {
+    if (!isFinite(time)) return '00:00';
+    const mins = Math.floor(time / 60);
+    const secs = Math.floor(time % 60);
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  if (loading || !resultData) return <SkeletonPractice />;
 
   if (error || !testDetail) {
     return (
@@ -293,235 +286,316 @@ export default function ListeningReviewPage({ params }: Props) {
   }
 
   return (
-      <div className="h-[calc(100vh-56px)] flex flex-col">
-        {/* Header */}
-        <div className="bg-white border-b px-4 py-3 flex items-center gap-3 shrink-0">
-          <Link href={`/practice/listening/${id}/result`}>
-            <Button variant="ghost" size="icon"><ArrowLeft className="h-5 w-5" /></Button>
-          </Link>
-          <div>
-            <h1 className="font-bold">{testDetail.title}</h1>
-            <p className="text-xs text-muted-foreground">Xem giải thích chi tiết</p>
-          </div>
-        </div>
-  
-        {stimuli.length > 1 && (
-          <div className="bg-white border-b px-4 py-2 flex items-center gap-2 overflow-x-auto">
-            {stimuli.map((s, index) => (
-              <button
-                key={s.id}
-                onClick={() => setActiveStimulusIdx(index)}
-                className={`px-3 py-1.5 text-xs rounded-full font-medium transition-colors whitespace-nowrap ${
-                  index === safeActiveStimulusIdx
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
-              >
-                Section {s.section ?? index + 1}
-              </button>
-            ))}
-          </div>
-        )}
-  
-        {/* Audio player + Panels */}
-        <div className="flex-1 flex flex-col overflow-hidden">
-          {/* Practice-style Audio player */}
-          {stimulus.mediaUrl && (
-            <ListeningPracticeAudioPlayer 
-              ref={audioRef}
-              audioUrl={stimulus.mediaUrl}
-            />
-          )}
-  
-          <div className="flex-1 flex overflow-hidden">
-            {/* Transcript panel - Now on the LEFT */}
-            <div
-              ref={transcriptRef}
-              className="w-1/2 overflow-y-auto p-4 space-y-3 border-r"
-              data-transcript
-              data-transcript-panel
-              onClick={(e) => {
-                const target = e.target instanceof HTMLElement ? e.target.closest<HTMLElement>('[data-transcript-segment], p, button[data-segment-idx]') : null;
-                if (!target) return;
-                if (target.tagName === 'BUTTON') return;
-                seekAudioToTranscriptTarget(audioRef.current, target);
-              }}
-            >
-              {(() => {
-                const parsedTranscript: TranscriptLike[] = Array.isArray(stimulus.transcript) ? stimulus.transcript : [];
-  
-                if (parsedTranscript.length > 0) {
-                  return parsedTranscript.map((seg, i) => {
-                    const startTime = Number(seg.startTime) || 0;
-                    const mins = Math.floor(startTime / 60);
-                    const secs = Math.floor(startTime % 60);
-                    const ts = `${mins}:${secs.toString().padStart(2, '0')}`;
-                    const isActive = activeSegmentIdx === i;
-                    return (
-                      <button
-                        key={seg.id || i}
-                        type="button"
-                        data-segment-idx={i}
-                        data-start-time={startTime}
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          if (audioRef.current) {
-                            audioRef.current.currentTime = startTime;
-                            audioRef.current.play().catch(() => {});
-                          }
-                        }}
-                        className={`w-full text-left px-3 py-3 text-sm rounded-lg transition-colors group leading-relaxed ${
-                          isActive
-                            ? 'text-green-900'
-                            : 'hover:text-green-700'
-                        }`}
-                      >
-                        <span className={`text-[10px] font-mono mr-2 ${isActive ? 'text-green-700' : 'text-gray-500 group-hover:text-green-700'}`}>{ts}</span>
-                        {seg.speaker && <span className={`text-xs font-semibold mr-1 ${isActive ? 'text-green-700' : 'text-gray-500'}`}>{seg.speaker}:</span>}
-                        <span className={isActive ? 'font-medium text-green-900' : 'text-gray-700'}>{seg.text || seg.content || ''}</span>
-                      </button>
-                    );
-                  });
-                }
-  
-                if (stimulus.content && stimulus.content.trim()) {
-                  return (
-                    <div
-                      className="text-gray-700 text-sm leading-relaxed max-w-none [&_p]:cursor-pointer [&_p]:transition-colors [&_p:hover]:text-green-700"
-                      dangerouslySetInnerHTML={{ __html: stimulus.content }}
-                    />
-                  );
-                }
-  
-                return <p className="text-sm text-gray-400 text-center py-8">Chưa có transcript cho bài nghe này.</p>;
-              })()}
+    <div className="h-[calc(100vh-56px)] flex flex-col bg-white overflow-hidden">
+      {/* ===== Header Section ===== */}
+      <div className="shrink-0 bg-white z-20 relative">
+        <div className="px-4 py-3 flex items-center justify-between border-b border-gray-100">
+          <div className="flex items-center gap-3">
+            <Link href={`/practice/listening/${id}/result`}>
+              <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-500 hover:bg-gray-100">
+                <ArrowLeft className="h-5 w-5" />
+              </Button>
+            </Link>
+            <div>
+              <h1 className="font-bold text-slate-900 leading-tight">{testDetail.title}</h1>
+              <p className="text-[10px] text-gray-400 font-medium">Xem giải thích chi tiết</p>
             </div>
+          </div>
 
-            {/* Review panel (answers) - Now on the RIGHT */}
-            <div className="w-1/2 overflow-hidden bg-gray-50">
-              <ListeningReviewPanel
-                stimulus={stimulus}
-                answers={resultData.answers}
-                textAnswers={resultData.textAnswers}
-                onLocateEvidence={(evidence) => {
-                  if (!evidence) return;
-                  const container = document.querySelector('[data-transcript]');
-                  if (!container) return;
-                  const chunks = splitEvidenceChunks(evidence);
-                  if (chunks.length === 0) return;
+          {/* Section Selector if multiple */}
+          {stimuli.length > 1 && (
+            <div className="flex items-center gap-1 bg-gray-50 p-0.5 rounded-lg border border-gray-200">
+              {stimuli.map((s, index) => (
+                <button
+                  key={s.id}
+                  onClick={() => setActiveStimulusIdx(index)}
+                  className={`px-3 py-1 text-[10px] rounded-md font-bold transition-all ${
+                    index === safeActiveStimulusIdx
+                      ? 'bg-white text-blue-600 shadow-sm'
+                      : 'text-gray-400 hover:text-gray-600'
+                  }`}
+                >
+                  Section {s.section ?? index + 1}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
 
-                  const transcriptSegments = Array.isArray(stimulus.transcript) ? stimulus.transcript : [];
-                  const matchedSegments = transcriptSegments.length > 0
-                    ? findTranscriptMatches(transcriptSegments, chunks)
-                    : [];
+        {/* Integrated Progress Bar */}
+        <div className="relative w-full h-1 bg-gray-100 cursor-pointer group">
+          <input
+            type="range"
+            min={0}
+            max={duration || 100}
+            value={currentTime}
+            onChange={(e) => {
+              if (audioRef.current) audioRef.current.currentTime = parseFloat(e.target.value);
+            }}
+            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+          />
+          <div
+            className="absolute left-0 top-0 h-full rounded-r transition-all"
+            style={{ width: `${duration ? (currentTime / duration) * 100 : 0}%`, backgroundColor: '#e95c18' }}
+          />
+        </div>
 
-                  if (matchedSegments.length > 0) {
-                    const firstMatch = matchedSegments[0];
-                    const firstSegment = transcriptSegments[firstMatch.segmentIndex];
-                    const audio = audioRef.current;
-
-                    container.querySelectorAll('.bg-amber-100, .ring-2, .ring-amber-400').forEach((el) => {
-                      el.classList.remove('bg-amber-100', 'ring-2', 'ring-amber-400', 'rounded-sm');
-                    });
-
-                    matchedSegments.forEach(({ segmentIndex }) => {
-                      const segmentEl = container.querySelector<HTMLElement>(`[data-segment-idx="${segmentIndex}"]`);
-                      if (!segmentEl) return;
-                      segmentEl.classList.add('bg-amber-100', 'ring-2', 'ring-amber-400', 'rounded-sm');
-                    });
-
-                    const activeElement = container.querySelector<HTMLElement>(`[data-segment-idx="${firstMatch.segmentIndex}"]`);
-                    activeElement?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-
-                    if (audio && Number.isFinite(firstSegment?.startTime)) {
-                      const startTime = Math.max(0, Number(firstSegment.startTime) || 0);
-                      try {
-                        audio.pause();
-                        audio.currentTime = startTime;
-                      } catch (error) {
-                        console.error('Failed to seek audio before play:', error);
-                      }
-                      void audio.play().catch((err) => console.error('Play failed:', err));
-                    }
-                    return;
-                  }
-
-                  const targets = container.querySelectorAll<HTMLElement>('[data-start-time], p, li, span');
-                  const normalizedChunks = chunks.map(normalizeText).filter(Boolean);
-                  if (normalizedChunks.length === 0) return;
-                  const matchedTargetIndexes: number[] = [];
-                  normalizedChunks.forEach((chunk) => {
-                    const matchedIdx = Array.from(targets).findIndex((target) => {
-                      const text = normalizeText(target.textContent || '');
-                      return isChunkMatched(text, chunk);
-                    });
-                    if (matchedIdx >= 0) matchedTargetIndexes.push(matchedIdx);
-                  });
-
-                  if (matchedTargetIndexes.length === 0) return;
-
-                  const uniqueIndexes = Array.from(new Set(matchedTargetIndexes)).sort((a, b) => a - b);
-                  const firstIdx = matchedTargetIndexes[0];
-
-                  container.querySelectorAll('.bg-amber-100, .ring-2, .ring-amber-400').forEach((el) => {
-                    el.classList.remove('bg-amber-100', 'ring-2', 'ring-amber-400', 'rounded-sm');
-                  });
-
-                  uniqueIndexes.forEach((idx) => {
-                    const target = targets[idx];
-                    target?.classList.add('bg-amber-100', 'ring-2', 'ring-amber-400', 'rounded-sm');
-                  });
-
-                  const firstTarget = targets[firstIdx];
-                  firstTarget?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                  uniqueIndexes.forEach((idx) => {
-                    const target = targets[idx];
-                    if (!target) return;
-                    setTimeout(() => {
-                      target.classList.remove('bg-amber-100', 'ring-2', 'ring-amber-400', 'rounded-sm');
-                    }, 10000);
-                  });
-
-                  let startTime: number | null = null;
-                  let searchIdx = firstIdx;
-                  while (searchIdx >= 0) {
-                    const searchEl = targets[searchIdx];
-                    const sTime = Number(searchEl.dataset.startTime);
-                    if (Number.isFinite(sTime)) {
-                      startTime = sTime;
-                      break;
-                    }
-                    const tMatch = (searchEl.textContent || '').match(/(\d{1,2}):(\d{2})/);
-                    if (tMatch) {
-                      startTime = parseInt(tMatch[1], 10) * 60 + parseInt(tMatch[2], 10);
-                      break;
-                    }
-                    searchIdx--;
-                  }
-
-                  // Fallback estimate when transcript has no timestamps.
-                  if (startTime === null && audioRef.current && Number.isFinite(audioRef.current.duration) && audioRef.current.duration > 0) {
-                    const ratio = targets.length > 1 ? firstIdx / (targets.length - 1) : 0;
-                    startTime = Math.max(0, Math.min(audioRef.current.duration - 0.1, audioRef.current.duration * ratio));
-                  }
-
-                  if (audioRef.current) {
-                    try {
-                      audioRef.current.pause();
-                      if (startTime !== null) {
-                        audioRef.current.currentTime = startTime;
-                      }
-                    } catch (error) {
-                      console.error('Failed to seek audio before play:', error);
-                    }
-                    void audioRef.current.play().catch((err) => console.error('Play failed:', err));
-                  }
+        {/* Audio Controls Bar */}
+        <div className="px-5 py-2.5 flex items-center justify-between border-b border-gray-100 shadow-sm">
+          <div className="flex items-center gap-5">
+            <span className="text-xs font-mono font-bold text-gray-500 tabular-nums min-w-[80px]">
+              {formatTime(currentTime)} / {formatTime(duration)}
+            </span>
+            
+            <div className="flex items-center gap-2 group">
+              <button onClick={() => {
+                const audio = audioRef.current;
+                if (!audio) return;
+                audio.muted = !isMuted;
+                setIsMuted(!isMuted);
+              }} className="text-gray-400 hover:text-gray-600 transition-colors">
+                {isMuted || volume === 0 ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+              </button>
+              <input
+                type="range"
+                min={0}
+                max={1}
+                step={0.01}
+                value={isMuted ? 0 : volume}
+                onChange={(e) => {
+                  const val = parseFloat(e.target.value);
+                  setVolume(val);
+                  if (audioRef.current) audioRef.current.volume = val;
+                  setIsMuted(val === 0);
                 }}
+                className="w-20 h-1 accent-[#e95c18] cursor-pointer"
               />
             </div>
           </div>
+
+          {/* Central Controls */}
+          <div className="flex items-center gap-4">
+            <button onClick={() => skip(-5)} className="w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:bg-gray-100 transition-colors relative">
+              <RotateCcw className="h-4 w-4" />
+              <span className="absolute text-[7px] font-bold mt-0.5">5</span>
+            </button>
+
+            <button
+              onClick={togglePlay}
+              className="w-10 h-10 flex items-center justify-center rounded-full text-white transition-transform hover:scale-105 active:scale-95 shadow-md"
+              style={{ backgroundColor: '#e95c18' }}
+            >
+              {isPlaying ? <Pause className="h-5 w-5 fill-current" /> : <Play className="h-5 w-5 fill-current ml-0.5" />}
+            </button>
+
+            <button onClick={() => skip(5)} className="w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:bg-gray-100 transition-colors relative">
+              <RotateCw className="h-4 w-4" />
+              <span className="absolute text-[7px] font-bold mt-0.5">5</span>
+            </button>
+          </div>
+
+          {/* Speed Selector */}
+          <div className="relative" ref={speedMenuRef}>
+            <button
+              onClick={() => setShowSpeedMenu(!showSpeedMenu)}
+              className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50 transition-all shadow-sm"
+            >
+              <Gauge className="h-4 w-4" />
+              <span className="text-xs font-bold whitespace-nowrap">Tốc độ: {playbackRate}x</span>
+            </button>
+
+            {showSpeedMenu && (
+              <div className="absolute top-full right-0 mt-2 bg-white border border-gray-200 rounded-xl shadow-xl py-1.5 min-w-[110px] z-[100] overflow-hidden animate-in fade-in slide-in-from-top-1 duration-200">
+                {PLAYBACK_RATES.map((rate) => (
+                  <button
+                    key={rate}
+                    onClick={() => {
+                      setPlaybackRate(rate);
+                      if (audioRef.current) audioRef.current.playbackRate = rate;
+                      setShowSpeedMenu(false);
+                    }}
+                    className={`w-full px-4 py-2 text-xs text-left transition-colors flex items-center justify-between ${
+                      playbackRate === rate ? 'bg-orange-50 text-[#e95c18] font-bold' : 'text-gray-600 hover:bg-gray-50'
+                    }`}
+                  >
+                    {rate}x
+                    {playbackRate === rate && <Check className="h-3 w-3" />}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
-    );
-  }
+
+      <audio ref={audioRef} src={stimulus.mediaUrl || undefined} preload="metadata" />
+
+      {/* ===== Main Content Area ===== */}
+      <div className="flex-1 flex overflow-hidden">
+        {/* Left Side: Transcript */}
+        <div
+          ref={transcriptRef}
+          className="w-1/2 overflow-y-auto custom-scrollbar bg-white p-8"
+          data-transcript
+        >
+          {(() => {
+            const parsedTranscript: TranscriptLike[] = Array.isArray(stimulus.transcript) ? stimulus.transcript : [];
+            if (parsedTranscript.length > 0) {
+              return (
+                <div className="space-y-1">
+                  {parsedTranscript.map((seg, i) => {
+                    const startTime = Number(seg.startTime) || 0;
+                    const isActive = activeSegmentIdx === i;
+                    return (
+                      <div
+                        key={seg.id || i}
+                        data-segment-idx={i}
+                        onClick={() => {
+                          if (audioRef.current) {
+                            audioRef.current.currentTime = startTime;
+                            if (!isPlaying) audioRef.current.play().catch(() => {});
+                          }
+                        }}
+                        className={`px-4 py-3 rounded-xl transition-all cursor-pointer group relative ${
+                          isActive 
+                            ? 'bg-[#fff9e6] shadow-sm ring-1 ring-yellow-200/50' 
+                            : 'hover:bg-gray-50'
+                        }`}
+                      >
+                        <div className="flex items-start gap-1">
+                          {seg.speaker && (
+                            <span className={`text-[13px] font-black shrink-0 min-w-[80px] ${
+                              isActive ? 'text-slate-900' : 'text-slate-500'
+                            }`}>
+                              {seg.speaker}:
+                            </span>
+                          )}
+                          <span className={`text-[14px] leading-relaxed ${
+                            isActive ? 'text-slate-900 font-medium' : 'text-slate-700'
+                          }`}>
+                            {seg.text || seg.content || ''}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            }
+            if (stimulus.content) {
+              return (
+                <div
+                  className="prose prose-sm max-w-none text-slate-700 leading-loose [&_p]:mb-4 [&_p]:cursor-pointer [&_p:hover]:text-orange-600"
+                  dangerouslySetInnerHTML={{ __html: stimulus.content }}
+                />
+              );
+            }
+            return <p className="text-gray-400 text-center py-20">Chưa có transcript cho bài nghe này.</p>;
+          })()}
+        </div>
+
+        {/* Right Side: Questions Review */}
+        <div className="w-1/2 overflow-hidden bg-gray-50 border-l border-gray-100">
+          <ListeningReviewPanel
+            stimulus={stimulus}
+            answers={resultData.answers}
+            textAnswers={resultData.textAnswers}
+            onLocateEvidence={(evidence) => {
+              if (!evidence) return;
+              const container = transcriptRef.current;
+              if (!container) return;
+              const chunks = splitEvidenceChunks(evidence);
+              if (chunks.length === 0) return;
+
+              const transcriptSegments = Array.isArray(stimulus.transcript) ? stimulus.transcript : [];
+              const matchedSegments = transcriptSegments.length > 0
+                ? findTranscriptMatches(transcriptSegments, chunks)
+                : [];
+
+              if (matchedSegments.length > 0) {
+                const firstMatch = matchedSegments[0];
+                const firstSegment = transcriptSegments[firstMatch.segmentIndex];
+                const audio = audioRef.current;
+
+                container.querySelectorAll('.bg-amber-100, .ring-orange-400').forEach((el) => {
+                  el.classList.remove('bg-amber-100', 'ring-2', 'ring-orange-400');
+                });
+
+                matchedSegments.forEach(({ segmentIndex }) => {
+                  const segmentEl = container.querySelector<HTMLElement>(`[data-segment-idx="${segmentIndex}"]`);
+                  if (segmentEl) segmentEl.classList.add('bg-amber-100', 'ring-2', 'ring-orange-400');
+                });
+
+                const activeElement = container.querySelector<HTMLElement>(`[data-segment-idx="${firstMatch.segmentIndex}"]`);
+                activeElement?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+                if (audio) {
+                  const startTime = Number(firstSegment?.startTime);
+                  if (Number.isFinite(startTime)) {
+                    audio.currentTime = Math.max(0, startTime);
+                    void audio.play().catch(() => {});
+                  }
+                }
+                return;
+              }
+
+              // Fallback for HTML content or non-matched JSON segments
+              const targets = container.querySelectorAll<HTMLElement>('p, li, span, div');
+              const normalizedChunks = chunks.map(normalizeText).filter(Boolean);
+              if (normalizedChunks.length === 0) return;
+
+              let firstMatchedTargetIdx = -1;
+              const matchedTargets: HTMLElement[] = [];
+
+              Array.from(targets).forEach((target, idx) => {
+                const text = normalizeText(target.textContent || '');
+                const isMatch = normalizedChunks.some(chunk => isChunkMatched(text, chunk));
+                if (isMatch) {
+                  if (firstMatchedTargetIdx === -1) firstMatchedTargetIdx = idx;
+                  matchedTargets.push(target);
+                }
+              });
+
+              if (matchedTargets.length > 0) {
+                container.querySelectorAll('.bg-amber-100, .ring-orange-400').forEach((el) => {
+                  el.classList.remove('bg-amber-100', 'ring-2', 'ring-orange-400');
+                });
+
+                matchedTargets.forEach(t => t.classList.add('bg-amber-100', 'ring-2', 'ring-orange-400'));
+                matchedTargets[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+                // Try to estimate time or find nearest data-start-time
+                const audio = audioRef.current;
+                if (audio) {
+                  let startTime: number | null = null;
+                  
+                  // Look for nearest timestamp in parents or previous siblings
+                  let current: HTMLElement | null = matchedTargets[0];
+                  while (current && current !== container) {
+                    const st = Number(current.dataset.startTime);
+                    if (Number.isFinite(st)) {
+                      startTime = st;
+                      break;
+                    }
+                    current = current.parentElement;
+                  }
+
+                  if (startTime === null && Number.isFinite(audio.duration)) {
+                    // Rough estimate based on position in DOM
+                    const ratio = firstMatchedTargetIdx / targets.length;
+                    startTime = audio.duration * ratio;
+                  }
+
+                  if (startTime !== null) {
+                    audio.currentTime = Math.max(0, startTime);
+                    void audio.play().catch(() => {});
+                  }
+                }
+              }
+            }}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}

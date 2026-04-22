@@ -73,9 +73,17 @@ export default function AdminFullTestCreatePage() {
     setSortBySection({});
   };
 
+  const handleTestTypeChange = (nextType: string) => {
+    setTestType(nextType);
+    setSelected({});
+    setSearchInputBySection({});
+    setSearchBySection({});
+    setSortBySection({});
+  };
+
   const { data: stimuliMap, isLoading } = useQuery({
-    queryKey: ['full-test-stimuli', skill],
-    queryFn: () => getAvailableStimuli(skill!),
+    queryKey: ['full-test-stimuli', skill, testType],
+    queryFn: () => getAvailableStimuli(skill!, testType),
     enabled: !!skill,
     staleTime: 30_000,
   });
@@ -202,7 +210,7 @@ export default function AdminFullTestCreatePage() {
                     name="testType"
                     value="ACADEMIC"
                     checked={testType === 'ACADEMIC'}
-                    onChange={(e) => setTestType(e.target.value)}
+                    onChange={(e) => handleTestTypeChange(e.target.value)}
                     className="w-4 h-4 text-blue-600 focus:ring-blue-500 border-gray-300"
                   />
                   <span className={`text-sm font-medium transition-colors ${testType === 'ACADEMIC' ? 'text-blue-700' : 'text-gray-600 group-hover:text-gray-900'}`}>
@@ -215,7 +223,7 @@ export default function AdminFullTestCreatePage() {
                     name="testType"
                     value="GENERAL_TRAINING"
                     checked={testType === 'GENERAL_TRAINING'}
-                    onChange={(e) => setTestType(e.target.value)}
+                    onChange={(e) => handleTestTypeChange(e.target.value)}
                     className="w-4 h-4 text-blue-600 focus:ring-blue-500 border-gray-300"
                   />
                   <span className={`text-sm font-medium transition-colors ${testType === 'GENERAL_TRAINING' ? 'text-blue-700' : 'text-gray-600 group-hover:text-gray-900'}`}>

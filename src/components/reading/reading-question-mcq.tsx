@@ -28,6 +28,7 @@ interface Props {
   selectedIds?: number[];
   multiple?: boolean;
   submitted: boolean;
+  readOnly?: boolean;
   explanation?: { text?: string; evidence?: string };
   onAnswer: (questionId: number, optionId: number) => void;
   onLocateEvidence?: (evidence: string) => void;
@@ -35,9 +36,11 @@ interface Props {
 }
 
 /** Button-style renderer for MCQ, MCQ_MULTIPLE, TFNG, YNNG */
-export function ReadingQuestionMcq({ questionId, position, content, options, selectedId, selectedIds, multiple, submitted, explanation, onAnswer, onLocateEvidence, examMode = false }: Props) {
+export function ReadingQuestionMcq({ questionId, position, content, options, selectedId, selectedIds, multiple, submitted, readOnly = false, explanation, onAnswer, onLocateEvidence, examMode = false }: Props) {
+  const isDisabled = submitted || readOnly;
   const selected = multiple ? (selectedIds ?? []) : (selectedId != null ? [selectedId] : []);
   const hasAnswer = selected.length > 0;
+
   // Show correct answers when submitted (even if user didn't answer)
   const showResult = submitted;
 
@@ -69,8 +72,8 @@ export function ReadingQuestionMcq({ questionId, position, content, options, sel
                   name={`question-${questionId}`}
                   value={option.id}
                   checked={isSelected}
-                  disabled={submitted}
-                  onChange={() => !submitted && onAnswer(questionId, option.id)}
+                  disabled={isDisabled}
+                  onChange={() => !isDisabled && onAnswer(questionId, option.id)}
                   className="h-4 w-4 accent-blue-600 text-blue-600 border-gray-400 focus:ring-blue-600"
                 />
                 <span className={`text-sm font-normal leading-tight ${isSelected ? 'font-medium' : ''}`}>
@@ -81,7 +84,7 @@ export function ReadingQuestionMcq({ questionId, position, content, options, sel
           })}
         </div>
 
-        {submitted && explanation && (explanation.text || explanation.evidence) && (
+        {isDisabled && explanation && (explanation.text || explanation.evidence) && (
           <ExplanationSection explanation={explanation} onLocateEvidence={onLocateEvidence} />
         )}
       </div>
@@ -121,14 +124,15 @@ export function ReadingQuestionMcq({ questionId, position, content, options, sel
           } else {
             className += 'text-gray-700 border-gray-200 hover:bg-gray-50';
           }
-          className += submitted ? ' cursor-default' : ' cursor-pointer';
+          className += isDisabled ? ' cursor-default' : ' cursor-pointer';
 
           return (
             <button
               key={option.id}
               type="button"
-              onClick={() => !submitted && onAnswer(questionId, option.id)}
+              onClick={() => !isDisabled && onAnswer(questionId, option.id)}
               className={className}
+              disabled={isDisabled}
             >
               {showResult && option.isCorrect && isSelected ? (
                 <CheckCircle2 className="h-4 w-4 shrink-0" />

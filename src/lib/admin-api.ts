@@ -247,6 +247,12 @@ export async function deleteMedia(url: string): Promise<void> {
   await apiClient.delete(`/api/v1/admin/media?url=${encodeURIComponent(url)}`, true);
 }
 
+export async function urlToFile(url: string, filename: string, mimeType: string): Promise<File> {
+  const response = await fetch(url);
+  const blob = await response.blob();
+  return new File([blob], filename, { type: mimeType });
+}
+
 export async function getAdminRevenueDashboard(params?: {
   fromDate?: string;
   toDate?: string;

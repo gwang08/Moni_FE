@@ -465,12 +465,12 @@ export const TestEditContentTab = forwardRef<TestEditContentHandle, Props>(funct
     // Writing: delegate to child component (owns its own editor/sample state)
     if (test.skill === 'WRITING') {
       if (!writingContentRef.current) return true;
-      return writingContentRef.current.saveAll();
+      return writingContentRef.current.saveAll(silent);
     }
     // Speaking: delegate to child component
     if (test.skill === 'SPEAKING') {
       if (!speakingContentRef.current) return true;
-      return speakingContentRef.current.saveAll();
+      return speakingContentRef.current.saveAll(silent);
     }
     if (!stimulus) return true;
 

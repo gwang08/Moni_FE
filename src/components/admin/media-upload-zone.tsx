@@ -9,10 +9,10 @@ interface Props {
   onUploaded: (url: string) => void;
   /** When provided, file is NOT uploaded immediately. Parent receives file + preview URL. */
   onFileSelected?: (file: File, previewUrl: string) => void;
-  /** Custom button text (default: "Kéo thả file hoặc nhấn để chọn") */
-  label?: string;
-  /** Custom subtext (default: "Hỗ trợ ảnh, video, audio và tài liệu") */
-  sublabel?: string;
+  /** Custom button text */
+  label?: React.ReactNode;
+  /** Custom subtext */
+  sublabel?: React.ReactNode;
   /** Hide the upload icon (default: false) */
   hideIcon?: boolean;
   /** Custom icon component */

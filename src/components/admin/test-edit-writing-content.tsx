@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
-import { useEditor, EditorContent } from '@tiptap/react';
+import { useEditor, EditorContent, Editor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
 import Underline from '@tiptap/extension-underline';
@@ -17,7 +17,7 @@ import TableCell from '@tiptap/extension-table-cell';
 import TableHeader from '@tiptap/extension-table-header';
 import { RichTextToolbar } from '@/components/admin/rich-text-toolbar';
 import { Button } from '@/components/ui/button';
-import { Loader2, Save, ScanSearch, AlertTriangle } from 'lucide-react';
+import { Loader2, Save, ScanSearch, AlertTriangle, Image as ImageIcon, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
 import {
@@ -30,6 +30,8 @@ import {
   updateVisonAnalysis,
   createQuestionGroup,
   createQuestion,
+  uploadMedia,
+  urlToFile,
 } from '@/lib/admin-api';
 import { ChartDataEditor } from '@/components/admin/chart-data-editor';
 import {
@@ -58,6 +60,14 @@ const EDITOR_EXTENSIONS = [
   TableHeader,
 ];
 
+const SAMPLE_EDITOR_EXTENSIONS = [
+  StarterKit,
+  Placeholder.configure({ placeholder: 'Nhập bài mẫu Writing...' }),
+  Underline,
+  TextAlign.configure({ types: ['heading', 'paragraph'] }),
+  LinkExtension.configure({ openOnClick: false }),
+];
+
 const SEPARATOR = '\n---SECTION---\n';
 
 function parseSample(raw: string): string {
@@ -71,9 +81,14 @@ function buildSample(content: string): string {
 }
 
 /**
- * Strip thẻ <img> có src="blob:" khỏi HTML
+ * Strip thẻ <img> khỏi HTML cho Task 1 (vì đã có field riêng) hoặc các blob URL
  */
-function stripDeadBlobImages(html: string): string {
+function stripRedundantImages(html: string, isTask1: boolean): string {
+  if (isTask1) {
+    // Strip ALL images for Task 1 as they should be in the media field
+    return html.replace(/<img\b[^>]*>/gi, '');
+  }
+  // For others, only strip RAM-only blobs
   return html.replace(/<img\b[^>]*\bsrc=["']blob:[^"']*["'][^>]*>/gi, '');
 }
 
@@ -90,30 +105,32 @@ export const TestEditWritingContent = forwardRef<TestEditWritingContentHandle, P
   const testId = String(test.id);
   const stimulus = test.stimuli[0];
   const firstGroup = stimulus?.questionGroups[0];
+
+  // Determine section from test (Derive early to avoid initialization errors)
+  const section = test.section;
+  const isTask1 = section === 1;
+  const isTask2 = section === 2;
+  const typeCodes = isTask1 ? WRITING_TASK1_TYPE_CODES : isTask2 ? WRITING_TASK2_TYPE_CODES : {};
+
   const [saving, setSaving] = useState(false);
-  const [contentHtml, setContentHtml] = useState(() => stripDeadBlobImages(stimulus?.content || ''));
+  const [contentHtml, setContentHtml] = useState(() => stripRedundantImages(stimulus?.content || '', isTask1));
   const [imageUploading, setImageUploading] = useState(false);
 
   // Read bài mẫu from instruction (create flow) or explanation.text (edit flow)
   const firstQuestion = firstGroup?.questions[0];
   const rawSample = firstGroup?.instruction || (firstQuestion?.explanation as { text?: string })?.text || '';
-  const [sampleContent, setSampleContent] = useState<string>(() => parseSample(rawSample));
+  const [sampleHtml, setSampleHtml] = useState<string>(() => parseSample(rawSample));
 
   // Writing type/topic state
   const [questionTypeCode, setQuestionTypeCode] = useState(firstGroup?.questionTypeCode || '');
   const [topic, setTopic] = useState(firstGroup?.groupContent || '');
-
-  // Determine section from test
-  const section = test.section;
-  const isTask1 = section === 1;
-  const isTask2 = section === 2;
-  const typeCodes = isTask1 ? WRITING_TASK1_TYPE_CODES : isTask2 ? WRITING_TASK2_TYPE_CODES : {};
 
   // Chart analysis state (Task 1 only)
   const [chartDataJson, setChartDataJson] = useState('');
   const [chartAnalyzing, setChartAnalyzing] = useState(false);
   const [chartSaving, setChartSaving] = useState(false);
   const [chartJsonError, setChartJsonError] = useState<string | null>(null);
+  const [currentMediaUrl, setCurrentMediaUrl] = useState(stimulus?.mediaUrl || '');
   const chartFileRef = useRef<HTMLInputElement>(null);
 
   // Load existing chart analysis
@@ -126,19 +143,45 @@ export const TestEditWritingContent = forwardRef<TestEditWritingContentHandle, P
     }).catch(() => {});
   }, [isTask1, stimulus]);
 
+  const handleUpdateChartImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setImageUploading(true);
+    try {
+      const url = await uploadMedia(file);
+      setCurrentMediaUrl(url);
+      toast.success('Đã cập nhật ảnh biểu đồ');
+    } catch {
+      toast.error('Cập nhật ảnh thất bại');
+    } finally {
+      setImageUploading(false);
+    }
+  };
+
   const handleAnalyzeChart = async () => {
     const file = chartFileRef.current?.files?.[0];
-    if (!file) {
-      toast.error('Vui lòng chọn ảnh biểu đồ trước');
-      return;
-    }
+    
     setChartAnalyzing(true);
     try {
-      const result = await analyzeChartApi(stimulus.id, file);
+      let result;
+      if (file) {
+        result = await analyzeChartApi(stimulus.id, file);
+      } else if (currentMediaUrl) {
+        // Fetch from URL and convert to File
+        const fileFromUrl = await urlToFile(currentMediaUrl, 'chart.png', 'image/png');
+        result = await analyzeChartApi(stimulus.id, fileFromUrl);
+      } else {
+        toast.error('Vui lòng chọn ảnh biểu đồ hoặc đảm bảo đã có URL ảnh');
+        setChartAnalyzing(false);
+        return;
+      }
+      
       setChartDataJson(JSON.stringify(result, null, 2));
       setChartJsonError(null);
       toast.success('Phân tích biểu đồ thành công!');
-    } catch {
+    } catch (err) {
+      console.error('Analysis failed:', err);
       toast.error('Phân tích biểu đồ thất bại');
     } finally {
       setChartAnalyzing(false);
@@ -161,7 +204,7 @@ export const TestEditWritingContent = forwardRef<TestEditWritingContentHandle, P
 
   const editor = useEditor({
     extensions: EDITOR_EXTENSIONS,
-    content: stripDeadBlobImages(stimulus?.content || ''),
+    content: stripRedundantImages(stimulus?.content || '', isTask1),
     immediatelyRender: false,
     editorProps: {
       attributes: {
@@ -170,6 +213,20 @@ export const TestEditWritingContent = forwardRef<TestEditWritingContentHandle, P
     },
     onUpdate: ({ editor: ed }) => {
       setContentHtml(ed.getHTML());
+    },
+  });
+
+  const sampleEditor = useEditor({
+    extensions: SAMPLE_EDITOR_EXTENSIONS,
+    content: sampleHtml,
+    immediatelyRender: false,
+    editorProps: {
+      attributes: {
+        class: 'prose prose-sm max-w-none min-h-[250px] focus:outline-none p-4',
+      },
+    },
+    onUpdate: ({ editor: ed }) => {
+      setSampleHtml(ed.getHTML());
     },
   });
 
@@ -184,11 +241,12 @@ export const TestEditWritingContent = forwardRef<TestEditWritingContentHandle, P
     try {
       await updateStimulus(stimulus.id, {
         content: contentHtml,
-        mediaUrl: stimulus.mediaUrl || undefined,
+        mediaUrl: currentMediaUrl || undefined,
       });
 
-      const sampleText = buildSample(sampleContent);
-      const hasSample = sampleText.trim().length > 0;
+      const finalSample = sampleEditor?.getHTML() || sampleHtml;
+      const sampleText = buildSample(finalSample);
+      const hasSample = sampleText.trim().length > 0 && sampleText !== '<p></p>';
       
       if (hasSample) {
         let questionId = firstGroup?.questions[0]?.id;
@@ -232,81 +290,96 @@ export const TestEditWritingContent = forwardRef<TestEditWritingContentHandle, P
   if (!stimulus) return <p className="text-gray-400 text-center py-8">Chưa có nội dung</p>;
 
   return (
-    <div className="space-y-5 max-w-3xl">
+    <div className="space-y-8 w-full">
       {/* Đề bài - Rich Text Editor */}
-      <div>
-        <label className="text-sm font-medium text-gray-700 mb-2 block">
-          Đề bài Writing
-          <span className="text-xs text-gray-400 font-normal ml-2">Có thể chèn ảnh biểu đồ trực tiếp vào đề</span>
+      <section>
+        <label className="text-sm font-bold text-slate-800 mb-3 block flex items-center gap-2">
+          1. Đề bài Writing
+          <span className="text-[10px] text-slate-400 font-normal normal-case px-2 py-0.5 bg-slate-100 rounded-md">Có thể chèn ảnh biểu đồ</span>
         </label>
-        <div className="border border-input rounded-md bg-white overflow-hidden">
+        <div className="border border-slate-200 rounded-2xl bg-white overflow-hidden shadow-sm hover:border-slate-300 transition-colors">
           <RichTextToolbar editor={editor} onUploadingChange={setImageUploading} />
           <EditorContent editor={editor} />
         </div>
-      </div>
+      </section>
 
-      {/* Chart Analysis (Task 1 only) */}
+      {/* Chart Image (Task 1 only) */}
       {isTask1 && (
-        <div className="border border-amber-200 bg-amber-50/50 rounded-lg p-4 space-y-3">
-          <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
-            <ScanSearch className="h-4 w-4 text-amber-600" />
-            Phân tích biểu đồ (Task 1)
-            <span className="text-xs text-gray-400 font-normal">AI sẽ trích xuất dữ liệu số từ ảnh biểu đồ</span>
-          </label>
-
-          <div className="flex items-center gap-3">
-            <input
-              ref={chartFileRef}
-              type="file"
-              accept="image/*"
-              className="text-sm file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-medium file:bg-amber-100 file:text-amber-700 hover:file:bg-amber-200 cursor-pointer"
-            />
-            <Button
-              onClick={handleAnalyzeChart}
-              disabled={chartAnalyzing}
-              size="sm"
-              variant="outline"
-              className="border-amber-300 text-amber-700 hover:bg-amber-100"
-            >
-              {chartAnalyzing ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <ScanSearch className="h-3.5 w-3.5 mr-1" />}
-              Phân tích (AI)
-            </Button>
+        <section className="bg-white rounded-xl border border-gray-200 p-8 shadow-sm space-y-6">
+          <div className="flex items-center justify-between">
+            <label className="text-sm font-bold text-slate-800 flex items-center gap-2 uppercase tracking-tight">
+              <ImageIcon className="h-4 w-4 text-slate-500" />
+              2. Ảnh biểu đồ (Task 1)
+            </label>
+            <div className="flex items-center gap-2">
+              <input
+                type="file"
+                id="update-chart-image"
+                accept="image/*"
+                className="hidden"
+                onChange={handleUpdateChartImage}
+              />
+              <Button
+                variant="outline"
+                size="sm"
+                className="rounded-lg border-slate-200 h-9 text-xs font-bold px-4"
+                onClick={() => document.getElementById('update-chart-image')?.click()}
+                disabled={imageUploading}
+              >
+                {imageUploading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Plus className="h-4 w-4 mr-2 text-blue-600" />}
+                Thay đổi ảnh
+              </Button>
+            </div>
           </div>
 
-          {chartDataJson && (
-            <div className="space-y-3">
-              <ChartDataEditor
-                data={chartDataJson}
-                onChange={setChartDataJson}
-              />
-              {chartJsonError && (
-                <div className="flex items-center gap-1.5 text-red-600 text-xs">
-                  <AlertTriangle className="h-3.5 w-3.5" />
-                  {chartJsonError}
-                </div>
-              )}
-              <div className="flex justify-end">
-                <Button onClick={handleSaveChartData} disabled={chartSaving} size="sm" variant="outline" className="border-amber-200 text-amber-700 hover:bg-amber-50">
-                  {chartSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <Save className="h-3.5 w-3.5 mr-1" />}
-                  Lưu dữ liệu biểu đồ
-                </Button>
+          {/* Image Preview */}
+          {currentMediaUrl ? (
+            <div className="relative aspect-video w-full rounded-xl overflow-hidden border border-slate-100 bg-slate-50/30 group">
+              <img src={currentMediaUrl} alt="Chart" className="w-full h-full object-contain p-4 transition-transform duration-500 group-hover:scale-[1.02]" />
+            </div>
+          ) : (
+            <div 
+              className="aspect-video w-full rounded-xl border-2 border-dashed border-slate-200 bg-slate-50/50 flex flex-col items-center justify-center gap-3 cursor-pointer hover:bg-slate-50 hover:border-slate-400 transition-all"
+              onClick={() => document.getElementById('update-chart-image')?.click()}
+            >
+              <div className="p-3 bg-white rounded-full shadow-sm">
+                <ImageIcon className="h-6 w-6 text-slate-400" />
               </div>
+              <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Nhấn để tải lên ảnh biểu đồ</span>
             </div>
           )}
-        </div>
+
+          {/* Chart Data Editor is now direct */}
+          <div className="pt-8 border-t border-slate-100 space-y-4">
+            <ChartDataEditor
+              data={chartDataJson}
+              onChange={setChartDataJson}
+            />
+            <div className="flex justify-end">
+              <Button 
+                onClick={handleSaveChartData} 
+                disabled={chartSaving} 
+                size="sm" 
+                className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl px-6 font-bold shadow-lg shadow-emerald-100 h-10"
+              >
+                {chartSaving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
+                Cập nhật
+              </Button>
+            </div>
+          </div>
+        </section>
       )}
 
-      {/* Bài mẫu - 1 field */}
-      <div>
-        <label className="text-sm font-medium text-gray-700 mb-3 block">Bài mẫu</label>
-        <textarea
-          value={sampleContent}
-          onChange={(e) => setSampleContent(e.target.value)}
-          placeholder="Nhập bài mẫu Writing..."
-          rows={12}
-          className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y"
-        />
-      </div>
+      {/* Bài mẫu - Rich Text Editor */}
+      <section>
+        <label className="text-sm font-bold text-slate-800 mb-3 block">
+          {isTask1 ? '3.' : '2.'} Bài mẫu (Sample Answer)
+        </label>
+        <div className="border border-slate-200 rounded-2xl bg-white overflow-hidden shadow-sm hover:border-slate-300 transition-colors">
+          <RichTextToolbar editor={sampleEditor} />
+          <EditorContent editor={sampleEditor} />
+        </div>
+      </section>
 
     </div>
   );

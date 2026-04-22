@@ -8,7 +8,7 @@ import { TestImportStep2Writing } from '@/components/admin/test-import-step2-wri
 import { TestImportStep2Speaking } from '@/components/admin/test-import-step2-speaking';
 import { TestImportStep3 } from '@/components/admin/test-import-step3-questions';
 import { TestImportStep4 } from '@/components/admin/test-import-step4-review';
-import { importTest, transcribeStimulus, uploadMedia } from '@/lib/admin-api';
+import { importTest, transcribeStimulus, uploadMedia, analyzeChart, urlToFile } from '@/lib/admin-api';
 import { getTestDetail } from '@/lib/tests-api';
 import { toast } from 'sonner';
 import type { StimulusRequest } from '@/types/admin.types';
@@ -137,7 +137,7 @@ export default function TestImportPage() {
         testType: (basicInfo.skill === 'READING' || basicInfo.skill === 'WRITING') && basicInfo.testType ? basicInfo.testType : undefined,
         testMode: 'PRACTICE',
         section: basicInfo.section ?? undefined,
-        thumbnailUrl: basicInfo.thumbnailUrl || undefined,
+        thumbnailUrl: thumbnailUrl,
         tagIds: basicInfo.tagIds,
         duration: basicInfo.skill === 'WRITING'
           ? (basicInfo.section === 1 ? 20 : 40)
@@ -146,35 +146,60 @@ export default function TestImportPage() {
             : basicInfo.skill === 'SPEAKING'
               ? Math.ceil(speakingDuration / 60)
               : 60,
-        stimuli: stimuli.map((s, i) => ({
-          ...s,
-          title: s.title || `Passage ${i + 1}`,
-          section: s.section ?? i + 1,
-          questionGroups: s.questionGroups.map((g) => ({
-            ...g,
-            questions:
-              skill === 'SPEAKING'
-                ? g.questions
-                : g.questions.map((q, qi) => ({ ...q, position: qi + 1 })),
-          })),
-        })),
+        stimuli: stimuli.map((s, i) => {
+          let content = s.content;
+          // For Writing Task 1, embed the chart image if it exists
+          if (basicInfo.skill === 'WRITING' && basicInfo.section === 1 && s.mediaUrl) {
+            const imgHtml = `<p><img src="${s.mediaUrl}" alt="Chart" /></p>`;
+            if (!content.includes(s.mediaUrl)) {
+              content = imgHtml + content;
+            }
+          }
+          
+          return {
+            ...s,
+            content,
+            title: s.title || `Passage ${i + 1}`,
+            section: s.section ?? i + 1,
+            questionGroups: s.questionGroups.map((g) => ({
+              ...g,
+              questions:
+                skill === 'SPEAKING'
+                  ? g.questions
+                  : g.questions.map((q, qi) => ({ ...q, position: qi + 1 })),
+            })),
+          };
+        }),
       });
       sessionStorage.removeItem(STORAGE_KEY);
       toast.success('Tạo bài thi thành công!');
 
+      // Post-creation automation
+      const detail = await getTestDetail(String(testId));
+      
       if (skill === 'LISTENING') {
-        getTestDetail(String(testId))
-          .then((detail) => {
-            const audioStimuli = detail.stimuli.filter((s) => s.mediaUrl);
-            audioStimuli.forEach((s) => {
-              transcribeStimulus(s.id).catch(console.error);
-            });
-          })
-          .catch(console.error);
+        const audioStimuli = detail.stimuli.filter((s) => s.mediaUrl);
+        audioStimuli.forEach((s) => {
+          transcribeStimulus(s.id).catch(console.error);
+        });
+      }
+
+      if (skill === 'WRITING' && basicInfo.section === 1) {
+        const chartStimulus = detail.stimuli[0];
+        if (chartStimulus && chartStimulus.mediaUrl) {
+          try {
+            const file = await urlToFile(chartStimulus.mediaUrl, 'chart.png', 'image/png');
+            await analyzeChart(chartStimulus.id, file);
+            toast.success('Đã tự động phân tích dữ liệu biểu đồ');
+          } catch (err) {
+            console.error('Auto chart analysis failed:', err);
+          }
+        }
       }
 
       router.push('/admin/tests');
-    } catch {
+    } catch (err) {
+      console.error('Import error:', err);
       setError('Tạo bài thi thất bại. Vui lòng thử lại.');
     } finally {
       setSubmitting(false);

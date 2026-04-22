@@ -71,7 +71,7 @@ export default function AdminUsersPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50/80">
-                  {['Email', 'Họ tên', 'Điện thoại', 'Ngày sinh', 'Target Band', ''].map((h) => (
+                  {['Họ tên', 'Email', 'Điện thoại', 'Target Band', ''].map((h) => (
                     <th key={h} className="px-4 py-3 text-left text-[11px] font-semibold text-gray-500 uppercase tracking-wide">
                       {h}
                     </th>
@@ -81,7 +81,7 @@ export default function AdminUsersPage() {
               <tbody className="divide-y divide-gray-50">
                 {filtered.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="text-center py-12">
+                    <td colSpan={5} className="text-center py-12">
                       <Users className="h-8 w-8 mx-auto text-gray-200 mb-2" />
                       <p className="text-sm text-gray-400">
                         {q ? 'Không tìm thấy người dùng' : 'Chưa có người dùng nào'}
@@ -90,12 +90,9 @@ export default function AdminUsersPage() {
                   </tr>
                 ) : filtered.map(user => (
                   <tr key={user.email} className="hover:bg-gray-50/50 transition-colors">
-                    <td className="px-4 py-3 text-gray-700 font-medium">{user.email}</td>
-                    <td className="px-4 py-3 text-gray-800">{user.full_name || '—'}</td>
+                    <td className="px-4 py-3 text-gray-800 font-medium">{user.full_name || '—'}</td>
+                    <td className="px-4 py-3 text-gray-700">{user.email}</td>
                     <td className="px-4 py-3 text-gray-500">{user.phoneNumber || '—'}</td>
-                    <td className="px-4 py-3 text-gray-500">
-                      {user.dateOfBirth ? new Date(user.dateOfBirth).toLocaleDateString('vi-VN') : '—'}
-                    </td>
                     <td className="px-4 py-3">
                       {user.targetBand ? (
                         <span className="inline-flex px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 text-xs font-semibold">

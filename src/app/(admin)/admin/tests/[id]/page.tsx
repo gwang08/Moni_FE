@@ -65,13 +65,13 @@ export default function TestDetailPage() {
   return (
     <div className="flex min-h-screen flex-col bg-gray-50">
       <AdminHeader title="Chi tiết bài thi" />
-      <div className="flex-1 p-4 overflow-y-auto">
+      <div className="flex-1 p-4 overflow-y-auto pb-20">
         {isLoading ? (
           <SkeletonPage />
         ) : error ? (
           <p className="py-12 text-center text-red-500">Không thể tải thông tin bài thi</p>
         ) : test ? (
-          <div className="space-y-4 max-w-7xl mx-auto">
+          <div className="space-y-6 max-w-7xl mx-auto">
             <div className="flex items-center justify-between gap-4">
               <button
                 type="button"
@@ -81,24 +81,24 @@ export default function TestDetailPage() {
                 <ArrowLeft className="h-4 w-4" />
                 Quay lại
               </button>
-              <Button onClick={handleSaveAll} disabled={saving} size="sm" className="bg-green-600 hover:bg-green-700">
-                {saving ? 'Đang lưu...' : 'Lưu'}
+              <Button onClick={handleSaveAll} disabled={saving} className="bg-emerald-600 hover:bg-emerald-700 text-white px-8 font-bold rounded-lg shadow-sm">
+                {saving ? 'Đang lưu...' : 'Cập nhật'}
               </Button>
             </div>
 
-            <div>
+            <div className="grid grid-cols-1 gap-6">
               <TestEditBasicInfoTab ref={basicInfoRef} test={test} />
-            </div>
-
-            <div>
-              <TestEditContentTab
-                ref={contentRef}
-                test={test}
-                onBeforeSaveBasicInfo={async () => {
-                  if (!basicInfoRef.current) return true;
-                  return basicInfoRef.current.save();
-                }}
-              />
+              
+              <div className="bg-white rounded-xl border border-gray-200 p-8 shadow-sm">
+                <TestEditContentTab
+                  ref={contentRef}
+                  test={test}
+                  onBeforeSaveBasicInfo={async () => {
+                    if (!basicInfoRef.current) return true;
+                    return basicInfoRef.current.save();
+                  }}
+                />
+              </div>
             </div>
           </div>
         ) : null}

@@ -2,7 +2,18 @@
 
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { StimulusCard } from '@/components/admin/test-import-stimulus-card';
+import { MediaUploadZone } from '@/components/admin/media-upload-zone';
+import { Image as ImageIcon, Link as LinkIcon, Trash2, Info } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
 import {
   WRITING_TASK1_TYPE_CODES,
   WRITING_TASK2_TYPE_CODES,
@@ -31,6 +42,8 @@ const emptyStimulus = (): StimulusRequest => ({
 export function TestImportStep2Writing({ stimuli, onChange, onNext, onBack, section }: Props) {
   const [writingTypeTags, setWritingTypeTags] = useState<TagResponse[]>([]);
   const [topicTags, setTopicTags] = useState<TagResponse[]>([]);
+  const [isUrlDialogOpen, setIsUrlDialogOpen] = useState(false);
+  const [urlInput, setUrlInput] = useState('');
 
   // Fetch tags by type from API once on mount
   useEffect(() => {
@@ -142,6 +155,14 @@ export function TestImportStep2Writing({ stimuli, onChange, onNext, onBack, sect
     update({ tagIds: [...otherTags, tagId] });
   };
 
+  const handleUrlSubmit = () => {
+    if (urlInput.trim()) {
+      update({ mediaUrl: urlInput.trim() });
+      setIsUrlDialogOpen(false);
+      setUrlInput('');
+    }
+  };
+
   return (
     <div className="flex flex-col gap-6">
       {/* Settings Row */}
@@ -198,10 +219,66 @@ export function TestImportStep2Writing({ stimuli, onChange, onNext, onBack, sect
         </div>
       </div>
 
+      {/* Ảnh biểu đồ (Task 1 only) - Moved below prompt */}
+      {isTask1 && (
+        <div className="flex flex-col gap-3">
+          <label className="text-sm font-black text-slate-700 uppercase tracking-tight flex items-center gap-2">
+            <ImageIcon className="h-4 w-4 text-slate-500" />
+            2. Ảnh biểu đồ (Task 1)
+          </label>
+
+          {stimulus.mediaUrl ? (
+            <div className="relative group rounded-xl overflow-hidden border border-slate-200 bg-white">
+              <img src={stimulus.mediaUrl} alt="Chart" className="max-h-[300px] w-full object-contain bg-slate-50" />
+              <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
+                <Button 
+                  variant="destructive" 
+                  size="sm" 
+                  className="rounded-full h-10 w-10 p-0" 
+                  onClick={() => update({ mediaUrl: '' })}
+                >
+                  <Trash2 className="h-5 w-5" />
+                </Button>
+              </div>
+              <div className="absolute bottom-0 inset-x-0 p-2 bg-white/90 backdrop-blur border-t border-slate-100 flex items-center justify-between">
+                <span className="text-[10px] text-slate-400 font-medium truncate px-2">{stimulus.mediaUrl}</span>
+                <Badge variant="outline" className="text-[9px] bg-emerald-50 text-emerald-600 border-emerald-100">READY</Badge>
+              </div>
+            </div>
+          ) : (
+            <div className="w-full">
+              <MediaUploadZone 
+                onUploaded={(url) => update({ mediaUrl: url })}
+                icon={<ImageIcon className="h-8 w-8 text-blue-500 mb-2" />}
+                label={
+                  <div className="flex flex-col items-center gap-1">
+                    <span className="text-blue-600 font-medium text-base">Thêm ảnh</span>
+                    <span className="text-gray-400 text-sm font-normal">hoặc</span>
+                    <button 
+                      type="button"
+                      className="text-blue-600 font-medium text-base hover:underline"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setIsUrlDialogOpen(true);
+                      }}
+                    >
+                      Thêm từ URL
+                    </button>
+                  </div>
+                }
+                sublabel={null}
+                className="min-h-[200px] !p-8 border-blue-200 bg-blue-50/10 hover:bg-blue-50/30"
+                hideIcon={false}
+              />
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Bài mẫu - Single Rich Text Editor */}
       <div className="flex flex-col">
         <label className="text-sm font-medium text-gray-700 mb-2 block font-black uppercase tracking-tight">
-          2. Bài mẫu (Sample Answer)
+          {isTask1 ? '3.' : '2.'} Bài mẫu (Sample Answer)
           <span className="text-xs text-gray-400 font-normal ml-2 normal-case">Nhập toàn bộ bài mẫu, hệ thống sẽ tự tách đoạn cho người học</span>
         </label>
         <div className="h-[400px]">
@@ -219,6 +296,38 @@ export function TestImportStep2Writing({ stimuli, onChange, onNext, onBack, sect
         <Button variant="outline" onClick={onBack}>Quay lại</Button>
         <Button onClick={onNext} disabled={!isValid} size="lg" className="px-10">Tiếp theo</Button>
       </div>
+
+      {/* URL Input Dialog */}
+      <Dialog open={isUrlDialogOpen} onOpenChange={setIsUrlDialogOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Thêm từ URL</DialogTitle>
+          </DialogHeader>
+          <div className="py-4 space-y-4">
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-gray-400 uppercase">Nhập đường dẫn URL hình ảnh, YouTube</label>
+              <Input 
+                value={urlInput}
+                onChange={(e) => setUrlInput(e.target.value)}
+                placeholder="http://"
+                className="h-11 rounded-lg border-gray-200"
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleUrlSubmit();
+                }}
+              />
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="ghost" className="bg-slate-100 hover:bg-slate-200 text-gray-600 px-6" onClick={() => setIsUrlDialogOpen(false)}>
+              Hủy
+            </Button>
+            <Button className="bg-blue-500 hover:bg-blue-600 text-white px-8" onClick={handleUrlSubmit}>
+              Lưu
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

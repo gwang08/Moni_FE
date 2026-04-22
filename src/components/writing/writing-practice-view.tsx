@@ -6,6 +6,7 @@ import { WritingEditor } from './writing-editor';
 import { WritingPromptPanel } from './writing-prompt-panel';
 import { WritingToolbarPanel } from './writing-toolbar-panel';
 import { WritingPracticeFooter } from './writing-practice-footer';
+import { PracticeSubmitOverlay } from '@/components/ui/practice-submit-overlay';
 import type { WritingTaskType } from '@/types/writing.types';
 
 interface WritingPracticeViewProps {
@@ -149,6 +150,7 @@ export function WritingPracticeView({
         {/* Center: Editor */}
         <div className="flex-1 overflow-y-auto">
           <WritingEditor
+            key={activeTaskIndex}
             taskType={taskType}
             sampleAnswer={sampleAnswer}
             showSample={showSample}
@@ -176,6 +178,9 @@ export function WritingPracticeView({
         onTaskChange={onTaskChange}
         taskTypes={taskTypes}
       />
+
+      {/* Submission Animation */}
+      <PracticeSubmitOverlay isSubmitting={isSubmitting} submitted={submitted} />
     </div>
   );
 }

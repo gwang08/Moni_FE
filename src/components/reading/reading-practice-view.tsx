@@ -8,6 +8,7 @@ import { ReadingToolbar } from '@/components/reading/reading-toolbar';
 import { ReadingExamQuestionNav } from '@/components/reading/reading-exam-question-nav';
 import { ReadingExamQuestionsPanel } from '@/components/reading/reading-exam-questions-panel';
 import { ResizableSplitPane } from '@/components/reading/resizable-split-pane';
+import { PracticeSubmitOverlay } from '@/components/ui/practice-submit-overlay';
 import type { StimulusDetail } from '@/types/test.types';
 
 const GAP_TYPES = ['GAP_FILLING', 'DIAGRAM_LABEL'];
@@ -274,6 +275,9 @@ export function ReadingPracticeView({
           onPartChange={setActiveStimulusIdx}
         />
       )}
+
+      {/* Submission Animation */}
+      <PracticeSubmitOverlay isSubmitting={isSubmitting} submitted={submitted} />
     </div>
   );
 }

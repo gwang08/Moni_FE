@@ -9,6 +9,7 @@ import { ListeningQuestionMcq } from '@/components/listening/listening-question-
 import { ListeningGapFilling } from '@/components/listening/listening-gap-filling';
 import { ListeningMatchingInformation } from '@/components/listening/listening-matching-information';
 import { ListeningMatchingFeature } from '@/components/listening/listening-matching-feature';
+import { PracticeSubmitOverlay } from '@/components/ui/practice-submit-overlay';
 import type { StimulusDetail, QuestionGroupDetail } from '@/types/test.types';
 import type { QuestionTypeCode } from '@/types/admin.types';
 
@@ -292,6 +293,9 @@ export function ListeningPracticeView({
           onPartChange={setActiveStimulusIdx}
         />
       )}
+
+      {/* Submission Animation */}
+      <PracticeSubmitOverlay isSubmitting={isSubmitting} submitted={submitted} />
     </div>
   );
 }

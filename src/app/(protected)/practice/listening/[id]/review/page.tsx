@@ -139,8 +139,6 @@ export default function ListeningReviewPage({ params }: Props) {
       });
       return;
     }
-
-    router.replace(`/practice/listening/${id}`);
   }, [id, router, attemptIdParam]);
 
   const stimuli = testDetail?.stimuli ?? [];
@@ -207,41 +205,54 @@ export default function ListeningReviewPage({ params }: Props) {
           }
         }
         setActiveSegmentIdx(activeIdx);
-        
-        // Auto-scroll to active segment
-        if (activeIdx !== null && transcriptRef.current) {
-          const buttons = transcriptRef.current.querySelectorAll<HTMLElement>('[data-segment-idx]');
-          const activeButton = buttons[activeIdx];
-          if (activeButton) {
-            // Check if it's already in view to avoid annoying jumps
-            const rect = activeButton.getBoundingClientRect();
-            const containerRect = transcriptRef.current.getBoundingClientRect();
-            if (rect.top < containerRect.top || rect.bottom > containerRect.bottom) {
-              activeButton.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }
-          }
-        }
       }
     };
-    const handleMetadata = () => setDuration(audio.duration);
+
+    const handleLoadedMetadata = () => {
+      setDuration(audio.duration);
+    };
+
+    // Auto-scroll logic separated to avoid fighting with user scrolls
     const handlePlay = () => setIsPlaying(true);
     const handlePause = () => setIsPlaying(false);
     const handleEnded = () => setIsPlaying(false);
 
     audio.addEventListener('timeupdate', handleTimeUpdate);
-    audio.addEventListener('loadedmetadata', handleMetadata);
+    audio.addEventListener('loadedmetadata', handleLoadedMetadata);
+    audio.addEventListener('canplay', handleLoadedMetadata);
     audio.addEventListener('play', handlePlay);
     audio.addEventListener('pause', handlePause);
     audio.addEventListener('ended', handleEnded);
 
+    // Initial sync if audio is already loaded
+    if (audio.readyState >= 1) handleLoadedMetadata();
+
     return () => {
       audio.removeEventListener('timeupdate', handleTimeUpdate);
-      audio.removeEventListener('loadedmetadata', handleMetadata);
+      audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
+      audio.removeEventListener('canplay', handleLoadedMetadata);
       audio.removeEventListener('play', handlePlay);
       audio.removeEventListener('pause', handlePause);
       audio.removeEventListener('ended', handleEnded);
     };
   }, [stimulus]);
+
+  // Handle auto-scroll separately to be more stable
+  useEffect(() => {
+    if (activeSegmentIdx !== null && transcriptRef.current) {
+      const buttons = transcriptRef.current.querySelectorAll<HTMLElement>('[data-segment-idx]');
+      const activeButton = buttons[activeSegmentIdx];
+      if (activeButton) {
+        const containerRect = transcriptRef.current.getBoundingClientRect();
+        const rect = activeButton.getBoundingClientRect();
+        const isVisible = rect.top >= containerRect.top && rect.bottom <= containerRect.bottom;
+        
+        if (!isVisible) {
+          activeButton.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }
+    }
+  }, [activeSegmentIdx]);
 
   const togglePlay = useCallback(async () => {
     const audio = audioRef.current;
@@ -465,13 +476,13 @@ export default function ListeningReviewPage({ params }: Props) {
                         <div className="flex items-start gap-1">
                           {seg.speaker && (
                             <span className={`text-[13px] font-black shrink-0 min-w-[80px] ${
-                              isActive ? 'text-slate-900' : 'text-slate-500'
+                              isActive ? 'text-green-600' : 'text-slate-500'
                             }`}>
                               {seg.speaker}:
                             </span>
                           )}
                           <span className={`text-[14px] leading-relaxed ${
-                            isActive ? 'text-slate-900 font-medium' : 'text-slate-700'
+                            isActive ? 'text-green-600 font-bold' : 'text-slate-700'
                           }`}>
                             {seg.text || seg.content || ''}
                           </span>
@@ -485,7 +496,7 @@ export default function ListeningReviewPage({ params }: Props) {
             if (stimulus.content) {
               return (
                 <div
-                  className="prose prose-sm max-w-none text-slate-700 leading-loose [&_p]:mb-4 [&_p]:cursor-pointer [&_p:hover]:text-orange-600"
+                  className="prose prose-sm max-w-none text-slate-700 leading-loose [&_p]:mb-4 [&_p]:cursor-pointer [&_p:hover]:text-orange-600 [&_.evidence-highlight]:bg-yellow-100 [&_.evidence-highlight]:text-green-700 [&_.evidence-highlight]:font-bold [&_.evidence-highlight]:ring-2 [&_.evidence-highlight]:ring-yellow-400"
                   dangerouslySetInnerHTML={{ __html: stimulus.content }}
                 />
               );
@@ -517,13 +528,15 @@ export default function ListeningReviewPage({ params }: Props) {
                 const firstSegment = transcriptSegments[firstMatch.segmentIndex];
                 const audio = audioRef.current;
 
-                container.querySelectorAll('.bg-amber-100, .ring-orange-400').forEach((el) => {
-                  el.classList.remove('bg-amber-100', 'ring-2', 'ring-orange-400');
+                container.querySelectorAll('.evidence-highlight').forEach((el) => {
+                  el.classList.remove('evidence-highlight', 'bg-yellow-100', 'ring-2', 'ring-yellow-400', 'text-green-700', 'font-bold');
                 });
 
                 matchedSegments.forEach(({ segmentIndex }) => {
                   const segmentEl = container.querySelector<HTMLElement>(`[data-segment-idx="${segmentIndex}"]`);
-                  if (segmentEl) segmentEl.classList.add('bg-amber-100', 'ring-2', 'ring-orange-400');
+                  if (segmentEl) {
+                    segmentEl.classList.add('evidence-highlight', 'bg-yellow-100', 'ring-2', 'ring-yellow-400', 'text-green-700', 'font-bold');
+                  }
                 });
 
                 const activeElement = container.querySelector<HTMLElement>(`[data-segment-idx="${firstMatch.segmentIndex}"]`);
@@ -557,11 +570,13 @@ export default function ListeningReviewPage({ params }: Props) {
               });
 
               if (matchedTargets.length > 0) {
-                container.querySelectorAll('.bg-amber-100, .ring-orange-400').forEach((el) => {
-                  el.classList.remove('bg-amber-100', 'ring-2', 'ring-orange-400');
+                container.querySelectorAll('.evidence-highlight').forEach((el) => {
+                  el.classList.remove('evidence-highlight', 'bg-yellow-100', 'ring-2', 'ring-yellow-400', 'text-green-700', 'font-bold');
                 });
 
-                matchedTargets.forEach(t => t.classList.add('bg-amber-100', 'ring-2', 'ring-orange-400'));
+                matchedTargets.forEach(t => {
+                  t.classList.add('evidence-highlight', 'bg-yellow-100', 'ring-2', 'ring-yellow-400', 'text-green-700', 'font-bold');
+                });
                 matchedTargets[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
 
                 // Try to estimate time or find nearest data-start-time

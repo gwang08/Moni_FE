@@ -60,13 +60,13 @@ export function ListeningQuestionMcq({
     return (
       <div id={`question-${questionId}`} className="py-6 border-b border-slate-100 last:border-0 group">
         <div className="flex items-start gap-4 mb-5">
-          <span className="min-w-[28px] h-7 flex items-center justify-center rounded-full bg-slate-900 text-[12px] font-black text-white mt-0.5 shadow-sm">
+          <span className="min-w-[28px] text-[15px] font-bold text-slate-900 mt-0.5">
             {position}
           </span>
-          <p className="flex-1 text-[15px] text-slate-800 font-bold leading-relaxed">{content}</p>
+          <p className="flex-1 text-[15px] text-slate-800 font-medium leading-relaxed">{content}</p>
         </div>
 
-        <div className="space-y-2.5 ml-11">
+        <div className="space-y-2.5">
           {options.map((option) => {
             const isSelected = selected.includes(option.id);
             const isOptCorrect = option.isCorrect;
@@ -75,9 +75,9 @@ export function ListeningQuestionMcq({
             let variantClass = "border-slate-200 text-slate-600 bg-white";
             
             if (isSelected && isOptCorrect) {
-              variantClass = "bg-green-100 border-green-500 text-green-800 font-bold shadow-sm ring-1 ring-green-500/20";
+              variantClass = "bg-green-100 border-green-500 text-green-800 font-semibold shadow-sm ring-1 ring-green-500/20";
             } else if (isSelected && !isOptCorrect) {
-              variantClass = "bg-red-50 border-red-400 text-red-700 font-bold shadow-sm ring-1 ring-red-400/20";
+              variantClass = "bg-red-50 border-red-400 text-red-700 font-semibold shadow-sm ring-1 ring-red-400/20";
             } else if (!isSelected && isOptCorrect) {
               variantClass = "bg-green-50/50 border-green-300 text-green-700 font-medium italic";
             }
@@ -102,14 +102,14 @@ export function ListeningQuestionMcq({
         </div>
 
         {/* Action Icons (Evidence & Explanation) */}
-        <div className="mt-5 ml-11 flex items-center gap-3">
+        <div className="mt-5 flex items-center gap-3">
           {explanation?.evidence && (
             <button
               onClick={() => onLocateEvidence?.(explanation.evidence!)}
-              className="flex items-center gap-2 px-3 py-1.5 hover:bg-slate-100 rounded-full transition-colors text-slate-900 border border-slate-100 shadow-sm"
+              className="flex items-center justify-center h-8 w-8 hover:bg-slate-100 rounded-full transition-colors text-slate-900 border border-slate-100 shadow-sm shrink-0"
+              title="Xem dẫn chứng"
             >
-              <TargetIcon className="h-4 w-4" />
-              <span className="text-[11px] font-black uppercase tracking-wider">Dẫn chứng</span>
+              <TargetIcon className="h-4.5 w-4.5" />
             </button>
           )}
           {explanation?.text && (
@@ -123,14 +123,14 @@ export function ListeningQuestionMcq({
             >
               <Lightbulb className="h-4 w-4" />
               <span className="text-[11px] font-black uppercase tracking-wider">
-                {showExplanation ? 'Đóng giải thích' : 'Giải thích đáp án'}
+                {showExplanation ? 'Đóng' : 'Giải thích'}
               </span>
             </button>
           )}
         </div>
 
         {showExplanation && explanation?.text && (
-          <div className="mt-4 ml-11 p-5 bg-yellow-50/50 rounded-2xl text-[14px] text-yellow-900 leading-relaxed border border-yellow-100 shadow-inner animate-in fade-in slide-in-from-top-2 duration-300">
+          <div className="mt-4 p-5 bg-yellow-50/50 rounded-2xl text-[14px] text-yellow-900 leading-relaxed border border-yellow-100 shadow-inner animate-in fade-in slide-in-from-top-2 duration-300">
              {explanation.text.replace(/^Câu\s+\d+\s*[-–—]\s*Giải thích đáp án\s*/i, '')}
           </div>
         )}

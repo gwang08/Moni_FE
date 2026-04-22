@@ -21,11 +21,10 @@ export function PracticeSubmitOverlay({ isSubmitting, submitted }: Props) {
       setShow(true);
       setStage('loading');
     } else if (submitted) {
+      // Show success tick briefly rồi tự ẩn — tránh overlay z-[999] che dialog chọn
+      // cách chấm điểm (WritingScoringOptionsDialog) mở ngay sau submit thành công.
       setStage('success');
-      // Keep visible for a bit to show success animation
-      const timer = setTimeout(() => {
-        // We usually redirect or change view here, so we don't necessarily need to hide
-      }, 2000);
+      const timer = setTimeout(() => setShow(false), 900);
       return () => clearTimeout(timer);
     } else {
       setShow(false);

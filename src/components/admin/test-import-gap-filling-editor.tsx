@@ -29,6 +29,7 @@ interface Props {
   positionOffset: number;
   groupContent?: string;
   pendingEvidence: string | null;
+  pendingOffset?: number;
   onAssignEvidence: (qi: number) => void;
   onGroupContentChange?: (content: string) => void;
   onChange: (questions: QuestionRequest[]) => void;
@@ -172,6 +173,7 @@ export function GapFillingEditor({
   positionOffset,
   groupContent,
   pendingEvidence,
+  pendingOffset,
   onAssignEvidence,
   onGroupContentChange,
   onChange,
@@ -292,9 +294,11 @@ export function GapFillingEditor({
     onChange(next);
   };
 
-  const updateEvidence = (questionIndex: number, evidence: string | undefined) => {
+  const updateEvidence = (questionIndex: number, evidence: string | undefined, offsets?: number[]) => {
     const next = questions.map((question, index) =>
-      index === questionIndex ? { ...question, explanation: { ...question.explanation, evidence } } : question
+      index === questionIndex
+        ? { ...question, explanation: { ...question.explanation, evidence, offsets: offsets && offsets.length > 0 ? offsets : undefined } }
+        : question
     );
     onChange(next);
   };
@@ -442,9 +446,10 @@ export function GapFillingEditor({
                   />
                   <EvidenceList
                     evidence={question.explanation?.evidence}
+                    pendingOffset={pendingOffset}
                     pendingEvidence={pendingEvidence}
                     onAssign={() => onAssignEvidence(globalQuestionIndex)}
-                    onChange={(evidence) => updateEvidence(globalQuestionIndex, evidence)}
+                    onChange={(evidence, offsets) => updateEvidence(globalQuestionIndex, evidence, offsets)}
                   />
                 </div>
               </div>

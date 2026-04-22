@@ -37,11 +37,12 @@ interface Props {
   paragraphs: string[];
   questions: QuestionRequest[];
   pendingEvidence: string | null;
+  pendingOffset?: number;
   onAssignEvidence: (qi: number) => void;
   onChange: (questions: QuestionRequest[], sharedOptions: { label: string; content: string }[]) => void;
 }
 
-export function MatchingHeadingsEditor({ paragraphs, questions, pendingEvidence, onAssignEvidence, onChange }: Props) {
+export function MatchingHeadingsEditor({ paragraphs, questions, pendingEvidence, pendingOffset, onAssignEvidence, onChange }: Props) {
   const [expanded, setExpanded] = useState<string | null>(null);
 
   // Extract distractors from existing sharedOptions (headings beyond paragraph count)
@@ -98,9 +99,9 @@ export function MatchingHeadingsEditor({ paragraphs, questions, pendingEvidence,
     const k = `Paragraph ${p}`;
     rebuild(headingMap, { ...explanationMap, [k]: { ...explanationMap[k], text: v || undefined } }, distractors);
   };
-  const onEvidenceChange = (p: string, qi: number, ev: string | undefined) => {
+  const onEvidenceChange = (p: string, qi: number, ev: string | undefined, offsets?: number[]) => {
     const k = `Paragraph ${p}`;
-    rebuild(headingMap, { ...explanationMap, [k]: { ...explanationMap[k], evidence: ev } }, distractors);
+    rebuild(headingMap, { ...explanationMap, [k]: { ...explanationMap[k], evidence: ev, offsets: offsets && offsets.length > 0 ? offsets : undefined } }, distractors);
   };
 
   const addDistractor = () => {
@@ -172,9 +173,11 @@ export function MatchingHeadingsEditor({ paragraphs, questions, pendingEvidence,
                   <div className="pt-2">
                     <EvidenceList
                       evidence={expl?.evidence}
+                      offsets={expl?.offsets}
+                      pendingOffset={pendingOffset}
                       pendingEvidence={pendingEvidence}
                       onAssign={() => onAssignEvidence(i)}
-                      onChange={ev => onEvidenceChange(p, i, ev)}
+                      onChange={(ev, offsets) => onEvidenceChange(p, i, ev, offsets)}
                     />
                   </div>
                 </div>

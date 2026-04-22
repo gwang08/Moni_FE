@@ -29,9 +29,9 @@ interface Props {
   multiple?: boolean;
   submitted: boolean;
   readOnly?: boolean;
-  explanation?: { text?: string; evidence?: string };
+  explanation?: { text?: string; evidence?: string; offsets?: number[] };
   onAnswer: (questionId: number, optionId: number) => void;
-  onLocateEvidence?: (evidence: string) => void;
+  onLocateEvidence?: (evidence: string, offset?: number) => void;
   examMode?: boolean;
 }
 
@@ -166,30 +166,34 @@ export function ReadingQuestionMcq({ questionId, position, content, options, sel
 
 /** Reusable explanation section with toggleable explanation text */
 function ExplanationSection({ explanation, onLocateEvidence }: {
-  explanation: { text?: string; evidence?: string };
-  onLocateEvidence?: (evidence: string) => void;
+  explanation: { text?: string; evidence?: string; offsets?: number[] };
+  onLocateEvidence?: (evidence: string, offset?: number) => void;
 }) {
   const [showExplanation, setShowExplanation] = useState(false);
 
   // Remove "Câu X - Giải thích đáp án" prefix from explanation text
   const cleanExplanation = explanation.text?.replace(/^Câu\s+\d+\s*[-–—]\s*Giải thích đáp án\s*/i, '') || explanation.text;
 
+  const evidenceChunks = explanation.evidence?.split('\n---\n').filter((e: string) => e.trim()) || [];
+  const offsets = explanation.offsets || [];
+
   return (
     <div className="mt-4 pt-3 border-t border-gray-200">
       <div className="flex items-center gap-2">
-        {explanation.evidence && onLocateEvidence && (
-          <button
-            type="button"
-            onClick={() => {
-              const evidenceStr = explanation.evidence || '';
-              const chunks = evidenceStr.split('\n---\n').filter((e: string) => e.trim());
-              if (chunks.length > 0) onLocateEvidence(chunks[0].trim());
-            }}
-            className="w-6 h-6 rounded-full flex items-center justify-center hover:bg-gray-100 transition-colors cursor-pointer"
-            title="Xem dẫn chứng"
-          >
-            <TargetIcon className="h-4 w-4 text-gray-900" strokeWidth={2} />
-          </button>
+        {evidenceChunks.length > 0 && onLocateEvidence && (
+          <div className="flex gap-1">
+            {evidenceChunks.map((chunk, i) => (
+              <button
+                key={i}
+                type="button"
+                onClick={() => onLocateEvidence(chunk.trim(), offsets[i])}
+                className="w-6 h-6 rounded-full flex items-center justify-center hover:bg-gray-100 transition-colors cursor-pointer"
+                title={evidenceChunks.length > 1 ? `Xem dẫn chứng ${i + 1}` : 'Xem dẫn chứng'}
+              >
+                <TargetIcon className="h-4 w-4 text-gray-900" strokeWidth={2} />
+              </button>
+            ))}
+          </div>
         )}
         {explanation.text && (
           <button

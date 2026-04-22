@@ -7,9 +7,9 @@ import { EvidenceList } from '@/components/admin/evidence-list';
 import { useCallback, useEffect, useRef } from 'react';
 
 interface Props {
-  explanation?: { text?: string; evidence?: string };
+  explanation?: { text?: string; evidence?: string; offsets?: number[] };
   stimulusContent: string;
-  onChange: (explanation: { text?: string; evidence?: string }) => void;
+  onChange: (explanation: { text?: string; evidence?: string; offsets?: number[] }) => void;
 }
 
 export function QuestionExplanation({ explanation, stimulusContent, onChange }: Props) {
@@ -23,9 +23,26 @@ export function QuestionExplanation({ explanation, stimulusContent, onChange }: 
     const text = selection?.toString().trim();
     if (!text) return;
     if (passageRef.current && selection?.anchorNode && passageRef.current.contains(selection.anchorNode)) {
+      let offset = -1;
+      try {
+        const range = selection.rangeCount ? selection.getRangeAt(0) : null;
+        if (range?.startContainer && passageRef.current.contains(range.startContainer)) {
+          const preRange = document.createRange();
+          preRange.selectNodeContents(passageRef.current);
+          preRange.setEnd(range.startContainer, range.startOffset);
+          offset = preRange.toString().length;
+        }
+      } catch {
+        offset = -1;
+      }
       const current = explanation?.evidence ?? '';
+      const currentOffsets = explanation?.offsets ?? [];
       const newEvidence = current ? `${current}\n---\n${text}` : text;
-      onChange({ ...explanation, evidence: newEvidence });
+      onChange({
+        ...explanation,
+        evidence: newEvidence,
+        offsets: [...currentOffsets, offset],
+      });
       selection.removeAllRanges();
     }
   }, [explanation, onChange]);
@@ -74,7 +91,8 @@ export function QuestionExplanation({ explanation, stimulusContent, onChange }: 
         <Label className="mb-1 block text-xs font-medium text-gray-600">Dẫn chứng</Label>
         <EvidenceList
           evidence={explanation?.evidence}
-          onChange={(evidence) => onChange({ ...explanation, evidence })}
+          offsets={explanation?.offsets}
+          onChange={(evidence, offsets) => onChange({ ...explanation, evidence, offsets })}
         />
       </div>
     </div>

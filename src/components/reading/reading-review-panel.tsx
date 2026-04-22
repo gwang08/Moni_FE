@@ -34,7 +34,7 @@ interface Props {
   stimulus: StimulusDetail;
   answers: Record<number, number>;
   textAnswers?: Record<number, string>;
-  onLocateEvidence: (evidence: string) => void;
+  onLocateEvidence: (evidence: string, offset?: number) => void;
 }
 
 /** Matching review: statement + number + user answer (strikethrough if wrong) + correct answer */
@@ -45,9 +45,11 @@ function MatchingQuestionReview({ question, displayPosition, selectedOption, cor
   correctOption: { label: string; content: string } | undefined;
   isCorrect: boolean;
   isSkipped: boolean;
-  onLocateEvidence: (evidence: string) => void;
+  onLocateEvidence: (evidence: string, offset?: number) => void;
 }) {
   const [showExplanation, setShowExplanation] = useState(false);
+  const evidenceChunks = question.explanation?.evidence?.split('\n---\n').filter((e: string) => e.trim()) || [];
+  const offsets = question.explanation?.offsets || [];
 
   return (
     <div id={`review-question-${question.id}`} className="py-3 text-sm">
@@ -89,15 +91,20 @@ function MatchingQuestionReview({ question, displayPosition, selectedOption, cor
       {/* Explanation section with icons */}
       {question.explanation && (question.explanation.text || question.explanation.evidence) && (
         <div className="flex items-center gap-2 ml-9">
-          {question.explanation.evidence && (
-            <button
-              type="button"
-              onClick={() => onLocateEvidence(question.explanation?.evidence ?? '')}
-              className="w-6 h-6 rounded-full flex items-center justify-center hover:bg-gray-100 transition-colors"
-              title="Xem dẫn chứng"
-            >
-              <TargetIcon className="h-4 w-4 text-gray-900" strokeWidth={2} />
-            </button>
+          {evidenceChunks.length > 0 && (
+            <div className="flex gap-1">
+              {evidenceChunks.map((chunk, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => onLocateEvidence(chunk.trim(), offsets[i])}
+                  className="w-6 h-6 rounded-full flex items-center justify-center hover:bg-gray-100 transition-colors"
+                  title={evidenceChunks.length > 1 ? `Xem dẫn chứng ${i + 1}` : 'Xem dẫn chứng'}
+                >
+                  <TargetIcon className="h-4 w-4 text-gray-900" strokeWidth={2} />
+                </button>
+              ))}
+            </div>
           )}
           {question.explanation.text && (
             <button
@@ -128,7 +135,7 @@ function ReviewQuestionGroup({ group, answers, textAnswers, displayPositionByQue
   answers: Record<number, number>;
   textAnswers: Record<number, string>;
   displayPositionByQuestionId: Record<number, number>;
-  onLocateEvidence: (evidence: string) => void;
+  onLocateEvidence: (evidence: string, offset?: number) => void;
 }) {
   const typeCode = group.questionTypeCode || '';
 

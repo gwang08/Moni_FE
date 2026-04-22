@@ -26,12 +26,13 @@ interface Props {
   displayPosition?: number;
   testId: string;
   pendingEvidence: string | null;
+  pendingOffset?: number;
   onAssignEvidence: () => void;
-  onEvidenceChange: (evidence: string) => void;
+  onEvidenceChange: (evidence: string, offsets: number[]) => void;
 }
 
 export const TestEditQuestionCard = forwardRef<TestEditQuestionCardHandle, Props>(function TestEditQuestionCard(
-  { question, questionTypeCode, displayPosition, testId, pendingEvidence, onAssignEvidence, onEvidenceChange },
+  { question, questionTypeCode, displayPosition, testId, pendingEvidence, pendingOffset, onAssignEvidence, onEvidenceChange },
   ref
 ) {
   const queryClient = useQueryClient();
@@ -46,19 +47,22 @@ export const TestEditQuestionCard = forwardRef<TestEditQuestionCardHandle, Props
   );
   const [explanationText, setExplanationText] = useState(question.explanation?.text ?? '');
   const [evidence, setEvidence] = useState(question.explanation?.evidence ?? '');
+  const [offsets, setOffsets] = useState<number[]>(question.explanation?.offsets ?? []);
   const isGapType = questionTypeCode === 'GAP_FILLING';
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastSavedRef = useRef('');
   const isDirtyRef = useRef(false);
 
-  const handleEvidenceChange = (ev: string | undefined) => {
+  const handleEvidenceChange = (ev: string | undefined, nextOffsets: number[] | undefined) => {
     const nextEvidence = ev ?? '';
+    const finalOffsets = nextOffsets ?? [];
     setEvidence(nextEvidence);
-    onEvidenceChange(nextEvidence);
+    setOffsets(finalOffsets);
+    onEvidenceChange(nextEvidence, finalOffsets);
   };
 
   const saveQuestion = async (): Promise<boolean> => {
-    const snapshot = JSON.stringify({ content, options, explanationText, evidence });
+    const snapshot = JSON.stringify({ content, options, explanationText, evidence, offsets });
     if (snapshot === lastSavedRef.current && !isDirtyRef.current) return true;
 
     // Clear any pending auto-save timer
@@ -74,6 +78,7 @@ export const TestEditQuestionCard = forwardRef<TestEditQuestionCardHandle, Props
         explanation: {
           text: explanationText || undefined,
           evidence: evidence || undefined,
+          offsets: offsets.length > 0 ? offsets : undefined,
         },
       });
       lastSavedRef.current = snapshot;
@@ -102,6 +107,7 @@ export const TestEditQuestionCard = forwardRef<TestEditQuestionCardHandle, Props
       options,
       explanationText,
       evidence,
+      offsets,
     });
 
     if (!lastSavedRef.current) {
@@ -126,7 +132,7 @@ export const TestEditQuestionCard = forwardRef<TestEditQuestionCardHandle, Props
         clearTimeout(saveTimerRef.current);
       }
     };
-  }, [content, evidence, explanationText, options, queryClient, question.id, testId]);
+  }, [content, evidence, offsets, explanationText, options, queryClient, question.id, testId]);
 
   const correctAnswer = question.options.find((option) => option.isCorrect);
   const correctLabel = correctAnswer?.label || correctAnswer?.content || '—';
@@ -186,7 +192,7 @@ export const TestEditQuestionCard = forwardRef<TestEditQuestionCardHandle, Props
                 className="w-full resize-none rounded-md border border-input bg-background px-2 py-1.5 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               />
             </div>
-            <EvidenceList evidence={evidence} pendingEvidence={pendingEvidence} onAssign={onAssignEvidence} onChange={handleEvidenceChange} />
+            <EvidenceList evidence={evidence} offsets={offsets} pendingEvidence={pendingEvidence} pendingOffset={pendingOffset} onAssign={onAssignEvidence} onChange={handleEvidenceChange} />
           </div>
         </div>
       )}

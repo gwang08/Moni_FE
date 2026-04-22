@@ -26,22 +26,29 @@ export function appendEvidence(existing: string | undefined, newChunk: string): 
 
 interface Props {
   evidence?: string;
+  offsets?: number[];
   pendingEvidence?: string | null;
+  pendingOffset?: number;
   onAssign?: () => void;
-  onChange: (evidence: string | undefined) => void;
+  onChange: (evidence: string | undefined, offsets: number[] | undefined) => void;
 }
 
-export function EvidenceList({ evidence, pendingEvidence, onAssign, onChange }: Props) {
+export function EvidenceList({ evidence, offsets, pendingEvidence, pendingOffset, onAssign, onChange }: Props) {
   const chunks = parseEvidence(evidence);
+  const currentOffsets = offsets || [];
 
   const handleAssign = () => {
     if (!pendingEvidence) return;
-    onChange(appendEvidence(evidence, pendingEvidence));
+    const nextChunks = [...chunks, pendingEvidence];
+    const nextOffsets = [...currentOffsets.slice(0, chunks.length), pendingOffset ?? -1];
+    onChange(joinEvidence(nextChunks), nextOffsets);
     onAssign?.();
   };
 
   const handleRemove = (idx: number) => {
-    onChange(joinEvidence(chunks.filter((_, i) => i !== idx)));
+    const nextChunks = chunks.filter((_, i) => i !== idx);
+    const nextOffsets = currentOffsets.filter((_, i) => i !== idx);
+    onChange(joinEvidence(nextChunks), nextOffsets.length > 0 ? nextOffsets : undefined);
   };
 
   return (
@@ -60,6 +67,9 @@ export function EvidenceList({ evidence, pendingEvidence, onAssign, onChange }: 
           {chunks.map((chunk, i) => (
             <div key={i} className="relative rounded-md border border-amber-200 bg-amber-50 px-2 py-1 text-[11px] text-amber-900 whitespace-pre-wrap max-h-14 overflow-y-auto pr-5">
               {chunk}
+              {currentOffsets[i] !== undefined && currentOffsets[i] !== -1 && (
+                <span className="ml-1 text-[9px] text-amber-600 opacity-70">[@{currentOffsets[i]}]</span>
+              )}
               <button
                 type="button"
                 onClick={() => handleRemove(i)}

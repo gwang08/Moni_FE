@@ -31,12 +31,13 @@ interface Props {
   passageHtml: string;
   testId: string;
   pendingEvidence: string | null;
+  pendingOffset?: number;
   onAssignEvidence: () => void;
-  onEvidenceChange: (questionId: number, evidence: string) => void;
+  onEvidenceChange: (questionId: number, evidence: string, offsets?: number[]) => void;
 }
 
 export const TestEditMatchingHeadings = forwardRef<TestEditMatchingHeadingsHandle, Props>(function TestEditMatchingHeadings(
-  { questions, passageHtml, testId, pendingEvidence, onAssignEvidence, onEvidenceChange }: Props,
+  { questions, passageHtml, testId, pendingEvidence, pendingOffset, onAssignEvidence, onEvidenceChange }: Props,
   ref
 ) {
   const queryClient = useQueryClient();
@@ -56,8 +57,8 @@ export const TestEditMatchingHeadings = forwardRef<TestEditMatchingHeadingsHandl
     }
     return map;
   });
-  const [explanations, setExplanations] = useState<Record<string, { text?: string; evidence?: string }>>(() => {
-    const map: Record<string, { text?: string; evidence?: string }> = {};
+  const [explanations, setExplanations] = useState<Record<string, { text?: string; evidence?: string; offsets?: number[] }>>(() => {
+    const map: Record<string, { text?: string; evidence?: string; offsets?: number[] }> = {};
     for (const [para, q] of Object.entries(paraToQuestion)) {
       if (q.explanation) map[para] = { ...q.explanation };
     }
@@ -67,9 +68,9 @@ export const TestEditMatchingHeadings = forwardRef<TestEditMatchingHeadingsHandl
     distractorLabels.map(l => questions[0]?.options.find(o => o.label === l)?.content ?? '')
   );
 
-  const handleEvidenceChange = (para: string, questionId: number, ev: string | undefined) => {
-    setExplanations(e => ({ ...e, [para]: { ...e[para], evidence: ev } }));
-    onEvidenceChange(questionId, ev ?? '');
+  const handleEvidenceChange = (para: string, questionId: number, ev: string | undefined, nextOffsets?: number[]) => {
+    setExplanations(e => ({ ...e, [para]: { ...e[para], evidence: ev, offsets: nextOffsets } }));
+    onEvidenceChange(questionId, ev ?? '', nextOffsets);
   };
 
   const handleSaveAll = async (): Promise<boolean> => {
@@ -78,7 +79,7 @@ export const TestEditMatchingHeadings = forwardRef<TestEditMatchingHeadingsHandl
       const updates: Record<string, {
         content: string;
         options: { label: string; content: string; isCorrect: boolean }[];
-        explanation?: { text?: string; evidence?: string };
+        explanation?: { text?: string; evidence?: string; offsets?: number[] };
       }> = {};
 
       // Build complete options list: main paragraphs + distractors
@@ -166,9 +167,11 @@ export const TestEditMatchingHeadings = forwardRef<TestEditMatchingHeadingsHandl
                   <div className="pt-2">
                     <EvidenceList
                       evidence={expl?.evidence}
+                      offsets={expl?.offsets}
                       pendingEvidence={pendingEvidence}
+                      pendingOffset={pendingOffset}
                       onAssign={onAssignEvidence}
-                      onChange={ev => handleEvidenceChange(p, q.id, ev)}
+                      onChange={(ev, offsets) => handleEvidenceChange(p, q.id, ev, offsets)}
                     />
                   </div>
                 </div>

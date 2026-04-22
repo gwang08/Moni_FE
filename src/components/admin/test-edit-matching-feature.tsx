@@ -18,12 +18,13 @@ interface Props {
   questions: QuestionDetail[];
   testId: string;
   pendingEvidence: string | null;
+  pendingOffset?: number;
   onAssignEvidence: () => void;
-  onEvidenceChange: (questionId: number, evidence: string) => void;
+  onEvidenceChange: (questionId: number, evidence: string, offsets?: number[]) => void;
 }
 
 export const TestEditMatchingFeature = forwardRef<TestEditMatchingFeatureHandle, Props>(function TestEditMatchingFeature(
-  { questions, testId, pendingEvidence, onAssignEvidence, onEvidenceChange }: Props,
+  { questions, testId, pendingEvidence, pendingOffset, onAssignEvidence, onEvidenceChange }: Props,
   ref
 ) {
   const queryClient = useQueryClient();
@@ -43,8 +44,8 @@ export const TestEditMatchingFeature = forwardRef<TestEditMatchingFeatureHandle,
     })
   );
 
-  const [explanations, setExplanations] = useState<Record<number, { text?: string; evidence?: string }>>(() => {
-    const map: Record<number, { text?: string; evidence?: string }> = {};
+  const [explanations, setExplanations] = useState<Record<number, { text?: string; evidence?: string; offsets?: number[] }>>(() => {
+    const map: Record<number, { text?: string; evidence?: string; offsets?: number[] }> = {};
     questions.forEach((q, i) => {
       if (q.explanation) map[i] = { ...q.explanation };
     });
@@ -61,9 +62,9 @@ export const TestEditMatchingFeature = forwardRef<TestEditMatchingFeatureHandle,
     setCategories(updated);
   };
 
-  const handleEvidenceChange = (idx: number, ev: string | undefined) => {
-    setExplanations(e => ({ ...e, [idx]: { ...e[idx], evidence: ev } }));
-    if (questions[idx]) onEvidenceChange(questions[idx].id, ev ?? '');
+  const handleEvidenceChange = (idx: number, ev: string | undefined, nextOffsets?: number[]) => {
+    setExplanations(e => ({ ...e, [idx]: { ...e[idx], evidence: ev, offsets: nextOffsets } }));
+    if (questions[idx]) onEvidenceChange(questions[idx].id, ev ?? '', nextOffsets);
   };
 
   const handleSaveAll = async (): Promise<boolean> => {
@@ -72,7 +73,7 @@ export const TestEditMatchingFeature = forwardRef<TestEditMatchingFeatureHandle,
       const updates: Record<string, {
         content: string;
         options: { label: string; content: string; isCorrect: boolean }[];
-        explanation?: { text?: string; evidence?: string };
+        explanation?: { text?: string; evidence?: string; offsets?: number[] };
       }> = {};
 
       questions.forEach((q, i) => {
@@ -188,9 +189,11 @@ export const TestEditMatchingFeature = forwardRef<TestEditMatchingFeatureHandle,
                   <div className="pt-2">
                     <EvidenceList
                       evidence={expl?.evidence}
+                      offsets={expl?.offsets}
                       pendingEvidence={pendingEvidence}
+                      pendingOffset={pendingOffset}
                       onAssign={onAssignEvidence}
-                      onChange={ev => handleEvidenceChange(i, ev)}
+                      onChange={(ev, offsets) => handleEvidenceChange(i, ev, offsets)}
                     />
                   </div>
                 </div>

@@ -38,8 +38,9 @@ interface Props {
   groupContent?: string;
   testId: string;
   pendingEvidence: string | null;
+  pendingOffset?: number;
   onAssignEvidence: () => void;
-  onEvidenceChange: (questionId: number, evidence: string) => void;
+  onEvidenceChange: (questionId: number, evidence: string, offsets?: number[]) => void;
 }
 
 const EDITOR_EXTENSIONS = [
@@ -132,7 +133,7 @@ function renderPassageHtml(text: string, items: { answer: string; position: numb
 export const TestEditGapFilling = forwardRef<TestEditGapFillingHandle, Props>(function TestEditGapFilling(
   {
     questions, groupId, groupContent: initialGroupContent, testId,
-    pendingEvidence, onAssignEvidence, onEvidenceChange,
+    pendingEvidence, pendingOffset, onAssignEvidence, onEvidenceChange,
   }: Props,
   ref
 ) {
@@ -152,8 +153,8 @@ export const TestEditGapFilling = forwardRef<TestEditGapFillingHandle, Props>(fu
     })
   );
 
-  const [explanations, setExplanations] = useState<Record<number, { text?: string; evidence?: string }>>(() => {
-    const map: Record<number, { text?: string; evidence?: string }> = {};
+  const [explanations, setExplanations] = useState<Record<number, { text?: string; evidence?: string; offsets?: number[] }>>(() => {
+    const map: Record<number, { text?: string; evidence?: string; offsets?: number[] }> = {};
     questions.forEach((q, i) => { if (q.explanation) map[i] = { ...q.explanation }; });
     return map;
   });
@@ -203,9 +204,9 @@ export const TestEditGapFilling = forwardRef<TestEditGapFillingHandle, Props>(fu
     setCollapsed(prev => { const n = new Set(prev); n.has(idx) ? n.delete(idx) : n.add(idx); return n; });
   };
 
-  const handleEvidenceChange = (idx: number, ev: string | undefined) => {
-    setExplanations(e => ({ ...e, [idx]: { ...e[idx], evidence: ev } }));
-    if (questions[idx]) onEvidenceChange(questions[idx].id, ev ?? '');
+  const handleEvidenceChange = (idx: number, ev: string | undefined, nextOffsets?: number[]) => {
+    setExplanations(e => ({ ...e, [idx]: { ...e[idx], evidence: ev, offsets: nextOffsets } }));
+    if (questions[idx]) onEvidenceChange(questions[idx].id, ev ?? '', nextOffsets);
   };
 
   // ── Select-to-gap (same logic as before, works on the preview div) ──
@@ -251,7 +252,7 @@ export const TestEditGapFilling = forwardRef<TestEditGapFillingHandle, Props>(fu
       if (groupContentValue !== (initialGroupContent ?? '')) {
         await updateQuestionGroupContent(groupId, groupContentValue);
       }
-      const updates: Record<string, { content: string; options: { label: string; content: string; isCorrect: boolean }[]; explanation?: { text?: string; evidence?: string } }> = {};
+      const updates: Record<string, { content: string; options: { label: string; content: string; isCorrect: boolean }[]; explanation?: { text?: string; evidence?: string; offsets?: number[] } }> = {};
       items.forEach((item, i) => {
         if (item.id < 0) return;
         updates[String(item.id)] = {
@@ -406,8 +407,14 @@ export const TestEditGapFilling = forwardRef<TestEditGapFillingHandle, Props>(fu
                         className="mt-1 w-full rounded-md border border-input bg-background px-2 py-1.5 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-none" />
                     </div>
                     <div className="pt-2">
-                      <EvidenceList evidence={expl?.evidence} pendingEvidence={pendingEvidence}
-                        onAssign={onAssignEvidence} onChange={ev => handleEvidenceChange(rIdx, ev)} />
+                      <EvidenceList
+                        evidence={expl?.evidence}
+                        offsets={expl?.offsets}
+                        pendingEvidence={pendingEvidence}
+                        pendingOffset={pendingOffset}
+                        onAssign={onAssignEvidence}
+                        onChange={(ev, offsets) => handleEvidenceChange(rIdx, ev, offsets)}
+                      />
                     </div>
                   </div>
                 )}

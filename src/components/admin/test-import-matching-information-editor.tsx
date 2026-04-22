@@ -11,11 +11,12 @@ interface Props {
   paragraphs: string[];
   questions: QuestionRequest[];
   pendingEvidence: string | null;
+  pendingOffset?: number;
   onAssignEvidence: (qi: number) => void;
   onChange: (questions: QuestionRequest[]) => void;
 }
 
-export function MatchingInformationEditor({ paragraphs, questions, pendingEvidence, onAssignEvidence, onChange }: Props) {
+export function MatchingInformationEditor({ paragraphs, questions, pendingEvidence, pendingOffset, onAssignEvidence, onChange }: Props) {
   const [expanded, setExpanded] = useState<number | null>(null);
 
   const rebuild = (stmts: { content: string; correctPara: string; explanation?: QuestionRequest['explanation'] }[]) => {
@@ -56,9 +57,11 @@ export function MatchingInformationEditor({ paragraphs, questions, pendingEviden
     rebuild(updated);
   };
 
-  const onEvidenceChange = (idx: number, ev: string | undefined) => {
+  const onEvidenceChange = (idx: number, ev: string | undefined, offsets?: number[]) => {
     const updated = statements.map((s, i) =>
-      i === idx ? { ...s, explanation: { ...s.explanation, evidence: ev } } : s
+      i === idx
+        ? { ...s, explanation: { ...s.explanation, evidence: ev, offsets: offsets && offsets.length > 0 ? offsets : undefined } }
+        : s
     );
     rebuild(updated);
   };
@@ -124,9 +127,11 @@ export function MatchingInformationEditor({ paragraphs, questions, pendingEviden
                   <div className="pt-2">
                     <EvidenceList
                       evidence={expl?.evidence}
+                      offsets={expl?.offsets}
+                      pendingOffset={pendingOffset}
                       pendingEvidence={pendingEvidence}
                       onAssign={() => onAssignEvidence(i)}
-                      onChange={ev => onEvidenceChange(i, ev)}
+                      onChange={(ev, offsets) => onEvidenceChange(i, ev, offsets)}
                     />
                   </div>
                 </div>

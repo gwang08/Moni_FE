@@ -6,6 +6,7 @@ import { Loader2, CheckCircle2, FileText, MessageSquare, Eye, ListChecks } from 
 import type { StimulusRequest } from '@/types/admin.types';
 import { type BasicInfo, SKILL_SECTIONS } from '@/components/admin/test-import-step1-basic-info';
 import { SpeakingExamPreview } from '@/components/admin/speaking-exam-preview';
+import { parseEvidence } from '@/components/admin/evidence-list';
 
 const TYPE_LABELS: Record<string, string> = {
   MCQ: 'Trắc nghiệm (MCQ)',
@@ -156,6 +157,27 @@ function ListeningReview({ stimuli }: { stimuli: StimulusRequest[] }) {
   );
 }
 
+function renderEvidencePreview(evidence?: string, offsets?: number[]) {
+  const chunks = parseEvidence(evidence);
+  if (chunks.length === 0) return null;
+
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {chunks.map((chunk, index) => {
+        const offset = offsets?.[index];
+        return (
+          <span key={index} className="inline-flex max-w-full items-center gap-1 rounded bg-amber-50 px-1.5 py-0.5 text-[11px] text-amber-700">
+            <span className="truncate">&ldquo;{chunk.replace(/\n/g, ' ')}&rdquo;</span>
+            {offset != null && offset >= 0 && (
+              <span className="shrink-0 text-[10px] text-amber-600">[@{offset}]</span>
+            )}
+          </span>
+        );
+      })}
+    </div>
+  );
+}
+
 export function TestImportStep4({ basicInfo, stimuli, submitting, error, onSubmit, onBack }: Props) {
   const [speakingTab, setSpeakingTab] = useState<'summary' | 'preview'>('summary');
   const isSpeaking = basicInfo.skill === 'SPEAKING';
@@ -271,9 +293,9 @@ export function TestImportStep4({ basicInfo, stimuli, submitting, error, onSubmi
                               </p>
                             )}
                             {q.explanation.evidence && (
-                              <p className="text-xs text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded max-w-sm truncate">
-                                &ldquo;{q.explanation.evidence.replace(/\n---\n/g, ' | ')}&rdquo;
-                              </p>
+                              <div className="max-w-sm">
+                                {renderEvidencePreview(q.explanation.evidence, q.explanation.offsets)}
+                              </div>
                             )}
                           </div>
                         )}

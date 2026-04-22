@@ -18,6 +18,7 @@ interface Props {
   questionTypeCode: QuestionTypeCode;
   position: number;
   pendingEvidence: string | null;
+  pendingOffset?: number;
   sharedOptions?: { label: string; content: string }[];
   onAssignEvidence: () => void;
   onChange: (updated: QuestionRequest) => void;
@@ -43,6 +44,7 @@ export function QuestionEditor({
   questionTypeCode,
   position,
   pendingEvidence,
+  pendingOffset,
   sharedOptions,
   onAssignEvidence,
   onChange,
@@ -51,10 +53,14 @@ export function QuestionEditor({
 }: Props) {
   const setOptions = (options: OptionRequest[]) => onChange({ ...question, options });
 
-  const handleEvidenceChange = (ev: string | undefined) =>
+  const handleEvidenceChange = (ev: string | undefined, offsets?: number[]) =>
     onChange({
       ...question,
-      explanation: { ...question.explanation, evidence: ev },
+      explanation: {
+        ...question.explanation,
+        evidence: ev,
+        offsets: offsets && offsets.length > 0 ? offsets : undefined,
+      },
     });
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -123,7 +129,14 @@ export function QuestionEditor({
             className="w-full shrink-0 overflow-hidden rounded-md border border-input bg-background px-2 py-1.5 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           />
         </div>
-        <EvidenceList evidence={question.explanation?.evidence} pendingEvidence={pendingEvidence} onAssign={onAssignEvidence} onChange={handleEvidenceChange} />
+        <EvidenceList
+          evidence={question.explanation?.evidence}
+          offsets={question.explanation?.offsets}
+          pendingEvidence={pendingEvidence}
+          pendingOffset={pendingOffset}
+          onAssign={onAssignEvidence}
+          onChange={handleEvidenceChange}
+        />
       </div>
     </div>
   );

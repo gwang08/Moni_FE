@@ -20,12 +20,13 @@ interface Props {
   passageHtml: string;
   testId: string;
   pendingEvidence: string | null;
+  pendingOffset?: number;
   onAssignEvidence: () => void;
-  onEvidenceChange: (questionId: number, evidence: string) => void;
+  onEvidenceChange: (questionId: number, evidence: string, offsets?: number[]) => void;
 }
 
 export const TestEditMatchingInformation = forwardRef<TestEditMatchingInformationHandle, Props>(function TestEditMatchingInformation(
-  { questions, passageHtml, testId, pendingEvidence, onAssignEvidence, onEvidenceChange }: Props,
+  { questions, passageHtml, testId, pendingEvidence, pendingOffset, onAssignEvidence, onEvidenceChange }: Props,
   ref
 ) {
   const queryClient = useQueryClient();
@@ -40,17 +41,17 @@ export const TestEditMatchingInformation = forwardRef<TestEditMatchingInformatio
     })
   );
 
-  const [explanations, setExplanations] = useState<Record<number, { text?: string; evidence?: string }>>(() => {
-    const map: Record<number, { text?: string; evidence?: string }> = {};
+  const [explanations, setExplanations] = useState<Record<number, { text?: string; evidence?: string; offsets?: number[] }>>(() => {
+    const map: Record<number, { text?: string; evidence?: string; offsets?: number[] }> = {};
     questions.forEach((q, i) => {
       if (q.explanation) map[i] = { ...q.explanation };
     });
     return map;
   });
 
-  const handleEvidenceChange = (idx: number, ev: string | undefined) => {
-    setExplanations(e => ({ ...e, [idx]: { ...e[idx], evidence: ev } }));
-    if (questions[idx]) onEvidenceChange(questions[idx].id, ev ?? '');
+  const handleEvidenceChange = (idx: number, ev: string | undefined, nextOffsets?: number[]) => {
+    setExplanations(e => ({ ...e, [idx]: { ...e[idx], evidence: ev, offsets: nextOffsets } }));
+    if (questions[idx]) onEvidenceChange(questions[idx].id, ev ?? '', nextOffsets);
   };
 
   const handleSaveAll = async (): Promise<boolean> => {
@@ -59,7 +60,7 @@ export const TestEditMatchingInformation = forwardRef<TestEditMatchingInformatio
       const updates: Record<string, {
         content: string;
         options: { label: string; content: string; isCorrect: boolean }[];
-        explanation?: { text?: string; evidence?: string };
+        explanation?: { text?: string; evidence?: string; offsets?: number[] };
       }> = {};
 
       questions.forEach((q, i) => {
@@ -153,9 +154,11 @@ export const TestEditMatchingInformation = forwardRef<TestEditMatchingInformatio
                   <div className="pt-2">
                     <EvidenceList
                       evidence={expl?.evidence}
+                      offsets={expl?.offsets}
                       pendingEvidence={pendingEvidence}
+                      pendingOffset={pendingOffset}
                       onAssign={onAssignEvidence}
-                      onChange={ev => handleEvidenceChange(i, ev)}
+                      onChange={(ev, offsets) => handleEvidenceChange(i, ev, offsets)}
                     />
                   </div>
                 </div>

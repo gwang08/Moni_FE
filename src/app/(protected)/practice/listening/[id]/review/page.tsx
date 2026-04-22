@@ -54,26 +54,55 @@ function isChunkMatched(text: string, chunk: string) {
   return phrase.length > 10 && normalizedText.includes(phrase);
 }
 
-function findTranscriptMatches(segments: TranscriptSegment[], evidenceChunks: string[]) {
+function buildTranscriptSearchIndex(segments: TranscriptLike[]) {
+  const textParts: string[] = [];
+  const segmentByCharIndex: number[] = [];
+
+  segments.forEach((segment, segmentIndex) => {
+    const normalized = normalizeText(`${segment.speaker ? `${segment.speaker} ` : ''}${segment.text || segment.content || ''}`);
+    if (!normalized) return;
+
+    for (const ch of normalized) {
+      textParts.push(ch);
+      segmentByCharIndex.push(segmentIndex);
+    }
+
+    textParts.push(' ');
+    segmentByCharIndex.push(-1);
+  });
+
+  return {
+    text: textParts.join('').trim(),
+    segmentByCharIndex,
+  };
+}
+
+function findTranscriptMatches(segments: TranscriptLike[], evidenceChunks: string[]) {
+  const index = buildTranscriptSearchIndex(segments);
   const matches: Array<{ chunkIndex: number; segmentIndex: number }> = [];
 
   evidenceChunks.forEach((chunk, chunkIndex) => {
-    const normalizedChunk = normalizeText(chunk);
-    if (normalizedChunk.length < 2) return;
+    const candidates = [
+      normalizeText(chunk),
+      ...normalizeText(chunk).split(/\s+/).length > 6
+        ? [normalizeText(chunk).split(/\s+/).slice(0, 6).join(' ')]
+        : [],
+      ...normalizeText(chunk).split(/\s+/).length > 6
+        ? [normalizeText(chunk).split(/\s+/).slice(-6).join(' ')]
+        : [],
+    ].filter((candidate, idx, arr) => candidate.length >= 3 && arr.indexOf(candidate) === idx);
 
-    const phrase = normalizedChunk.length > 20
-      ? normalizedChunk.split(/\s+/).slice(0, 5).join(' ')
-      : normalizedChunk;
+    for (const candidate of candidates) {
+      const start = index.text.indexOf(candidate);
+      if (start === -1) continue;
 
-    const segmentIndex = segments.findIndex((segment) => {
-      const segmentText = normalizeText(segment.text || segment.speaker || '');
-      if (!segmentText) return false;
-      if (segmentText.includes(normalizedChunk)) return true;
-      return phrase.length > 10 && segmentText.includes(phrase);
-    });
-
-    if (segmentIndex >= 0) {
-      matches.push({ chunkIndex, segmentIndex });
+      const end = start + candidate.length - 1;
+      const startSegment = index.segmentByCharIndex[start];
+      const endSegment = index.segmentByCharIndex[end];
+      if (startSegment >= 0 && endSegment >= 0) {
+        matches.push({ chunkIndex, segmentIndex: startSegment });
+        break;
+      }
     }
   });
 
@@ -104,19 +133,11 @@ export default function ListeningReviewPage({ params }: Props) {
   const audioRef = useRef<HTMLAudioElement>(null);
   const transcriptRef = useRef<HTMLDivElement>(null);
   const speedMenuRef = useRef<HTMLDivElement>(null);
+  const attemptLabel = resultData?.attemptId != null ? `#${resultData.attemptId}` : null;
 
   useEffect(() => {
     if (loadedRef.current) return;
     loadedRef.current = true;
-
-    const raw = sessionStorage.getItem(`practice-result-${id}`);
-    if (raw) {
-      try {
-        const parsed = JSON.parse(raw) as ResultData;
-        setResultData(parsed);
-        return;
-      } catch { /* fall through */ }
-    }
 
     if (attemptIdParam) {
       getAttemptResult(Number(attemptIdParam)).then((res) => {
@@ -135,10 +156,29 @@ export default function ListeningReviewPage({ params }: Props) {
         }
         setResultData({ attemptId: res.attemptId, testId: id, answers, textAnswers, elapsedSeconds: res.elapsedSeconds, explanations });
       }).catch(() => {
+        const raw = sessionStorage.getItem(`practice-result-${id}`);
+        if (raw) {
+          try {
+            const parsed = JSON.parse(raw) as ResultData;
+            Promise.resolve().then(() => setResultData(parsed));
+            return;
+          } catch { /* fall through */ }
+        }
         router.replace(`/practice/listening/${id}`);
       });
       return;
     }
+
+    const raw = sessionStorage.getItem(`practice-result-${id}`);
+    if (raw) {
+      try {
+        const parsed = JSON.parse(raw) as ResultData;
+        Promise.resolve().then(() => setResultData(parsed));
+        return;
+      } catch { /* fall through */ }
+    }
+
+    router.replace(`/practice/listening/${id}`);
   }, [id, router, attemptIdParam]);
 
   const stimuli = testDetail?.stimuli ?? [];
@@ -310,6 +350,11 @@ export default function ListeningReviewPage({ params }: Props) {
             <div>
               <h1 className="font-bold text-slate-900 leading-tight">{testDetail.title}</h1>
               <p className="text-[10px] text-gray-400 font-medium">Xem giải thích chi tiết</p>
+              {attemptLabel && (
+                <p className="text-[10px] text-gray-500 font-medium">
+                  Lần làm bài: <span className="text-slate-800">{attemptLabel}</span>
+                </p>
+              )}
             </div>
           </div>
 

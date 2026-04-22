@@ -281,6 +281,7 @@ export const TestEditContentTab = forwardRef<TestEditContentHandle, Props>(funct
   const [leftPaneWidth, setLeftPaneWidth] = useState(40);
   const [isResizing, setIsResizing] = useState(false);
   const [pendingEvidence, setPendingEvidence] = useState<string | null>(null);
+  const [pendingOffset, setPendingOffset] = useState<number>(-1);
   const [addingGroup, setAddingGroup] = useState(false);
   const [addingQuestionForGroup, setAddingQuestionForGroup] = useState<number | null>(null);
   const [activeGroupId, setActiveGroupId] = useState<number | null>(null);
@@ -302,7 +303,17 @@ export const TestEditContentTab = forwardRef<TestEditContentHandle, Props>(funct
     }
     return map;
   });
-  const [offsetMap, setOffsetMap] = useState<Record<number, number>>({});
+  const [offsetMap, setOffsetMap] = useState<Record<number, number[]>>(() => {
+    const map: Record<number, number[]> = {};
+    for (const stimulus of test.stimuli) {
+      for (const group of stimulus.questionGroups) {
+        for (const question of group.questions) {
+          if (question.explanation?.offsets) map[question.id] = question.explanation.offsets;
+        }
+      }
+    }
+    return map;
+  });
   const [groupDrafts, setGroupDrafts] = useState<Record<number, { typeCode: string; instruction: string; groupContent: string }>>(() => {
     const draft: Record<number, { typeCode: string; instruction: string; groupContent: string }> = {};
     for (const stimulus of test.stimuli) {
@@ -565,23 +576,25 @@ export const TestEditContentTab = forwardRef<TestEditContentHandle, Props>(funct
     const text = selection?.toString().trim();
     if (!text || !passageRef.current || !selection?.anchorNode) return;
     if (!passageRef.current.contains(selection.anchorNode)) return;
+    let offset = -1;
     try {
       const range = selection.getRangeAt(0);
       const preRange = document.createRange();
       preRange.selectNodeContents(passageRef.current);
       preRange.setEnd(range.startContainer, range.startOffset);
-      pendingOffsetRef.current = preRange.toString().length;
+      offset = preRange.toString().length;
     } catch {
-      pendingOffsetRef.current = -1;
+      offset = -1;
     }
     setPendingEvidence(text);
+    setPendingOffset(offset);
     selection.removeAllRanges();
   }, []);
 
-  const handleEvidenceChange = useCallback((questionId: number, evidence: string) => {
+  const handleEvidenceChange = useCallback((questionId: number, evidence: string, offsets?: number[]) => {
     if (evidence) {
       setEvidenceMap((prev) => ({ ...prev, [questionId]: evidence }));
-      setOffsetMap((prev) => ({ ...prev, [questionId]: pendingOffsetRef.current }));
+      if (offsets) setOffsetMap((prev) => ({ ...prev, [questionId]: offsets }));
     } else {
       setEvidenceMap((prev) => {
         const next = { ...prev };
@@ -598,8 +611,20 @@ export const TestEditContentTab = forwardRef<TestEditContentHandle, Props>(funct
 
   const allEvidences = useMemo((): EvidenceEntry[] => {
     if (!stimulus) return [];
-    const qIds = stimulus.questionGroups.flatMap((group) => group.questions.map((question) => question.id));
-    return qIds.filter((id) => evidenceMap[id]).map((id) => ({ text: evidenceMap[id], offset: offsetMap[id] ?? -1 }));
+    const entries: EvidenceEntry[] = [];
+    for (const group of stimulus.questionGroups) {
+      for (const question of group.questions) {
+        const evidenceStr = evidenceMap[question.id];
+        const questionOffsets = offsetMap[question.id];
+        if (evidenceStr) {
+          const chunks = evidenceStr.split('\n---\n').filter((e) => e.trim());
+          chunks.forEach((chunk, idx) => {
+            entries.push({ text: chunk, offset: questionOffsets?.[idx] ?? -1 });
+          });
+        }
+      }
+    }
+    return entries;
   }, [stimulus, evidenceMap, offsetMap]);
 
   const passageContent = stimulus?.content || '';
@@ -1228,8 +1253,9 @@ export const TestEditContentTab = forwardRef<TestEditContentHandle, Props>(funct
                                   displayPosition={questionDisplayPositions.get(question.id)}
                                   testId={testId}
                                   pendingEvidence={pendingEvidence}
+                                  pendingOffset={pendingOffset}
                                   onAssignEvidence={() => setPendingEvidence(null)}
-                                  onEvidenceChange={(evidence) => handleEvidenceChange(question.id, evidence)}
+                                  onEvidenceChange={(evidence, offsets) => handleEvidenceChange(question.id, evidence, offsets)}
                                 />
                                 <button
                                   type="button"

@@ -21,19 +21,110 @@ interface ResultData {
   explanations?: Record<number, { text?: string; evidence?: string }>;
 }
 
+function toSearchableText(value: string): string {
+  let result = '';
+  let lastWasSpace = true;
+
+  for (const ch of value) {
+    if (/[\p{L}\p{N}]/u.test(ch)) {
+      result += ch.toLowerCase();
+      lastWasSpace = false;
+    } else if (!lastWasSpace) {
+      result += ' ';
+      lastWasSpace = true;
+    }
+  }
+
+  return result.trim();
+}
+
+function buildSearchIndex(root: ParentNode): { text: string; map: Array<{ node: Text; offset: number }> } {
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  const map: Array<{ node: Text; offset: number }> = [];
+  let text = '';
+  let lastWasSpace = true;
+
+  for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+    const textNode = node as Text;
+    const value = textNode.nodeValue ?? '';
+    for (let i = 0; i < value.length; i += 1) {
+      const ch = value[i];
+      if (/[\p{L}\p{N}]/u.test(ch)) {
+        text += ch.toLowerCase();
+        map.push({ node: textNode, offset: i });
+        lastWasSpace = false;
+      } else if (!lastWasSpace) {
+        text += ' ';
+        map.push({ node: textNode, offset: i });
+        lastWasSpace = true;
+      }
+    }
+  }
+
+  return { text: text.trim(), map };
+}
+
+function findSearchCandidates(chunk: string): string[] {
+  const searchable = toSearchableText(chunk);
+  if (!searchable) return [];
+
+  const words = searchable.split(' ').filter(Boolean);
+  const candidates = [searchable];
+
+  if (words.length > 6) {
+    candidates.push(words.slice(0, 6).join(' '));
+    candidates.push(words.slice(-6).join(' '));
+  }
+
+  return [...new Set(candidates.filter((candidate) => candidate.trim().length >= 3))];
+}
+
 /** Injects <mark> highlights around all evidence chunks in passage HTML */
 function injectEvidence(html: string, evidence: string | null): string {
   if (!evidence) return html;
-  const chunks = evidence.split('\n---\n').filter(e => e.trim());
-  let result = html;
-  chunks.forEach((chunk) => {
-    const escaped = chunk.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    result = result.replace(
-      new RegExp(`(${escaped})`, 'gi'),
-      `<mark class="bg-amber-200 rounded px-0.5">$1</mark>`
-    );
-  });
-  return result;
+  if (typeof DOMParser === 'undefined') return html;
+
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(html, 'text/html');
+  const chunks = evidence.split('\n---\n').filter((e) => e.trim());
+
+  for (const chunk of chunks) {
+    const candidates = findSearchCandidates(chunk);
+    let matched = false;
+
+    for (const candidate of candidates) {
+      const { text, map } = buildSearchIndex(doc.body);
+      const start = text.indexOf(candidate);
+      if (start === -1) continue;
+
+      const end = start + candidate.length - 1;
+      const startEntry = map[start];
+      const endEntry = map[end];
+      if (!startEntry || !endEntry) continue;
+
+      const range = doc.createRange();
+      range.setStart(startEntry.node, startEntry.offset);
+      range.setEnd(endEntry.node, endEntry.offset + 1);
+
+      const mark = doc.createElement('mark');
+      mark.className = 'bg-amber-200 rounded px-0.5';
+
+      try {
+        range.surroundContents(mark);
+      } catch {
+        const fragment = range.extractContents();
+        mark.appendChild(fragment);
+        range.insertNode(mark);
+      }
+
+      matched = true;
+      break;
+    }
+
+    if (!matched) continue;
+  }
+
+  return doc.body.innerHTML;
 }
 
 interface Props {
@@ -50,54 +141,58 @@ export default function ReadingReviewPage({ params }: Props) {
   const [activeEvidence, setActiveEvidence] = useState<string | null>(null);
   const [activeStimulusIdx, setActiveStimulusIdx] = useState(0);
   const loadedRef = useRef(false);
+  const attemptLabel = resultData?.attemptId != null ? `#${resultData.attemptId}` : null;
 
   useEffect(() => {
     if (loadedRef.current) return;
     loadedRef.current = true;
 
-    // Try sessionStorage first (just-submitted flow)
-    const raw = sessionStorage.getItem(`practice-result-${id}`);
-    if (raw) {
+    const loadFromSession = () => {
+      const raw = sessionStorage.getItem(`practice-result-${id}`);
+      if (!raw) return false;
       try {
         const parsed = JSON.parse(raw) as ResultData;
         Promise.resolve().then(() => setResultData(parsed));
-        return;
+        return true;
       } catch {
-        /* fall through */
+        return false;
       }
-    }
+    };
 
-    // If attemptId in URL, fetch from API (history review flow)
-    if (attemptIdParam) {
-      getAttemptResult(Number(attemptIdParam)).then((res) => {
-        const answers: Record<number, number> = {};
-        const textAnswers: Record<number, string> = {};
-        const explanations: Record<number, { text?: string; evidence?: string }> = {};
-        for (const r of res.results) {
-          if (r.selectedOptionId != null) answers[r.questionId] = r.selectedOptionId;
-          if (r.answerText) textAnswers[r.questionId] = r.answerText;
-          if (r.explanation || r.evidence) {
-            explanations[r.questionId] = {
-              text: r.explanation ?? undefined,
-              evidence: r.evidence ?? undefined,
-            };
-          }
+    const loadFromAttempt = async (attemptId: string) => {
+      const res = await getAttemptResult(Number(attemptId));
+      const answers: Record<number, number> = {};
+      const textAnswers: Record<number, string> = {};
+      const explanations: Record<number, { text?: string; evidence?: string }> = {};
+      for (const r of res.results) {
+        if (r.selectedOptionId != null) answers[r.questionId] = r.selectedOptionId;
+        if (r.answerText) textAnswers[r.questionId] = r.answerText;
+        if (r.explanation || r.evidence) {
+          explanations[r.questionId] = {
+            text: r.explanation ?? undefined,
+            evidence: r.evidence ?? undefined,
+          };
         }
-        setResultData({
-          attemptId: res.attemptId,
-          testId: id,
-          answers,
-          textAnswers,
-          elapsedSeconds: res.elapsedSeconds,
-          explanations,
-        });
-      }).catch(() => {
-        router.replace(`/practice/reading/${id}`);
+      }
+      setResultData({
+        attemptId: res.attemptId,
+        testId: id,
+        answers,
+        textAnswers,
+        elapsedSeconds: res.elapsedSeconds,
+        explanations,
       });
+    };
+
+    if (attemptIdParam) {
+      loadFromAttempt(attemptIdParam)
+        .catch(() => {
+          if (!loadFromSession()) router.replace(`/practice/reading/${id}`);
+        });
       return;
     }
 
-    // No data available, redirect
+    if (loadFromSession()) return;
     router.replace(`/practice/reading/${id}`);
   }, [id, router, attemptIdParam]);
 
@@ -167,6 +262,11 @@ export default function ReadingReviewPage({ params }: Props) {
         <div>
           <h1 className="font-bold">{testDetail.title}</h1>
           <p className="text-xs text-muted-foreground">Xem giải thích chi tiết</p>
+          {attemptLabel && (
+            <p className="text-[10px] text-gray-500 font-medium">
+              Lần làm bài: <span className="text-slate-800">{attemptLabel}</span>
+            </p>
+          )}
         </div>
       </div>
 

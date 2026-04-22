@@ -17,11 +17,12 @@ interface Props {
   sharedOptions: SharedOption[];
   positionOffset: number;
   pendingEvidence?: string | null;
+  pendingOffset?: number;
   onAssignEvidence?: (questionIndex: number) => void;
   onChange: (questions: QuestionRequest[]) => void;
 }
 
-export function MatchingTableEditor({ questions, sharedOptions, positionOffset, pendingEvidence, onAssignEvidence, onChange }: Props) {
+export function MatchingTableEditor({ questions, sharedOptions, positionOffset, pendingEvidence, pendingOffset, onAssignEvidence, onChange }: Props) {
   const [expanded, setExpanded] = useState<number | null>(null);
 
   const addQuestion = () => {
@@ -52,10 +53,10 @@ export function MatchingTableEditor({ questions, sharedOptions, positionOffset, 
     }));
   };
 
-  const updateExplanationEvidence = (idx: number, evidence: string) => {
+  const updateExplanationEvidence = (idx: number, evidence: string, offsets?: number[]) => {
     onChange(questions.map((q, i) => {
       if (i !== idx) return q;
-      const expl = { ...q.explanation, evidence: evidence || undefined };
+      const expl = { ...q.explanation, evidence: evidence || undefined, offsets: offsets && offsets.length > 0 ? offsets : undefined };
       return { ...q, explanation: (expl.text || expl.evidence) ? expl : undefined };
     }));
   };
@@ -133,9 +134,11 @@ export function MatchingTableEditor({ questions, sharedOptions, positionOffset, 
                   </div>
                   <EvidenceList
                     evidence={q.explanation?.evidence}
+                    offsets={q.explanation?.offsets}
+                    pendingOffset={pendingOffset}
                     pendingEvidence={pendingEvidence}
                     onAssign={() => assignEvidence(idx)}
-                    onChange={ev => updateExplanationEvidence(idx, ev ?? '')}
+                    onChange={(ev, offsets) => updateExplanationEvidence(idx, ev ?? '', offsets)}
                   />
                 </div>
               )}

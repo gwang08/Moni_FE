@@ -147,6 +147,7 @@ export function TestImportStep3({ skill, stimuli, onChange, onNext, onBack, onAu
   const [groupDropIndex, setGroupDropIndex] = useState<number | null>(null);
   const [transcribing, setTranscribing] = useState(false);
   const [pendingEvidence, setPendingEvidence] = useState<string | null>(null);
+  const [pendingOffset, setPendingOffset] = useState<number>(-1);
   const [pendingEvidenceTarget, setPendingEvidenceTarget] = useState<{ groupIndex: number; questionIndex: number } | null>(null);
 
   const layoutRef = useRef<HTMLDivElement>(null);
@@ -261,7 +262,21 @@ export function TestImportStep3({ skill, stimuli, onChange, onNext, onBack, onAu
       toast.error('Vui lòng bôi đen văn bản trước khi quét');
       return;
     }
+    let offset = -1;
+    try {
+      const editorRoot = layoutRef.current?.querySelector<HTMLElement>('.ProseMirror');
+      const range = selection?.rangeCount ? selection.getRangeAt(0) : null;
+      if (editorRoot && range?.startContainer && editorRoot.contains(range.startContainer)) {
+        const preRange = document.createRange();
+        preRange.selectNodeContents(editorRoot);
+        preRange.setEnd(range.startContainer, range.startOffset);
+        offset = preRange.toString().length;
+      }
+    } catch {
+      offset = -1;
+    }
     setPendingEvidence(text);
+    setPendingOffset(offset);
     toast.success('Đã quét dẫn chứng - hãy chọn câu để gán');
     // Clear selection for better UX
     selection?.removeAllRanges();
@@ -319,6 +334,7 @@ export function TestImportStep3({ skill, stimuli, onChange, onNext, onBack, onAu
   const beginAssignEvidence = (groupIndex: number, questionIndex: number) => {
     setPendingEvidenceTarget({ groupIndex, questionIndex });
     setPendingEvidence('');
+    setPendingOffset(-1);
   };
 
   const commitAssignEvidence = () => {
@@ -329,18 +345,27 @@ export function TestImportStep3({ skill, stimuli, onChange, onNext, onBack, onAu
       const group = questionGroups[groupIndex];
       const questions = [...group.questions];
       const question = { ...questions[questionIndex] };
-      question.explanation = { ...question.explanation, evidence: pendingEvidence ?? '' };
+      const existingEvidence = question.explanation?.evidence ?? '';
+      const existingOffsets = question.explanation?.offsets ?? [];
+      const nextEvidence = existingEvidence ? `${existingEvidence}\n---\n${pendingEvidence ?? ''}` : (pendingEvidence ?? '');
+      question.explanation = {
+        ...question.explanation,
+        evidence: nextEvidence,
+        offsets: [...existingOffsets, pendingOffset],
+      };
       questions[questionIndex] = question;
       group.questions = questions;
       questionGroups[groupIndex] = group;
       return { ...s, questionGroups };
     });
     setPendingEvidence(null);
+    setPendingOffset(-1);
     setPendingEvidenceTarget(null);
   };
 
   const cancelAssignEvidence = () => {
     setPendingEvidence(null);
+    setPendingOffset(-1);
     setPendingEvidenceTarget(null);
   };
 
@@ -584,13 +609,19 @@ export function TestImportStep3({ skill, stimuli, onChange, onNext, onBack, onAu
                         <span className="text-[11px] font-semibold text-green-700 uppercase tracking-tight">Dẫn chứng đã quẹt:</span>
                         <button
                           type="button"
-                          onClick={() => setPendingEvidence(null)}
+                          onClick={() => {
+                            setPendingEvidence(null);
+                            setPendingOffset(-1);
+                          }}
                           className="text-green-500 hover:text-green-700"
                         >
                           <X className="h-3.5 w-3.5" />
                         </button>
                       </div>
                       <p className="mt-0.5 line-clamp-2 text-xs italic text-green-800">&ldquo;{pendingEvidence}&rdquo;</p>
+                      {pendingOffset >= 0 && (
+                        <p className="mt-0.5 text-[10px] text-green-600/80 italic">Vị trí: @{pendingOffset}</p>
+                      )}
                       <p className="mt-1 text-[10px] text-green-600/80 italic">Giờ hãy chọn 1 câu bất kỳ để gán dẫn chứng này</p>
                     </div>
                   )}
@@ -756,6 +787,7 @@ export function TestImportStep3({ skill, stimuli, onChange, onNext, onBack, onAu
                         positionOffset={groupPositionOffset}
                         stimulusContent={stimulus.content}
                         pendingEvidence={pendingEvidence}
+                        pendingOffset={pendingOffset}
                         onAssignEvidence={(questionIndex) => beginAssignEvidence(groupIndex, questionIndex)}
                         onChange={(updated) => updateGroup(groupIndex, updated)}
                         onRemove={() => removeGroup(groupIndex)}

@@ -66,7 +66,8 @@ export default function FullTestDetailPage() {
     testType: string;
     duration: number;
     status: string;
-  }>({ title: '', testType: 'PRACTICE', duration: 0, status: 'PUBLISHED' });
+    isPlacement: boolean;
+  }>({ title: '', testType: 'PRACTICE', duration: 0, status: 'PUBLISHED', isPlacement: false });
   const [selectedBySection, setSelectedBySection] = useState<Record<number, number>>({});
   const [editingSection, setEditingSection] = useState<number | null>(null);
 
@@ -97,6 +98,7 @@ export default function FullTestDetailPage() {
       testType: fullTest.testType || 'PRACTICE',
       duration: toMinutes(fullTest.duration),
       status: fullTest.status || 'PUBLISHED',
+      isPlacement: !!fullTest.isPlacement,
     });
     const initialSelected: Record<number, number> = {};
     for (const item of fullTest.stimuli ?? []) {
@@ -133,6 +135,7 @@ export default function FullTestDetailPage() {
         testType: data.testType,
         duration: data.duration,
         status: data.status,
+        isPlacement: data.isPlacement,
         stimulusIds,
       });
     },
@@ -280,6 +283,19 @@ export default function FullTestDetailPage() {
                   </option>
                 ))}
               </select>
+            </div>
+
+            <div className="flex items-center space-x-2 pt-8">
+              <input
+                type="checkbox"
+                id="isPlacement"
+                checked={editData.isPlacement}
+                onChange={(e) => setEditData({ ...editData, isPlacement: e.target.checked })}
+                className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              />
+              <Label htmlFor="isPlacement" className="text-sm font-medium text-gray-700 cursor-pointer">
+                Dùng cho Placement Test
+              </Label>
             </div>
           </div>
         </div>

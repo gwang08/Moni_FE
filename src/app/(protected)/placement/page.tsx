@@ -12,6 +12,10 @@ import { ListeningTestStep } from '@/components/placement/listening-test-step';
 import { WritingSpeakingStep } from '@/components/placement/writing-speaking-step';
 import { ResultStep } from '@/components/placement/result-step';
 
+import { useElapsedTimer } from '@/hooks/use-elapsed-timer';
+
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+
 type PlacementStep = 'loading' | 'reading' | 'listening' | 'writing-speaking' | 'result';
 
 export default function PlacementPage() {
@@ -28,6 +32,10 @@ export default function PlacementPage() {
   const [writingSpeakingBands, setWritingSpeakingBands] = useState({ writing: 0, speaking: 0 });
   const [result, setResult] = useState<PlacementResult | null>(null);
   const [loading, setLoading] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+
+  // Timer: stop when result is shown
+  const { elapsed, formatted: elapsedTime } = useElapsedTimer(step === 'result' || step === 'loading');
 
   // Guard against React strict mode double-firing the effect
   const loadedRef = useRef(false);
@@ -55,7 +63,9 @@ export default function PlacementPage() {
   const handleSubmitTest = async () => {
     if (!testPair) return;
     setLoading(true);
+    setConfirmOpen(false); // Close dialog if it was open (from Listening step)
     try {
+      // ... (mapping answers)
       const readingAnswerList = Object.entries(readingAnswers).map(([qId, optId]) => ({
         questionId: Number(qId), selectedOptionId: optId,
       }));
@@ -105,28 +115,64 @@ export default function PlacementPage() {
   }
 
   if (step === 'reading' && testPair) {
+    const totalQ = testPair.readingTest.stimuli.reduce((acc, s) => acc + s.questionGroups.reduce((acc2, g) => acc2 + g.questions.length, 0), 0);
+    const answered = Object.keys(readingAnswers).length + Object.keys(readingTextAnswers).length;
+    const remaining = totalQ - answered;
+
     return (
-      <ReadingTestStep
-        testDetail={testPair.readingTest}
-        answers={readingAnswers}
-        textAnswers={readingTextAnswers}
-        onAnswer={handleAnswer(setReadingAnswers)}
-        onTextAnswer={(qId, text) => setReadingTextAnswers((prev) => ({ ...prev, [qId]: text }))}
-        onComplete={() => setStep('listening')}
-      />
+      <>
+        <ReadingTestStep
+          testDetail={testPair.readingTest}
+          answers={readingAnswers}
+          textAnswers={readingTextAnswers}
+          onAnswer={handleAnswer(setReadingAnswers)}
+          onTextAnswer={(qId, text) => setReadingTextAnswers((prev) => ({ ...prev, [qId]: text }))}
+          onComplete={() => setConfirmOpen(true)}
+          elapsedTime={elapsedTime}
+        />
+        <ConfirmDialog
+          open={confirmOpen}
+          onOpenChange={setConfirmOpen}
+          title="Nộp bài Reading?"
+          description={remaining > 0 ? `Bạn còn ${remaining} câu chưa làm. Bạn có chắc muốn chuyển sang phần Listening?` : 'Bạn đã làm xong phần Reading. Bấm Xác nhận để chuyển sang phần Listening.'}
+          confirmText="Xác nhận"
+          onConfirm={() => {
+            setConfirmOpen(false);
+            setStep('listening');
+          }}
+        />
+      </>
     );
   }
 
   if (step === 'listening' && testPair) {
+    const totalQ = testPair.listeningTest.stimuli.reduce((acc, s) => acc + s.questionGroups.reduce((acc2, g) => acc2 + g.questions.length, 0), 0);
+    const answered = Object.keys(listeningAnswers).length + Object.keys(listeningTextAnswers).length;
+    const remaining = totalQ - answered;
+
     return (
-      <ListeningTestStep
-        testDetail={testPair.listeningTest}
-        answers={listeningAnswers}
-        textAnswers={listeningTextAnswers}
-        onAnswer={handleAnswer(setListeningAnswers)}
-        onTextAnswer={(qId, text) => setListeningTextAnswers((prev) => ({ ...prev, [qId]: text }))}
-        onComplete={() => setStep('writing-speaking')}
-      />
+      <>
+        <ListeningTestStep
+          testDetail={testPair.listeningTest}
+          answers={listeningAnswers}
+          textAnswers={listeningTextAnswers}
+          onAnswer={handleAnswer(setListeningAnswers)}
+          onTextAnswer={(qId, text) => setListeningTextAnswers((prev) => ({ ...prev, [qId]: text }))}
+          onComplete={() => setConfirmOpen(true)}
+          elapsedTime={elapsedTime}
+        />
+        <ConfirmDialog
+          open={confirmOpen}
+          onOpenChange={setConfirmOpen}
+          title="Nộp bài Listening?"
+          description={remaining > 0 ? `Bạn còn ${remaining} câu chưa làm. Bạn có chắc muốn chuyển sang phần tiếp theo?` : 'Bạn đã làm xong phần Listening. Bấm Xác nhận để sang phần đánh giá trình độ Writing & Speaking.'}
+          confirmText="Xác nhận"
+          onConfirm={() => {
+            setConfirmOpen(false);
+            setStep('writing-speaking');
+          }}
+        />
+      </>
     );
   }
 

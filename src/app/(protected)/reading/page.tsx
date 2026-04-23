@@ -20,6 +20,7 @@ export default function ReadingPage() {
 
     const text = selection.toString();
     addHighlight({
+      stimulusId: 0,
       text,
       startOffset: 0,
       endOffset: text.length,

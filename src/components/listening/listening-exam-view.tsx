@@ -233,7 +233,44 @@ export function ListeningExamView({
   }
 
   return (
-    <div className="h-[calc(100vh-56px)] flex flex-col bg-white relative">
+    <div className="h-[calc(100vh-56px)] flex flex-col bg-[#f5f6f8] relative">
+      <style jsx global>{`
+        .reading-scrollbar {
+          scrollbar-width: auto;
+          scrollbar-color: #888 #f1f1f1;
+        }
+
+        .reading-scrollbar::-webkit-scrollbar {
+          width: 12px;
+          height: 12px;
+        }
+
+        .reading-scrollbar::-webkit-scrollbar-track {
+          background: #f1f1f1;
+          border-radius: 0;
+        }
+
+        .reading-scrollbar::-webkit-scrollbar-thumb {
+          background: #888;
+          border-radius: 0;
+          border: 0;
+        }
+
+        .reading-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: #666;
+        }
+
+        .reading-scrollbar::-webkit-scrollbar-button {
+          display: none;
+          width: 0;
+          height: 0;
+        }
+
+        .reading-scrollbar::-webkit-scrollbar-corner {
+          background: #f1f1f1;
+        }
+      `}</style>
+
       {/* ===== Loading Overlay ===== */}
       {(isSubmitting || (readOnly && !submitted)) && (
         <div className="absolute inset-0 z-[100] flex flex-col items-center justify-center bg-white/80 backdrop-blur-[2px] animate-in fade-in duration-500">
@@ -248,40 +285,42 @@ export function ListeningExamView({
       )}
 
       {/* Header */}
-      <ListeningExamHeader isPlaying={isPlaying} elapsedTime={elapsedTime} />
+      <ListeningExamHeader isPlaying={isPlaying} elapsedTime={elapsedTime} onFinish={onSubmit} />
 
       {/* Audio player (hidden but functional) - use first stimulus audio */}
       {stimuli[0]?.mediaUrl && <ListeningAudioPlayer audioUrl={stimuli[0].mediaUrl} />}
 
       {/* Main content - scrollable */}
-      <div className="flex-1 overflow-y-auto">
-        <div className="px-6 py-6 space-y-6">
-          {/* Render current stimulus only */}
-          <div key={currentStimulus.id} className="space-y-4">
-            {currentStimulus.questionGroups.map((group) => {
-              // Get global question range for this group
-              const firstQId = group.questions[0]?.id;
-              const lastQId = group.questions[group.questions.length - 1]?.id;
-              const groupStart = firstQId ? globalQuestionPositionById[firstQId] : 1;
-              const groupEnd = lastQId ? globalQuestionPositionById[lastQId] : group.questions.length;
+      <div className="flex-1 overflow-y-auto reading-scrollbar">
+        <div className="px-10 py-8">
+          <div className="space-y-8">
+            {/* Render current stimulus only */}
+            <div key={currentStimulus.id} className="space-y-4">
+              {currentStimulus.questionGroups.map((group) => {
+                // Get global question range for this group
+                const firstQId = group.questions[0]?.id;
+                const lastQId = group.questions[group.questions.length - 1]?.id;
+                const groupStart = firstQId ? globalQuestionPositionById[firstQId] : 1;
+                const groupEnd = lastQId ? globalQuestionPositionById[lastQId] : group.questions.length;
 
-              return (
-                <div key={group.id}>
-                  {/* Group header with global question numbers */}
-                  <div className="mb-3">
-                    <h3 className="text-base font-semibold text-gray-900">
-                      Questions {groupStart}-{groupEnd}
-                    </h3>
-                    {!GAP_TYPES.includes(group.questionTypeCode as QuestionTypeCode) && group.instruction && (
-                      <p className="text-sm text-gray-600 mt-1">{group.instruction}</p>
-                    )}
+                return (
+                  <div key={group.id}>
+                    {/* Group header with global question numbers */}
+                    <div className="mb-4">
+                      <h3 className="text-lg font-bold text-gray-900">
+                        Questions {groupStart}-{groupEnd}
+                      </h3>
+                      {!GAP_TYPES.includes(group.questionTypeCode as QuestionTypeCode) && group.instruction && (
+                        <p className="text-[15px] text-gray-600 mt-1 italic">{group.instruction}</p>
+                      )}
+                    </div>
+
+                    {/* Questions */}
+                    {renderQuestionGroup(group)}
                   </div>
-
-                  {/* Questions */}
-                  {renderQuestionGroup(group)}
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
         </div>
       </div>

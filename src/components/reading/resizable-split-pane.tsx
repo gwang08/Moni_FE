@@ -180,14 +180,15 @@ export function ResizableSplitPane({
       </div>
 
       {/* Right pane */}
-      <div
+      <div 
         className="flex-1 bg-white overflow-hidden"
         style={{ width: `${100 - leftWidth}%` }}
       >
-        <div className="h-full overflow-y-auto reading-scrollbar px-6 py-6">
+        <div className="h-full overflow-y-auto reading-scrollbar py-6">
           {rightPane}
         </div>
       </div>
+
     </div>
   );
 }

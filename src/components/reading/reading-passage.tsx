@@ -48,18 +48,20 @@ export interface ReadingPassageHandle {
 
 interface Props {
   content: string;
+  stimulusId: number;
   interactive?: boolean;
   examMode?: boolean;
 }
 
 export const ReadingPassage = forwardRef<ReadingPassageHandle, Props>(function ReadingPassage(
-  { content, interactive = true, examMode = false }: Props,
+  { content, stimulusId, interactive = true, examMode = false }: Props,
   forwardedRef
 ) {
   const {
     activeTool, selectedColor, addHighlight, highlights, addVocab,
     editingHighlightId, setEditingHighlightId, addNote, removeHighlight,
   } = useReadingStore();
+  
   const passageRef = useRef<HTMLDivElement>(null);
   const [vocabPopup, setVocabPopup] = useState<{ word: string; sentence: string; x: number; y: number } | null>(null);
   const [notePopup, setNotePopup] = useState<{ id: string; note: string; x: number; y: number } | null>(null);
@@ -69,9 +71,14 @@ export const ReadingPassage = forwardRef<ReadingPassageHandle, Props>(function R
   const [translatePopup, setTranslatePopup] = useState<{ text: string; x: number; y: number } | null>(null);
   const hoveredWordRef = useRef<{ el: HTMLElement | null }>({ el: null });
 
-  // Build HTML with highlights injected
+  // Build HTML with highlights injected - filter by current stimulusId
+  const stimulusHighlights = useMemo(() => 
+    highlights.filter(h => h.stimulusId === stimulusId),
+    [highlights, stimulusId]
+  );
+
   const formattedContent = useMemo(() => formatReadingPassage(content), [content]);
-  const renderedHtml = useMemo(() => injectHighlights(formattedContent, highlights), [formattedContent, highlights]);
+  const renderedHtml = useMemo(() => injectHighlights(formattedContent, stimulusHighlights), [formattedContent, stimulusHighlights]);
 
   // TipTap editor in read-only mode — gives us ProseMirror's smooth selection
   const editor = useEditor({
@@ -162,14 +169,6 @@ export const ReadingPassage = forwardRef<ReadingPassageHandle, Props>(function R
         return;
       }
     }
-
-    // Fallback: simple text search if offsets fail
-    const html = tiptapEl.innerHTML;
-    const plainText = tiptapEl.textContent || '';
-    const idx = plainText.indexOf(text);
-    if (idx !== -1) {
-       // repeat similar logic or just scrollTo element containing text
-    }
   }, [editor]);
 
   useImperativeHandle(forwardedRef, () => ({
@@ -238,11 +237,11 @@ export const ReadingPassage = forwardRef<ReadingPassageHandle, Props>(function R
     const startOffset = preSelectionRange.toString().length;
 
     if (activeTool === 'highlight') {
-      addHighlight({ text, startOffset, endOffset: startOffset + text.length, color: selectedColor });
+      addHighlight({ stimulusId, text, startOffset, endOffset: startOffset + text.length, color: selectedColor });
       selected.removeAllRanges();
     } else if (activeTool === 'note') {
       const hlId = `hl_${Date.now()}`;
-      addHighlight({ id: hlId, text, startOffset, endOffset: startOffset + text.length, color: 'yellow' });
+      addHighlight({ id: hlId, stimulusId, text, startOffset, endOffset: startOffset + text.length, color: 'yellow' });
       setEditingHighlightId(hlId);
       selected.removeAllRanges();
     }
@@ -318,7 +317,7 @@ export const ReadingPassage = forwardRef<ReadingPassageHandle, Props>(function R
         const sentence = getSentenceAroundWord(result.node, result.word);
         const rect = result.range.getBoundingClientRect();
         setVocabPopup({ word: result.word, sentence, x: rect.left, y: rect.bottom });
-        addVocab({ word: result.word });
+        addVocab({ stimulusId, word: result.word });
       }
       return;
     }

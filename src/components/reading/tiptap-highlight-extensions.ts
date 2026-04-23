@@ -60,6 +60,10 @@ export const NoteIconNode = Node.create({
     return [{ tag: 'span.note-icon' }];
   },
 
+  renderHTML({ HTMLAttributes }) {
+    return ['span', mergeAttributes(HTMLAttributes, { class: 'note-icon' }), 0];
+  },
+
   addNodeView() {
     return ({ node }) => {
       const span = document.createElement('span');

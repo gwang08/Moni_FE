@@ -338,7 +338,7 @@ function GapQuestion({ question, displayPosition, userAnswer, submitted, onTextA
             </>
           ) : (
             <>
-              <span className="font-bold mr-2">{displayPosition}.</span>
+              <span className="mr-2 font-normal text-gray-900 inline-flex min-w-8 justify-center">{displayPosition}</span>
               {question.content}
               <ExamInlineGapInput
                 questionId={question.id}

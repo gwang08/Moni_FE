@@ -7,6 +7,7 @@ import { ReadingExamQuestionNav } from '@/components/reading/reading-exam-questi
 import { ReadingPassage, type ReadingPassageHandle } from '@/components/reading/reading-passage';
 import { ReadingPassageWithMatching } from '@/components/reading/reading-passage-with-matching';
 import { ReadingToolbar } from '@/components/reading/reading-toolbar';
+import { ResizableSplitPane } from '@/components/reading/resizable-split-pane';
 import type { StimulusDetail } from '@/types/test.types';
 
 interface Props {
@@ -209,6 +210,43 @@ export function ReadingExamView({
 
   return (
     <div className="h-[calc(100vh-56px)] flex flex-col bg-[#f5f6f8] relative">
+      <style jsx global>{`
+        .reading-scrollbar {
+          scrollbar-width: auto;
+          scrollbar-color: #888 #f1f1f1;
+        }
+
+        .reading-scrollbar::-webkit-scrollbar {
+          width: 12px;
+          height: 12px;
+        }
+
+        .reading-scrollbar::-webkit-scrollbar-track {
+          background: #f1f1f1;
+          border-radius: 0;
+        }
+
+        .reading-scrollbar::-webkit-scrollbar-thumb {
+          background: #888;
+          border-radius: 0;
+          border: 0;
+        }
+
+        .reading-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: #666;
+        }
+
+        .reading-scrollbar::-webkit-scrollbar-button {
+          display: none;
+          width: 0;
+          height: 0;
+        }
+
+        .reading-scrollbar::-webkit-scrollbar-corner {
+          background: #f1f1f1;
+        }
+      `}</style>
+      
       {/* ===== Loading Overlay ===== */}
       {(isSubmitting || (readOnly && !submitted)) && (
         <div className="absolute inset-0 z-[100] flex flex-col items-center justify-center bg-white/80 backdrop-blur-[2px] animate-in fade-in duration-500">
@@ -226,7 +264,7 @@ export function ReadingExamView({
       <ReadingExamHeader elapsedTime={elapsedTime} />
 
       {/* Toolbar for highlight/note tools (no vocab in exam mode) */}
-      <ReadingToolbar showVocab={false} />
+      <ReadingToolbar showVocab={false} examMode={true} onFinish={onSubmit} />
 
       {/* Part info */}
       <ReadingPartInfo
@@ -236,50 +274,53 @@ export function ReadingExamView({
       />
 
       {/* Main content */}
-      <div className="flex-1 min-h-0 flex overflow-hidden">
-        {/* Passage (left side) */}
-        <div className="w-[54%] border-r border-gray-300 bg-white">
-          <div className="h-full overflow-y-auto reading-scrollbar px-6 py-6">
-            {(() => {
-              const matchingGroup = currentStimulus.questionGroups.find(
-                (g) => g.questionTypeCode === 'MATCHING_HEADINGS'
-              );
-              return matchingGroup ? (
-                <ReadingPassageWithMatching
-                  content={currentStimulus.content}
-                  questions={matchingGroup.questions}
-                  answers={answers}
-                  submitted={submitted}
-                  onAnswer={onAnswer}
-                  selectedPillId={null}
-                  onPillAssigned={() => {}}
-                  examMode
-                  questionPositionById={questionPositionById}
-                />
-              ) : (
-                <ReadingPassage ref={passageRef} content={currentStimulus.content} interactive examMode />
-              );
-            })()}
-          </div>
-        </div>
-
-        {/* Questions (right side) */}
-        <div className="flex-1 bg-white">
-          <div className="h-full overflow-y-auto reading-scrollbar px-6 py-6">
-            <ReadingExamQuestionsPanel
-              stimulus={currentStimulus}
-              submitted={submitted}
-              readOnly={isDisabled}
-              answers={answers}
-              onAnswer={onAnswer}
-              textAnswers={textAnswers}
-              onTextAnswer={onTextAnswer}
-              globalQuestionOffset={globalQuestionOffset}
-              onLocateEvidence={onLocateEvidence}
-            />
-          </div>
-        </div>
-      </div>
+      <ResizableSplitPane
+        storageKey="reading-exam-split-width"
+        leftPane={
+          (() => {
+            const matchingGroup = currentStimulus.questionGroups.find(
+              (g) => g.questionTypeCode === 'MATCHING_HEADINGS'
+            );
+            return matchingGroup ? (
+              <ReadingPassageWithMatching
+                key={`matching-${currentStimulus.id}`}
+                content={currentStimulus.content}
+                stimulusId={currentStimulus.id}
+                questions={matchingGroup.questions}
+                answers={answers}
+                submitted={submitted}
+                onAnswer={onAnswer}
+                selectedPillId={null}
+                onPillAssigned={() => {}}
+                examMode
+                questionPositionById={questionPositionById}
+              />
+            ) : (
+              <ReadingPassage 
+                key={`passage-${currentStimulus.id}`}
+                ref={passageRef} 
+                content={currentStimulus.content} 
+                stimulusId={currentStimulus.id} 
+                interactive 
+                examMode 
+              />
+            );
+          })()
+        }
+        rightPane={
+          <ReadingExamQuestionsPanel
+            stimulus={currentStimulus}
+            submitted={submitted}
+            readOnly={isDisabled}
+            answers={answers}
+            onAnswer={onAnswer}
+            textAnswers={textAnswers}
+            onTextAnswer={onTextAnswer}
+            globalQuestionOffset={globalQuestionOffset}
+            onLocateEvidence={onLocateEvidence}
+          />
+        }
+      />
 
       {/* Navigation */}
       {currentStimulus.questionGroups.length > 0 && (

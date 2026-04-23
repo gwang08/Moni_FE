@@ -5,9 +5,10 @@ import { Volume2, Wifi, Bell, Menu, Clock } from 'lucide-react';
 interface Props {
   isPlaying: boolean;
   elapsedTime?: string;
+  onFinish?: () => void;
 }
 
-export function ListeningExamHeader({ isPlaying, elapsedTime }: Props) {
+export function ListeningExamHeader({ isPlaying, elapsedTime, onFinish }: Props) {
   return (
     <header className="shrink-0 flex items-center justify-between px-4 py-2 bg-white border-b border-gray-300">
       {/* Left: IELTS Logo + Timer */}

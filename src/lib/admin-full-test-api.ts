@@ -8,6 +8,7 @@ export interface FullTestResponse {
   testType?: string;
   duration: number;
   status: string;
+  isPlacement: boolean;
   createdAt: string;
   stimuli: {
     id: number;
@@ -46,6 +47,7 @@ export async function createFullTest(data: {
   skill: string;
   testType?: string;
   duration?: number;
+  isPlacement?: boolean;
   stimulusIds: number[];
 }): Promise<FullTestResponse> {
   const res = await apiClient.post<ApiResponse<FullTestResponse>>('/api/v1/admin/full-tests', data, true);
@@ -56,6 +58,7 @@ export async function createFullTest(data: {
 export async function autoGenerateFullTest(data: {
   skill: string;
   title?: string;
+  isPlacement?: boolean;
 }): Promise<FullTestResponse> {
   const res = await apiClient.post<ApiResponse<FullTestResponse>>('/api/v1/admin/full-tests/auto', data, true);
   if (!res.result) throw new Error('Failed');
@@ -75,6 +78,7 @@ export async function updateFullTest(
     testType?: string;
     duration?: number;
     status?: string;
+    isPlacement?: boolean;
     skill?: string;
     stimulusIds?: number[];
   }

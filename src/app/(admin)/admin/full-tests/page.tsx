@@ -154,6 +154,11 @@ export default function AdminFullTestsPage() {
                         <span className="flex-1 min-w-0 truncate" title={test.title}>
                           {test.title}
                         </span>
+                        {test.isPlacement && (
+                          <Badge className="bg-orange-100 text-orange-700 border-orange-200">
+                            Placement
+                          </Badge>
+                        )}
                         {test.status === 'HIDDEN' && (
                           <Badge
                             className={ADMIN_TEST_STATUS_BADGES[test.status] ?? 'bg-gray-100 text-gray-700 border-gray-200'}

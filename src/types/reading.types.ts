@@ -1,5 +1,6 @@
 export interface Highlight {
   id: string;
+  stimulusId: number;
   text: string;
   startOffset: number;
   endOffset: number;
@@ -9,6 +10,7 @@ export interface Highlight {
 
 export interface VocabItem {
   id: string;
+  stimulusId: number;
   word: string;
   definition?: string;
   highlightId?: string;

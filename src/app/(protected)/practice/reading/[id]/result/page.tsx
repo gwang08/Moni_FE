@@ -132,14 +132,16 @@ export default function ReadingResultPage({ params }: Props) {
               Lần làm bài: <span className="font-semibold text-slate-900">{attemptLabel}</span>
             </p>
           )}
-              <p className="text-sm text-slate-500 inline-flex items-center justify-center gap-1">
-                <Clock className="h-3.5 w-3.5" />
-                Thời gian: {formatTime(resultData.elapsedSeconds)}
-              </p>
-              <p className="text-sm text-slate-500">
-                Độ chính xác: <span className="font-semibold text-slate-900">{accuracy.toFixed(1)}%</span>
-              </p>
-            </div>
+          <div className="flex items-center justify-center gap-4 mt-2">
+            <p className="text-sm text-slate-500 inline-flex items-center justify-center gap-1">
+              <Clock className="h-3.5 w-3.5" />
+              Thời gian: {formatTime(resultData.elapsedSeconds)}
+            </p>
+            <p className="text-sm text-slate-500">
+              Độ chính xác: <span className="font-semibold text-slate-900">{accuracy.toFixed(1)}%</span>
+            </p>
+          </div>
+        </div>
 
         {/* Summary card */}
         <section className="overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-[0_16px_40px_rgba(15,23,42,0.08)]">

@@ -229,7 +229,9 @@ export function ReadingPracticeView({
                 );
                 return matchingGroup ? (
                   <ReadingPassageWithMatching
+                    key={`matching-${currentStimulus.id}`}
                     content={currentStimulus.content}
+                    stimulusId={currentStimulus.id}
                     questions={matchingGroup.questions}
                     answers={answers}
                     submitted={submitted}
@@ -238,7 +240,13 @@ export function ReadingPracticeView({
                     onPillAssigned={() => onPillSelect(null)}
                   />
                 ) : (
-                  <ReadingPassage ref={passageRef} content={currentStimulus.content} interactive />
+                  <ReadingPassage 
+                    key={`passage-${currentStimulus.id}`}
+                    ref={passageRef} 
+                    content={currentStimulus.content} 
+                    stimulusId={currentStimulus.id} 
+                    interactive 
+                  />
                 );
               })()}
             </>

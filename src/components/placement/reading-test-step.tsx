@@ -10,9 +10,22 @@ interface Props {
   onAnswer: (questionId: number, optionId: number) => void;
   onTextAnswer: (questionId: number, text: string) => void;
   onComplete: () => void;
+  isSubmitting?: boolean;
+  readOnly?: boolean;
+  elapsedTime?: string;
 }
 
-export function ReadingTestStep({ testDetail, answers, textAnswers, onAnswer, onTextAnswer, onComplete }: Props) {
+export function ReadingTestStep({
+  testDetail,
+  answers,
+  textAnswers,
+  onAnswer,
+  onTextAnswer,
+  onComplete,
+  isSubmitting = false,
+  readOnly = false,
+  elapsedTime,
+}: Props) {
   return (
     <ReadingExamView
       stimuli={testDetail.stimuli}
@@ -21,7 +34,10 @@ export function ReadingTestStep({ testDetail, answers, textAnswers, onAnswer, on
       onAnswer={onAnswer}
       onTextAnswer={onTextAnswer}
       onSubmit={onComplete}
+      isSubmitting={isSubmitting}
       submitted={false}
+      readOnly={readOnly}
+      elapsedTime={elapsedTime}
     />
   );
 }

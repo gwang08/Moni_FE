@@ -80,7 +80,7 @@ export function ReadingMatchingInformation({
               return (
                 <tr key={q.id} id={`question-${q.id}`} className="border-b border-gray-200 hover:bg-gray-50/50">
                   <td className="py-3 px-1">
-                    <span className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-gray-100 text-gray-900 text-xs font-bold">
+                    <span className="inline-flex items-center justify-center h-6 w-8 text-gray-900 text-[15px] font-bold">
                       {questionPositionById[q.id] ?? q.position}
                     </span>
                   </td>

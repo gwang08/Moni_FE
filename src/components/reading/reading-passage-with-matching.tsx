@@ -7,6 +7,7 @@ import type { QuestionDetail } from '@/types/test.types';
 
 interface Props {
   content: string;
+  stimulusId: number;
   questions: QuestionDetail[];
   answers: Record<number, number>;
   submitted: boolean;
@@ -97,6 +98,7 @@ function buildMatchingContent(
 
 export function ReadingPassageWithMatching({
   content,
+  stimulusId,
   questions,
   answers,
   submitted,
@@ -172,7 +174,7 @@ export function ReadingPassageWithMatching({
 
   return (
     <div onClickCapture={handleClickCapture} onDragOverCapture={handleDragOverCapture} onDropCapture={handleDropCapture}>
-      <ReadingPassage content={contentWithSlots} interactive examMode={examMode} />
+      <ReadingPassage content={contentWithSlots} stimulusId={stimulusId} interactive examMode={examMode} />
     </div>
   );
 }

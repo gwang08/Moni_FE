@@ -13,7 +13,7 @@ import { User, LogOut, Shield, CreditCard, LogIn, GraduationCap, LayoutDashboard
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { toast } from 'sonner';
-import { formatVnd } from '@/lib/utils';
+
 import { Button } from '@/components/ui/button';
 import { ActiveSubscriptionBanner } from '@/components/subscription/active-subscription-banner';
 
@@ -56,25 +56,10 @@ export function UserAvatarDropdown({ variant = 'light' }: UserAvatarDropdownProp
     );
   }
 
-  const creditBalance = user.credit ?? 0;
 
   return (
     <div className="flex items-center gap-2">
-      {/* Credit balance + Nạp button - only for learners */}
-      {user.role === 'USER' && (
-        <Link
-          href="/payment"
-          className={`hidden sm:flex items-center gap-1.5 rounded-full px-3 py-1 transition-colors ${
-            isDark
-              ? 'border-white/30 border bg-white/10 hover:bg-white/20'
-              : 'border rounded-full hover:bg-accent'
-          }`}
-        >
-          <span className={`text-sm font-semibold tabular-nums ${isDark ? 'text-white' : ''}`}>
-            {formatVnd(creditBalance)}
-          </span>
-        </Link>
-      )}
+
 
       {/* Avatar dropdown */}
       <DropdownMenu>
@@ -101,19 +86,7 @@ export function UserAvatarDropdown({ variant = 'light' }: UserAvatarDropdownProp
             <p className="text-xs text-muted-foreground truncate">{user.email}</p>
           </div>
 
-          {/* Mobile-only credit display - only for learners */}
-          {user.role === 'USER' && (
-            <div className="sm:hidden px-2 py-1.5">
-              <Link
-                href="/payment"
-                className="flex items-center justify-between rounded-md border px-2.5 py-2 hover:bg-accent transition-colors"
-              >
-                <div className="flex items-center gap-1.5">
-                  <span className="text-sm font-semibold">{formatVnd(creditBalance)}</span>
-                </div>
-              </Link>
-            </div>
-          )}
+
 
           {/* Active subscription detail row — only learners, only if has active sub */}
           {user.role === 'USER' && <ActiveSubscriptionBanner />}

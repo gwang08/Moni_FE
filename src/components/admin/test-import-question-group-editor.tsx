@@ -35,6 +35,9 @@ interface Props {
   stimulusContent?: string;
   pendingEvidence: string | null;
   pendingOffset?: number;
+  pendingStartOffset?: number;
+  pendingEndOffset?: number;
+  pendingStartTime?: number | null;
   onAssignEvidence: (qi: number) => void;
   onChange: (updated: QuestionGroupRequest) => void;
   onRemove: () => void;
@@ -123,6 +126,9 @@ export function QuestionGroupEditor({
   stimulusContent,
   pendingEvidence,
   pendingOffset,
+  pendingStartOffset,
+  pendingEndOffset,
+  pendingStartTime,
   onAssignEvidence,
   onChange,
   onRemove,
@@ -250,6 +256,9 @@ export function QuestionGroupEditor({
           groupContent={group.groupContent}
           pendingEvidence={pendingEvidence}
           pendingOffset={pendingOffset}
+          pendingStartOffset={pendingStartOffset}
+          pendingEndOffset={pendingEndOffset}
+          pendingStartTime={pendingStartTime}
           onAssignEvidence={onAssignEvidence}
           onGroupContentChange={(content) => onChange({ ...group, groupContent: content })}
           onChange={(questions) => onChange({ ...group, questions })}
@@ -261,6 +270,9 @@ export function QuestionGroupEditor({
           questions={group.questions}
           pendingEvidence={pendingEvidence}
           pendingOffset={pendingOffset}
+          pendingStartOffset={pendingStartOffset}
+          pendingEndOffset={pendingEndOffset}
+          pendingStartTime={pendingStartTime}
           onAssignEvidence={onAssignEvidence}
           onChange={(questions, sharedOpts) => onChange({ ...group, questions, sharedOptions: sharedOpts })}
         />
@@ -270,6 +282,9 @@ export function QuestionGroupEditor({
           questions={group.questions}
           pendingEvidence={pendingEvidence}
           pendingOffset={pendingOffset}
+          pendingStartOffset={pendingStartOffset}
+          pendingEndOffset={pendingEndOffset}
+          pendingStartTime={pendingStartTime}
           onAssignEvidence={onAssignEvidence}
           onChange={(questions) => onChange({ ...group, questions })}
         />
@@ -293,6 +308,9 @@ export function QuestionGroupEditor({
             positionOffset={positionOffset}
             pendingEvidence={pendingEvidence}
             pendingOffset={pendingOffset}
+            pendingStartOffset={pendingStartOffset}
+            pendingEndOffset={pendingEndOffset}
+            pendingStartTime={pendingStartTime}
             onAssignEvidence={onAssignEvidence}
             onChange={(questions) => onChange({ ...group, questions })}
           />
@@ -343,6 +361,9 @@ export function QuestionGroupEditor({
                         position={positionOffset + questionIndex + 1}
                         pendingEvidence={pendingEvidence}
                         pendingOffset={pendingOffset}
+                        pendingStartOffset={pendingStartOffset}
+                        pendingEndOffset={pendingEndOffset}
+                        pendingStartTime={pendingStartTime}
                         sharedOptions={group.sharedOptions}
                         onAssignEvidence={() => onAssignEvidence(questionIndex)}
                         onChange={(updated) => updateQuestion(questionIndex, updated)}

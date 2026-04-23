@@ -20,6 +20,7 @@ interface Props {
   onPillSelect?: (id: number | null) => void;
   /** Global question number offset for multi-part tests */
   globalQuestionOffset?: number;
+  onLocateEvidence?: (evidence: string, offset?: number, startOffset?: number, endOffset?: number) => void;
 }
 
 const GAP_TYPES = ['GAP_FILLING', 'DIAGRAM_LABEL'];
@@ -33,12 +34,14 @@ function IELTSMCQBox({
   submitted,
   onAnswer,
   questionPositionById = {},
+  onLocateEvidence,
 }: {
   questions: QuestionDetail[];
   answers: Record<number, number>;
   submitted: boolean;
   onAnswer: (questionId: number, optionId: number) => void;
   questionPositionById?: Record<number, number>;
+  onLocateEvidence?: (evidence: string, offset?: number, startOffset?: number, endOffset?: number) => void;
 }) {
   return (
     <div className="bg-white py-4">
@@ -48,38 +51,18 @@ function IELTSMCQBox({
           const displayNumber = questionPositionById[q.id] ?? q.position;
           return (
             <div key={q.id} id={`question-${q.id}`} className="space-y-3">
-              <div className="flex items-start gap-4">
-                <span className="min-w-[20px] text-sm font-bold text-gray-900 mt-0.5">
-                  {displayNumber}
-                </span>
-                <p className="flex-1 text-sm text-gray-800 font-normal leading-relaxed">{q.content}</p>
-              </div>
-              <div className="space-y-3">
-                {q.options.map((opt) => {
-                  const isSelected = selectedId === opt.id;
-                  return (
-                    <label
-                      key={opt.id}
-                      className={`flex items-center gap-3 p-3 rounded-md border-2 transition-all w-full ${
-                        isSelected
-                          ? 'border-blue-600 bg-[#cfe0f4] text-gray-900'
-                          : 'border-gray-200 hover:border-gray-300'
-                      } cursor-pointer ${submitted ? 'cursor-default opacity-80' : ''}`}
-                    >
-                      <input
-                        type="radio"
-                        name={`question-${q.id}`}
-                        value={opt.id}
-                        checked={isSelected}
-                        disabled={submitted}
-                        onChange={() => !submitted && onAnswer(q.id, opt.id)}
-                        className="h-4 w-4 text-blue-600 border-gray-400 focus:ring-blue-600"
-                      />
-                      <span className="text-sm font-normal leading-tight">{opt.content}</span>
-                    </label>
-                  );
-                })}
-              </div>
+              <ReadingQuestionMcq
+                questionId={q.id}
+                position={displayNumber}
+                content={q.content}
+                options={q.options}
+                selectedId={selectedId}
+                submitted={submitted}
+                onAnswer={onAnswer}
+                explanation={q.explanation}
+                onLocateEvidence={onLocateEvidence}
+                examMode
+              />
             </div>
           );
         })}
@@ -99,6 +82,7 @@ export function ReadingExamQuestionsPanel({
   selectedPillId = null,
   onPillSelect = () => {},
   globalQuestionOffset = 1,
+  onLocateEvidence,
 }: Props) {
   const isDisabled = submitted || readOnly;
 
@@ -163,6 +147,7 @@ export function ReadingExamQuestionsPanel({
                 textAnswers={textAnswers}
                 onTextAnswer={onTextAnswer || (() => {})}
                 questionPositionById={questionMeta.questionPositionById}
+                onLocateEvidence={onLocateEvidence}
                 examMode
               />
             ) : isMatchingHeadings ? (
@@ -184,6 +169,7 @@ export function ReadingExamQuestionsPanel({
                   onAnswer={onAnswer}
                   examMode
                   questionPositionById={questionMeta.questionPositionById}
+                  onLocateEvidence={onLocateEvidence}
                 />
               </div>
             ) : isMatchingFeature ? (
@@ -195,6 +181,7 @@ export function ReadingExamQuestionsPanel({
                   onAnswer={onAnswer}
                   examMode
                   questionPositionById={questionMeta.questionPositionById}
+                  onLocateEvidence={onLocateEvidence}
                 />
               </div>
             ) : isMCQType ? (
@@ -204,6 +191,7 @@ export function ReadingExamQuestionsPanel({
                 submitted={isDisabled}
                 onAnswer={onAnswer}
                 questionPositionById={questionMeta.questionPositionById}
+                onLocateEvidence={onLocateEvidence}
               />
             ) : (
               <div className="bg-white p-5">
@@ -215,6 +203,8 @@ export function ReadingExamQuestionsPanel({
                   selectedId={answers[groupQuestions[0]?.id]}
                   submitted={isDisabled}
                   onAnswer={onAnswer}
+                  explanation={groupQuestions[0]?.explanation}
+                  onLocateEvidence={onLocateEvidence}
                   examMode
                 />
               </div>

@@ -148,6 +148,9 @@ export function TestImportStep3({ skill, stimuli, onChange, onNext, onBack, onAu
   const [transcribing, setTranscribing] = useState(false);
   const [pendingEvidence, setPendingEvidence] = useState<string | null>(null);
   const [pendingOffset, setPendingOffset] = useState<number>(-1);
+  const [pendingStartOffset, setPendingStartOffset] = useState<number>(-1);
+  const [pendingEndOffset, setPendingEndOffset] = useState<number>(-1);
+  const [pendingStartTime, setPendingStartTime] = useState<number | null>(null);
   const [pendingEvidenceTarget, setPendingEvidenceTarget] = useState<{ groupIndex: number; questionIndex: number } | null>(null);
 
   const layoutRef = useRef<HTMLDivElement>(null);
@@ -263,24 +266,50 @@ export function TestImportStep3({ skill, stimuli, onChange, onNext, onBack, onAu
       return;
     }
     let offset = -1;
+    let startOffset = -1;
+    let endOffset = -1;
+    let startTime: number | null = null;
+
     try {
       const editorRoot = layoutRef.current?.querySelector<HTMLElement>('.ProseMirror');
       const range = selection?.rangeCount ? selection.getRangeAt(0) : null;
       if (editorRoot && range?.startContainer && editorRoot.contains(range.startContainer)) {
+        // Calculate offsets
         const preRange = document.createRange();
         preRange.selectNodeContents(editorRoot);
         preRange.setEnd(range.startContainer, range.startOffset);
-        offset = preRange.toString().length;
+        startOffset = preRange.toString().length;
+        endOffset = startOffset + text.length;
+        offset = startOffset; // Backward compatibility
+
+        // For Listening: Try to find startTime from the segment
+        if (skill === 'LISTENING') {
+          let node: Node | null = range.startContainer;
+          while (node && node !== editorRoot) {
+            if (node instanceof HTMLElement && node.getAttribute('data-start-time')) {
+              startTime = parseFloat(node.getAttribute('data-start-time') || '0');
+              break;
+            }
+            node = node.parentNode;
+          }
+        }
       }
-    } catch {
+    } catch (err) {
+      console.error('Error capturing selection:', err);
       offset = -1;
+      startOffset = -1;
+      endOffset = -1;
     }
     setPendingEvidence(text);
     setPendingOffset(offset);
+    setPendingStartOffset(startOffset);
+    setPendingEndOffset(endOffset);
+    setPendingStartTime(startTime);
+
     toast.success('Đã quét dẫn chứng - hãy chọn câu để gán');
     // Clear selection for better UX
     selection?.removeAllRanges();
-  }, []);
+  }, [skill]);
 
   const handleListeningUpload = useCallback(
     async (url: string) => {
@@ -335,6 +364,9 @@ export function TestImportStep3({ skill, stimuli, onChange, onNext, onBack, onAu
     setPendingEvidenceTarget({ groupIndex, questionIndex });
     setPendingEvidence('');
     setPendingOffset(-1);
+    setPendingStartOffset(-1);
+    setPendingEndOffset(-1);
+    setPendingStartTime(null);
   };
 
   const commitAssignEvidence = () => {
@@ -347,11 +379,18 @@ export function TestImportStep3({ skill, stimuli, onChange, onNext, onBack, onAu
       const question = { ...questions[questionIndex] };
       const existingEvidence = question.explanation?.evidence ?? '';
       const existingOffsets = question.explanation?.offsets ?? [];
+      const existingStartOffsets = question.explanation?.startOffsets ?? [];
+      const existingEndOffsets = question.explanation?.endOffsets ?? [];
+      const existingStartTimes = question.explanation?.startTimes ?? [];
+
       const nextEvidence = existingEvidence ? `${existingEvidence}\n---\n${pendingEvidence ?? ''}` : (pendingEvidence ?? '');
       question.explanation = {
         ...question.explanation,
         evidence: nextEvidence,
         offsets: [...existingOffsets, pendingOffset],
+        startOffsets: [...existingStartOffsets, pendingStartOffset],
+        endOffsets: [...existingEndOffsets, pendingEndOffset],
+        startTimes: [...existingStartTimes, pendingStartTime ?? -1],
       };
       questions[questionIndex] = question;
       group.questions = questions;
@@ -360,12 +399,18 @@ export function TestImportStep3({ skill, stimuli, onChange, onNext, onBack, onAu
     });
     setPendingEvidence(null);
     setPendingOffset(-1);
+    setPendingStartOffset(-1);
+    setPendingEndOffset(-1);
+    setPendingStartTime(null);
     setPendingEvidenceTarget(null);
   };
 
   const cancelAssignEvidence = () => {
     setPendingEvidence(null);
     setPendingOffset(-1);
+    setPendingStartOffset(-1);
+    setPendingEndOffset(-1);
+    setPendingStartTime(null);
     setPendingEvidenceTarget(null);
   };
 
@@ -788,6 +833,9 @@ export function TestImportStep3({ skill, stimuli, onChange, onNext, onBack, onAu
                         stimulusContent={stimulus.content}
                         pendingEvidence={pendingEvidence}
                         pendingOffset={pendingOffset}
+                        pendingStartOffset={pendingStartOffset}
+                        pendingEndOffset={pendingEndOffset}
+                        pendingStartTime={pendingStartTime}
                         onAssignEvidence={(questionIndex) => beginAssignEvidence(groupIndex, questionIndex)}
                         onChange={(updated) => updateGroup(groupIndex, updated)}
                         onRemove={() => removeGroup(groupIndex)}

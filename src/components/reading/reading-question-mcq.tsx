@@ -29,9 +29,15 @@ interface Props {
   multiple?: boolean;
   submitted: boolean;
   readOnly?: boolean;
-  explanation?: { text?: string; evidence?: string; offsets?: number[] };
+  explanation?: { 
+    text?: string; 
+    evidence?: string; 
+    offsets?: number[];
+    startOffsets?: number[];
+    endOffsets?: number[];
+  };
   onAnswer: (questionId: number, optionId: number) => void;
-  onLocateEvidence?: (evidence: string, offset?: number) => void;
+  onLocateEvidence?: (evidence: string, offset?: number, startOffset?: number, endOffset?: number) => void;
   examMode?: boolean;
 }
 
@@ -166,8 +172,14 @@ export function ReadingQuestionMcq({ questionId, position, content, options, sel
 
 /** Reusable explanation section with toggleable explanation text */
 function ExplanationSection({ explanation, onLocateEvidence }: {
-  explanation: { text?: string; evidence?: string; offsets?: number[] };
-  onLocateEvidence?: (evidence: string, offset?: number) => void;
+  explanation: { 
+    text?: string; 
+    evidence?: string; 
+    offsets?: number[];
+    startOffsets?: number[];
+    endOffsets?: number[];
+  };
+  onLocateEvidence?: (evidence: string, offset?: number, startOffset?: number, endOffset?: number) => void;
 }) {
   const [showExplanation, setShowExplanation] = useState(false);
 
@@ -176,6 +188,8 @@ function ExplanationSection({ explanation, onLocateEvidence }: {
 
   const evidenceChunks = explanation.evidence?.split('\n---\n').filter((e: string) => e.trim()) || [];
   const offsets = explanation.offsets || [];
+  const startOffsets = explanation.startOffsets || [];
+  const endOffsets = explanation.endOffsets || [];
 
   return (
     <div className="mt-4 pt-3 border-t border-gray-200">
@@ -186,7 +200,7 @@ function ExplanationSection({ explanation, onLocateEvidence }: {
               <button
                 key={i}
                 type="button"
-                onClick={() => onLocateEvidence(chunk.trim(), offsets[i])}
+                onClick={() => onLocateEvidence(chunk.trim(), offsets[i], startOffsets[i], endOffsets[i])}
                 className="w-6 h-6 rounded-full flex items-center justify-center hover:bg-gray-100 transition-colors cursor-pointer"
                 title={evidenceChunks.length > 1 ? `Xem dẫn chứng ${i + 1}` : 'Xem dẫn chứng'}
               >

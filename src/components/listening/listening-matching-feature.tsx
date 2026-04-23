@@ -1,8 +1,23 @@
 'use client';
 
-import { useMemo } from 'react';
-import { CheckCircle2, XCircle } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { CheckCircle2, XCircle, Lightbulb } from 'lucide-react';
 import type { QuestionDetail } from '@/types/test.types';
+
+// Custom Target/Aim icon component - bullseye style
+function TargetIcon({ className = 'h-4 w-4', strokeWidth = 2 }: { className?: string; strokeWidth?: number }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10" />
+      <circle cx="12" cy="12" r="6" />
+      <circle cx="12" cy="12" r="2" />
+      <line x1="12" y1="2" x2="12" y2="6" />
+      <line x1="12" y1="18" x2="12" y2="22" />
+      <line x1="2" y1="12" x2="6" y2="12" />
+      <line x1="18" y1="12" x2="22" y2="12" />
+    </svg>
+  );
+}
 
 interface Props {
   questions: QuestionDetail[];
@@ -10,6 +25,7 @@ interface Props {
   submitted: boolean;
   readOnly?: boolean;
   onAnswer: (questionId: number, optionId: number) => void;
+  onLocateEvidence?: (evidence: string, offset?: number, startOffset?: number, endOffset?: number, startTime?: number) => void;
   examMode?: boolean;
   questionPositionById?: Record<number, number>;
 }
@@ -20,6 +36,7 @@ export function ListeningMatchingFeature({
   submitted, 
   readOnly = false,
   onAnswer, 
+  onLocateEvidence,
   examMode = false, 
   questionPositionById = {} 
 }: Props) {
@@ -81,7 +98,12 @@ export function ListeningMatchingFeature({
                       {questionPositionById[q.id] ?? q.position}
                     </span>
                   </td>
-                  <td className="py-3 px-2 text-sm text-gray-900">{q.content}</td>
+                  <td className="py-3 px-2 text-sm text-gray-900">
+                    <div>{q.content}</div>
+                    {submitted && q.explanation && (q.explanation.text || q.explanation.evidence) && (
+                      <ExplanationSection explanation={q.explanation} onLocateEvidence={onLocateEvidence} />
+                    )}
+                  </td>
                   {categories.map(c => {
                     const opt = q.options.find(o => o.label === c.label);
                     if (!opt) return <td key={c.label} className="text-center py-3 px-2" />;
@@ -208,6 +230,77 @@ export function ListeningMatchingFeature({
           );
         })}
       </div>
+    </div>
+  );
+}
+
+/** Reusable explanation section with toggleable explanation text */
+function ExplanationSection({ explanation, onLocateEvidence }: {
+  explanation: { 
+    text?: string; 
+    evidence?: string;
+    offsets?: number[];
+    startOffsets?: number[];
+    endOffsets?: number[];
+    startTimes?: number[];
+  };
+  onLocateEvidence?: (evidence: string, offset?: number, startOffset?: number, endOffset?: number, startTime?: number) => void;
+}) {
+  const [showExplanation, setShowExplanation] = useState(false);
+
+  // Remove "Câu X - Giải thích đáp án" prefix from explanation text
+  const cleanExplanation = explanation.text?.replace(/^Câu\s+\d+\s*[-–—]\s*Giải thích đáp án\s*/i, '') || explanation.text;
+
+  const evidenceChunks = explanation.evidence?.split('\n---\n').filter((e: string) => e.trim()) || [];
+  const offsets = explanation.offsets || [];
+  const startOffsets = explanation.startOffsets || [];
+  const endOffsets = explanation.endOffsets || [];
+  const startTimes = explanation.startTimes || [];
+
+  return (
+    <div className="mt-2 pt-2 border-t border-gray-100">
+      <div className="flex items-center gap-2">
+        {evidenceChunks.length > 0 && onLocateEvidence && (
+          <div className="flex gap-1">
+            {evidenceChunks.map((chunk, i) => (
+              <button
+                key={i}
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onLocateEvidence?.(chunk.trim(), offsets[i], startOffsets[i], endOffsets[i], startTimes[i]);
+                }}
+                className="w-6 h-6 rounded-full flex items-center justify-center hover:bg-gray-100 transition-colors cursor-pointer"
+                title={evidenceChunks.length > 1 ? `Xem dẫn chứng ${i + 1}` : 'Xem dẫn chứng'}
+              >
+                <TargetIcon className="h-4 w-4 text-gray-900" strokeWidth={2} />
+              </button>
+            ))}
+          </div>
+        )}
+        {explanation.text && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setShowExplanation(!showExplanation);
+            }}
+            className={`w-6 h-6 rounded-full flex items-center justify-center transition-colors cursor-pointer ${
+              showExplanation ? 'bg-yellow-200 hover:bg-yellow-300' : 'bg-yellow-100 hover:bg-yellow-200'
+            }`}
+            title="Xem giải thích"
+          >
+            <Lightbulb className={`h-4 w-4 ${showExplanation ? 'text-yellow-800' : 'text-yellow-700'}`} />
+          </button>
+        )}
+      </div>
+      {showExplanation && cleanExplanation && (
+        <div className="mt-2 text-[13px] text-gray-700 bg-gray-50 rounded px-3 py-2 w-full">
+          {cleanExplanation}
+        </div>
+      )}
     </div>
   );
 }

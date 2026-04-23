@@ -18,7 +18,13 @@ interface ResultData {
   textAnswers?: Record<number, string>;
   elapsedSeconds: number;
   /** Explanation/evidence from API keyed by questionId */
-  explanations?: Record<number, { text?: string; evidence?: string }>;
+  explanations?: Record<number, { 
+    text?: string; 
+    evidence?: string;
+    offsets?: number[];
+    startOffsets?: number[];
+    endOffsets?: number[];
+  }>;
 }
 
 function toSearchableText(value: string): string {
@@ -80,12 +86,40 @@ function findSearchCandidates(chunk: string): string[] {
 }
 
 /** Injects <mark> highlights around all evidence chunks in passage HTML */
-function injectEvidence(html: string, evidence: string | null): string {
+function injectEvidence(html: string, evidence: string | null, startOffset?: number, endOffset?: number): string {
   if (!evidence) return html;
   if (typeof DOMParser === 'undefined') return html;
 
   const parser = new DOMParser();
   const doc = parser.parseFromString(html, 'text/html');
+
+  // Priority 1: Use exact offsets if provided
+  if (startOffset !== undefined && endOffset !== undefined && startOffset !== -1 && endOffset !== -1) {
+    const { map } = buildSearchIndex(doc.body);
+    const startEntry = map[startOffset];
+    const endEntry = map[endOffset];
+
+    if (startEntry && endEntry) {
+      const range = doc.createRange();
+      range.setStart(startEntry.node, startEntry.offset);
+      range.setEnd(endEntry.node, endEntry.offset + 1);
+
+      const mark = doc.createElement('mark');
+      mark.className = 'bg-amber-200 rounded px-0.5';
+
+      try {
+        range.surroundContents(mark);
+        return doc.body.innerHTML;
+      } catch {
+        const fragment = range.extractContents();
+        mark.appendChild(fragment);
+        range.insertNode(mark);
+        return doc.body.innerHTML;
+      }
+    }
+  }
+
+  // Priority 2: Use heuristic matching (legacy or missing metadata)
   const chunks = evidence.split('\n---\n').filter((e) => e.trim());
 
   for (const chunk of chunks) {
@@ -138,7 +172,7 @@ export default function ReadingReviewPage({ params }: Props) {
   const attemptIdParam = searchParams.get('attemptId');
   const { testDetail, loading, error } = useTestDetail(id);
   const [resultData, setResultData] = useState<ResultData | null>(null);
-  const [activeEvidence, setActiveEvidence] = useState<string | null>(null);
+  const [activeEvidence, setActiveEvidence] = useState<{ text: string | null; startOffset?: number; endOffset?: number }>({ text: null });
   const [activeStimulusIdx, setActiveStimulusIdx] = useState(0);
   const loadedRef = useRef(false);
   const attemptLabel = resultData?.attemptId != null ? `#${resultData.attemptId}` : null;
@@ -163,7 +197,7 @@ export default function ReadingReviewPage({ params }: Props) {
       const res = await getAttemptResult(Number(attemptId));
       const answers: Record<number, number> = {};
       const textAnswers: Record<number, string> = {};
-      const explanations: Record<number, { text?: string; evidence?: string }> = {};
+      const explanations: Record<number, any> = {};
       for (const r of res.results) {
         if (r.selectedOptionId != null) answers[r.questionId] = r.selectedOptionId;
         if (r.answerText) textAnswers[r.questionId] = r.answerText;
@@ -198,7 +232,7 @@ export default function ReadingReviewPage({ params }: Props) {
 
   // Scroll to highlighted mark after evidence is set
   useEffect(() => {
-    if (!activeEvidence) return;
+    if (!activeEvidence.text) return;
     setTimeout(() => {
       const mark = document.querySelector('mark.bg-amber-200');
       mark?.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -213,7 +247,7 @@ export default function ReadingReviewPage({ params }: Props) {
   const explanationsJson = resultData?.explanations ? JSON.stringify(resultData.explanations) : '';
   const enrichedStimulus = useMemo(() => {
     if (!rawStimulus || !explanationsJson) return rawStimulus;
-    const explanations: Record<number, { text?: string; evidence?: string }> = JSON.parse(explanationsJson);
+    const explanations: Record<number, any> = JSON.parse(explanationsJson);
     return {
       ...rawStimulus,
       questionGroups: rawStimulus.questionGroups.map((g) => ({
@@ -227,6 +261,9 @@ export default function ReadingReviewPage({ params }: Props) {
               ...q.explanation,
               text: apiExpl.text ?? q.explanation?.text,
               evidence: apiExpl.evidence ?? q.explanation?.evidence,
+              offsets: apiExpl.offsets ?? q.explanation?.offsets,
+              startOffsets: apiExpl.startOffsets ?? q.explanation?.startOffsets,
+              endOffsets: apiExpl.endOffsets ?? q.explanation?.endOffsets,
             },
           };
         }),
@@ -236,7 +273,7 @@ export default function ReadingReviewPage({ params }: Props) {
 
   const passageHtml = useMemo(() => {
     const formatted = formatReadingPassage(enrichedStimulus?.content ?? '');
-    return injectEvidence(formatted, activeEvidence);
+    return injectEvidence(formatted, activeEvidence.text, activeEvidence.startOffset, activeEvidence.endOffset);
   }, [enrichedStimulus?.content, activeEvidence]);
 
   if (loading || !resultData) {
@@ -277,7 +314,7 @@ export default function ReadingReviewPage({ params }: Props) {
               key={s.id}
               onClick={() => {
                 setActiveStimulusIdx(index);
-                setActiveEvidence(null);
+                setActiveEvidence({ text: null });
               }}
               className={`px-3 py-1.5 text-xs rounded-full font-medium transition-colors whitespace-nowrap ${
                 index === safeActiveStimulusIdx
@@ -312,7 +349,7 @@ export default function ReadingReviewPage({ params }: Props) {
             stimulus={enrichedStimulus}
             answers={resultData.answers}
             textAnswers={resultData.textAnswers}
-            onLocateEvidence={setActiveEvidence}
+            onLocateEvidence={(text, offset, startOffset, endOffset) => setActiveEvidence({ text, startOffset, endOffset })}
           />
         </div>
       </div>

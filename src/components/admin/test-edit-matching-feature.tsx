@@ -19,12 +19,32 @@ interface Props {
   testId: string;
   pendingEvidence: string | null;
   pendingOffset?: number;
+  pendingStartOffset?: number;
+  pendingEndOffset?: number;
+  pendingStartTime?: number | null;
   onAssignEvidence: () => void;
-  onEvidenceChange: (questionId: number, evidence: string, offsets?: number[]) => void;
+  onEvidenceChange: (
+    questionId: number,
+    evidence: string,
+    offsets?: number[],
+    startOffsets?: number[],
+    endOffsets?: number[],
+    startTimes?: number[]
+  ) => void;
 }
 
 export const TestEditMatchingFeature = forwardRef<TestEditMatchingFeatureHandle, Props>(function TestEditMatchingFeature(
-  { questions, testId, pendingEvidence, pendingOffset, onAssignEvidence, onEvidenceChange }: Props,
+  {
+    questions,
+    testId,
+    pendingEvidence,
+    pendingOffset,
+    pendingStartOffset,
+    pendingEndOffset,
+    pendingStartTime,
+    onAssignEvidence,
+    onEvidenceChange,
+  },
   ref
 ) {
   const queryClient = useQueryClient();
@@ -44,8 +64,22 @@ export const TestEditMatchingFeature = forwardRef<TestEditMatchingFeatureHandle,
     })
   );
 
-  const [explanations, setExplanations] = useState<Record<number, { text?: string; evidence?: string; offsets?: number[] }>>(() => {
-    const map: Record<number, { text?: string; evidence?: string; offsets?: number[] }> = {};
+  const [explanations, setExplanations] = useState<Record<number, { 
+    text?: string; 
+    evidence?: string; 
+    offsets?: number[];
+    startOffsets?: number[];
+    endOffsets?: number[];
+    startTimes?: number[];
+  }>>(() => {
+    const map: Record<number, { 
+      text?: string; 
+      evidence?: string; 
+      offsets?: number[];
+      startOffsets?: number[];
+      endOffsets?: number[];
+      startTimes?: number[];
+    }> = {};
     questions.forEach((q, i) => {
       if (q.explanation) map[i] = { ...q.explanation };
     });
@@ -62,9 +96,26 @@ export const TestEditMatchingFeature = forwardRef<TestEditMatchingFeatureHandle,
     setCategories(updated);
   };
 
-  const handleEvidenceChange = (idx: number, ev: string | undefined, nextOffsets?: number[]) => {
-    setExplanations(e => ({ ...e, [idx]: { ...e[idx], evidence: ev, offsets: nextOffsets } }));
-    if (questions[idx]) onEvidenceChange(questions[idx].id, ev ?? '', nextOffsets);
+  const handleEvidenceChange = (
+    idx: number,
+    ev: string | undefined,
+    nextOffsets?: number[],
+    nextStartOffsets?: number[],
+    nextEndOffsets?: number[],
+    nextStartTimes?: number[]
+  ) => {
+    setExplanations(e => ({
+      ...e,
+      [idx]: {
+        ...e[idx],
+        evidence: ev,
+        offsets: nextOffsets,
+        startOffsets: nextStartOffsets,
+        endOffsets: nextEndOffsets,
+        startTimes: nextStartTimes,
+      },
+    }));
+    if (questions[idx]) onEvidenceChange(questions[idx].id, ev ?? '', nextOffsets, nextStartOffsets, nextEndOffsets, nextStartTimes);
   };
 
   const handleSaveAll = async (): Promise<boolean> => {
@@ -73,7 +124,14 @@ export const TestEditMatchingFeature = forwardRef<TestEditMatchingFeatureHandle,
       const updates: Record<string, {
         content: string;
         options: { label: string; content: string; isCorrect: boolean }[];
-        explanation?: { text?: string; evidence?: string; offsets?: number[] };
+        explanation?: { 
+          text?: string; 
+          evidence?: string; 
+          offsets?: number[];
+          startOffsets?: number[];
+          endOffsets?: number[];
+          startTimes?: number[];
+        };
       }> = {};
 
       questions.forEach((q, i) => {
@@ -190,10 +248,16 @@ export const TestEditMatchingFeature = forwardRef<TestEditMatchingFeatureHandle,
                     <EvidenceList
                       evidence={expl?.evidence}
                       offsets={expl?.offsets}
+                      startOffsets={expl?.startOffsets}
+                      endOffsets={expl?.endOffsets}
+                      startTimes={expl?.startTimes}
                       pendingEvidence={pendingEvidence}
                       pendingOffset={pendingOffset}
+                      pendingStartOffset={pendingStartOffset}
+                      pendingEndOffset={pendingEndOffset}
+                      pendingStartTime={pendingStartTime}
                       onAssign={onAssignEvidence}
-                      onChange={(ev, offsets) => handleEvidenceChange(i, ev, offsets)}
+                      onChange={(ev, offsets, startOffsets, endOffsets, startTimes) => handleEvidenceChange(i, ev, offsets, startOffsets, endOffsets, startTimes)}
                     />
                   </div>
                 </div>

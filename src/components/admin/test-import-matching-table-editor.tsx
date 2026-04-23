@@ -18,12 +18,28 @@ interface Props {
   positionOffset: number;
   pendingEvidence?: string | null;
   pendingOffset?: number;
+  pendingStartOffset?: number;
+  pendingEndOffset?: number;
+  pendingStartTime?: number | null;
   onAssignEvidence?: (questionIndex: number) => void;
   onChange: (questions: QuestionRequest[]) => void;
 }
 
-export function MatchingTableEditor({ questions, sharedOptions, positionOffset, pendingEvidence, pendingOffset, onAssignEvidence, onChange }: Props) {
+export function MatchingTableEditor({
+  questions,
+  sharedOptions,
+  positionOffset,
+  pendingEvidence,
+  pendingOffset,
+  pendingStartOffset,
+  pendingEndOffset,
+  pendingStartTime,
+  onAssignEvidence,
+  onChange,
+}: Props) {
   const [expanded, setExpanded] = useState<number | null>(null);
+
+// ... (addQuestion, removeQuestion, updateContent, updateAnswer, updateExplanationText stay same)
 
   const addQuestion = () => {
     onChange([...questions, { content: '', options: [] }]);
@@ -53,16 +69,33 @@ export function MatchingTableEditor({ questions, sharedOptions, positionOffset, 
     }));
   };
 
-  const updateExplanationEvidence = (idx: number, evidence: string, offsets?: number[]) => {
-    onChange(questions.map((q, i) => {
-      if (i !== idx) return q;
-      const expl = { ...q.explanation, evidence: evidence || undefined, offsets: offsets && offsets.length > 0 ? offsets : undefined };
-      return { ...q, explanation: (expl.text || expl.evidence) ? expl : undefined };
-    }));
+  const updateExplanationEvidence = (
+    idx: number,
+    evidence: string,
+    offsets?: number[],
+    startOffsets?: number[],
+    endOffsets?: number[],
+    startTimes?: number[]
+  ) => {
+    onChange(
+      questions.map((q, i) => {
+        if (i !== idx) return q;
+        const expl = {
+          ...q.explanation,
+          evidence: evidence || undefined,
+          offsets: offsets && offsets.length > 0 ? offsets : undefined,
+          startOffsets: startOffsets && startOffsets.length > 0 ? startOffsets : undefined,
+          endOffsets: endOffsets && endOffsets.length > 0 ? endOffsets : undefined,
+          startTimes: startTimes && startTimes.length > 0 ? startTimes : undefined,
+        };
+        return { ...q, explanation: expl.text || expl.evidence ? expl : undefined };
+      })
+    );
   };
 
   const assignEvidence = (idx: number) => {
     if (!pendingEvidence) return;
+    // Handled by EvidenceList internally now, but for legacy compatibility if called directly
     const current = questions[idx].explanation?.evidence;
     const updated = current ? `${current}\n---\n${pendingEvidence}` : pendingEvidence;
     updateExplanationEvidence(idx, updated);
@@ -135,10 +168,17 @@ export function MatchingTableEditor({ questions, sharedOptions, positionOffset, 
                   <EvidenceList
                     evidence={q.explanation?.evidence}
                     offsets={q.explanation?.offsets}
+                    startOffsets={q.explanation?.startOffsets}
+                    endOffsets={q.explanation?.endOffsets}
+                    startTimes={q.explanation?.startTimes}
                     pendingOffset={pendingOffset}
+                    pendingStartOffset={pendingStartOffset}
+                    pendingEndOffset={pendingEndOffset}
+                    pendingStartTime={pendingStartTime}
                     pendingEvidence={pendingEvidence}
                     onAssign={() => assignEvidence(idx)}
-                    onChange={(ev, offsets) => updateExplanationEvidence(idx, ev ?? '', offsets)}
+                    onChange={(ev, offsets, startOffsets, endOffsets, startTimes) => 
+                      updateExplanationEvidence(idx, ev ?? '', offsets, startOffsets, endOffsets, startTimes)}
                   />
                 </div>
               )}

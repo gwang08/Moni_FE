@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { ListeningExamHeader } from '@/components/listening/listening-exam-header';
 import { ListeningPartInfo } from '@/components/listening/listening-part-info';
 import { ListeningExamQuestionNav } from '@/components/listening/listening-exam-question-nav';
@@ -9,6 +9,7 @@ import { ListeningGapFilling } from '@/components/listening/listening-gap-fillin
 import { ListeningMatchingInformation } from '@/components/listening/listening-matching-information';
 import { ListeningMatchingFeature } from '@/components/listening/listening-matching-feature';
 import { ListeningAudioPlayer } from '@/components/listening/listening-audio-player';
+import { useListeningStore } from '@/store/listening-store';
 import type { StimulusDetail, QuestionGroupDetail } from '@/types/test.types';
 import type { QuestionTypeCode } from '@/types/admin.types';
 
@@ -45,6 +46,13 @@ export function ListeningExamView({
 }: Props) {
   const [activeStimulusIdx, setActiveStimulusIdx] = useState(0);
   const [activeQuestionId, setActiveQuestionId] = useState<number | null>(null);
+  const { seekTo } = useListeningStore();
+
+  const onLocateEvidence = useCallback((text: string, offset?: number, startOffset?: number, endOffset?: number, startTime?: number) => {
+    if (startTime !== undefined && startTime !== -1) {
+      seekTo?.(startTime);
+    }
+  }, [seekTo]);
 
   const currentStimulus = stimuli[activeStimulusIdx];
   const isDisabled = submitted || readOnly || isSubmitting;
@@ -161,6 +169,7 @@ export function ListeningExamView({
           onTextAnswer={onTextAnswer}
           examMode={true}
           questionPositionById={questionPositionById}
+          onLocateEvidence={onLocateEvidence}
         />
       );
     }
@@ -176,6 +185,7 @@ export function ListeningExamView({
           onAnswer={onAnswer}
           examMode
           questionPositionById={questionPositionById}
+          onLocateEvidence={onLocateEvidence}
         />
       );
     }
@@ -191,6 +201,7 @@ export function ListeningExamView({
           onAnswer={onAnswer}
           examMode
           questionPositionById={questionPositionById}
+          onLocateEvidence={onLocateEvidence}
         />
       );
     }
@@ -209,6 +220,7 @@ export function ListeningExamView({
             readOnly={isDisabled}
             explanation={question.explanation}
             onAnswer={onAnswer}
+            onLocateEvidence={onLocateEvidence}
             examMode
           />
         ))}

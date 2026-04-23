@@ -1,12 +1,13 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useRef, useCallback } from 'react';
 import { Clock, Wifi, Bell, Menu } from 'lucide-react';
-import { ReadingPassage } from '@/components/reading/reading-passage';
+import { ReadingPassage, type ReadingPassageHandle } from '@/components/reading/reading-passage';
 import { ReadingPassageWithMatching } from '@/components/reading/reading-passage-with-matching';
 import { ReadingToolbar } from '@/components/reading/reading-toolbar';
 import { ReadingExamQuestionNav } from '@/components/reading/reading-exam-question-nav';
 import { ReadingExamQuestionsPanel } from '@/components/reading/reading-exam-questions-panel';
+import { ReadingReviewPanel } from '@/components/reading/reading-review-panel';
 import { ResizableSplitPane } from '@/components/reading/resizable-split-pane';
 import { PracticeSubmitOverlay } from '@/components/ui/practice-submit-overlay';
 import type { StimulusDetail } from '@/types/test.types';
@@ -93,8 +94,13 @@ export function ReadingPracticeView({
 }: Props) {
   const [activeStimulusIdx, setActiveStimulusIdx] = useState(0);
   const [activeQuestionId, setActiveQuestionId] = useState<number | null>(null);
+  const passageRef = useRef<ReadingPassageHandle>(null);
 
   const currentStimulus = stimuli[activeStimulusIdx];
+
+  const onLocateEvidence = useCallback((text: string, offset?: number, startOffset?: number, endOffset?: number) => {
+    passageRef.current?.locateEvidence(text, offset ?? -1, startOffset, endOffset);
+  }, []);
   const currentQuestionIds = useMemo(
     () => currentStimulus?.questionGroups.flatMap((group) => group.questions.map((question) => question.id)) ?? [],
     [currentStimulus]
@@ -232,7 +238,7 @@ export function ReadingPracticeView({
                     onPillAssigned={() => onPillSelect(null)}
                   />
                 ) : (
-                  <ReadingPassage content={currentStimulus.content} interactive />
+                  <ReadingPassage ref={passageRef} content={currentStimulus.content} interactive />
                 );
               })()}
             </>
@@ -249,6 +255,7 @@ export function ReadingPracticeView({
                 selectedPillId={selectedPillId}
                 onPillSelect={onPillSelect}
                 globalQuestionOffset={globalQuestionOffset}
+                onLocateEvidence={onLocateEvidence}
               />
             </>
           }

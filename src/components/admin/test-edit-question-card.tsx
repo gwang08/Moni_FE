@@ -27,12 +27,27 @@ interface Props {
   testId: string;
   pendingEvidence: string | null;
   pendingOffset?: number;
+  pendingStartOffset?: number;
+  pendingEndOffset?: number;
+  pendingStartTime?: number | null;
   onAssignEvidence: () => void;
-  onEvidenceChange: (evidence: string, offsets: number[]) => void;
+  onEvidenceChange: (evidence: string, offsets: number[], startOffsets?: number[], endOffsets?: number[], startTimes?: number[]) => void;
 }
 
 export const TestEditQuestionCard = forwardRef<TestEditQuestionCardHandle, Props>(function TestEditQuestionCard(
-  { question, questionTypeCode, displayPosition, testId, pendingEvidence, pendingOffset, onAssignEvidence, onEvidenceChange },
+  {
+    question,
+    questionTypeCode,
+    displayPosition,
+    testId,
+    pendingEvidence,
+    pendingOffset,
+    pendingStartOffset,
+    pendingEndOffset,
+    pendingStartTime,
+    onAssignEvidence,
+    onEvidenceChange,
+  },
   ref
 ) {
   const queryClient = useQueryClient();
@@ -48,21 +63,46 @@ export const TestEditQuestionCard = forwardRef<TestEditQuestionCardHandle, Props
   const [explanationText, setExplanationText] = useState(question.explanation?.text ?? '');
   const [evidence, setEvidence] = useState(question.explanation?.evidence ?? '');
   const [offsets, setOffsets] = useState<number[]>(question.explanation?.offsets ?? []);
+  const [startOffsets, setStartOffsets] = useState<number[]>(question.explanation?.startOffsets ?? []);
+  const [endOffsets, setEndOffsets] = useState<number[]>(question.explanation?.endOffsets ?? []);
+  const [startTimes, setStartTimes] = useState<number[]>(question.explanation?.startTimes ?? []);
   const isGapType = questionTypeCode === 'GAP_FILLING';
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastSavedRef = useRef('');
   const isDirtyRef = useRef(false);
 
-  const handleEvidenceChange = (ev: string | undefined, nextOffsets: number[] | undefined) => {
+  const handleEvidenceChange = (
+    ev: string | undefined,
+    nextOffsets: number[] | undefined,
+    nextStartOffsets?: number[],
+    nextEndOffsets?: number[],
+    nextStartTimes?: number[]
+  ) => {
     const nextEvidence = ev ?? '';
     const finalOffsets = nextOffsets ?? [];
+    const finalStartOffsets = nextStartOffsets ?? [];
+    const finalEndOffsets = nextEndOffsets ?? [];
+    const finalStartTimes = nextStartTimes ?? [];
+
     setEvidence(nextEvidence);
     setOffsets(finalOffsets);
-    onEvidenceChange(nextEvidence, finalOffsets);
+    setStartOffsets(finalStartOffsets);
+    setEndOffsets(finalEndOffsets);
+    setStartTimes(finalStartTimes);
+    onEvidenceChange(nextEvidence, finalOffsets, finalStartOffsets, finalEndOffsets, finalStartTimes);
   };
 
   const saveQuestion = async (): Promise<boolean> => {
-    const snapshot = JSON.stringify({ content, options, explanationText, evidence, offsets });
+    const snapshot = JSON.stringify({
+      content,
+      options,
+      explanationText,
+      evidence,
+      offsets,
+      startOffsets,
+      endOffsets,
+      startTimes,
+    });
     if (snapshot === lastSavedRef.current && !isDirtyRef.current) return true;
 
     // Clear any pending auto-save timer
@@ -79,6 +119,9 @@ export const TestEditQuestionCard = forwardRef<TestEditQuestionCardHandle, Props
           text: explanationText || undefined,
           evidence: evidence || undefined,
           offsets: offsets.length > 0 ? offsets : undefined,
+          startOffsets: startOffsets.length > 0 ? startOffsets : undefined,
+          endOffsets: endOffsets.length > 0 ? endOffsets : undefined,
+          startTimes: startTimes.length > 0 ? startTimes : undefined,
         },
       });
       lastSavedRef.current = snapshot;
@@ -192,7 +235,20 @@ export const TestEditQuestionCard = forwardRef<TestEditQuestionCardHandle, Props
                 className="w-full resize-none rounded-md border border-input bg-background px-2 py-1.5 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               />
             </div>
-            <EvidenceList evidence={evidence} offsets={offsets} pendingEvidence={pendingEvidence} pendingOffset={pendingOffset} onAssign={onAssignEvidence} onChange={handleEvidenceChange} />
+            <EvidenceList
+              evidence={evidence}
+              offsets={offsets}
+              startOffsets={startOffsets}
+              endOffsets={endOffsets}
+              startTimes={startTimes}
+              pendingEvidence={pendingEvidence}
+              pendingOffset={pendingOffset}
+              pendingStartOffset={pendingStartOffset}
+              pendingEndOffset={pendingEndOffset}
+              pendingStartTime={pendingStartTime}
+              onAssign={onAssignEvidence}
+              onChange={handleEvidenceChange}
+            />
           </div>
         </div>
       )}

@@ -27,28 +27,76 @@ export function appendEvidence(existing: string | undefined, newChunk: string): 
 interface Props {
   evidence?: string;
   offsets?: number[];
+  startOffsets?: number[];
+  endOffsets?: number[];
+  startTimes?: number[];
   pendingEvidence?: string | null;
   pendingOffset?: number;
+  pendingStartOffset?: number;
+  pendingEndOffset?: number;
+  pendingStartTime?: number | null;
   onAssign?: () => void;
-  onChange: (evidence: string | undefined, offsets: number[] | undefined) => void;
+  onChange: (
+    evidence: string | undefined,
+    offsets: number[] | undefined,
+    startOffsets?: number[],
+    endOffsets?: number[],
+    startTimes?: number[]
+  ) => void;
 }
 
-export function EvidenceList({ evidence, offsets, pendingEvidence, pendingOffset, onAssign, onChange }: Props) {
+const formatTime = (seconds: number) => {
+  const mins = Math.floor(seconds / 60);
+  const secs = Math.floor(seconds % 60);
+  return `${mins}:${secs.toString().padStart(2, '0')}`;
+};
+
+export function EvidenceList({
+  evidence,
+  offsets,
+  startOffsets,
+  endOffsets,
+  startTimes,
+  pendingEvidence,
+  pendingOffset,
+  pendingStartOffset,
+  pendingEndOffset,
+  pendingStartTime,
+  onAssign,
+  onChange,
+}: Props) {
   const chunks = parseEvidence(evidence);
   const currentOffsets = offsets || [];
+  const currentStartOffsets = startOffsets || [];
+  const currentEndOffsets = endOffsets || [];
+  const currentStartTimes = startTimes || [];
 
   const handleAssign = () => {
     if (!pendingEvidence) return;
     const nextChunks = [...chunks, pendingEvidence];
     const nextOffsets = [...currentOffsets.slice(0, chunks.length), pendingOffset ?? -1];
-    onChange(joinEvidence(nextChunks), nextOffsets);
+    const nextStartOffsets = [...currentStartOffsets.slice(0, chunks.length), pendingStartOffset ?? -1];
+    const nextEndOffsets = [...currentEndOffsets.slice(0, chunks.length), pendingEndOffset ?? -1];
+    const nextStartTimes = [...currentStartTimes.slice(0, chunks.length), pendingStartTime ?? -1];
+
+    onChange(joinEvidence(nextChunks), nextOffsets, nextStartOffsets, nextEndOffsets, nextStartTimes);
     onAssign?.();
   };
 
   const handleRemove = (idx: number) => {
     const nextChunks = chunks.filter((_, i) => i !== idx);
     const nextOffsets = currentOffsets.filter((_, i) => i !== idx);
-    onChange(joinEvidence(nextChunks), nextOffsets.length > 0 ? nextOffsets : undefined);
+    const nextStartOffsets = currentStartOffsets.filter((_, i) => i !== idx);
+    const nextEndOffsets = currentEndOffsets.filter((_, i) => i !== idx);
+    const nextStartTimes = currentStartTimes.filter((_, i) => i !== idx);
+
+    onChange(
+      joinEvidence(nextChunks),
+      nextOffsets.length > 0 ? nextOffsets : undefined,
+      nextStartOffsets,
+      nextEndOffsets,
+      nextStartTimes
+    );
   };
 
   return (
@@ -67,9 +115,18 @@ export function EvidenceList({ evidence, offsets, pendingEvidence, pendingOffset
           {chunks.map((chunk, i) => (
             <div key={i} className="relative rounded-md border border-amber-200 bg-amber-50 px-2 py-1 text-[11px] text-amber-900 whitespace-pre-wrap max-h-14 overflow-y-auto pr-5">
               {chunk}
-              {currentOffsets[i] !== undefined && currentOffsets[i] !== -1 && (
-                <span className="ml-1 text-[9px] text-amber-600 opacity-70">[@{currentOffsets[i]}]</span>
-              )}
+              <div className="mt-0.5 flex flex-wrap gap-1 opacity-70">
+                {currentStartOffsets[i] !== undefined && currentStartOffsets[i] !== -1 && (
+                  <span className="text-[9px] text-amber-700 bg-amber-100/50 px-1 rounded">Pos: {currentStartOffsets[i]}-{currentEndOffsets[i]}</span>
+                )}
+                {currentStartTimes[i] !== undefined && currentStartTimes[i] !== -1 && (
+                  <span className="text-[9px] text-amber-700 bg-amber-100/50 px-1 rounded">Audio: {formatTime(currentStartTimes[i])}</span>
+                )}
+                {/* Fallback for legacy data */}
+                {(!currentStartOffsets[i] || currentStartOffsets[i] === -1) && currentOffsets[i] !== undefined && currentOffsets[i] !== -1 && (
+                  <span className="text-[9px] text-amber-700 bg-amber-100/50 px-1 rounded">Index: {currentOffsets[i]}</span>
+                )}
+              </div>
               <button
                 type="button"
                 onClick={() => handleRemove(i)}

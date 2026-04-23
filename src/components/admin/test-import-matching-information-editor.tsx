@@ -12,12 +12,27 @@ interface Props {
   questions: QuestionRequest[];
   pendingEvidence: string | null;
   pendingOffset?: number;
+  pendingStartOffset?: number;
+  pendingEndOffset?: number;
+  pendingStartTime?: number | null;
   onAssignEvidence: (qi: number) => void;
   onChange: (questions: QuestionRequest[]) => void;
 }
 
-export function MatchingInformationEditor({ paragraphs, questions, pendingEvidence, pendingOffset, onAssignEvidence, onChange }: Props) {
+export function MatchingInformationEditor({
+  paragraphs,
+  questions,
+  pendingEvidence,
+  pendingOffset,
+  pendingStartOffset,
+  pendingEndOffset,
+  pendingStartTime,
+  onAssignEvidence,
+  onChange,
+}: Props) {
   const [expanded, setExpanded] = useState<number | null>(null);
+
+// ... (rebuild, statements, updateStatement, addStatement, removeStatement, onExpl stay same)
 
   const rebuild = (stmts: { content: string; correctPara: string; explanation?: QuestionRequest['explanation'] }[]) => {
     const newQuestions: QuestionRequest[] = stmts.map(s => ({
@@ -57,10 +72,27 @@ export function MatchingInformationEditor({ paragraphs, questions, pendingEviden
     rebuild(updated);
   };
 
-  const onEvidenceChange = (idx: number, ev: string | undefined, offsets?: number[]) => {
+  const onEvidenceChange = (
+    idx: number,
+    ev: string | undefined,
+    offsets?: number[],
+    startOffsets?: number[],
+    endOffsets?: number[],
+    startTimes?: number[]
+  ) => {
     const updated = statements.map((s, i) =>
       i === idx
-        ? { ...s, explanation: { ...s.explanation, evidence: ev, offsets: offsets && offsets.length > 0 ? offsets : undefined } }
+        ? {
+            ...s,
+            explanation: {
+              ...s.explanation,
+              evidence: ev,
+              offsets: offsets && offsets.length > 0 ? offsets : undefined,
+              startOffsets: startOffsets && startOffsets.length > 0 ? startOffsets : undefined,
+              endOffsets: endOffsets && endOffsets.length > 0 ? endOffsets : undefined,
+              startTimes: startTimes && startTimes.length > 0 ? startTimes : undefined,
+            },
+          }
         : s
     );
     rebuild(updated);
@@ -128,10 +160,18 @@ export function MatchingInformationEditor({ paragraphs, questions, pendingEviden
                     <EvidenceList
                       evidence={expl?.evidence}
                       offsets={expl?.offsets}
+                      startOffsets={expl?.startOffsets}
+                      endOffsets={expl?.endOffsets}
+                      startTimes={expl?.startTimes}
                       pendingOffset={pendingOffset}
+                      pendingStartOffset={pendingStartOffset}
+                      pendingEndOffset={pendingEndOffset}
+                      pendingStartTime={pendingStartTime}
                       pendingEvidence={pendingEvidence}
                       onAssign={() => onAssignEvidence(i)}
-                      onChange={(ev, offsets) => onEvidenceChange(i, ev, offsets)}
+                      onChange={(ev, offsets, startOffsets, endOffsets, startTimes) =>
+                        onEvidenceChange(i, ev, offsets, startOffsets, endOffsets, startTimes)
+                      }
                     />
                   </div>
                 </div>

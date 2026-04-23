@@ -75,7 +75,16 @@ export function QuestionExplanation({ explanation, stimulusContent, onChange }: 
       <div>
         <div className="flex items-center justify-between mb-1">
           <Label className="block text-xs font-medium text-gray-600">Bài đọc</Label>
-          <Button type="button" size="sm" variant="outline" className="h-6 text-xs gap-1" onClick={captureSelection}>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="h-6 text-xs gap-1"
+            onPointerDown={(e) => {
+              e.preventDefault();
+              captureSelection();
+            }}
+          >
             <Highlighter className="h-3 w-3" /> Lấy dẫn chứng
           </Button>
         </div>

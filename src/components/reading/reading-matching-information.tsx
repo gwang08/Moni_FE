@@ -1,8 +1,24 @@
 'use client';
 
 import { useMemo } from 'react';
-import { CheckCircle2, XCircle } from 'lucide-react';
+import { Lightbulb, CheckCircle2, XCircle, Target } from 'lucide-react';
+import { useState } from 'react';
 import type { QuestionDetail } from '@/types/test.types';
+
+// Custom Target/Aim icon component - bullseye style
+function TargetIcon({ className = 'h-4 w-4', strokeWidth = 2 }: { className?: string; strokeWidth?: number }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10" />
+      <circle cx="12" cy="12" r="6" />
+      <circle cx="12" cy="12" r="2" />
+      <line x1="12" y1="2" x2="12" y2="6" />
+      <line x1="12" y1="18" x2="12" y2="22" />
+      <line x1="2" y1="12" x2="6" y2="12" />
+      <line x1="18" y1="12" x2="22" y2="12" />
+    </svg>
+  );
+}
 
 interface Props {
   questions: QuestionDetail[];
@@ -12,9 +28,19 @@ interface Props {
   onAnswer: (questionId: number, optionId: number) => void;
   examMode?: boolean;
   questionPositionById?: Record<number, number>;
+  onLocateEvidence?: (evidence: string, offset?: number, startOffset?: number, endOffset?: number) => void;
 }
 
-export function ReadingMatchingInformation({ questions, answers, submitted, readOnly = false, onAnswer, questionPositionById = {} }: Props) {
+export function ReadingMatchingInformation({
+  questions,
+  answers,
+  submitted,
+  readOnly = false,
+  onAnswer,
+  questionPositionById = {},
+  onLocateEvidence,
+}: Props) {
+  const [showExpMap, setShowExpMap] = useState<Record<number, boolean>>({});
   const isDisabled = submitted || readOnly;
 
   // Extract unique paragraph labels from options (A, B, C, D...)
@@ -157,25 +183,53 @@ export function ReadingMatchingInformation({ questions, answers, submitted, read
                   );
                 })}
               </div>
-              {submitted && (
-                <div className="ml-8 text-xs">
-                  {selectedOptId != null ? (
-                    isCorrect
-                      ? <span className="text-blue-600 font-medium flex items-center gap-1"><CheckCircle2 className="h-3.5 w-3.5" /> Đúng</span>
-                      : <span className="text-blue-600 flex items-center gap-1"><XCircle className="h-3.5 w-3.5" /> Đáp án: <strong>{q.options.find(o => o.isCorrect)?.label}</strong></span>
-                  ) : (
-                    <span className="text-gray-400 italic">Chưa trả lời</span>
+                  {submitted && (
+                    <div className="ml-8 text-xs">
+                      {selectedOptId != null ? (
+                        isCorrect
+                          ? <span className="text-blue-600 font-medium flex items-center gap-1"><CheckCircle2 className="h-3.5 w-3.5" /> Đúng</span>
+                          : <span className="text-blue-600 flex items-center gap-1"><XCircle className="h-3.5 w-3.5" /> Đáp án: <strong>{q.options.find(o => o.isCorrect)?.label}</strong></span>
+                      ) : (
+                        <span className="text-gray-400 italic">Chưa trả lời</span>
+                      )}
+                      {(q.explanation?.text || q.explanation?.evidence) && (
+                        <div className="mt-2 flex items-center gap-2">
+                          {q.explanation?.evidence && onLocateEvidence && (
+                            <div className="flex gap-1">
+                              {(q.explanation.evidence.split('\n---\n').filter(e => e.trim())).map((chunk, i) => (
+                                <button
+                                  key={i}
+                                  type="button"
+                                  onClick={() => onLocateEvidence(chunk.trim(), q.explanation?.offsets?.[i], q.explanation?.startOffsets?.[i], q.explanation?.endOffsets?.[i])}
+                                  className="w-6 h-6 rounded-full flex items-center justify-center bg-gray-100 hover:bg-gray-200 transition-colors"
+                                  title={q.explanation?.evidence && q.explanation.evidence.includes('\n---\n') ? `Xem dẫn chứng ${i + 1}` : 'Xem dẫn chứng'}
+                                >
+                                  <TargetIcon className="h-3.5 w-3.5 text-gray-700" />
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                          {q.explanation?.text && (
+                            <button
+                              type="button"
+                              onClick={() => setShowExpMap(prev => ({ ...prev, [q.id]: !prev[q.id] }))}
+                              className={`w-6 h-6 rounded-full flex items-center justify-center transition-colors ${
+                                showExpMap[q.id] ? 'bg-yellow-200' : 'bg-yellow-100'
+                              }`}
+                              title="Xem giải thích"
+                            >
+                              <Lightbulb className={`h-3.5 w-3.5 ${showExpMap[q.id] ? 'text-yellow-800' : 'text-yellow-700'}`} />
+                            </button>
+                          )}
+                        </div>
+                      )}
+                      {showExpMap[q.id] && q.explanation?.text && (
+                        <p className="text-gray-600 mt-2 bg-gray-50 p-2 rounded border border-gray-100 leading-relaxed">
+                          {q.explanation.text.replace(/^Câu\s+\d+\s*[-–—]\s*Giải thích đáp án\s*/i, '')}
+                        </p>
+                      )}
+                    </div>
                   )}
-                  {q.explanation?.text && (
-                    <p className="text-gray-500 mt-1"><strong>Giải thích:</strong> {q.explanation.text}</p>
-                  )}
-                  {q.explanation?.evidence && (
-                    <p className="text-amber-700 bg-amber-50 px-2 py-1 rounded mt-1">
-                      Dẫn chứng: &ldquo;{q.explanation.evidence}&rdquo;
-                    </p>
-                  )}
-                </div>
-              )}
             </div>
           );
         })}

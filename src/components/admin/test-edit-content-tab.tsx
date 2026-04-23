@@ -282,6 +282,9 @@ export const TestEditContentTab = forwardRef<TestEditContentHandle, Props>(funct
   const [isResizing, setIsResizing] = useState(false);
   const [pendingEvidence, setPendingEvidence] = useState<string | null>(null);
   const [pendingOffset, setPendingOffset] = useState<number>(-1);
+  const [pendingStartOffset, setPendingStartOffset] = useState<number>(-1);
+  const [pendingEndOffset, setPendingEndOffset] = useState<number>(-1);
+  const [pendingStartTime, setPendingStartTime] = useState<number | null>(null);
   const [addingGroup, setAddingGroup] = useState(false);
   const [addingQuestionForGroup, setAddingQuestionForGroup] = useState<number | null>(null);
   const [activeGroupId, setActiveGroupId] = useState<number | null>(null);
@@ -577,21 +580,51 @@ export const TestEditContentTab = forwardRef<TestEditContentHandle, Props>(funct
     if (!text || !passageRef.current || !selection?.anchorNode) return;
     if (!passageRef.current.contains(selection.anchorNode)) return;
     let offset = -1;
+    let startOffset = -1;
+    let endOffset = -1;
+    let startTime: number | null = null;
+
     try {
       const range = selection.getRangeAt(0);
       const preRange = document.createRange();
       preRange.selectNodeContents(passageRef.current);
       preRange.setEnd(range.startContainer, range.startOffset);
-      offset = preRange.toString().length;
+      startOffset = preRange.toString().length;
+      endOffset = startOffset + text.length;
+      offset = startOffset; // Backward compatibility
+
+      // For Listening: Try to find startTime from the segment
+      if (test.skill === 'LISTENING') {
+        let node: Node | null = range.startContainer;
+        while (node && node !== passageRef.current) {
+          if (node instanceof HTMLElement && node.getAttribute('data-start-time')) {
+            startTime = parseFloat(node.getAttribute('data-start-time') || '0');
+            break;
+          }
+          node = node.parentNode;
+        }
+      }
     } catch {
       offset = -1;
+      startOffset = -1;
+      endOffset = -1;
     }
     setPendingEvidence(text);
     setPendingOffset(offset);
+    setPendingStartOffset(startOffset);
+    setPendingEndOffset(endOffset);
+    setPendingStartTime(startTime);
     selection.removeAllRanges();
-  }, []);
+  }, [test.skill]);
 
-  const handleEvidenceChange = useCallback((questionId: number, evidence: string, offsets?: number[]) => {
+  const handleEvidenceChange = useCallback((
+    questionId: number,
+    evidence: string,
+    offsets?: number[],
+    startOffsets?: number[],
+    endOffsets?: number[],
+    startTimes?: number[]
+  ) => {
     if (evidence) {
       setEvidenceMap((prev) => ({ ...prev, [questionId]: evidence }));
       if (offsets) setOffsetMap((prev) => ({ ...prev, [questionId]: offsets }));
@@ -885,7 +918,16 @@ export const TestEditContentTab = forwardRef<TestEditContentHandle, Props>(funct
                     >
                       <Pencil className="h-3 w-3" /> Sửa đề
                     </Button>
-                    <Button type="button" size="sm" variant="outline" className="h-8 gap-1 text-xs" onClick={captureSelection}>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="h-8 gap-1 text-xs"
+                      onPointerDown={(e) => {
+                        e.preventDefault();
+                        captureSelection();
+                      }}
+                    >
                       <Highlighter className="h-3 w-3" /> Quét dẫn chứng
                     </Button>
                   </>
@@ -1176,6 +1218,9 @@ export const TestEditContentTab = forwardRef<TestEditContentHandle, Props>(funct
                             passageHtml={stimulus.content || ''}
                             testId={testId}
                             pendingEvidence={pendingEvidence}
+                            pendingOffset={pendingOffset}
+                            pendingStartOffset={pendingStartOffset}
+                            pendingEndOffset={pendingEndOffset}
                             onAssignEvidence={() => setPendingEvidence(null)}
                             onEvidenceChange={handleEvidenceChange}
                           />
@@ -1186,6 +1231,9 @@ export const TestEditContentTab = forwardRef<TestEditContentHandle, Props>(funct
                             passageHtml={stimulus.content || ''}
                             testId={testId}
                             pendingEvidence={pendingEvidence}
+                            pendingOffset={pendingOffset}
+                            pendingStartOffset={pendingStartOffset}
+                            pendingEndOffset={pendingEndOffset}
                             onAssignEvidence={() => setPendingEvidence(null)}
                             onEvidenceChange={handleEvidenceChange}
                           />
@@ -1195,6 +1243,10 @@ export const TestEditContentTab = forwardRef<TestEditContentHandle, Props>(funct
                             questions={group.questions}
                             testId={testId}
                             pendingEvidence={pendingEvidence}
+                            pendingOffset={pendingOffset}
+                            pendingStartOffset={pendingStartOffset}
+                            pendingEndOffset={pendingEndOffset}
+                            pendingStartTime={pendingStartTime}
                             onAssignEvidence={() => setPendingEvidence(null)}
                             onEvidenceChange={handleEvidenceChange}
                           />
@@ -1206,6 +1258,10 @@ export const TestEditContentTab = forwardRef<TestEditContentHandle, Props>(funct
                             groupContent={group.groupContent}
                             testId={testId}
                             pendingEvidence={pendingEvidence}
+                            pendingOffset={pendingOffset}
+                            pendingStartOffset={pendingStartOffset}
+                            pendingEndOffset={pendingEndOffset}
+                            pendingStartTime={pendingStartTime}
                             onAssignEvidence={() => setPendingEvidence(null)}
                             onEvidenceChange={handleEvidenceChange}
                           />
@@ -1254,8 +1310,12 @@ export const TestEditContentTab = forwardRef<TestEditContentHandle, Props>(funct
                                   testId={testId}
                                   pendingEvidence={pendingEvidence}
                                   pendingOffset={pendingOffset}
+                                  pendingStartOffset={pendingStartOffset}
+                                  pendingEndOffset={pendingEndOffset}
+                                  pendingStartTime={pendingStartTime}
                                   onAssignEvidence={() => setPendingEvidence(null)}
-                                  onEvidenceChange={(evidence, offsets) => handleEvidenceChange(question.id, evidence, offsets)}
+                                  onEvidenceChange={(evidence, offsets, startOffsets, endOffsets, startTimes) => 
+                                    handleEvidenceChange(question.id, evidence, offsets, startOffsets, endOffsets, startTimes)}
                                 />
                                 <button
                                   type="button"

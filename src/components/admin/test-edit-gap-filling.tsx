@@ -39,8 +39,18 @@ interface Props {
   testId: string;
   pendingEvidence: string | null;
   pendingOffset?: number;
+  pendingStartOffset?: number;
+  pendingEndOffset?: number;
+  pendingStartTime?: number | null;
   onAssignEvidence: () => void;
-  onEvidenceChange: (questionId: number, evidence: string, offsets?: number[]) => void;
+  onEvidenceChange: (
+    questionId: number,
+    evidence: string,
+    offsets?: number[],
+    startOffsets?: number[],
+    endOffsets?: number[],
+    startTimes?: number[]
+  ) => void;
 }
 
 const EDITOR_EXTENSIONS = [
@@ -132,8 +142,17 @@ function renderPassageHtml(text: string, items: { answer: string; position: numb
 
 export const TestEditGapFilling = forwardRef<TestEditGapFillingHandle, Props>(function TestEditGapFilling(
   {
-    questions, groupId, groupContent: initialGroupContent, testId,
-    pendingEvidence, pendingOffset, onAssignEvidence, onEvidenceChange,
+    questions,
+    groupId,
+    groupContent: initialGroupContent,
+    testId,
+    pendingEvidence,
+    pendingOffset,
+    pendingStartOffset,
+    pendingEndOffset,
+    pendingStartTime,
+    onAssignEvidence,
+    onEvidenceChange,
   }: Props,
   ref
 ) {
@@ -153,8 +172,22 @@ export const TestEditGapFilling = forwardRef<TestEditGapFillingHandle, Props>(fu
     })
   );
 
-  const [explanations, setExplanations] = useState<Record<number, { text?: string; evidence?: string; offsets?: number[] }>>(() => {
-    const map: Record<number, { text?: string; evidence?: string; offsets?: number[] }> = {};
+  const [explanations, setExplanations] = useState<Record<number, { 
+    text?: string; 
+    evidence?: string; 
+    offsets?: number[];
+    startOffsets?: number[];
+    endOffsets?: number[];
+    startTimes?: number[];
+  }>>(() => {
+    const map: Record<number, { 
+      text?: string; 
+      evidence?: string; 
+      offsets?: number[];
+      startOffsets?: number[];
+      endOffsets?: number[];
+      startTimes?: number[];
+    }> = {};
     questions.forEach((q, i) => { if (q.explanation) map[i] = { ...q.explanation }; });
     return map;
   });
@@ -204,9 +237,26 @@ export const TestEditGapFilling = forwardRef<TestEditGapFillingHandle, Props>(fu
     setCollapsed(prev => { const n = new Set(prev); n.has(idx) ? n.delete(idx) : n.add(idx); return n; });
   };
 
-  const handleEvidenceChange = (idx: number, ev: string | undefined, nextOffsets?: number[]) => {
-    setExplanations(e => ({ ...e, [idx]: { ...e[idx], evidence: ev, offsets: nextOffsets } }));
-    if (questions[idx]) onEvidenceChange(questions[idx].id, ev ?? '', nextOffsets);
+  const handleEvidenceChange = (
+    idx: number,
+    ev: string | undefined,
+    nextOffsets?: number[],
+    nextStartOffsets?: number[],
+    nextEndOffsets?: number[],
+    nextStartTimes?: number[]
+  ) => {
+    setExplanations(e => ({
+      ...e,
+      [idx]: {
+        ...e[idx],
+        evidence: ev,
+        offsets: nextOffsets,
+        startOffsets: nextStartOffsets,
+        endOffsets: nextEndOffsets,
+        startTimes: nextStartTimes,
+      },
+    }));
+    if (questions[idx]) onEvidenceChange(questions[idx].id, ev ?? '', nextOffsets, nextStartOffsets, nextEndOffsets, nextStartTimes);
   };
 
   // ── Select-to-gap (same logic as before, works on the preview div) ──
@@ -410,10 +460,16 @@ export const TestEditGapFilling = forwardRef<TestEditGapFillingHandle, Props>(fu
                       <EvidenceList
                         evidence={expl?.evidence}
                         offsets={expl?.offsets}
+                        startOffsets={expl?.startOffsets}
+                        endOffsets={expl?.endOffsets}
+                        startTimes={expl?.startTimes}
                         pendingEvidence={pendingEvidence}
                         pendingOffset={pendingOffset}
+                        pendingStartOffset={pendingStartOffset}
+                        pendingEndOffset={pendingEndOffset}
+                        pendingStartTime={pendingStartTime}
                         onAssign={onAssignEvidence}
-                        onChange={(ev, offsets) => handleEvidenceChange(rIdx, ev, offsets)}
+                        onChange={(ev, offsets, startOffsets, endOffsets, startTimes) => handleEvidenceChange(rIdx, ev, offsets, startOffsets, endOffsets, startTimes)}
                       />
                     </div>
                   </div>

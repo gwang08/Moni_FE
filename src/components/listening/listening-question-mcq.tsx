@@ -29,9 +29,16 @@ interface Props {
   multiple?: boolean;
   submitted: boolean;
   readOnly?: boolean;
-  explanation?: { text?: string; evidence?: string };
+  explanation?: { 
+    text?: string; 
+    evidence?: string;
+    offsets?: number[];
+    startOffsets?: number[];
+    endOffsets?: number[];
+    startTimes?: number[];
+  };
   onAnswer: (questionId: number, optionId: number) => void;
-  onLocateEvidence?: (evidence: string) => void;
+  onLocateEvidence?: (evidence: string, offset?: number, startOffset?: number, endOffset?: number, startTime?: number) => void;
   examMode?: boolean;
 }
 
@@ -56,6 +63,12 @@ export function ListeningQuestionMcq({
   const isDisabled = submitted || readOnly;
 
   if (submitted && !examMode) {
+    const evidenceChunks = explanation?.evidence?.split('\n---\n').filter((e: string) => e.trim()) || [];
+    const offsets = explanation?.offsets || [];
+    const startOffsets = explanation?.startOffsets || [];
+    const endOffsets = explanation?.endOffsets || [];
+    const startTimes = explanation?.startTimes || [];
+
     // Review mode: Direct highlights on options (like Reading)
     return (
       <div id={`question-${questionId}`} className="py-6 border-b border-slate-100 last:border-0 group">
@@ -103,14 +116,19 @@ export function ListeningQuestionMcq({
 
         {/* Action Icons (Evidence & Explanation) */}
         <div className="mt-5 flex items-center gap-3">
-          {explanation?.evidence && (
-            <button
-              onClick={() => onLocateEvidence?.(explanation.evidence!)}
-              className="flex items-center justify-center h-8 w-8 hover:bg-slate-100 rounded-full transition-colors text-slate-900 border border-slate-100 shadow-sm shrink-0"
-              title="Xem dẫn chứng"
-            >
-              <TargetIcon className="h-4.5 w-4.5" />
-            </button>
+          {evidenceChunks.length > 0 && onLocateEvidence && (
+            <div className="flex gap-1">
+              {evidenceChunks.map((chunk, i) => (
+                <button
+                  key={i}
+                  onClick={() => onLocateEvidence(chunk.trim(), offsets[i], startOffsets[i], endOffsets[i], startTimes[i])}
+                  className="flex items-center justify-center h-8 w-8 hover:bg-slate-100 rounded-full transition-colors text-slate-900 border border-slate-100 shadow-sm shrink-0"
+                  title={evidenceChunks.length > 1 ? `Xem dẫn chứng ${i + 1}` : 'Xem dẫn chứng'}
+                >
+                  <TargetIcon className="h-4.5 w-4.5" />
+                </button>
+              ))}
+            </div>
           )}
           {explanation?.text && (
             <button

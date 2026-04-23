@@ -556,10 +556,41 @@ export default function ListeningReviewPage({ params }: Props) {
             stimulus={stimulus}
             answers={resultData.answers}
             textAnswers={resultData.textAnswers}
-            onLocateEvidence={(evidence) => {
+            onLocateEvidence={(evidence, offset, startOffset, endOffset, startTime) => {
               if (!evidence) return;
               const container = transcriptRef.current;
               if (!container) return;
+              const audio = audioRef.current;
+
+              // Clear previous highlights
+              container.querySelectorAll('.evidence-highlight').forEach((el) => {
+                el.classList.remove('evidence-highlight', 'bg-yellow-100', 'ring-2', 'ring-yellow-400', 'text-green-700', 'font-bold');
+              });
+
+              // Priority 1: Use startTime if provided
+              if (startTime !== undefined && startTime !== -1 && audio) {
+                audio.currentTime = Math.max(0, startTime);
+                void audio.play().catch(() => {});
+                
+                // If we also have offsets, we can try to highlight the exact segment
+                const transcriptSegments = Array.isArray(stimulus.transcript) ? stimulus.transcript : [];
+                if (transcriptSegments.length > 0) {
+                  // Find segment matching this startTime
+                  const segmentIdx = transcriptSegments.findIndex(seg => 
+                    Math.abs(Number(seg.startTime) - startTime) < 0.1
+                  );
+                  if (segmentIdx !== -1) {
+                    const segmentEl = container.querySelector<HTMLElement>(`[data-segment-idx="${segmentIdx}"]`);
+                    if (segmentEl) {
+                      segmentEl.classList.add('evidence-highlight', 'bg-yellow-100', 'ring-2', 'ring-yellow-400', 'text-green-700', 'font-bold');
+                      segmentEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                      return;
+                    }
+                  }
+                }
+              }
+
+              // Priority 2: Use heuristic matching (legacy or missing metadata)
               const chunks = splitEvidenceChunks(evidence);
               if (chunks.length === 0) return;
 
@@ -571,11 +602,6 @@ export default function ListeningReviewPage({ params }: Props) {
               if (matchedSegments.length > 0) {
                 const firstMatch = matchedSegments[0];
                 const firstSegment = transcriptSegments[firstMatch.segmentIndex];
-                const audio = audioRef.current;
-
-                container.querySelectorAll('.evidence-highlight').forEach((el) => {
-                  el.classList.remove('evidence-highlight', 'bg-yellow-100', 'ring-2', 'ring-yellow-400', 'text-green-700', 'font-bold');
-                });
 
                 matchedSegments.forEach(({ segmentIndex }) => {
                   const segmentEl = container.querySelector<HTMLElement>(`[data-segment-idx="${segmentIndex}"]`);
@@ -587,10 +613,10 @@ export default function ListeningReviewPage({ params }: Props) {
                 const activeElement = container.querySelector<HTMLElement>(`[data-segment-idx="${firstMatch.segmentIndex}"]`);
                 activeElement?.scrollIntoView({ behavior: 'smooth', block: 'center' });
 
-                if (audio) {
-                  const startTime = Number(firstSegment?.startTime);
-                  if (Number.isFinite(startTime)) {
-                    audio.currentTime = Math.max(0, startTime);
+                if (audio && (startTime === undefined || startTime === -1)) {
+                  const sTime = Number(firstSegment?.startTime);
+                  if (Number.isFinite(sTime)) {
+                    audio.currentTime = Math.max(0, sTime);
                     void audio.play().catch(() => {});
                   }
                 }
@@ -615,39 +641,34 @@ export default function ListeningReviewPage({ params }: Props) {
               });
 
               if (matchedTargets.length > 0) {
-                container.querySelectorAll('.evidence-highlight').forEach((el) => {
-                  el.classList.remove('evidence-highlight', 'bg-yellow-100', 'ring-2', 'ring-yellow-400', 'text-green-700', 'font-bold');
-                });
-
                 matchedTargets.forEach(t => {
                   t.classList.add('evidence-highlight', 'bg-yellow-100', 'ring-2', 'ring-yellow-400', 'text-green-700', 'font-bold');
                 });
                 matchedTargets[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
 
                 // Try to estimate time or find nearest data-start-time
-                const audio = audioRef.current;
-                if (audio) {
-                  let startTime: number | null = null;
+                if (audio && (startTime === undefined || startTime === -1)) {
+                  let sTime: number | null = null;
                   
                   // Look for nearest timestamp in parents or previous siblings
                   let current: HTMLElement | null = matchedTargets[0];
                   while (current && current !== container) {
                     const st = Number(current.dataset.startTime);
                     if (Number.isFinite(st)) {
-                      startTime = st;
+                      sTime = st;
                       break;
                     }
                     current = current.parentElement;
                   }
 
-                  if (startTime === null && Number.isFinite(audio.duration)) {
+                  if (sTime === null && Number.isFinite(audio.duration)) {
                     // Rough estimate based on position in DOM
                     const ratio = firstMatchedTargetIdx / targets.length;
-                    startTime = audio.duration * ratio;
+                    sTime = audio.duration * ratio;
                   }
 
-                  if (startTime !== null) {
-                    audio.currentTime = Math.max(0, startTime);
+                  if (sTime !== null) {
+                    audio.currentTime = Math.max(0, sTime);
                     void audio.play().catch(() => {});
                   }
                 }

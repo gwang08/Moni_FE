@@ -11,7 +11,14 @@ export interface QuestionDetail {
   position: number;
   questionCategory?: string;
   parentQuestionId?: number;
-  explanation?: { text?: string; evidence?: string; offsets?: number[] };
+  explanation?: { 
+    text?: string; 
+    evidence?: string; 
+    offsets?: number[];
+    startOffsets?: number[];
+    endOffsets?: number[];
+    startTimes?: number[];
+  };
   tagIds: number[];
   options: OptionDetail[];
 }

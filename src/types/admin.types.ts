@@ -76,7 +76,14 @@ export interface QuestionRequest {
   questionCategory?: QuestionCategory;
   parentQuestionPosition?: number;
   metadata?: Record<string, unknown>;
-  explanation?: { text?: string; evidence?: string; offsets?: number[] };
+  explanation?: { 
+    text?: string; 
+    evidence?: string; 
+    offsets?: number[];
+    startOffsets?: number[];
+    endOffsets?: number[];
+    startTimes?: number[];
+  };
   tagIds?: number[];
   options: OptionRequest[];
 }
@@ -158,7 +165,14 @@ export interface QuestionUpdateRequest {
   questionType?: string;
   position?: number;
   options?: OptionRequest[];
-  explanation?: { text?: string; evidence?: string; offsets?: number[] };
+  explanation?: { 
+    text?: string; 
+    evidence?: string; 
+    offsets?: number[];
+    startOffsets?: number[];
+    endOffsets?: number[];
+    startTimes?: number[];
+  };
   tagIds?: number[];
 }
 

@@ -34,7 +34,7 @@ interface Props {
   stimulus: StimulusDetail;
   answers: Record<number, number>;
   textAnswers?: Record<number, string>;
-  onLocateEvidence: (evidence: string, offset?: number) => void;
+  onLocateEvidence: (evidence: string, offset?: number, startOffset?: number, endOffset?: number) => void;
 }
 
 /** Matching review: statement + number + user answer (strikethrough if wrong) + correct answer */
@@ -45,11 +45,13 @@ function MatchingQuestionReview({ question, displayPosition, selectedOption, cor
   correctOption: { label: string; content: string } | undefined;
   isCorrect: boolean;
   isSkipped: boolean;
-  onLocateEvidence: (evidence: string, offset?: number) => void;
+  onLocateEvidence: (evidence: string, offset?: number, startOffset?: number, endOffset?: number) => void;
 }) {
   const [showExplanation, setShowExplanation] = useState(false);
   const evidenceChunks = question.explanation?.evidence?.split('\n---\n').filter((e: string) => e.trim()) || [];
   const offsets = question.explanation?.offsets || [];
+  const startOffsets = question.explanation?.startOffsets || [];
+  const endOffsets = question.explanation?.endOffsets || [];
 
   return (
     <div id={`review-question-${question.id}`} className="py-3 text-sm">
@@ -97,7 +99,7 @@ function MatchingQuestionReview({ question, displayPosition, selectedOption, cor
                 <button
                   key={i}
                   type="button"
-                  onClick={() => onLocateEvidence(chunk.trim(), offsets[i])}
+                  onClick={() => onLocateEvidence(chunk.trim(), offsets[i], startOffsets[i], endOffsets[i])}
                   className="w-6 h-6 rounded-full flex items-center justify-center hover:bg-gray-100 transition-colors"
                   title={evidenceChunks.length > 1 ? `Xem dẫn chứng ${i + 1}` : 'Xem dẫn chứng'}
                 >
@@ -135,7 +137,7 @@ function ReviewQuestionGroup({ group, answers, textAnswers, displayPositionByQue
   answers: Record<number, number>;
   textAnswers: Record<number, string>;
   displayPositionByQuestionId: Record<number, number>;
-  onLocateEvidence: (evidence: string, offset?: number) => void;
+  onLocateEvidence: (evidence: string, offset?: number, startOffset?: number, endOffset?: number) => void;
 }) {
   const typeCode = group.questionTypeCode || '';
 
@@ -243,8 +245,14 @@ function ReviewQuestionGroup({ group, answers, textAnswers, displayPositionByQue
 
 /** Explanation section with toggleable explanation text */
 function ExplanationSection({ explanation, onLocateEvidence, position }: {
-  explanation?: { text?: string; evidence?: string };
-  onLocateEvidence?: (evidence: string) => void;
+  explanation?: { 
+    text?: string; 
+    evidence?: string;
+    offsets?: number[];
+    startOffsets?: number[];
+    endOffsets?: number[];
+  };
+  onLocateEvidence?: (evidence: string, offset?: number, startOffset?: number, endOffset?: number) => void;
   position: number;
 }) {
   const [showExplanation, setShowExplanation] = useState(false);
@@ -254,17 +262,27 @@ function ExplanationSection({ explanation, onLocateEvidence, position }: {
   // Remove "Câu X - Giải thích đáp án" prefix from explanation text
   const cleanExplanation = explanation.text?.replace(/^Câu\s+\d+\s*[-–—]\s*Giải thích đáp án\s*/i, '') || explanation.text;
 
+  const evidenceChunks = explanation.evidence?.split('\n---\n').filter((e: string) => e.trim()) || [];
+  const offsets = explanation.offsets || [];
+  const startOffsets = explanation.startOffsets || [];
+  const endOffsets = explanation.endOffsets || [];
+
   return (
     <div className="flex items-center gap-2">
-      {explanation.evidence && onLocateEvidence && (
-        <button
-          type="button"
-          onClick={() => onLocateEvidence(explanation?.evidence ?? '')}
-          className="w-6 h-6 rounded-full flex items-center justify-center hover:bg-gray-100 transition-colors"
-          title="Xem dẫn chứng"
-        >
-          <TargetIcon className="h-4 w-4 text-gray-900" strokeWidth={2} />
-        </button>
+      {evidenceChunks.length > 0 && onLocateEvidence && (
+        <div className="flex gap-1">
+          {evidenceChunks.map((chunk, i) => (
+            <button
+              key={i}
+              type="button"
+              onClick={() => onLocateEvidence(chunk.trim(), offsets[i], startOffsets[i], endOffsets[i])}
+              className="w-6 h-6 rounded-full flex items-center justify-center hover:bg-gray-100 transition-colors"
+              title={evidenceChunks.length > 1 ? `Xem dẫn chứng ${i + 1}` : 'Xem dẫn chứng'}
+            >
+              <TargetIcon className="h-4 w-4 text-gray-900" strokeWidth={2} />
+            </button>
+          ))}
+        </div>
       )}
       {explanation.text && (
         <button

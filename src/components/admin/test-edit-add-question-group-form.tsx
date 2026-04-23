@@ -31,7 +31,14 @@ const QUESTION_TYPES: { value: QuestionTypeCode; label: string }[] = [
 export interface QuestionDraft {
   content: string;
   options: OptionRequest[];
-  explanation?: { text?: string; evidence?: string };
+  explanation?: { 
+    text?: string; 
+    evidence?: string; 
+    offsets?: number[];
+    startOffsets?: number[];
+    endOffsets?: number[];
+    startTimes?: number[];
+  };
 }
 
 interface Props {
@@ -41,6 +48,10 @@ interface Props {
   skill?: string;
   excludeTypeCodes?: QuestionTypeCode[];
   pendingEvidence?: string | null;
+  pendingOffset?: number;
+  pendingStartOffset?: number;
+  pendingEndOffset?: number;
+  pendingStartTime?: number | null;
   onAssignEvidence?: () => void;
   onClose: () => void;
 }
@@ -51,7 +62,20 @@ export interface TestEditAddQuestionGroupFormHandle {
 
 export const TestEditAddQuestionGroupForm = forwardRef<TestEditAddQuestionGroupFormHandle, Props>(
   function TestEditAddQuestionGroupForm(
-    { stimulusId, testId, stimulusContent, skill, excludeTypeCodes = [], pendingEvidence, onAssignEvidence, onClose }: Props,
+    {
+      stimulusId,
+      testId,
+      stimulusContent,
+      skill,
+      excludeTypeCodes = [],
+      pendingEvidence,
+      pendingOffset,
+      pendingStartOffset,
+      pendingEndOffset,
+      pendingStartTime,
+      onAssignEvidence,
+      onClose,
+    },
     ref
   ) {
     const queryClient = useQueryClient();
@@ -62,6 +86,9 @@ export const TestEditAddQuestionGroupForm = forwardRef<TestEditAddQuestionGroupF
     const [questions, setQuestions] = useState<QuestionDraft[]>([
       { content: '', options: defaultOptions(availableTypes[0]?.value ?? 'MCQ') },
     ]);
+
+// ... (DEFAULT_CATEGORIES, handleTypeChange, addQuestion, removeQuestion, updateQuestion, handleSubmit stay mostly same)
+// I will keep them but need to make sure they are correct in the final replacement.
 
     const DEFAULT_CATEGORIES = [
       { label: 'A', content: '' },
@@ -176,7 +203,16 @@ export const TestEditAddQuestionGroupForm = forwardRef<TestEditAddQuestionGroupF
             pendingEvidence={pendingEvidence ?? null}
             onAssignEvidence={(qi) => {
               if (pendingEvidence) {
-                updateQuestion(qi, { ...questions[qi], explanation: { ...questions[qi].explanation, evidence: pendingEvidence } });
+                updateQuestion(qi, { 
+                  ...questions[qi], 
+                  explanation: { 
+                    ...questions[qi].explanation, 
+                    evidence: pendingEvidence,
+                    offsets: pendingOffset !== undefined ? [pendingOffset] : undefined,
+                    startOffsets: pendingStartOffset !== undefined ? [pendingStartOffset] : undefined,
+                    endOffsets: pendingEndOffset !== undefined ? [pendingEndOffset] : undefined,
+                  } 
+                });
                 onAssignEvidence?.();
               }
             }}
@@ -192,6 +228,10 @@ export const TestEditAddQuestionGroupForm = forwardRef<TestEditAddQuestionGroupF
                   draft={q}
                   typeCode={typeCode}
                   pendingEvidence={pendingEvidence}
+                  pendingOffset={pendingOffset}
+                  pendingStartOffset={pendingStartOffset}
+                  pendingEndOffset={pendingEndOffset}
+                  pendingStartTime={pendingStartTime}
                   onAssignEvidence={() => onAssignEvidence?.()}
                   onChange={(d) => updateQuestion(i, d)}
                   onRemove={questions.length > 1 ? () => removeQuestion(i) : undefined}

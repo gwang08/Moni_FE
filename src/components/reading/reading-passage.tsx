@@ -1,6 +1,6 @@
 'use client';
 
-import { forwardRef, useRef, useMemo, useState, useCallback, useEffect } from 'react';
+import { forwardRef, useRef, useMemo, useState, useCallback, useEffect, useImperativeHandle } from 'react';
 import { useReadingStore } from '@/store/reading-store';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
@@ -41,13 +41,18 @@ const PASSAGE_EXTENSIONS = [
   MatchingSlotNode,
 ];
 
+export interface ReadingPassageHandle {
+  locateEvidence: (text: string, offset: number, startOffset?: number, endOffset?: number) => void;
+  getEditor: () => any;
+}
+
 interface Props {
   content: string;
   interactive?: boolean;
   examMode?: boolean;
 }
 
-export const ReadingPassage = forwardRef<HTMLDivElement, Props>(function ReadingPassage(
+export const ReadingPassage = forwardRef<ReadingPassageHandle, Props>(function ReadingPassage(
   { content, interactive = true, examMode = false }: Props,
   forwardedRef
 ) {
@@ -63,14 +68,6 @@ export const ReadingPassage = forwardRef<HTMLDivElement, Props>(function Reading
   const [translateButton, setTranslateButton] = useState<{ text: string; x: number; y: number } | null>(null);
   const [translatePopup, setTranslatePopup] = useState<{ text: string; x: number; y: number } | null>(null);
   const hoveredWordRef = useRef<{ el: HTMLElement | null }>({ el: null });
-  const setPassageRef = useCallback((node: HTMLDivElement | null) => {
-    passageRef.current = node;
-    if (typeof forwardedRef === 'function') {
-      forwardedRef(node);
-    } else if (forwardedRef) {
-      forwardedRef.current = node;
-    }
-  }, [forwardedRef]);
 
   // Build HTML with highlights injected
   const formattedContent = useMemo(() => formatReadingPassage(content), [content]);
@@ -92,6 +89,93 @@ export const ReadingPassage = forwardRef<HTMLDivElement, Props>(function Reading
       },
     },
   });
+
+  const locateEvidence = useCallback((text: string, offset: number, startOffset?: number, endOffset?: number) => {
+    if (!editor || editor.isDestroyed) return;
+    const tiptapEl = passageRef.current?.querySelector('.tiptap') as HTMLElement;
+    if (!tiptapEl) return;
+
+    // Use precise offsets if available
+    let finalStart = -1;
+    let finalEnd = -1;
+
+    if (startOffset !== undefined && startOffset !== -1 && endOffset !== undefined && endOffset !== -1) {
+      finalStart = startOffset;
+      finalEnd = endOffset;
+    } else if (offset !== undefined && offset !== -1) {
+      finalStart = offset;
+      finalEnd = offset + text.length;
+    }
+
+    // If we have offsets, find in text node structure
+    if (finalStart !== -1) {
+      const walker = document.createTreeWalker(tiptapEl, NodeFilter.SHOW_TEXT);
+      let currentPos = 0;
+      let startNode: Node | null = null;
+      let startNodeOffset = 0;
+      let endNode: Node | null = null;
+      let endNodeOffset = 0;
+
+      let node = walker.nextNode();
+      while (node) {
+        const len = node.textContent?.length || 0;
+        if (!startNode && currentPos + len >= finalStart) {
+          startNode = node;
+          startNodeOffset = finalStart - currentPos;
+        }
+        if (!endNode && currentPos + len >= finalEnd) {
+          endNode = node;
+          endNodeOffset = finalEnd - currentPos;
+          break;
+        }
+        currentPos += len;
+        node = walker.nextNode();
+      }
+
+      if (startNode && endNode) {
+        const range = document.createRange();
+        range.setStart(startNode, startNodeOffset);
+        range.setEnd(endNode, endNodeOffset);
+        const rect = range.getBoundingClientRect();
+        tiptapEl.scrollIntoView({ behavior: 'smooth', block: 'start' }); // Ensure container is visible
+        const container = tiptapEl.parentElement;
+        if (container) {
+          const scrollPos = tiptapEl.offsetTop + (rect.top - tiptapEl.getBoundingClientRect().top) - container.clientHeight / 2;
+          container.scrollTo({ top: scrollPos, behavior: 'smooth' });
+        }
+
+        // Temporary highlight flash
+        const mark = document.createElement('mark');
+        mark.style.backgroundColor = '#fef08a';
+        mark.style.transition = 'opacity 1s';
+        try {
+          range.surroundContents(mark);
+          setTimeout(() => {
+            const parent = mark.parentNode;
+            if (parent) {
+              while (mark.firstChild) parent.insertBefore(mark.firstChild, mark);
+              parent.removeChild(mark);
+              parent.normalize();
+            }
+          }, 2000);
+        } catch (e) { console.error('Failed to surround contents', e); }
+        return;
+      }
+    }
+
+    // Fallback: simple text search if offsets fail
+    const html = tiptapEl.innerHTML;
+    const plainText = tiptapEl.textContent || '';
+    const idx = plainText.indexOf(text);
+    if (idx !== -1) {
+       // repeat similar logic or just scrollTo element containing text
+    }
+  }, [editor]);
+
+  useImperativeHandle(forwardedRef, () => ({
+    locateEvidence,
+    getEditor: () => editor,
+  }));
 
   // Update editor content when highlights change
   useEffect(() => {
@@ -269,7 +353,7 @@ export const ReadingPassage = forwardRef<HTMLDivElement, Props>(function Reading
   return (
     <>
       <div
-        ref={setPassageRef}
+        ref={passageRef}
         onMouseUp={handleMouseUp}
         onClick={handleClick}
         onMouseOver={handleMouseOver}

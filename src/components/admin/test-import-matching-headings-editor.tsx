@@ -38,14 +38,28 @@ interface Props {
   questions: QuestionRequest[];
   pendingEvidence: string | null;
   pendingOffset?: number;
+  pendingStartOffset?: number;
+  pendingEndOffset?: number;
+  pendingStartTime?: number | null;
   onAssignEvidence: (qi: number) => void;
   onChange: (questions: QuestionRequest[], sharedOptions: { label: string; content: string }[]) => void;
 }
 
-export function MatchingHeadingsEditor({ paragraphs, questions, pendingEvidence, pendingOffset, onAssignEvidence, onChange }: Props) {
+export function MatchingHeadingsEditor({
+  paragraphs,
+  questions,
+  pendingEvidence,
+  pendingOffset,
+  pendingStartOffset,
+  pendingEndOffset,
+  pendingStartTime,
+  onAssignEvidence,
+  onChange,
+}: Props) {
   const [expanded, setExpanded] = useState<string | null>(null);
 
-  // Extract distractors from existing sharedOptions (headings beyond paragraph count)
+// ... (existingDistractors, distractor state, maps, rebuild stay mostly same)
+
   const existingDistractors = (() => {
     // Find existing distractor headings from questions' options that don't map to any paragraph
     const paraLabels = new Set(paragraphs.map((_, i) => ALPHA(i)));
@@ -99,9 +113,31 @@ export function MatchingHeadingsEditor({ paragraphs, questions, pendingEvidence,
     const k = `Paragraph ${p}`;
     rebuild(headingMap, { ...explanationMap, [k]: { ...explanationMap[k], text: v || undefined } }, distractors);
   };
-  const onEvidenceChange = (p: string, qi: number, ev: string | undefined, offsets?: number[]) => {
+  const onEvidenceChange = (
+    p: string,
+    qi: number,
+    ev: string | undefined,
+    offsets?: number[],
+    startOffsets?: number[],
+    endOffsets?: number[],
+    startTimes?: number[]
+  ) => {
     const k = `Paragraph ${p}`;
-    rebuild(headingMap, { ...explanationMap, [k]: { ...explanationMap[k], evidence: ev, offsets: offsets && offsets.length > 0 ? offsets : undefined } }, distractors);
+    rebuild(
+      headingMap,
+      {
+        ...explanationMap,
+        [k]: {
+          ...explanationMap[k],
+          evidence: ev,
+          offsets: offsets && offsets.length > 0 ? offsets : undefined,
+          startOffsets: startOffsets && startOffsets.length > 0 ? startOffsets : undefined,
+          endOffsets: endOffsets && endOffsets.length > 0 ? endOffsets : undefined,
+          startTimes: startTimes && startTimes.length > 0 ? startTimes : undefined,
+        },
+      },
+      distractors
+    );
   };
 
   const addDistractor = () => {
@@ -174,10 +210,18 @@ export function MatchingHeadingsEditor({ paragraphs, questions, pendingEvidence,
                     <EvidenceList
                       evidence={expl?.evidence}
                       offsets={expl?.offsets}
+                      startOffsets={expl?.startOffsets}
+                      endOffsets={expl?.endOffsets}
+                      startTimes={expl?.startTimes}
                       pendingOffset={pendingOffset}
+                      pendingStartOffset={pendingStartOffset}
+                      pendingEndOffset={pendingEndOffset}
+                      pendingStartTime={pendingStartTime}
                       pendingEvidence={pendingEvidence}
                       onAssign={() => onAssignEvidence(i)}
-                      onChange={(ev, offsets) => onEvidenceChange(p, i, ev, offsets)}
+                      onChange={(ev, offsets, startOffsets, endOffsets, startTimes) =>
+                        onEvidenceChange(p, i, ev, offsets, startOffsets, endOffsets, startTimes)
+                      }
                     />
                   </div>
                 </div>

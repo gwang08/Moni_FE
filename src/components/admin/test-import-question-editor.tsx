@@ -19,6 +19,9 @@ interface Props {
   position: number;
   pendingEvidence: string | null;
   pendingOffset?: number;
+  pendingStartOffset?: number;
+  pendingEndOffset?: number;
+  pendingStartTime?: number | null;
   sharedOptions?: { label: string; content: string }[];
   onAssignEvidence: () => void;
   onChange: (updated: QuestionRequest) => void;
@@ -45,6 +48,9 @@ export function QuestionEditor({
   position,
   pendingEvidence,
   pendingOffset,
+  pendingStartOffset,
+  pendingEndOffset,
+  pendingStartTime,
   sharedOptions,
   onAssignEvidence,
   onChange,
@@ -53,13 +59,22 @@ export function QuestionEditor({
 }: Props) {
   const setOptions = (options: OptionRequest[]) => onChange({ ...question, options });
 
-  const handleEvidenceChange = (ev: string | undefined, offsets?: number[]) =>
+  const handleEvidenceChange = (
+    ev: string | undefined,
+    offsets?: number[],
+    startOffsets?: number[],
+    endOffsets?: number[],
+    startTimes?: number[]
+  ) =>
     onChange({
       ...question,
       explanation: {
         ...question.explanation,
         evidence: ev,
         offsets: offsets && offsets.length > 0 ? offsets : undefined,
+        startOffsets: startOffsets && startOffsets.length > 0 ? startOffsets : undefined,
+        endOffsets: endOffsets && endOffsets.length > 0 ? endOffsets : undefined,
+        startTimes: startTimes && startTimes.length > 0 ? startTimes : undefined,
       },
     });
 
@@ -132,8 +147,14 @@ export function QuestionEditor({
         <EvidenceList
           evidence={question.explanation?.evidence}
           offsets={question.explanation?.offsets}
+          startOffsets={question.explanation?.startOffsets}
+          endOffsets={question.explanation?.endOffsets}
+          startTimes={question.explanation?.startTimes}
           pendingEvidence={pendingEvidence}
           pendingOffset={pendingOffset}
+          pendingStartOffset={pendingStartOffset}
+          pendingEndOffset={pendingEndOffset}
+          pendingStartTime={pendingStartTime}
           onAssign={onAssignEvidence}
           onChange={handleEvidenceChange}
         />

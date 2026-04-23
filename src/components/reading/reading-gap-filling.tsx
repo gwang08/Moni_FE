@@ -29,7 +29,7 @@ interface Props {
   textAnswers: Record<number, string>;
   onTextAnswer: (questionId: number, text: string) => void;
   questionPositionById?: Record<number, number>;
-  onLocateEvidence?: (evidence: string) => void;
+  onLocateEvidence?: (evidence: string, offset?: number, startOffset?: number, endOffset?: number) => void;
   examMode?: boolean;
 }
 
@@ -110,12 +110,17 @@ function GapInput({ questionId, userAnswer, submitted, correctAnswer, onTextAnsw
 }
 
 /** IELTS-style inline gap input for exam mode */
-function ExamInlineGapInput({ questionId, userAnswer, submitted, correctAnswer, displayNumber, onTextAnswer, onLocateEvidence, evidence, explanationText }: {
+function ExamInlineGapInput({ questionId, userAnswer, submitted, correctAnswer, displayNumber, onTextAnswer, onLocateEvidence, explanation }: {
   questionId: number; userAnswer: string; submitted: boolean; correctAnswer: string; displayNumber?: number;
   onTextAnswer: (questionId: number, text: string) => void;
-  onLocateEvidence?: (evidence: string) => void;
-  evidence?: string;
-  explanationText?: string;
+  onLocateEvidence?: (evidence: string, offset?: number, startOffset?: number, endOffset?: number) => void;
+  explanation?: { 
+    text?: string; 
+    evidence?: string; 
+    offsets?: number[];
+    startOffsets?: number[];
+    endOffsets?: number[];
+  };
 }) {
   const [showExplanation, setShowExplanation] = useState(false);
   const correct = submitted && isAnswerCorrect(userAnswer, correctAnswer);
@@ -123,6 +128,9 @@ function ExamInlineGapInput({ questionId, userAnswer, submitted, correctAnswer, 
   const hasAnswer = userAnswer.trim().length > 0;
   const isBlank = userAnswer.trim().length === 0;
   const primaryCorrect = correctAnswer.split('|')[0];
+
+  const evidence = explanation?.evidence;
+  const explanationText = explanation?.text;
 
   // Remove "Câu X - Giải thích đáp án" prefix from explanation text
   const cleanExplanation = explanationText?.replace(/^Câu\s+\d+\s*[-–—]\s*Giải thích đáp án\s*/i, '') || explanationText;
@@ -157,6 +165,10 @@ function ExamInlineGapInput({ questionId, userAnswer, submitted, correctAnswer, 
 
   // Submitted - show inline with correct answer only (no duplicate)
   const underlineColor = wrong ? 'border-red-500' : 'border-gray-300';
+  const evidenceChunks = evidence?.split('\n---\n').filter((e: string) => e.trim()) || [];
+  const offsets = explanation?.offsets || [];
+  const startOffsets = explanation?.startOffsets || [];
+  const endOffsets = explanation?.endOffsets || [];
 
   return (
     <span className={`inline-block border-b-2 pb-0.5 ${underlineColor}`}>
@@ -181,19 +193,24 @@ function ExamInlineGapInput({ questionId, userAnswer, submitted, correctAnswer, 
 
         {submitted && (
           <span className="inline-flex items-center gap-1 ml-1 shrink-0">
-            {evidence && onLocateEvidence && (
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  onLocateEvidence?.(evidence);
-                }}
-                className="w-6 h-6 rounded-full flex items-center justify-center hover:bg-gray-100 transition-colors cursor-pointer"
-                title="Xem dẫn chứng"
-              >
-                <TargetIcon className="h-4 w-4 text-gray-900" strokeWidth={2} />
-              </button>
+            {evidenceChunks.length > 0 && onLocateEvidence && (
+              <div className="flex gap-0.5">
+                {evidenceChunks.map((chunk, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      onLocateEvidence?.(chunk.trim(), offsets[i], startOffsets[i], endOffsets[i]);
+                    }}
+                    className="w-6 h-6 rounded-full flex items-center justify-center hover:bg-gray-100 transition-colors cursor-pointer"
+                    title={evidenceChunks.length > 1 ? `Xem dẫn chứng ${i + 1}` : 'Xem dẫn chứng'}
+                  >
+                    <TargetIcon className="h-4 w-4 text-gray-900" strokeWidth={2} />
+                  </button>
+                ))}
+              </div>
             )}
             {explanationText && (
               <button
@@ -230,7 +247,7 @@ function IELTSBoxedGapFilling({ questions, submitted, textAnswers, onTextAnswer,
   textAnswers: Record<number, string>;
   onTextAnswer: (questionId: number, text: string) => void;
   questionPositionById?: Record<number, number>;
-  onLocateEvidence?: (evidence: string) => void;
+  onLocateEvidence?: (evidence: string, offset?: number, startOffset?: number, endOffset?: number) => void;
   examMode?: boolean;
 }) {
   const sortedQuestions = [...questions].sort((a, b) => a.position - b.position);
@@ -269,8 +286,7 @@ function IELTSBoxedGapFilling({ questions, submitted, textAnswers, onTextAnswer,
                         displayNumber={questionPositionById[q.id] ?? q.position}
                         onTextAnswer={onTextAnswer}
                         onLocateEvidence={onLocateEvidence}
-                        evidence={q.explanation?.evidence}
-                        explanationText={q.explanation?.text}
+                        explanation={q.explanation}
                       />
                       {parsed.after}
                     </>
@@ -290,7 +306,7 @@ function GapQuestion({ question, displayPosition, userAnswer, submitted, onTextA
   question: QuestionDetail; userAnswer: string; submitted: boolean;
   displayPosition: number;
   onTextAnswer: (questionId: number, text: string) => void;
-  onLocateEvidence?: (evidence: string) => void;
+  onLocateEvidence?: (evidence: string, offset?: number, startOffset?: number, endOffset?: number) => void;
   examMode?: boolean;
 }) {
   const [showExp, setShowExp] = useState(false);
@@ -316,8 +332,7 @@ function GapQuestion({ question, displayPosition, userAnswer, submitted, onTextA
                 displayNumber={displayPosition}
                 onTextAnswer={onTextAnswer}
                 onLocateEvidence={onLocateEvidence}
-                evidence={question.explanation?.evidence}
-                explanationText={question.explanation?.text}
+                explanation={question.explanation}
               />
               {parsed.after}
             </>
@@ -333,8 +348,7 @@ function GapQuestion({ question, displayPosition, userAnswer, submitted, onTextA
                 displayNumber={displayPosition}
                 onTextAnswer={onTextAnswer}
                 onLocateEvidence={onLocateEvidence}
-                evidence={question.explanation?.evidence}
-                explanationText={question.explanation?.text}
+                explanation={question.explanation}
               />
             </>
           )}
@@ -361,8 +375,7 @@ function GapQuestion({ question, displayPosition, userAnswer, submitted, onTextA
               displayNumber={displayPosition}
               onTextAnswer={onTextAnswer}
               onLocateEvidence={onLocateEvidence}
-              evidence={question.explanation?.evidence}
-              explanationText={question.explanation?.text}
+              explanation={question.explanation}
             />
             {parsed.after}
           </>
@@ -377,8 +390,7 @@ function GapQuestion({ question, displayPosition, userAnswer, submitted, onTextA
               displayNumber={displayPosition}
               onTextAnswer={onTextAnswer}
               onLocateEvidence={onLocateEvidence}
-              evidence={question.explanation?.evidence}
-              explanationText={question.explanation?.text}
+              explanation={question.explanation}
             />
           </>
         )}
@@ -400,7 +412,7 @@ function ParagraphGapFilling({ groupContent, questions, submitted, textAnswers, 
   textAnswers: Record<number, string>;
   onTextAnswer: (questionId: number, text: string) => void;
   questionPositionById?: Record<number, number>;
-  onLocateEvidence?: (evidence: string) => void;
+  onLocateEvidence?: (evidence: string, offset?: number, startOffset?: number, endOffset?: number) => void;
   examMode?: boolean;
 }) {
   const sortedQuestions = useMemo(() => [...questions].sort((a, b) => a.position - b.position), [questions]);
@@ -461,8 +473,7 @@ function ParagraphGapFilling({ groupContent, questions, submitted, textAnswers, 
                 displayNumber={displayNum}
                 onTextAnswer={onTextAnswer}
                 onLocateEvidence={onLocateEvidence}
-                evidence={question.explanation?.evidence}
-                explanationText={question.explanation?.text}
+                explanation={question.explanation}
               />
             </React.Fragment>,
             element
@@ -499,8 +510,7 @@ function ParagraphGapFilling({ groupContent, questions, submitted, textAnswers, 
           onTextAnswer={onTextAnswer}
           displayNumber={displayNum}
           onLocateEvidence={onLocateEvidence}
-          evidence={question.explanation?.evidence}
-          explanationText={question.explanation?.text}
+          explanation={question.explanation}
         />
       </span>
     );
@@ -586,6 +596,7 @@ export function ReadingGapFilling({
           textAnswers={textAnswers}
           onTextAnswer={onTextAnswer}
           questionPositionById={questionPositionById}
+          onLocateEvidence={onLocateEvidence}
         />
 
         {/* Fallback - should not happen if hasGroupContent is true above */}

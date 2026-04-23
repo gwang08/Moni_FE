@@ -17,12 +17,28 @@ interface Props {
   draft: QuestionDraft;
   typeCode: QuestionTypeCode;
   pendingEvidence?: string | null;
+  pendingOffset?: number;
+  pendingStartOffset?: number;
+  pendingEndOffset?: number;
+  pendingStartTime?: number | null;
   onAssignEvidence?: (index: number) => void;
   onChange: (draft: QuestionDraft) => void;
   onRemove?: () => void;
 }
 
-export function TestEditQuestionDraftCard({ index, draft, typeCode, pendingEvidence, onAssignEvidence, onChange, onRemove }: Props) {
+export function TestEditQuestionDraftCard({
+  index,
+  draft,
+  typeCode,
+  pendingEvidence,
+  pendingOffset,
+  pendingStartOffset,
+  pendingEndOffset,
+  pendingStartTime,
+  onAssignEvidence,
+  onChange,
+  onRemove,
+}: Props) {
   const isGapType = typeCode === 'GAP_FILLING';
 
   return (
@@ -79,9 +95,29 @@ export function TestEditQuestionDraftCard({ index, draft, typeCode, pendingEvide
         </div>
         <EvidenceList
           evidence={draft.explanation?.evidence}
+          offsets={draft.explanation?.offsets}
+          startOffsets={draft.explanation?.startOffsets}
+          endOffsets={draft.explanation?.endOffsets}
+          startTimes={draft.explanation?.startTimes}
           pendingEvidence={pendingEvidence}
+          pendingOffset={pendingOffset}
+          pendingStartOffset={pendingStartOffset}
+          pendingEndOffset={pendingEndOffset}
+          pendingStartTime={pendingStartTime}
           onAssign={() => onAssignEvidence?.(index)}
-          onChange={ev => onChange({ ...draft, explanation: { ...draft.explanation, evidence: ev } })}
+          onChange={(ev, offsets, startOffsets, endOffsets, startTimes) =>
+            onChange({
+              ...draft,
+              explanation: {
+                ...draft.explanation,
+                evidence: ev,
+                offsets,
+                startOffsets,
+                endOffsets,
+                startTimes,
+              },
+            })
+          }
         />
       </div>
     </div>

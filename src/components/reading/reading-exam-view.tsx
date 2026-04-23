@@ -1,10 +1,10 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useRef, useCallback } from 'react';
 import { Wifi, Bell, Menu, Clock } from 'lucide-react';
 import { ReadingExamQuestionsPanel } from '@/components/reading/reading-exam-questions-panel';
 import { ReadingExamQuestionNav } from '@/components/reading/reading-exam-question-nav';
-import { ReadingPassage } from '@/components/reading/reading-passage';
+import { ReadingPassage, type ReadingPassageHandle } from '@/components/reading/reading-passage';
 import { ReadingPassageWithMatching } from '@/components/reading/reading-passage-with-matching';
 import { ReadingToolbar } from '@/components/reading/reading-toolbar';
 import type { StimulusDetail } from '@/types/test.types';
@@ -85,6 +85,11 @@ export function ReadingExamView({
 }: Props) {
   const [activeStimulusIdx, setActiveStimulusIdx] = useState(0);
   const [activeQuestionId, setActiveQuestionId] = useState<number | null>(null);
+  const passageRef = useRef<ReadingPassageHandle>(null);
+
+  const onLocateEvidence = useCallback((text: string, offset?: number, startOffset?: number, endOffset?: number) => {
+    passageRef.current?.locateEvidence(text, offset ?? -1, startOffset, endOffset);
+  }, []);
 
   const isDisabled = submitted || readOnly || isSubmitting;
   const currentStimulus = stimuli[activeStimulusIdx];
@@ -252,7 +257,7 @@ export function ReadingExamView({
                   questionPositionById={questionPositionById}
                 />
               ) : (
-                <ReadingPassage content={currentStimulus.content} interactive examMode />
+                <ReadingPassage ref={passageRef} content={currentStimulus.content} interactive examMode />
               );
             })()}
           </div>
@@ -270,6 +275,7 @@ export function ReadingExamView({
               textAnswers={textAnswers}
               onTextAnswer={onTextAnswer}
               globalQuestionOffset={globalQuestionOffset}
+              onLocateEvidence={onLocateEvidence}
             />
           </div>
         </div>

@@ -89,7 +89,7 @@ export function RoadmapPaywall() {
             <ArrowRight className="w-5 h-5 ml-2" />
           </Button>
           <p className="text-xs text-gray-400 mt-3">
-            Gói 30 ngày &mdash; Hủy bất cứ lúc nào
+            Tối ưu thời gian học, tập trung đúng điểm yếu
           </p>
         </div>
       </div>

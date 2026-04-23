@@ -113,7 +113,7 @@ export default function WritingResultPage({ params }: Props) {
           </Button>
         </Link>
         <div className="flex-1">
-          <h1 className="font-bold">Chi tiết bài viết</h1>
+          <h3 className="font-bold">Chi tiết bài viết</h3>
           <p className="text-xs text-muted-foreground">{submittedDate}</p>
         </div>
         <Badge

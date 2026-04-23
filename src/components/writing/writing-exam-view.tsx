@@ -248,29 +248,8 @@ export function WritingExamView({
         </div>
       </div>
 
-      {/* ===== Loading Overlay ===== */}
-      {(isSubmitting || submitted) && (
-        <div className="absolute inset-0 z-[100] flex flex-col items-center justify-center bg-white/80 backdrop-blur-[2px] animate-in fade-in duration-500">
-          <div className="bg-white p-8 rounded-2xl shadow-xl border border-gray-100 flex flex-col items-center gap-4 scale-in-95 animate-in zoom-in-95 duration-300">
-            <div className="relative">
-              <div className="h-12 w-12 rounded-full border-4 border-gray-100 border-t-blue-600 animate-spin" />
-              {submitted && (
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <Check className="h-6 w-6 text-green-500 animate-in zoom-in duration-500" />
-                </div>
-              )}
-            </div>
-            <div className="text-center">
-              <h3 className="font-bold text-gray-900 text-lg">
-                {submitted ? 'Nộp bài thành công!' : 'Đang xử lý bài làm'}
-              </h3>
-              <p className="text-sm text-gray-500 mt-1">
-                {submitted ? 'Hệ thống đang chuẩn bị kết quả...' : 'Vui lòng đợi trong giây lát...'}
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
+
+
 
       {/* ===== Bottom navigation bar ===== */}
       <div className="shrink-0 bg-white border-t border-gray-300 px-4 py-1">

@@ -4,7 +4,13 @@ import React, { useMemo } from 'react';
 import CalendarHeatmap from 'react-calendar-heatmap';
 import 'react-calendar-heatmap/dist/styles.css';
 import { useAttemptHistory } from '@/hooks/use-attempt-history';
-import { Flame, Trophy } from 'lucide-react';
+import { Flame, Trophy, Info } from 'lucide-react';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 const VI_MONTHS: [string, string, string, string, string, string, string, string, string, string, string, string] = [
   'Th1', 'Th2', 'Th3', 'Th4', 'Th5', 'Th6', 'Th7', 'Th8', 'Th9', 'Th10', 'Th11', 'Th12'
@@ -71,17 +77,17 @@ export function StudyProgress() {
 
     // Calculate streak
     let streak = 0;
-    const todayStr = toISODate(today);
-    const yesterdayStr = toISODate(subDays(today, 1));
+    let checkDate = new Date(today);
+    checkDate.setHours(0, 0, 0, 0);
     
-    let currDateStr = countsByDate.has(todayStr) ? todayStr : yesterdayStr;
+    // If no activity today, check if there was activity yesterday to continue streak
+    if (!countsByDate.has(toISODate(checkDate))) {
+      checkDate = subDays(checkDate, 1);
+    }
     
-    if (countsByDate.has(currDateStr)) {
-      let currDate = new Date(currDateStr);
-      while (countsByDate.has(toISODate(currDate))) {
-        streak++;
-        currDate = subDays(currDate, 1);
-      }
+    while (countsByDate.has(toISODate(checkDate))) {
+      streak++;
+      checkDate = subDays(checkDate, 1);
     }
 
     return { 
@@ -94,133 +100,140 @@ export function StudyProgress() {
   }, [attempts]);
 
   if (loading) {
-    return <div className="h-64 animate-pulse bg-slate-100 rounded-3xl"></div>;
+    return (
+      <div className="bg-card rounded-3xl p-8 border border-border shadow-sm animate-pulse">
+        <div className="h-6 w-48 bg-muted rounded-md mb-8"></div>
+        <div className="h-40 bg-muted/50 rounded-xl"></div>
+      </div>
+    );
   }
 
   return (
-    <div className="space-y-8 font-sans">
+    <div className="space-y-6">
       <style dangerouslySetInnerHTML={{__html: `
         .react-calendar-heatmap text {
           font-size: 8px;
-          fill: #cbd5e1;
-          font-weight: 500;
+          fill: oklch(0.5 0.01 160);
+          font-weight: 600;
         }
         .react-calendar-heatmap .color-empty {
-          fill: #f1f5f9;
-          rx: 3;
-          ry: 3;
+          fill: oklch(0.98 0.005 160);
+          rx: 4;
+          ry: 4;
         }
-        .react-calendar-heatmap .color-scale-1 { fill: #e0e7ff; rx: 3; ry: 3; }
-        .react-calendar-heatmap .color-scale-2 { fill: #c7d2fe; rx: 3; ry: 3; }
-        .react-calendar-heatmap .color-scale-3 { fill: #818cf8; rx: 3; ry: 3; }
-        .react-calendar-heatmap .color-scale-4 { fill: #4f46e5; rx: 3; ry: 3; }
+        /* OKLCH Scale for Teal (Primary Brand Hue) */
+        .react-calendar-heatmap .color-scale-1 { fill: oklch(0.93 0.04 160); rx: 4; ry: 4; }
+        .react-calendar-heatmap .color-scale-2 { fill: oklch(0.82 0.08 160); rx: 4; ry: 4; }
+        .react-calendar-heatmap .color-scale-3 { fill: oklch(0.70 0.12 160); rx: 4; ry: 4; }
+        .react-calendar-heatmap .color-scale-4 { fill: oklch(0.55 0.20 160); rx: 4; ry: 4; }
         
         .react-calendar-heatmap rect:hover {
-          stroke: #6366f1;
-          stroke-width: 1.5px;
-          transition: all 0.2s;
+          stroke: oklch(0.55 0.20 160);
+          stroke-width: 2px;
+          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+          transform: scale(1.1);
+          transform-origin: center;
         }
         .react-calendar-heatmap rect {
-          transition: all 0.2s;
+          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
         }
       `}} />
 
-      {/* Header section */}
-      <div className="text-center space-y-3">
-        <div className="inline-flex items-center justify-center border border-indigo-100 bg-white shadow-[0_2px_10px_-4px_rgba(79,70,229,0.1)] px-3 py-1 rounded-full text-[10px] font-bold tracking-widest uppercase text-slate-500">
-          <span className="w-1.5 h-1.5 rounded-full bg-indigo-600 mr-2 shadow-[0_0_8px_rgba(79,70,229,0.5)]"></span>
-          study progress
-        </div>
-        <h2 className="text-3xl font-extrabold text-slate-800 leading-tight">
-          Theo dõi hành trình – <br className="sm:hidden" />
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 to-purple-500">Bứt phá mỗi ngày</span>
-        </h2>
-        <p className="text-sm text-slate-500 font-medium">Mỗi ô vuông nhỏ là một bước tiến trên con đường chinh phục IELTS của bạn</p>
-      </div>
-      
-      {/* Cards section */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-stretch">
-        
-        {/* Heatmap Card */}
-        <div className="lg:col-span-3 bg-white border border-slate-100 rounded-[1.5rem] p-6 sm:p-8 shadow-[0_4px_25px_-5px_rgba(0,0,0,0.02)] flex flex-col justify-between">
-            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-6 gap-4">
-                <div>
-                   <h3 className="text-lg font-extrabold text-slate-800">Hoạt động học tập</h3>
-                   <p className="text-sm text-slate-400 font-medium">{totalThisYear} bài luyện tập trong năm {year}</p>
+      <TooltipProvider>
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          {/* Main Heatmap Card */}
+          <div className="lg:col-span-3 bg-card border border-border rounded-3xl p-6 sm:p-8 shadow-sm transition-all duration-300 hover:shadow-md">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-8 gap-4">
+              <div>
+                <h3 className="text-xl font-extrabold text-foreground flex items-center gap-2">
+                  Hành trình nỗ lực
+                  <Info className="w-4 h-4 text-muted-foreground cursor-help" />
+                </h3>
+                <p className="text-sm text-muted-foreground font-medium mt-1">
+                  Bạn đã hoàn thành <span className="text-primary font-bold">{totalThisYear}</span> bài luyện tập trong năm {year}
+                </p>
+              </div>
+              <div className="flex items-center gap-3 text-[10px] text-muted-foreground font-bold uppercase tracking-widest bg-secondary/50 px-3 py-1.5 rounded-full">
+                <span>Ít</span>
+                <div className="flex gap-1">
+                  <span className="w-3 h-3 rounded-sm bg-muted"></span>
+                  <span className="w-3 h-3 rounded-sm bg-[oklch(0.93_0.04_160)]"></span>
+                  <span className="w-3 h-3 rounded-sm bg-[oklch(0.82_0.08_160)]"></span>
+                  <span className="w-3 h-3 rounded-sm bg-[oklch(0.70_0.12_160)]"></span>
+                  <span className="w-3 h-3 rounded-sm bg-[oklch(0.55_0.20_160)]"></span>
                 </div>
-                <div className="flex items-center gap-2 text-xs text-slate-400 font-semibold uppercase tracking-wider whitespace-nowrap">
-                    <span>Ít</span>
-                    <div className="flex gap-1.5">
-                        <span className="w-3.5 h-3.5 rounded-[3px] bg-[#f1f5f9]"></span>
-                        <span className="w-3.5 h-3.5 rounded-[3px] bg-[#e0e7ff]"></span>
-                        <span className="w-3.5 h-3.5 rounded-[3px] bg-[#c7d2fe]"></span>
-                        <span className="w-3.5 h-3.5 rounded-[3px] bg-[#818cf8]"></span>
-                        <span className="w-3.5 h-3.5 rounded-[3px] bg-[#4f46e5]"></span>
-                    </div>
-                    <span>Nhiều</span>
-                </div>
+                <span>Nhiều</span>
+              </div>
             </div>
             
-            <div className="overflow-x-auto pb-2 -mx-2 px-2 sm:mx-0 sm:px-0">
-                <div className="min-w-[700px]">
-                    <CalendarHeatmap 
-                        startDate={new Date(year - 1, 11, 31)} 
-                        endDate={new Date(year, 11, 31)} 
-                        values={heatMapValues} 
-                        classForValue={(value) => {
-                            if (!value || value.count === 0) return 'color-empty';
-                            if (value.count === 1) return `color-scale-1`;
-                            if (value.count === 2) return `color-scale-2`;
-                            if (value.count === 3) return `color-scale-3`;
-                            return `color-scale-4`;
-                        }}
-                        showWeekdayLabels={true}
-                        weekdayLabels={['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7']}
-                        monthLabels={VI_MONTHS}
-                        tooltipDataAttrs={(value: any) => {
-                            if (!value || !value.date) return { 'data-tooltip-id': 'heatmap-tooltip', 'data-tooltip-content': '' } as any;
-                            const d = new Date(value.date);
-                            const ds = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
-                            return {
-                                'data-tooltip': `${value.count} bài luyện tập - ${ds}`,
-                                title: `${value.count} bài luyện tập - ${ds}`
-                            } as any;
-                        }}
-                    />
-                </div>
+            <div className="overflow-x-auto pb-2 scrollbar-none">
+              <div className="min-w-[700px]">
+                <CalendarHeatmap 
+                  startDate={new Date(year - 1, 11, 31)} 
+                  endDate={new Date(year, 11, 31)} 
+                  values={heatMapValues} 
+                  classForValue={(value) => {
+                    if (!value || value.count === 0) return 'color-empty';
+                    if (value.count === 1) return 'color-scale-1';
+                    if (value.count === 2) return 'color-scale-2';
+                    if (value.count === 3) return 'color-scale-3';
+                    return 'color-scale-4';
+                  }}
+                  showWeekdayLabels={true}
+                  weekdayLabels={['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7']}
+                  monthLabels={VI_MONTHS}
+                  transformDayElement={(element, value: any) => {
+                    const d = value?.date ? new Date(value.date) : null;
+                    const ds = d ? `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}` : '';
+                    const count = value?.count || 0;
+
+                    return (
+                      <Tooltip key={value?.date || Math.random()}>
+                        <TooltipTrigger asChild>
+                          {element}
+                        </TooltipTrigger>
+                        <TooltipContent className="bg-foreground text-background font-bold px-3 py-2 rounded-xl shadow-xl border-none">
+                          <p>{count} bài luyện tập</p>
+                          <p className="text-[10px] opacity-70">{ds}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    );
+                  }}
+                />
+              </div>
             </div>
+          </div>
+
+          {/* Stats Column */}
+          <div className="flex flex-col gap-6">
+            {/* Streak Card */}
+            <div className="bg-card border border-border rounded-3xl p-6 shadow-sm flex-1 flex flex-col justify-center items-center text-center group transition-all duration-300 hover:border-primary/20 hover:shadow-md">
+              <div className="w-12 h-12 rounded-2xl bg-orange-100 flex items-center justify-center mb-4 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-6">
+                <Flame className="w-6 h-6 text-orange-500 fill-orange-500" />
+              </div>
+              <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">Chuỗi học tập</p>
+              <div className="flex items-baseline gap-1">
+                <span className="text-4xl font-black text-foreground">{currentStreak}</span>
+                <span className="text-sm font-bold text-muted-foreground">ngày</span>
+              </div>
+              <p className="text-xs text-muted-foreground mt-2 font-medium">Bứt phá giới hạn!</p>
+            </div>
+
+            {/* Weekly Total Card */}
+            <div className="bg-card border border-border rounded-3xl p-6 shadow-sm flex-1 flex flex-col justify-center items-center text-center group transition-all duration-300 hover:border-primary/20 hover:shadow-md">
+              <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center mb-4 transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-6">
+                <Trophy className="w-6 h-6 text-primary fill-primary/20" />
+              </div>
+              <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">Tuần này</p>
+              <div className="flex items-baseline gap-1">
+                <span className="text-4xl font-black text-foreground">{totalThisWeek}</span>
+                <span className="text-sm font-bold text-muted-foreground">bài</span>
+              </div>
+              <p className="text-xs text-muted-foreground mt-2 font-medium">Tiến gần hơn tới mục tiêu</p>
+            </div>
+          </div>
         </div>
-
-        {/* Side Cards */}
-        <div className="space-y-6 flex flex-col justify-between">
-            {/* Streak */}
-            <div className="bg-gradient-to-br from-[#F8F9FF] to-white border border-indigo-50 rounded-[1.5rem] p-6 sm:p-7 shadow-[0_4px_25px_-5px_rgba(79,70,229,0.06)] flex-1 flex flex-col justify-center relative overflow-hidden transition-all duration-300 hover:shadow-[0_4px_25px_-5px_rgba(79,70,229,0.12)] hover:-translate-y-1">
-                <div className="w-10 h-10 rounded-full bg-white border border-indigo-100 shadow-sm flex items-center justify-center mb-4 text-indigo-500 z-10 relative">
-                    <Flame className="w-5 h-5 text-indigo-500" />
-                </div>
-                <h4 className="text-xs font-bold text-indigo-400 tracking-widest uppercase mb-1 z-10 relative">Chuỗi học tập</h4>
-                <div className="flex items-baseline gap-1.5 mb-1 z-10 relative">
-                    <span className="text-[2.5rem] leading-none font-extrabold text-slate-800">{currentStreak}</span>
-                    <span className="text-sm font-semibold text-slate-600">ngày</span>
-                </div>
-                <p className="text-xs text-slate-400 font-medium z-10 relative">Tiếp tục phát huy nhé!</p>
-            </div>
-
-            {/* Total */}
-            <div className="bg-gradient-to-br from-[#FFF9F5] to-white border border-orange-50 rounded-[1.5rem] p-6 sm:p-7 shadow-[0_4px_25px_-5px_rgba(249,115,22,0.06)] flex-1 flex flex-col justify-center relative overflow-hidden transition-all duration-300 hover:shadow-[0_4px_25px_-5px_rgba(249,115,22,0.12)] hover:-translate-y-1">
-                <div className="w-10 h-10 rounded-full bg-white border border-orange-100 shadow-sm flex items-center justify-center mb-4 z-10 relative">
-                    <Trophy className="w-5 h-5 text-orange-500" />
-                </div>
-                <h4 className="text-xs font-bold text-orange-400 tracking-widest uppercase mb-1 z-10 relative">Tổng luyện tập</h4>
-                <div className="flex items-baseline gap-1.5 mb-1 z-10 relative">
-                    <span className="text-[2.5rem] leading-none font-extrabold text-slate-800">{totalThisYear}</span>
-                    <span className="text-sm font-semibold text-slate-600">bài</span>
-                </div>
-                <p className="text-xs text-slate-400 font-medium z-10 relative">+{totalThisWeek} bài tuần này</p>
-            </div>
-        </div>
-
-      </div>
+      </TooltipProvider>
     </div>
   );
 }

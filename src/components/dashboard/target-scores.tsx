@@ -10,7 +10,7 @@ import { apiClient } from '@/lib/api-client';
 import { getRoadmapInsights } from '@/lib/roadmap-api';
 import type { ApiResponse } from '@/types/auth.types';
 import type { SkillKey } from '@/types';
-import { Pencil, Check, X, RotateCcw, Sparkles, CheckCircle2, Circle } from 'lucide-react';
+import { Pencil, Check, X, RotateCcw, Sparkles, CheckCircle2, Circle, Target, BarChart3, AlertTriangle, Info } from 'lucide-react';
 import { toast } from 'sonner';
 import { PlacementGenerateLoading } from '@/components/placement/placement-generate-loading';
 import { AiRecommendationDialog } from '@/components/dashboard/ai-recommendation';
@@ -219,11 +219,16 @@ export function TargetScores() {
       <div className="p-6">
         {/* Header */}
         <div className="flex items-center justify-between mb-5">
-          <div>
-            <h3 className="text-lg font-extrabold text-gray-900">Mục tiêu 4 kỹ năng 🎯</h3>
-            <p className="text-xs text-gray-500 mt-0.5">
-              {overallScore !== null ? <>Overall mục tiêu: <b className="text-orange-600">{overallScore.toFixed(1)}</b></> : 'Từng bước nhỏ, tiến bộ lớn 💪'}
-            </p>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-orange-100 flex items-center justify-center">
+              <Target className="w-5 h-5 text-orange-600" />
+            </div>
+            <div>
+              <h3 className="text-lg font-extrabold text-gray-900">Mục tiêu 4 kỹ năng</h3>
+              <p className="text-xs text-gray-500 mt-0.5">
+                {overallScore !== null ? <>Overall mục tiêu: <b className="text-orange-600">{overallScore.toFixed(1)}</b></> : 'Từng bước nhỏ, tiến bộ lớn'}
+              </p>
+            </div>
           </div>
           <div className="flex gap-1">
             {!editing ? (
@@ -286,7 +291,10 @@ export function TargetScores() {
         {/* Placement result section */}
         <div className="mt-5 pt-5 border-t border-dashed border-gray-200">
           <div className="flex items-center justify-between mb-3">
-            <h4 className="text-sm font-bold text-gray-800">Trình độ hiện tại 📊</h4>
+            <h4 className="text-sm font-bold text-gray-800 flex items-center gap-2">
+              <BarChart3 className="w-4 h-4 text-gray-500" />
+              Trình độ hiện tại
+            </h4>
             {placementResult && (
               <button
                 onClick={handleReset}
@@ -306,12 +314,13 @@ export function TargetScores() {
             <div className="flex flex-col gap-2">
               <PlacementGenerateLoading open={generating} />
               {(tourStep > 0 && tourStep < 3) ? (
-                <div className="flex items-center gap-1.5 text-xs text-blue-600 bg-blue-50 px-3 py-2 rounded-2xl italic">
-                  <span>ℹ️ Đang trong quá trình thiết lập lộ trình...</span>
+                <div className="flex items-center gap-2 text-xs text-blue-600 bg-blue-50 px-3 py-2 rounded-2xl italic">
+                  <Info className="w-4 h-4 shrink-0" />
+                  <span>Đang trong quá trình thiết lập lộ trình...</span>
                 </div>
               ) : (!hasScores && (
-                <div className="flex items-center gap-1.5 text-xs text-amber-700 bg-amber-50 px-3 py-2 rounded-2xl">
-                  <span className="text-sm">⚠️</span>
+                <div className="flex items-center gap-2 text-xs text-amber-700 bg-amber-50 px-3 py-2 rounded-2xl">
+                  <AlertTriangle className="w-4 h-4 shrink-0" />
                   <span>Thiết lập <b>Mục tiêu điểm số</b> để mở khoá bài Đánh giá.</span>
                 </div>
               ))}

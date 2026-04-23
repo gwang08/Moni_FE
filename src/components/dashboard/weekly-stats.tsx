@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
+import { BarChart3 } from 'lucide-react';
 import type { AttemptHistory } from '@/lib/practice-api';
 import type { SkillKey } from '@/types';
 import { useAttemptHistory } from '@/hooks/use-attempt-history';
@@ -71,16 +72,21 @@ export function WeeklyStats() {
   const maxSkillCount = Math.max(1, ...SKILLS.map((s) => skills[s]));
 
   return (
-    <div className="bg-white rounded-3xl shadow-sm p-6">
-      <div className="flex items-center justify-between mb-5">
-        <div>
-          <h3 className="text-lg font-extrabold text-gray-900">Tuần này 📊</h3>
-          <p className="text-xs text-gray-500 mt-0.5">Phân bổ bài luyện theo kỹ năng</p>
+    <div className="bg-white rounded-3xl shadow-sm p-6 h-full flex flex-col">
+      <div className="flex items-start justify-between mb-5 gap-2">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="w-10 h-10 shrink-0 rounded-2xl bg-pink-100 flex items-center justify-center">
+            <BarChart3 className="w-5 h-5 text-pink-600" />
+          </div>
+          <div className="min-w-0">
+            <h3 className="text-lg font-extrabold text-gray-900">Tuần này</h3>
+            <p className="text-xs text-gray-500 mt-0.5 truncate">Phân bổ bài luyện theo kỹ năng</p>
+          </div>
         </div>
-        <span className="text-xs font-bold bg-orange-50 text-orange-600 px-3 py-1 rounded-full">{label}</span>
+        <span className="text-xs font-bold bg-orange-50 text-orange-600 px-3 py-1 rounded-full whitespace-nowrap shrink-0">{label}</span>
       </div>
 
-      <div className="space-y-4">
+      <div className="space-y-4 flex-1">
         {SKILLS.map((s) => {
           const count = skills[s];
           const style = SKILL_STYLE[s];

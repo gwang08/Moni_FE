@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Loader2 } from 'lucide-react';
+import { Loader2, BookMarked, PartyPopper, ArrowRight } from 'lucide-react';
 import { getDueReview, getReviewStats } from '@/lib/vocab-api';
 import type { ReviewStats } from '@/types/vocab.types';
 
@@ -51,14 +51,23 @@ export function VocabReviewStats() {
   return (
     <div className="col-span-full bg-white rounded-3xl shadow-sm p-7">
       <div className="flex items-center justify-between mb-5">
-        <div>
-          <h3 className="text-lg font-extrabold text-gray-900">Kho từ vựng 📖</h3>
-          <p className="text-xs text-gray-500 mt-0.5">
-            {dueCount > 0
-              ? <><b className="text-amber-600">{dueCount} từ</b> đang chờ bạn ôn lại</>
-              : '🎉 Không có từ nào cần ôn hôm nay!'
-            }
-          </p>
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-2xl bg-orange-100 flex items-center justify-center">
+            <BookMarked className="w-5 h-5 text-orange-600" />
+          </div>
+          <div>
+            <h3 className="text-lg font-extrabold text-gray-900">Kho từ vựng</h3>
+            <p className="text-xs text-gray-500 mt-0.5 flex items-center gap-1">
+              {dueCount > 0 ? (
+                <><b className="text-amber-600">{dueCount} từ</b> đang chờ bạn ôn lại</>
+              ) : (
+                <>
+                  <PartyPopper className="w-3.5 h-3.5 text-emerald-500" />
+                  <span>Không có từ nào cần ôn hôm nay!</span>
+                </>
+              )}
+            </p>
+          </div>
         </div>
         <Link
           href="/vocabulary/review"
@@ -68,7 +77,8 @@ export function VocabReviewStats() {
               : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
           }`}
         >
-          {dueCount > 0 ? `Ôn ngay (${dueCount}) →` : 'Xem kho từ →'}
+          {dueCount > 0 ? `Ôn ngay (${dueCount})` : 'Xem kho từ'}
+          <ArrowRight className="w-4 h-4" />
         </Link>
       </div>
 

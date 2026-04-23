@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowDown, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ArrowDown, ChevronLeft, ChevronRight, Sparkles, Map } from 'lucide-react';
 import { ChibiMascot } from '@/components/ui/chibi-mascot';
 import { useHydration } from '@/hooks/use-hydration';
 import { SkeletonCard } from '@/components/ui/skeleton';
@@ -28,23 +28,20 @@ import type { ApiResponse } from '@/types/auth.types';
 function DashboardSkeleton() {
   return (
     <div className="space-y-6">
-      <SkeletonCard className="h-48 rounded-3xl" />
-      <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
-        <SkeletonCard className="h-28 rounded-3xl" />
-        <SkeletonCard className="h-28 rounded-3xl" />
-        <SkeletonCard className="h-28 rounded-3xl" />
-        <SkeletonCard className="h-28 rounded-3xl" />
-      </div>
+      <SkeletonCard className="h-44 rounded-3xl" />
       <div className="grid gap-6 md:grid-cols-2">
-        <SkeletonCard className="h-72 rounded-3xl" />
-        <SkeletonCard className="h-72 rounded-3xl" />
+        <SkeletonCard className="h-80 rounded-3xl" />
+        <SkeletonCard className="h-80 rounded-3xl" />
       </div>
-      <SkeletonCard className="h-80 rounded-3xl" />
+      <div className="grid gap-6 lg:grid-cols-12">
+        <SkeletonCard className="lg:col-span-8 h-72 rounded-3xl" />
+        <SkeletonCard className="lg:col-span-4 h-72 rounded-3xl" />
+      </div>
+      <SkeletonCard className="h-48 rounded-3xl" />
     </div>
   );
 }
 
-// Warm greeting by hour of day
 function getGreeting(): string {
   const h = new Date().getHours();
   if (h < 11) return 'Chào buổi sáng';
@@ -99,9 +96,7 @@ export default function DashboardPage() {
         }
 
         const weeks = [];
-        if (currentPlan) {
-          weeks.push({ week: currentPlan.weekNumber, label: `Tuần ${currentPlan.weekNumber} (Hiện tại)`, isCurrent: true });
-        }
+        if (currentPlan) weeks.push({ week: currentPlan.weekNumber, label: `Tuần ${currentPlan.weekNumber} (Hiện tại)`, isCurrent: true });
         for (const h of history) {
           if (!weeks.some(w => w.week === h.weekNumber)) {
             weeks.push({ week: h.weekNumber, label: `Tuần ${h.weekNumber}`, isCurrent: false });
@@ -154,7 +149,6 @@ export default function DashboardPage() {
     refreshProfile();
   }, [hydrated]);
 
-  // Extract first name for greeting
   const firstName = userName?.split(' ').pop() ?? 'bạn';
 
   return (
@@ -168,7 +162,7 @@ export default function DashboardPage() {
                 Đã lên lộ trình học tập cho bạn!
               </h2>
               <p className="text-orange-100 text-lg mb-12 text-center max-w-md">
-                Kéo xuống một chút để xem điều bất ngờ nhé 👇
+                Kéo xuống một chút để xem điều bất ngờ nhé
               </p>
               <button
                 onClick={() => {
@@ -185,12 +179,13 @@ export default function DashboardPage() {
       )}
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Hero greeting — warm & playful */}
+        {/* Hero */}
         <section className="relative overflow-hidden rounded-3xl p-8 mb-6 bg-[radial-gradient(circle_at_20%_10%,#fed7aa_0%,transparent_40%),radial-gradient(circle_at_85%_25%,#fce7f3_0%,transparent_45%),radial-gradient(circle_at_50%_100%,#fef3c7_0%,transparent_50%)]">
           <div className="flex items-center justify-between gap-6">
             <div className="flex-1">
-              <span className="inline-flex items-center gap-2 bg-white px-3 py-1 rounded-full text-xs font-bold text-orange-600 mb-3 shadow-sm">
-                ✨ {getGreeting()}, {firstName}!
+              <span className="inline-flex items-center gap-1.5 bg-white px-3 py-1 rounded-full text-xs font-bold text-orange-600 mb-3 shadow-sm">
+                <Sparkles className="w-3.5 h-3.5" />
+                {getGreeting()}, {firstName}!
               </span>
               <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight leading-tight text-gray-900">
                 Cùng Moni chinh phục IELTS nào!
@@ -213,89 +208,78 @@ export default function DashboardPage() {
             <RoadmapReturningDialog
               open={showReturningDialog}
               onOpenChange={setShowReturningDialog}
-              onContinue={() => {
-                setShowReturningDialog(false);
-                window.location.reload();
-              }}
-              onRetake={() => {
-                setShowReturningDialog(false);
-                setShowPlacementDialog(true);
-              }}
+              onContinue={() => { setShowReturningDialog(false); window.location.reload(); }}
+              onRetake={() => { setShowReturningDialog(false); setShowPlacementDialog(true); }}
             />
 
-            <div className="grid gap-6 lg:grid-cols-12 items-start">
-              <div className="lg:col-span-8 space-y-6">
-                <div className="grid gap-6 md:grid-cols-2">
-                  <TargetScores />
-                  <ExamCountdown />
-                </div>
-
-                <StudyProgress />
-
-                <VocabReviewStats />
-
-                {hasRoadmapSub === false ? (
-                  <RoadmapPaywall />
-                ) : hasRoadmapSub === true ? (
-                  <div className="space-y-6">
-                    {availableWeeks.length > 0 && (
-                      <div className="flex items-center justify-between bg-white px-6 py-4 rounded-3xl border border-orange-100 shadow-sm">
-                        <div className="flex items-center gap-3">
-                          <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-orange-400 to-pink-400 flex items-center justify-center text-white text-xl shadow-md shadow-orange-500/20">
-                            🗺️
-                          </div>
-                          <div>
-                            <div className="text-sm font-extrabold text-gray-900">Chọn tuần học tập</div>
-                            <div className="text-xs text-gray-500">Xem lại lộ trình các tuần trước</div>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => {
-                              const curIdx = availableWeeks.findIndex(w => w.week === selectedWeek);
-                              if (curIdx < availableWeeks.length - 1) setSelectedWeek(availableWeeks[curIdx + 1].week);
-                            }}
-                            disabled={availableWeeks.findIndex(w => w.week === selectedWeek) >= availableWeeks.length - 1}
-                            className="w-10 h-10 rounded-full bg-orange-50 text-orange-600 font-bold hover:bg-orange-100 disabled:opacity-30 disabled:hover:bg-orange-50 transition-all flex items-center justify-center"
-                          >
-                            <ChevronLeft className="w-5 h-5" />
-                          </button>
-
-                          <select
-                            value={selectedWeek}
-                            onChange={(e) => setSelectedWeek(Number(e.target.value))}
-                            className="bg-orange-50 border-0 text-orange-600 text-sm rounded-full px-4 py-2 outline-none font-bold min-w-[160px] cursor-pointer hover:bg-orange-100 transition-colors"
-                          >
-                            {availableWeeks.map(w => (
-                              <option key={w.week} value={w.week}>{w.label}</option>
-                            ))}
-                          </select>
-
-                          <button
-                            onClick={() => {
-                              const curIdx = availableWeeks.findIndex(w => w.week === selectedWeek);
-                              if (curIdx > 0) setSelectedWeek(availableWeeks[curIdx - 1].week);
-                            }}
-                            disabled={availableWeeks.findIndex(w => w.week === selectedWeek) <= 0}
-                            className="w-10 h-10 rounded-full bg-orange-50 text-orange-600 font-bold hover:bg-orange-100 disabled:opacity-30 disabled:hover:bg-orange-50 transition-all flex items-center justify-center"
-                          >
-                            <ChevronRight className="w-5 h-5" />
-                          </button>
-                        </div>
-                      </div>
-                    )}
-
-                    <RoadmapInsights weekNumber={selectedWeek} />
-                    <LearningRoadmap weekNumber={selectedWeek} />
-                  </div>
-                ) : null}
-              </div>
-
-              <div className="lg:col-span-4 space-y-6">
-                <WeeklyStats />
-              </div>
+            {/* Row 1 — Target + Exam */}
+            <div className="grid gap-6 md:grid-cols-2">
+              <TargetScores />
+              <ExamCountdown />
             </div>
+
+            {/* Row 2 — Study Progress + Weekly Stats */}
+            <div className="grid gap-6 lg:grid-cols-12">
+              <div className="lg:col-span-8"><StudyProgress /></div>
+              <div className="lg:col-span-4"><WeeklyStats /></div>
+            </div>
+
+            {/* Row 3 — Vocab full width */}
+            <VocabReviewStats />
+
+            {/* Row 4+ — Roadmap */}
+            {hasRoadmapSub === false ? (
+              <RoadmapPaywall />
+            ) : hasRoadmapSub === true ? (
+              <div className="space-y-6">
+                {availableWeeks.length > 0 && (
+                  <div className="flex items-center justify-between bg-white px-6 py-4 rounded-3xl shadow-sm">
+                    <div className="flex items-center gap-3">
+                      <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-orange-400 to-pink-400 flex items-center justify-center text-white shadow-md shadow-orange-500/20">
+                        <Map className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <div className="text-sm font-extrabold text-gray-900">Chọn tuần học tập</div>
+                        <div className="text-xs text-gray-500">Xem lại lộ trình các tuần trước</div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => {
+                          const curIdx = availableWeeks.findIndex(w => w.week === selectedWeek);
+                          if (curIdx < availableWeeks.length - 1) setSelectedWeek(availableWeeks[curIdx + 1].week);
+                        }}
+                        disabled={availableWeeks.findIndex(w => w.week === selectedWeek) >= availableWeeks.length - 1}
+                        className="w-10 h-10 rounded-full bg-orange-50 text-orange-600 hover:bg-orange-100 disabled:opacity-30 disabled:hover:bg-orange-50 transition-all flex items-center justify-center"
+                      >
+                        <ChevronLeft className="w-5 h-5" />
+                      </button>
+                      <select
+                        value={selectedWeek}
+                        onChange={(e) => setSelectedWeek(Number(e.target.value))}
+                        className="bg-orange-50 border-0 text-orange-600 text-sm rounded-full px-4 py-2 outline-none font-bold min-w-[160px] cursor-pointer hover:bg-orange-100 transition-colors"
+                      >
+                        {availableWeeks.map(w => (<option key={w.week} value={w.week}>{w.label}</option>))}
+                      </select>
+                      <button
+                        onClick={() => {
+                          const curIdx = availableWeeks.findIndex(w => w.week === selectedWeek);
+                          if (curIdx > 0) setSelectedWeek(availableWeeks[curIdx - 1].week);
+                        }}
+                        disabled={availableWeeks.findIndex(w => w.week === selectedWeek) <= 0}
+                        className="w-10 h-10 rounded-full bg-orange-50 text-orange-600 hover:bg-orange-100 disabled:opacity-30 disabled:hover:bg-orange-50 transition-all flex items-center justify-center"
+                      >
+                        <ChevronRight className="w-5 h-5" />
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                <RoadmapInsights weekNumber={selectedWeek} />
+                <LearningRoadmap weekNumber={selectedWeek} />
+              </div>
+            ) : null}
           </div>
         )}
       </div>

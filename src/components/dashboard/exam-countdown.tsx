@@ -5,7 +5,7 @@ import { useUserStore } from '@/store/user-store';
 import { useTourStore } from '@/store/tour-store';
 import { apiClient } from '@/lib/api-client';
 import type { ApiResponse } from '@/types/auth.types';
-import { Pencil, Check, X, ArrowRight } from 'lucide-react';
+import { Pencil, Check, X, ArrowRight, CalendarDays, Flame, Target as TargetIcon } from 'lucide-react';
 import { ChibiMascot } from '@/components/ui/chibi-mascot';
 
 function getDaysRemaining(examDate: string | null): number | null {
@@ -86,8 +86,9 @@ export function ExamCountdown() {
         <div className="absolute -bottom-8 -left-8 w-32 h-32 rounded-full bg-pink-300/20 blur-2xl pointer-events-none"></div>
 
         <div className="relative flex items-center justify-between mb-4">
-          <span className="inline-flex items-center gap-2 bg-white/20 backdrop-blur px-3 py-1 rounded-full text-xs font-bold">
-            📅 Lịch thi IELTS
+          <span className="inline-flex items-center gap-1.5 bg-white/20 backdrop-blur px-3 py-1 rounded-full text-xs font-bold">
+            <CalendarDays className="w-3.5 h-3.5" />
+            Lịch thi IELTS
           </span>
           {!editing ? (
             <button
@@ -148,13 +149,15 @@ export function ExamCountdown() {
           )}
 
           {daysRemaining !== null && daysRemaining <= 30 && daysRemaining > 0 && !editing && (
-            <div className="mt-4 text-center text-xs font-bold bg-white text-orange-600 rounded-2xl py-2 px-4">
-              🔥 Sắp đến ngày thi rồi! Cố lên nào!
+            <div className="mt-4 flex items-center justify-center gap-2 text-xs font-bold bg-white text-orange-600 rounded-2xl py-2 px-4">
+              <Flame className="w-4 h-4" />
+              Sắp đến ngày thi rồi! Cố lên nào!
             </div>
           )}
           {daysRemaining === 0 && (
-            <div className="mt-4 text-center text-xs font-bold bg-white text-rose-600 rounded-2xl py-2 px-4">
-              🎯 Hôm nay là ngày thi!
+            <div className="mt-4 flex items-center justify-center gap-2 text-xs font-bold bg-white text-rose-600 rounded-2xl py-2 px-4">
+              <TargetIcon className="w-4 h-4" />
+              Hôm nay là ngày thi!
             </div>
           )}
         </div>

@@ -341,7 +341,7 @@ export default function PaymentPage() {
           {pkgLoading
             ? Array.from({ length: 3 }).map((_, i) => <PackageSkeleton key={i} />)
             : packages
-                .filter((p) => !p.name.toUpperCase().includes('PRO') && p.price < 1000000)
+                .filter((p) => p.category === 'BASIC' || (!p.category && !p.name.toUpperCase().includes('PRO')))
                 .map((pkg) => {
                   const turns = Math.round(pkg.creditAmount / 10000);
                   const discount = pkg.price < turns * 10000 ? turns * 10000 - pkg.price : 0;
@@ -423,14 +423,11 @@ export default function PaymentPage() {
           {pkgLoading
             ? Array.from({ length: 3 }).map((_, i) => <PackageSkeleton key={i} />)
             : packages
-                .filter((p) => p.name.toUpperCase().includes('PRO') || p.price >= 1000000)
+                .filter((p) => p.category === 'PRO' || (!p.category && p.name.toUpperCase().includes('PRO')))
                 .map((pkg) => {
-                  // Giả định gói Pro: credit dùng cho cả AI và Expert
-                  // Ví dụ: 1000k credit -> 50 lươt AI + 10 lượt Expert (10k/35k)
-                  // Ở đây tôi sẽ tính toán dựa trên creditAmount để hiển thị cho hấp dẫn
                   const totalVnd = pkg.creditAmount;
-                  const expertTurns = Math.floor(totalVnd / 40000); // Giả định 40k/lượt mentor
-                  const aiTurns = Math.floor((totalVnd % 40000) / 10000) + 10; // Bonus thêm lượt AI
+                  const expertTurns = Math.floor(totalVnd / 40000); 
+                  const aiTurns = Math.floor((totalVnd % 40000) / 10000) + 10; 
 
                   return (
                     <div
@@ -479,7 +476,7 @@ export default function PaymentPage() {
                     </div>
                   );
                 })}
-          {packages.filter((p) => p.name.toUpperCase().includes('PRO') || p.price >= 1000000).length === 0 && (
+          {packages.filter((p) => p.category === 'PRO' || (!p.category && p.name.toUpperCase().includes('PRO'))).length === 0 && (
             <div className="col-span-full text-center py-6 border-2 border-dashed border-gray-100 rounded-2xl">
               <p className="text-sm text-gray-400">Gói Pro sắp ra mắt với tính năng chấm Mentor chi tiết.</p>
             </div>

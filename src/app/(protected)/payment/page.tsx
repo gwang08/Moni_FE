@@ -404,14 +404,14 @@ export default function PaymentPage() {
         </div>
       </section>
 
-      {/* ── Section 3: Gói lượt chấm cơ bản ── */}
+      {/* ── Section 3: Gói lượt chấm ── */}
       <section className="space-y-4">
         <div className="flex items-center gap-2">
           <div className="p-2 rounded-lg bg-emerald-100">
             <Zap className="h-5 w-5 text-emerald-600" />
           </div>
           <div>
-            <h2 className="text-lg font-bold">Gói lượt chấm cơ bản</h2>
+            <h2 className="text-lg font-bold">Gói lượt chấm</h2>
             <p className="text-xs text-muted-foreground">Mua lẻ lượt chấm AI, không giới hạn thời gian sử dụng</p>
           </div>
         </div>

@@ -368,57 +368,61 @@ export default function PaymentPage() {
           {pkgLoading
             ? Array.from({ length: 3 }).map((_, i) => <PackageSkeleton key={i} />)
             : packages.map((pkg, idx) => {
-                // Calculate turns based on 1 turn = 10,000đ logic
-                // package.creditAmount is the VND balance in backend
                 const turns = Math.round(pkg.creditAmount / 10000);
                 const discount = pkg.price < (turns * 10000) ? (turns * 10000 - pkg.price) : 0;
 
                 return (
                   <div
                     key={pkg.id}
-                    className="relative rounded-2xl p-6 bg-white border-2 border-gray-100 hover:border-emerald-500 transition-all duration-200 hover:shadow-lg hover:-translate-y-1 flex flex-col group"
+                    className="relative rounded-2xl p-5 bg-gradient-to-br from-emerald-50 to-teal-50 border-2 border-emerald-200 hover:border-emerald-400 transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5 flex flex-col"
                   >
                     {discount > 0 && (
-                      <div className="absolute -top-3 right-4 px-3 py-0.5 rounded-full bg-orange-500 text-white text-[10px] font-bold shadow-sm">
+                      <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-0.5 rounded-full bg-[#F97316] text-white text-[10px] font-bold shadow-md whitespace-nowrap">
                         Tiết kiệm {formatVnd(discount)}
                       </div>
                     )}
 
-                    <div className="mb-4">
-                      <div className="text-sm font-medium text-gray-500 mb-1">Gói lượt chấm</div>
-                      <div className="text-4xl font-black text-emerald-600">
-                        {turns} <span className="text-xl font-bold">Lượt</span>
-                      </div>
-                    </div>
+                    <h3 className="font-bold text-lg mb-1 text-gray-800">Gói {turns} lượt chấm</h3>
 
-                    <div className="flex items-center gap-2 mb-6">
-                      <span className="text-2xl font-extrabold text-gray-900">{formatVnd(pkg.price)}</span>
+                    <div className="flex items-baseline gap-1 mb-3">
+                      <span className="text-3xl font-extrabold text-gray-900">{formatVnd(pkg.price)}</span>
                       {discount > 0 && (
-                        <span className="text-sm text-gray-400 line-through font-medium">
+                        <span className="text-xs text-gray-400 line-through font-medium ml-1">
                           {formatVnd(turns * 10000)}
                         </span>
                       )}
                     </div>
 
-                    <ul className="space-y-2 mb-6 flex-1">
-                      <li className="flex items-center gap-2 text-xs text-gray-600">
-                        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
+                    {/* Turn highlight box — matching the style of Roadmap cards */}
+                    <div className="mb-4">
+                      <div className="rounded-xl bg-white/70 border border-emerald-200 px-3 py-2 text-center">
+                        <div className="text-[10px] font-bold uppercase tracking-wider text-emerald-600">Tổng cộng</div>
+                        <div className="text-xl font-black text-emerald-700">
+                          {turns} <span className="text-sm font-bold">Lượt chấm AI</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <ul className="space-y-2 mb-5 flex-1">
+                      <li className="flex items-start gap-2 text-sm text-gray-700">
+                        <CheckCircle2 className="h-4 w-4 text-emerald-500 mt-0.5 shrink-0" />
                         Chấm full Speaking & Writing Task 1/2
                       </li>
-                      <li className="flex items-center gap-2 text-xs text-gray-600">
-                        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
+                      <li className="flex items-start gap-2 text-sm text-gray-700">
+                        <CheckCircle2 className="h-4 w-4 text-emerald-500 mt-0.5 shrink-0" />
                         Không hết hạn lượt chấm
                       </li>
-                      <li className="flex items-center gap-2 text-xs text-gray-600">
-                        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
-                        Tự động đồng bộ vào Lộ trình học
+                      <li className="flex items-start gap-2 text-sm text-gray-700">
+                        <CheckCircle2 className="h-4 w-4 text-emerald-500 mt-0.5 shrink-0" />
+                        Tự động đồng bộ vào Lộ trình
                       </li>
                     </ul>
 
                     <Button
                       onClick={() => handleSelectPackage(pkg)}
-                      className="w-full rounded-xl h-10 bg-emerald-600 hover:bg-emerald-700 text-white font-bold"
+                      className="w-full rounded-xl h-11 text-white font-semibold bg-emerald-600 hover:bg-emerald-700 shadow-md shadow-emerald-200"
                     >
+                      <Sparkles className="h-4 w-4 mr-1.5" />
                       Mua ngay
                     </Button>
                   </div>

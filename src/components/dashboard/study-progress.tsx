@@ -39,9 +39,13 @@ function formatDayDate(dateStr?: string): string {
 interface HoverState {
   x: number;
   y: number;
+  placement: 'top' | 'bottom';
   date: string;
   count: number;
 }
+
+const TOOLTIP_GAP = 10;
+const TOOLTIP_ESTIMATED_HEIGHT = 56;
 
 export function StudyProgress() {
   const { attempts, loading } = useAttemptHistory();
@@ -87,15 +91,22 @@ export function StudyProgress() {
     return { heatMapValues: values, currentStreak: streak, totalThisYear, totalThisWeek, year: currentYear };
   }, [attempts]);
 
-  // Single tooltip state driven by rect hover events — no scale transform so no jitter
+  // Single tooltip state driven by rect hover events — no scale transform so no jitter.
+  // Flip placement to 'bottom' when the cell is too close to top of the card to render above.
   const handleCellEnter = useCallback((e: React.MouseEvent, date: string, count: number) => {
     const container = containerRef.current;
     if (!container) return;
     const cellRect = (e.currentTarget as SVGElement).getBoundingClientRect();
     const containerRect = container.getBoundingClientRect();
+    const xInContainer = cellRect.left - containerRect.left + cellRect.width / 2;
+    const topInContainer = cellRect.top - containerRect.top;
+    const bottomInContainer = topInContainer + cellRect.height;
+    const spaceAbove = topInContainer;
+    const placement: 'top' | 'bottom' = spaceAbove < TOOLTIP_ESTIMATED_HEIGHT + TOOLTIP_GAP ? 'bottom' : 'top';
     setHover({
-      x: cellRect.left - containerRect.left + cellRect.width / 2,
-      y: cellRect.top - containerRect.top,
+      x: xInContainer,
+      y: placement === 'top' ? topInContainer : bottomInContainer,
+      placement,
       date,
       count,
     });
@@ -179,14 +190,18 @@ export function StudyProgress() {
             className="pointer-events-none absolute z-20 bg-gray-900 text-white text-xs rounded-lg shadow-xl px-3 py-2 font-medium whitespace-nowrap"
             style={{
               left: hover.x,
-              top: hover.y - 12,
-              transform: 'translate(-50%, -100%)',
+              top: hover.placement === 'top' ? hover.y - TOOLTIP_GAP : hover.y + TOOLTIP_GAP,
+              transform: hover.placement === 'top'
+                ? 'translate(-50%, -100%)'
+                : 'translate(-50%, 0)',
             }}
           >
             <div className="font-bold">{hover.count} bài luyện tập</div>
             <div className="text-[10px] opacity-70 mt-0.5">{formatDayDate(hover.date)}</div>
             <div
-              className="absolute left-1/2 -translate-x-1/2 -bottom-1 w-2 h-2 bg-gray-900 rotate-45"
+              className={`absolute left-1/2 -translate-x-1/2 w-2 h-2 bg-gray-900 rotate-45 ${
+                hover.placement === 'top' ? '-bottom-1' : '-top-1'
+              }`}
             />
           </div>
         )}

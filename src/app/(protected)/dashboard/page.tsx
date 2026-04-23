@@ -8,8 +8,7 @@ import { useHydration } from '@/hooks/use-hydration';
 import { SkeletonCard } from '@/components/ui/skeleton';
 import { TargetScores } from '@/components/dashboard/target-scores';
 import { ExamCountdown } from '@/components/dashboard/exam-countdown';
-import { ActivityCalendar } from '@/components/dashboard/activity-calendar';
-import { WeeklyStats } from '@/components/dashboard/weekly-stats';
+import { StudyProgress } from '@/components/dashboard/study-progress';
 import { VocabReviewStats } from '@/components/dashboard/vocab-review-stats';
 import { useAuthStore } from '@/store/auth-store';
 import { PlacementDialog, PLACEMENT_SKIP_KEY } from '@/components/dashboard/placement-dialog';
@@ -309,10 +308,9 @@ export default function DashboardPage() {
                 ) : null}
               </div>
 
-              {/* Sidebar Column */}
-              <div className="lg:col-span-4 space-y-8">
-                <WeeklyStats />
-                <ActivityCalendar />
+              {/* Study Progress Layout Bottom */}
+              <div className="lg:col-span-12 mt-4 mb-8">
+                <StudyProgress />
               </div>
             </div>
           </div>

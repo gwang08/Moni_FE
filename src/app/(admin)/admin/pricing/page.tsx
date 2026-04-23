@@ -30,7 +30,7 @@ export default function AdminPricingPage() {
             </a>
             <a href="#packages" className="flex items-center gap-2 px-3 py-2 text-sm rounded-lg text-gray-600 hover:bg-emerald-50 hover:text-emerald-600 border-l-2 border-transparent hover:border-emerald-500 transition-all">
               <Package className="h-4 w-4" />
-              Gói nạp VND
+              Gói lượt chấm cơ bản
             </a>
             <a href="#subscriptions" className="flex items-center gap-2 px-3 py-2 text-sm rounded-lg text-gray-600 hover:bg-indigo-50 hover:text-indigo-600 border-l-2 border-transparent hover:border-indigo-500 transition-all">
               <Sparkles className="h-4 w-4" />
@@ -54,7 +54,7 @@ export default function AdminPricingPage() {
           <section id="packages" className="bg-white rounded-xl border shadow-sm overflow-hidden scroll-mt-6">
             <div className="px-5 py-3 bg-gray-50 border-b flex items-center gap-2">
               <Package className="h-4 w-4 text-emerald-500" />
-              <h3 className="font-bold text-sm">Gói nạp VND</h3>
+              <h3 className="font-bold text-sm">Gói lượt chấm cơ bản</h3>
             </div>
             <div className="p-6">
               <PackagesTab />

@@ -190,7 +190,7 @@ export function StudyProgress() {
                     return (
                       <Tooltip key={value?.date || Math.random()}>
                         <TooltipTrigger asChild>
-                          {element}
+                          <g>{element as any}</g>
                         </TooltipTrigger>
                         <TooltipContent className="bg-foreground text-background font-bold px-3 py-2 rounded-xl shadow-xl border-none">
                           <p>{count} bài luyện tập</p>

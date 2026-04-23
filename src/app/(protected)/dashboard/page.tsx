@@ -10,6 +10,7 @@ import { TargetScores } from '@/components/dashboard/target-scores';
 import { ExamCountdown } from '@/components/dashboard/exam-countdown';
 import { StudyProgress } from '@/components/dashboard/study-progress';
 import { VocabReviewStats } from '@/components/dashboard/vocab-review-stats';
+import { WeeklyStats } from '@/components/dashboard/weekly-stats';
 import { useAuthStore } from '@/store/auth-store';
 import { PlacementDialog, PLACEMENT_SKIP_KEY } from '@/components/dashboard/placement-dialog';
 import { LearningRoadmap } from '@/components/dashboard/learning-roadmap';

@@ -325,7 +325,86 @@ export default function PaymentPage() {
         </div>
       </section>
 
-      {/* ── Section 2: Gói lượt chấm cơ bản ── */}
+            {/* ── Section 2: Gói chấm điểm Pro ── */}
+      <section className="space-y-4">
+        <div className="flex items-center gap-2">
+          <div className="p-2 rounded-lg bg-indigo-100">
+            <Crown className="h-5 w-5 text-indigo-600" />
+          </div>
+          <div>
+            <h2 className="text-lg font-bold">Gói chấm điểm Pro</h2>
+            <p className="text-xs text-muted-foreground">Bao gồm lượt chấm chi tiết từ Giảng viên/Mentor</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          {pkgLoading
+            ? Array.from({ length: 3
+              
+             }).map((_, i) => <PackageSkeleton key={i} />)
+            : packages
+                .filter((p) => p.category === 'PRO' || (!p.category && p.name.toUpperCase().includes('PRO')))
+                .map((pkg) => {
+                  const totalVnd = pkg.creditAmount;
+                  const expertTurns = Math.floor(totalVnd / 40000); 
+                  const aiTurns = Math.floor((totalVnd % 40000) / 10000) + 10; 
+
+                  return (
+                    <div
+                      key={pkg.id}
+                      className="relative rounded-2xl p-5 bg-gradient-to-br from-indigo-50 to-purple-50 border-2 border-indigo-200 hover:border-indigo-400 transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5 flex flex-col"
+                    >
+                      <h3 className="font-bold text-lg mb-1 text-gray-800">{pkg.name}</h3>
+
+                      <div className="flex items-baseline gap-1 mb-3">
+                        <span className="text-3xl font-extrabold text-indigo-600">{formatVnd(pkg.price)}</span>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2 mb-4">
+                        <div className="rounded-xl bg-white/70 border border-emerald-200 px-2 py-2 text-center">
+                          <div className="text-[9px] font-bold uppercase tracking-wider text-emerald-600">Lượt AI</div>
+                          <div className="text-lg font-black text-emerald-700">{aiTurns}</div>
+                        </div>
+                        <div className="rounded-xl bg-white/70 border border-indigo-200 px-2 py-2 text-center">
+                          <div className="text-[9px] font-bold uppercase tracking-wider text-indigo-600">Mentor</div>
+                          <div className="text-lg font-black text-indigo-700">{expertTurns}</div>
+                        </div>
+                      </div>
+
+                      <ul className="space-y-2 mb-5 flex-1">
+                        <li className="flex items-start gap-2 text-sm text-gray-700 font-bold">
+                          <CheckCircle2 className="h-4 w-4 text-indigo-500 mt-0.5 shrink-0" />
+                          Chấm & Feedback chi tiết từ Mentor
+                        </li>
+                        <li className="flex items-start gap-2 text-sm text-gray-700">
+                          <CheckCircle2 className="h-4 w-4 text-indigo-500 mt-0.5 shrink-0" />
+                          Chấm full Speaking & Writing Task 1/2
+                        </li>
+                        <li className="flex items-start gap-2 text-sm text-gray-700">
+                          <CheckCircle2 className="h-4 w-4 text-indigo-500 mt-0.5 shrink-0" />
+                          Ưu tiên trả kết quả sớm nhất
+                        </li>
+                      </ul>
+
+                      <Button
+                        onClick={() => handleSelectPackage(pkg)}
+                        className="w-full rounded-xl h-11 text-white font-semibold bg-indigo-600 hover:bg-indigo-700 shadow-md shadow-indigo-200"
+                      >
+                        <Crown className="h-4 w-4 mr-1.5" />
+                        Đăng ký ngay
+                      </Button>
+                    </div>
+                  );
+                })}
+          {packages.filter((p) => p.category === 'PRO' || (!p.category && p.name.toUpperCase().includes('PRO'))).length === 0 && (
+            <div className="col-span-full text-center py-6 border-2 border-dashed border-gray-100 rounded-2xl">
+              <p className="text-sm text-gray-400">Gói Pro sắp ra mắt với tính năng chấm Mentor chi tiết.</p>
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* ── Section 3: Gói lượt chấm cơ bản ── */}
       <section className="space-y-4">
         <div className="flex items-center gap-2">
           <div className="p-2 rounded-lg bg-emerald-100">
@@ -404,83 +483,6 @@ export default function PaymentPage() {
                     </div>
                   );
                 })}
-        </div>
-      </section>
-
-      {/* ── Section 3: Gói chấm điểm Pro ── */}
-      <section className="space-y-4">
-        <div className="flex items-center gap-2">
-          <div className="p-2 rounded-lg bg-indigo-100">
-            <Crown className="h-5 w-5 text-indigo-600" />
-          </div>
-          <div>
-            <h2 className="text-lg font-bold">Gói chấm điểm Pro</h2>
-            <p className="text-xs text-muted-foreground">Bao gồm lượt chấm chi tiết từ Giảng viên/Mentor</p>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {pkgLoading
-            ? Array.from({ length: 3 }).map((_, i) => <PackageSkeleton key={i} />)
-            : packages
-                .filter((p) => p.category === 'PRO' || (!p.category && p.name.toUpperCase().includes('PRO')))
-                .map((pkg) => {
-                  const totalVnd = pkg.creditAmount;
-                  const expertTurns = Math.floor(totalVnd / 40000); 
-                  const aiTurns = Math.floor((totalVnd % 40000) / 10000) + 10; 
-
-                  return (
-                    <div
-                      key={pkg.id}
-                      className="relative rounded-2xl p-5 bg-gradient-to-br from-indigo-50 to-purple-50 border-2 border-indigo-200 hover:border-indigo-400 transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5 flex flex-col"
-                    >
-                      <h3 className="font-bold text-lg mb-1 text-gray-800">{pkg.name}</h3>
-
-                      <div className="flex items-baseline gap-1 mb-3">
-                        <span className="text-3xl font-extrabold text-indigo-600">{formatVnd(pkg.price)}</span>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-2 mb-4">
-                        <div className="rounded-xl bg-white/70 border border-emerald-200 px-2 py-2 text-center">
-                          <div className="text-[9px] font-bold uppercase tracking-wider text-emerald-600">Lượt AI</div>
-                          <div className="text-lg font-black text-emerald-700">{aiTurns}</div>
-                        </div>
-                        <div className="rounded-xl bg-white/70 border border-indigo-200 px-2 py-2 text-center">
-                          <div className="text-[9px] font-bold uppercase tracking-wider text-indigo-600">Mentor</div>
-                          <div className="text-lg font-black text-indigo-700">{expertTurns}</div>
-                        </div>
-                      </div>
-
-                      <ul className="space-y-2 mb-5 flex-1">
-                        <li className="flex items-start gap-2 text-sm text-gray-700 font-bold">
-                          <CheckCircle2 className="h-4 w-4 text-indigo-500 mt-0.5 shrink-0" />
-                          Chấm & Feedback chi tiết từ Mentor
-                        </li>
-                        <li className="flex items-start gap-2 text-sm text-gray-700">
-                          <CheckCircle2 className="h-4 w-4 text-indigo-500 mt-0.5 shrink-0" />
-                          Chấm full Speaking & Writing Task 1/2
-                        </li>
-                        <li className="flex items-start gap-2 text-sm text-gray-700">
-                          <CheckCircle2 className="h-4 w-4 text-indigo-500 mt-0.5 shrink-0" />
-                          Ưu tiên trả kết quả sớm nhất
-                        </li>
-                      </ul>
-
-                      <Button
-                        onClick={() => handleSelectPackage(pkg)}
-                        className="w-full rounded-xl h-11 text-white font-semibold bg-indigo-600 hover:bg-indigo-700 shadow-md shadow-indigo-200"
-                      >
-                        <Crown className="h-4 w-4 mr-1.5" />
-                        Đăng ký ngay
-                      </Button>
-                    </div>
-                  );
-                })}
-          {packages.filter((p) => p.category === 'PRO' || (!p.category && p.name.toUpperCase().includes('PRO'))).length === 0 && (
-            <div className="col-span-full text-center py-6 border-2 border-dashed border-gray-100 rounded-2xl">
-              <p className="text-sm text-gray-400">Gói Pro sắp ra mắt với tính năng chấm Mentor chi tiết.</p>
-            </div>
-          )}
         </div>
       </section>
 

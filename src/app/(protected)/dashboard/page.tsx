@@ -218,16 +218,7 @@ export default function DashboardPage() {
               <ExamCountdown />
             </div>
 
-            {/* Row 2 — Study Progress + Weekly Stats */}
-            <div className="grid gap-6 lg:grid-cols-12">
-              <div className="lg:col-span-8"><StudyProgress /></div>
-              <div className="lg:col-span-4"><WeeklyStats /></div>
-            </div>
-
-            {/* Row 3 — Vocab full width */}
-            <VocabReviewStats />
-
-            {/* Row 4+ — Roadmap */}
+            {/* Row 2 — Roadmap (personal insights + weekly plan) */}
             {hasRoadmapSub === false ? (
               <RoadmapPaywall />
             ) : hasRoadmapSub === true ? (
@@ -280,6 +271,16 @@ export default function DashboardPage() {
                 <LearningRoadmap weekNumber={selectedWeek} />
               </div>
             ) : null}
+
+            {/* Row 3 — Study Progress + Weekly Stats */}
+            <div className="grid gap-6 lg:grid-cols-12">
+              <div className="lg:col-span-8"><StudyProgress /></div>
+              <div className="lg:col-span-4"><WeeklyStats /></div>
+            </div>
+
+            {/* Row 4 — Vocab full width */}
+            <VocabReviewStats />
+
           </div>
         )}
       </div>

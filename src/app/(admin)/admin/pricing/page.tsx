@@ -164,7 +164,8 @@ function PackagesTab() {
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
                 <th className="px-4 py-3 text-left font-medium text-gray-600">Tên</th>
-                <th className="px-4 py-3 text-left font-medium text-gray-600">Credits</th>
+                <th className="px-4 py-3 text-center font-medium text-gray-600">Lượt AI</th>
+                <th className="px-4 py-3 text-center font-medium text-gray-600">Lượt Expert</th>
                 <th className="px-4 py-3 text-left font-medium text-gray-600">Giá (VNĐ)</th>
                 <th className="px-4 py-3 text-center font-medium text-gray-600">Trạng thái</th>
                 <th className="px-4 py-3 text-right font-medium text-gray-600">Thao tác</th>
@@ -172,11 +173,12 @@ function PackagesTab() {
             </thead>
             <tbody className="divide-y divide-gray-100">
               {packages.length === 0 ? (
-                <tr><td colSpan={5} className="text-center py-8 text-gray-400">Chưa có gói nào</td></tr>
+                <tr><td colSpan={6} className="text-center py-8 text-gray-400">Chưa có gói nào</td></tr>
               ) : packages.map(pkg => (
                 <tr key={pkg.id} className="hover:bg-gray-50">
                   <td className="px-4 py-3 font-medium text-gray-800">{pkg.name}</td>
-                  <td className="px-4 py-3 text-gray-700">{pkg.creditAmount.toLocaleString('vi-VN')}</td>
+                  <td className="px-4 py-3 text-center text-gray-700 font-semibold">{pkg.quotaAi}</td>
+                  <td className="px-4 py-3 text-center text-gray-700 font-semibold">{pkg.quotaExpert}</td>
                   <td className="px-4 py-3 text-gray-700">{formatVnd(pkg.price)}</td>
                   <td className="px-4 py-3">
                     <div className="flex items-center justify-center gap-2">

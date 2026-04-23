@@ -345,10 +345,6 @@ export default function PaymentPage() {
             : packages
                 .filter((p) => p.category === 'PRO' || (!p.category && p.name.toUpperCase().includes('PRO')))
                 .map((pkg) => {
-                  const totalVnd = pkg.creditAmount;
-                  const expertTurns = Math.floor(totalVnd / 40000); 
-                  const aiTurns = Math.floor((totalVnd % 40000) / 10000) + 10; 
-
                   return (
                     <div
                       key={pkg.id}
@@ -363,11 +359,11 @@ export default function PaymentPage() {
                       <div className="grid grid-cols-2 gap-2 mb-4">
                         <div className="rounded-xl bg-white/70 border border-emerald-200 px-2 py-2 text-center">
                           <div className="text-[9px] font-bold uppercase tracking-wider text-emerald-600">Lượt AI</div>
-                          <div className="text-lg font-black text-emerald-700">{aiTurns}</div>
+                          <div className="text-lg font-black text-emerald-700">{pkg.quotaAi}</div>
                         </div>
                         <div className="rounded-xl bg-white/70 border border-indigo-200 px-2 py-2 text-center">
                           <div className="text-[9px] font-bold uppercase tracking-wider text-indigo-600">Mentor</div>
-                          <div className="text-lg font-black text-indigo-700">{expertTurns}</div>
+                          <div className="text-lg font-black text-indigo-700">{pkg.quotaExpert}</div>
                         </div>
                       </div>
 
@@ -422,8 +418,7 @@ export default function PaymentPage() {
             : packages
                 .filter((p) => p.category === 'BASIC' || (!p.category && !p.name.toUpperCase().includes('PRO')))
                 .map((pkg) => {
-                  const turns = Math.round(pkg.creditAmount / 10000);
-                  const discount = pkg.price < turns * 10000 ? turns * 10000 - pkg.price : 0;
+                  const discount = pkg.price < pkg.quotaAi * 10000 ? pkg.quotaAi * 10000 - pkg.price : 0;
 
                   return (
                     <div
@@ -436,13 +431,13 @@ export default function PaymentPage() {
                         </div>
                       )}
 
-                      <h3 className="font-bold text-lg mb-1 text-gray-800">Gói {turns} lượt chấm</h3>
+                      <h3 className="font-bold text-lg mb-1 text-gray-800">{pkg.name}</h3>
 
                       <div className="flex items-baseline gap-1 mb-3">
                         <span className="text-3xl font-extrabold text-gray-900">{formatVnd(pkg.price)}</span>
                         {discount > 0 && (
                           <span className="text-xs text-gray-400 line-through font-medium ml-1">
-                            {formatVnd(turns * 10000)}
+                            {formatVnd(pkg.quotaAi * 10000)}
                           </span>
                         )}
                       </div>
@@ -453,7 +448,7 @@ export default function PaymentPage() {
                             Tổng cộng
                           </div>
                           <div className="text-xl font-black text-emerald-700">
-                            {turns} <span className="text-sm font-bold">Lượt chấm AI</span>
+                            {pkg.quotaAi} <span className="text-sm font-bold">Lượt chấm AI</span>
                           </div>
                         </div>
                       </div>

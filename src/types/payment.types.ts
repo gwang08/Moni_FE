@@ -4,6 +4,8 @@ export interface PackagePricingResponse {
   category?: string;
   price: number;
   creditAmount: number;
+  quotaAi: number;
+  quotaExpert: number;
   isActive: boolean;
 }
 
@@ -56,12 +58,18 @@ export interface PackagePricingCreateRequest {
   name: string;
   price: number;
   creditAmount: number;
+  category?: string;
+  quotaAi?: number;
+  quotaExpert?: number;
 }
 
 export interface PackagePricingUpdateRequest {
   name?: string;
   price?: number;
   creditAmount?: number;
+  category?: string;
+  quotaAi?: number;
+  quotaExpert?: number;
   isActive?: boolean;
 }
 

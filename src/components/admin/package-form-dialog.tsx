@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Loader2, Package, Coins, Banknote, ToggleRight } from 'lucide-react';
+import { Loader2, Package, Banknote, ToggleRight, Zap, Crown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -24,10 +24,13 @@ interface FormState {
   name: string;
   price: number;
   creditAmount: number;
+  quotaAi: number;
+  quotaExpert: number;
+  category: string;
   isActive: boolean;
 }
 
-const defaultForm: FormState = { name: '', price: 0, creditAmount: 0, isActive: true };
+const defaultForm: FormState = { name: '', price: 0, creditAmount: 0, quotaAi: 0, quotaExpert: 0, category: 'BASIC', isActive: true };
 
 export function PackageFormDialog({ open, onOpenChange, pkg, onSuccess }: Props) {
   const [form, setForm] = useState<FormState>(defaultForm);
@@ -38,7 +41,15 @@ export function PackageFormDialog({ open, onOpenChange, pkg, onSuccess }: Props)
   useEffect(() => {
     if (open) {
       setForm(pkg
-        ? { name: pkg.name, price: pkg.price, creditAmount: pkg.creditAmount, isActive: pkg.isActive }
+        ? {
+            name: pkg.name,
+            price: pkg.price,
+            creditAmount: pkg.creditAmount,
+            quotaAi: pkg.quotaAi ?? 0,
+            quotaExpert: pkg.quotaExpert ?? 0,
+            category: pkg.category ?? 'BASIC',
+            isActive: pkg.isActive,
+          }
         : defaultForm
       );
       setError('');
@@ -49,7 +60,8 @@ export function PackageFormDialog({ open, onOpenChange, pkg, onSuccess }: Props)
     e.preventDefault();
     if (!form.name.trim()) { setError('Vui lòng nhập tên gói'); return; }
     if (form.price <= 0) { setError('Vui lòng nhập giá hợp lệ'); return; }
-    if (form.creditAmount <= 0) { setError('Vui lòng nhập số credits hợp lệ'); return; }
+    if (form.quotaAi < 0) { setError('Lượt AI phải >= 0'); return; }
+    if (form.quotaExpert < 0) { setError('Lượt Expert phải >= 0'); return; }
     setSubmitting(true);
     setError('');
     try {
@@ -58,6 +70,9 @@ export function PackageFormDialog({ open, onOpenChange, pkg, onSuccess }: Props)
           name: form.name,
           price: form.price,
           creditAmount: form.creditAmount,
+          category: form.category,
+          quotaAi: form.quotaAi,
+          quotaExpert: form.quotaExpert,
           isActive: form.isActive,
         };
         await updatePackage(String(pkg.id), data);
@@ -66,6 +81,9 @@ export function PackageFormDialog({ open, onOpenChange, pkg, onSuccess }: Props)
           name: form.name,
           price: form.price,
           creditAmount: form.creditAmount,
+          category: form.category,
+          quotaAi: form.quotaAi,
+          quotaExpert: form.quotaExpert,
         };
         await createPackage(data);
       }
@@ -89,7 +107,7 @@ export function PackageFormDialog({ open, onOpenChange, pkg, onSuccess }: Props)
               <div className="p-2 rounded-lg bg-white/10">
                 <Package className="h-4.5 w-4.5" />
               </div>
-              {pkg ? 'Chỉnh sửa gói credits' : 'Tạo gói credits mới'}
+              {pkg ? 'Chỉnh sửa gói lượt chấm' : 'Tạo gói lượt chấm mới'}
             </DialogTitle>
           </DialogHeader>
         </div>
@@ -105,25 +123,54 @@ export function PackageFormDialog({ open, onOpenChange, pkg, onSuccess }: Props)
               placeholder="Nhập tên gói" className="h-10" />
           </div>
 
+          {/* Category */}
+          <div>
+            <Label className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">
+              Phân loại
+            </Label>
+            <div className="flex gap-2">
+              <button type="button"
+                onClick={() => setForm(p => ({ ...p, category: 'BASIC' }))}
+                className={`flex-1 h-9 rounded-lg text-sm font-semibold transition-all ${form.category === 'BASIC' ? 'bg-emerald-100 text-emerald-700 border-2 border-emerald-400' : 'bg-gray-50 text-gray-500 border border-gray-200 hover:bg-gray-100'}`}>
+                Basic
+              </button>
+              <button type="button"
+                onClick={() => setForm(p => ({ ...p, category: 'PRO' }))}
+                className={`flex-1 h-9 rounded-lg text-sm font-semibold transition-all ${form.category === 'PRO' ? 'bg-indigo-100 text-indigo-700 border-2 border-indigo-400' : 'bg-gray-50 text-gray-500 border border-gray-200 hover:bg-gray-100'}`}>
+                Pro
+              </button>
+            </div>
+          </div>
+
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="pkg-credits" className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                <Coins className="h-3.5 w-3.5" />
-                Credits
+              <Label htmlFor="pkg-ai" className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                <Zap className="h-3.5 w-3.5" />
+                Lượt AI
               </Label>
-              <Input id="pkg-credits" type="number" min={1} value={form.creditAmount || ''}
-                onChange={e => setForm(p => ({ ...p, creditAmount: Number(e.target.value) }))}
-                placeholder="Số credits" className="h-10" />
+              <Input id="pkg-ai" type="number" min={0} value={form.quotaAi || ''}
+                onChange={e => setForm(p => ({ ...p, quotaAi: Number(e.target.value) }))}
+                placeholder="0" className="h-10" />
             </div>
             <div>
-              <Label htmlFor="pkg-price" className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                <Banknote className="h-3.5 w-3.5" />
-                Giá (VND)
+              <Label htmlFor="pkg-expert" className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                <Crown className="h-3.5 w-3.5" />
+                Lượt Expert
               </Label>
-              <Input id="pkg-price" inputMode="numeric" value={priceInput.displayValue}
-                onChange={priceInput.onChange}
-                placeholder="VD: 100,000" className="h-10" />
+              <Input id="pkg-expert" type="number" min={0} value={form.quotaExpert || ''}
+                onChange={e => setForm(p => ({ ...p, quotaExpert: Number(e.target.value) }))}
+                placeholder="0" className="h-10" />
             </div>
+          </div>
+
+          <div>
+            <Label htmlFor="pkg-price" className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">
+              <Banknote className="h-3.5 w-3.5" />
+              Giá (VND)
+            </Label>
+            <Input id="pkg-price" inputMode="numeric" value={priceInput.displayValue}
+              onChange={priceInput.onChange}
+              placeholder="VD: 100,000" className="h-10" />
           </div>
 
           {pkg && (

@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Menu, X } from 'lucide-react';
+import { Menu, X, ShoppingCart } from 'lucide-react';
 import { UserAvatarDropdown } from '@/components/layout/user-avatar-dropdown';
 import { getDueReview } from '@/lib/vocab-api';
 import { Badge } from '@/components/ui/badge';
@@ -93,7 +93,17 @@ export function InnerNavbar() {
 
         {/* Right side: avatar + hamburger */}
         <div className="flex items-center gap-2">
+          {userRole === 'USER' && (
+            <Link
+              href="/payment"
+              className="hidden sm:flex items-center gap-1.5 text-sm font-semibold text-teal-600 hover:text-teal-700 border border-teal-200 hover:border-teal-400 bg-teal-50 hover:bg-teal-100 rounded-full px-3 py-1.5 transition-all"
+            >
+              <ShoppingCart className="h-3.5 w-3.5" />
+              Mua gói
+            </Link>
+          )}
           <UserAvatarDropdown />
+
           <button
             onClick={() => setMobileOpen((v) => !v)}
             className="md:hidden p-1.5 rounded-lg hover:bg-gray-100 text-gray-600 transition-colors"

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowDown } from 'lucide-react';
+import { ArrowDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import { ChibiMascot } from '@/components/ui/chibi-mascot';
 import { useHydration } from '@/hooks/use-hydration';
 import { SkeletonCard } from '@/components/ui/skeleton';
@@ -21,7 +21,6 @@ import { getPlacementResult } from '@/lib/placement-api';
 import { getWeeklyPlan, getWeeklyPlanHistory, getLearnMetricStatus } from '@/lib/roadmap-api';
 import { getRoadmapSubscriptionStatus } from '@/lib/subscription-api';
 import { apiClient } from '@/lib/api-client';
-import { ChevronLeft, ChevronRight, CalendarDays } from 'lucide-react';
 import { RoadmapPaywall } from '@/components/dashboard/roadmap-paywall';
 import { RoadmapReturningDialog } from '@/components/dashboard/roadmap-returning-dialog';
 import type { ApiResponse } from '@/types/auth.types';
@@ -29,24 +28,36 @@ import type { ApiResponse } from '@/types/auth.types';
 function DashboardSkeleton() {
   return (
     <div className="space-y-6">
-      <div className="grid gap-6 md:grid-cols-2">
-        <SkeletonCard className="h-64" />
-        <SkeletonCard className="h-64" />
+      <SkeletonCard className="h-48 rounded-3xl" />
+      <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
+        <SkeletonCard className="h-28 rounded-3xl" />
+        <SkeletonCard className="h-28 rounded-3xl" />
+        <SkeletonCard className="h-28 rounded-3xl" />
+        <SkeletonCard className="h-28 rounded-3xl" />
       </div>
-      <SkeletonCard className="h-80" />
       <div className="grid gap-6 md:grid-cols-2">
-        <SkeletonCard className="h-72" />
-        <SkeletonCard className="h-72" />
+        <SkeletonCard className="h-72 rounded-3xl" />
+        <SkeletonCard className="h-72 rounded-3xl" />
       </div>
-      <SkeletonCard className="h-64" />
+      <SkeletonCard className="h-80 rounded-3xl" />
     </div>
   );
+}
+
+// Warm greeting by hour of day
+function getGreeting(): string {
+  const h = new Date().getHours();
+  if (h < 11) return 'Chào buổi sáng';
+  if (h < 14) return 'Chào buổi trưa';
+  if (h < 18) return 'Chào buổi chiều';
+  return 'Chào buổi tối';
 }
 
 export default function DashboardPage() {
   const router = useRouter();
   const hydrated = useHydration();
   const userRole = useAuthStore((state) => state.user?.role);
+  const userName = useAuthStore((state) => state.user?.fullName);
   const setPlacementResult = useUserStore((s) => s.setPlacementResult);
   const setTargetScore = useUserStore((s) => s.setTargetScore);
   const setExamDate = useUserStore((s) => s.setExamDate);
@@ -57,20 +68,13 @@ export default function DashboardPage() {
 
   const [availableWeeks, setAvailableWeeks] = useState<{ week: number, label: string, isCurrent: boolean }[]>([]);
   const [selectedWeek, setSelectedWeek] = useState<number | undefined>(undefined);
-  const [hasRoadmapSub, setHasRoadmapSub] = useState<boolean | null>(null); // null = loading
+  const [hasRoadmapSub, setHasRoadmapSub] = useState<boolean | null>(null);
   const [showReturningDialog, setShowReturningDialog] = useState(false);
 
-  // Redirect ADMIN and EXPERT away from learner dashboard
   useEffect(() => {
     if (!hydrated) return;
-    if (userRole === 'ADMIN') {
-      router.replace('/admin');
-      return;
-    }
-    if (userRole === 'EXPERT') {
-      router.replace('/expert/dashboard');
-      return;
-    }
+    if (userRole === 'ADMIN') { router.replace('/admin'); return; }
+    if (userRole === 'EXPERT') { router.replace('/expert/dashboard'); return; }
   }, [hydrated, userRole, router]);
 
   useEffect(() => {
@@ -79,10 +83,8 @@ export default function DashboardPage() {
 
     async function loadWeeks() {
       try {
-        // Check roadmap subscription first
         const roadmapStatus = await getRoadmapSubscriptionStatus();
         setHasRoadmapSub(roadmapStatus.hasActiveSubscription);
-
         if (!roadmapStatus.hasActiveSubscription) return;
 
         const [currentPlan, history, metricStatus] = await Promise.all([
@@ -91,7 +93,6 @@ export default function DashboardPage() {
           getLearnMetricStatus().catch(() => ({ hasExistingMetrics: false, hasPlacementResult: false })),
         ]);
 
-        // Returning user detection: has subscription + has old metrics + no active plan
         if (!currentPlan && metricStatus.hasExistingMetrics && history.length > 0) {
           setShowReturningDialog(true);
           return;
@@ -101,26 +102,20 @@ export default function DashboardPage() {
         if (currentPlan) {
           weeks.push({ week: currentPlan.weekNumber, label: `Tuần ${currentPlan.weekNumber} (Hiện tại)`, isCurrent: true });
         }
-
         for (const h of history) {
           if (!weeks.some(w => w.week === h.weekNumber)) {
             weeks.push({ week: h.weekNumber, label: `Tuần ${h.weekNumber}`, isCurrent: false });
           }
         }
-
         weeks.sort((a, b) => b.week - a.week);
         setAvailableWeeks(weeks);
-
-        if (weeks.length > 0) {
-          setSelectedWeek(weeks[0].week);
-        }
+        if (weeks.length > 0) setSelectedWeek(weeks[0].week);
       } catch (err) {
         console.error('Failed to load weeks navigation:', err);
         setHasRoadmapSub(false);
       }
     }
 
-    // Fetch placement result từ backend.
     async function fetchPlacement() {
       const skipped = typeof window !== 'undefined' && sessionStorage.getItem(PLACEMENT_SKIP_KEY) === '1';
       const cached = useUserStore.getState().placementResult;
@@ -146,7 +141,7 @@ export default function DashboardPage() {
         }
       } catch { /* ignore */ }
     }
-    
+
     if (sessionStorage.getItem('showRoadmapTour')) {
       sessionStorage.removeItem('showRoadmapTour');
       setTimeout(() => setTourStep(4), 500);
@@ -159,8 +154,11 @@ export default function DashboardPage() {
     refreshProfile();
   }, [hydrated]);
 
+  // Extract first name for greeting
+  const firstName = userName?.split(' ').pop() ?? 'bạn';
+
   return (
-    <div className="min-h-screen bg-gray-50 relative">
+    <div className="min-h-screen bg-[#fff7ed] relative">
       {tourStep > 0 && (
         <div className="fixed inset-0 bg-black/60 z-40 transition-opacity duration-300 flex flex-col items-center justify-center">
           {tourStep === 4 && (
@@ -172,7 +170,6 @@ export default function DashboardPage() {
               <p className="text-orange-100 text-lg mb-12 text-center max-w-md">
                 Kéo xuống một chút để xem điều bất ngờ nhé 👇
               </p>
-              
               <button
                 onClick={() => {
                   document.getElementById('learning-roadmap-section')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -187,20 +184,31 @@ export default function DashboardPage() {
         </div>
       )}
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-        <div className="mb-12">
-          <h1 className="text-3xl font-extrabold text-foreground">
-            Moni đồng hành cùng bạn
-          </h1>
-          <p className="text-muted-foreground mt-2 text-base">
-            Theo dõi tiến độ và đặt mục tiêu IELTS của bạn
-          </p>
-        </div>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Hero greeting — warm & playful */}
+        <section className="relative overflow-hidden rounded-3xl p-8 mb-6 bg-[radial-gradient(circle_at_20%_10%,#fed7aa_0%,transparent_40%),radial-gradient(circle_at_85%_25%,#fce7f3_0%,transparent_45%),radial-gradient(circle_at_50%_100%,#fef3c7_0%,transparent_50%)]">
+          <div className="flex items-center justify-between gap-6">
+            <div className="flex-1">
+              <span className="inline-flex items-center gap-2 bg-white px-3 py-1 rounded-full text-xs font-bold text-orange-600 mb-3 shadow-sm">
+                ✨ {getGreeting()}, {firstName}!
+              </span>
+              <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight leading-tight text-gray-900">
+                Cùng Moni chinh phục IELTS nào!
+              </h1>
+              <p className="text-gray-600 mt-2 max-w-xl">
+                Theo dõi tiến độ, đặt mục tiêu và duy trì nhịp học mỗi ngày để tiến xa hơn.
+              </p>
+            </div>
+            <div className="hidden md:block shrink-0">
+              <ChibiMascot mood="excited" size={120} />
+            </div>
+          </div>
+        </section>
 
         {!hydrated ? (
           <DashboardSkeleton />
         ) : (
-          <div className="space-y-10">
+          <div className="space-y-6">
             <PlacementDialog open={showPlacementDialog} onOpenChange={setShowPlacementDialog} />
             <RoadmapReturningDialog
               open={showReturningDialog}
@@ -215,8 +223,8 @@ export default function DashboardPage() {
               }}
             />
 
-            <div className="grid gap-8 lg:grid-cols-12 items-start">
-              <div className="lg:col-span-8 space-y-10">
+            <div className="grid gap-6 lg:grid-cols-12 items-start">
+              <div className="lg:col-span-8 space-y-6">
                 <div className="grid gap-6 md:grid-cols-2">
                   <TargetScores />
                   <ExamCountdown />
@@ -229,27 +237,27 @@ export default function DashboardPage() {
                 {hasRoadmapSub === false ? (
                   <RoadmapPaywall />
                 ) : hasRoadmapSub === true ? (
-                  <div className="space-y-8">
+                  <div className="space-y-6">
                     {availableWeeks.length > 0 && (
-                      <div className="flex items-center justify-between bg-card px-6 py-4 rounded-2xl border border-border shadow-sm">
+                      <div className="flex items-center justify-between bg-white px-6 py-4 rounded-3xl border border-orange-100 shadow-sm">
                         <div className="flex items-center gap-3">
-                          <div className="p-2.5 bg-primary/10 text-primary rounded-xl">
-                            <CalendarDays className="w-5 h-5" />
+                          <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-orange-400 to-pink-400 flex items-center justify-center text-white text-xl shadow-md shadow-orange-500/20">
+                            🗺️
                           </div>
                           <div>
-                            <div className="text-sm font-bold text-foreground">Chọn tuần học tập</div>
-                            <div className="text-xs text-muted-foreground">Xem lại lộ trình các tuần trước</div>
+                            <div className="text-sm font-extrabold text-gray-900">Chọn tuần học tập</div>
+                            <div className="text-xs text-gray-500">Xem lại lộ trình các tuần trước</div>
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-2">
                           <button
                             onClick={() => {
                               const curIdx = availableWeeks.findIndex(w => w.week === selectedWeek);
                               if (curIdx < availableWeeks.length - 1) setSelectedWeek(availableWeeks[curIdx + 1].week);
                             }}
                             disabled={availableWeeks.findIndex(w => w.week === selectedWeek) >= availableWeeks.length - 1}
-                            className="p-2 text-muted-foreground hover:text-foreground hover:bg-secondary rounded-full disabled:opacity-30 transition-all"
+                            className="w-10 h-10 rounded-full bg-orange-50 text-orange-600 font-bold hover:bg-orange-100 disabled:opacity-30 disabled:hover:bg-orange-50 transition-all flex items-center justify-center"
                           >
                             <ChevronLeft className="w-5 h-5" />
                           </button>
@@ -257,7 +265,7 @@ export default function DashboardPage() {
                           <select
                             value={selectedWeek}
                             onChange={(e) => setSelectedWeek(Number(e.target.value))}
-                            className="bg-secondary border border-border text-foreground text-sm rounded-xl focus:ring-primary focus:border-primary block p-2.5 outline-none font-bold min-w-[140px]"
+                            className="bg-orange-50 border-0 text-orange-600 text-sm rounded-full px-4 py-2 outline-none font-bold min-w-[160px] cursor-pointer hover:bg-orange-100 transition-colors"
                           >
                             {availableWeeks.map(w => (
                               <option key={w.week} value={w.week}>{w.label}</option>
@@ -270,7 +278,7 @@ export default function DashboardPage() {
                               if (curIdx > 0) setSelectedWeek(availableWeeks[curIdx - 1].week);
                             }}
                             disabled={availableWeeks.findIndex(w => w.week === selectedWeek) <= 0}
-                            className="p-2 text-muted-foreground hover:text-foreground hover:bg-secondary rounded-full disabled:opacity-30 transition-all"
+                            className="w-10 h-10 rounded-full bg-orange-50 text-orange-600 font-bold hover:bg-orange-100 disabled:opacity-30 disabled:hover:bg-orange-50 transition-all flex items-center justify-center"
                           >
                             <ChevronRight className="w-5 h-5" />
                           </button>
@@ -284,7 +292,7 @@ export default function DashboardPage() {
                 ) : null}
               </div>
 
-              <div className="lg:col-span-4 space-y-8">
+              <div className="lg:col-span-4 space-y-6">
                 <WeeklyStats />
               </div>
             </div>

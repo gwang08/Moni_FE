@@ -113,22 +113,22 @@ export function StudyProgress() {
       <style dangerouslySetInnerHTML={{__html: `
         .react-calendar-heatmap text {
           font-size: 8px;
-          fill: oklch(0.5 0.01 160);
+          fill: #94a3b8;
           font-weight: 600;
         }
         .react-calendar-heatmap .color-empty {
-          fill: oklch(0.98 0.005 160);
+          fill: #f1f5f9;
           rx: 4;
           ry: 4;
         }
-        /* OKLCH Scale for Teal (Primary Brand Hue) */
-        .react-calendar-heatmap .color-scale-1 { fill: oklch(0.93 0.04 160); rx: 4; ry: 4; }
-        .react-calendar-heatmap .color-scale-2 { fill: oklch(0.82 0.08 160); rx: 4; ry: 4; }
-        .react-calendar-heatmap .color-scale-3 { fill: oklch(0.70 0.12 160); rx: 4; ry: 4; }
-        .react-calendar-heatmap .color-scale-4 { fill: oklch(0.55 0.20 160); rx: 4; ry: 4; }
-        
+        /* Warm orange scale — matches warm-playful theme */
+        .react-calendar-heatmap .color-scale-1 { fill: #fed7aa; rx: 4; ry: 4; }
+        .react-calendar-heatmap .color-scale-2 { fill: #fb923c; rx: 4; ry: 4; }
+        .react-calendar-heatmap .color-scale-3 { fill: #f97316; rx: 4; ry: 4; }
+        .react-calendar-heatmap .color-scale-4 { fill: #c2410c; rx: 4; ry: 4; }
+
         .react-calendar-heatmap rect:hover {
-          stroke: oklch(0.55 0.20 160);
+          stroke: #f97316;
           stroke-width: 2px;
           transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
           transform: scale(1.1);
@@ -150,17 +150,17 @@ export function StudyProgress() {
                   <Info className="w-4 h-4 text-muted-foreground cursor-help" />
                 </h3>
                 <p className="text-sm text-muted-foreground font-medium mt-1">
-                  Bạn đã hoàn thành <span className="text-primary font-bold">{totalThisYear}</span> bài luyện tập trong năm {year}
+                  Bạn đã hoàn thành <span className="text-orange-600 font-bold">{totalThisYear}</span> bài luyện tập trong năm {year}
                 </p>
               </div>
-              <div className="flex items-center gap-3 text-[10px] text-muted-foreground font-bold uppercase tracking-widest bg-secondary/50 px-3 py-1.5 rounded-full">
+              <div className="flex items-center gap-3 text-[10px] text-gray-500 font-bold uppercase tracking-widest bg-orange-50 px-3 py-1.5 rounded-full">
                 <span>Ít</span>
                 <div className="flex gap-1">
-                  <span className="w-3 h-3 rounded-sm bg-muted"></span>
-                  <span className="w-3 h-3 rounded-sm bg-[oklch(0.93_0.04_160)]"></span>
-                  <span className="w-3 h-3 rounded-sm bg-[oklch(0.82_0.08_160)]"></span>
-                  <span className="w-3 h-3 rounded-sm bg-[oklch(0.70_0.12_160)]"></span>
-                  <span className="w-3 h-3 rounded-sm bg-[oklch(0.55_0.20_160)]"></span>
+                  <span className="w-3 h-3 rounded-sm bg-slate-100"></span>
+                  <span className="w-3 h-3 rounded-sm bg-orange-200"></span>
+                  <span className="w-3 h-3 rounded-sm bg-orange-400"></span>
+                  <span className="w-3 h-3 rounded-sm bg-orange-500"></span>
+                  <span className="w-3 h-3 rounded-sm bg-orange-700"></span>
                 </div>
                 <span>Nhiều</span>
               </div>
@@ -220,9 +220,9 @@ export function StudyProgress() {
             </div>
 
             {/* Weekly Total Card */}
-            <div className="bg-card border border-border rounded-3xl p-6 shadow-sm flex-1 flex flex-col justify-center items-center text-center group transition-all duration-300 hover:border-primary/20 hover:shadow-md">
-              <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center mb-4 transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-6">
-                <Trophy className="w-6 h-6 text-primary fill-primary/20" />
+            <div className="bg-card border border-border rounded-3xl p-6 shadow-sm flex-1 flex flex-col justify-center items-center text-center group transition-all duration-300 hover:border-pink-200 hover:shadow-md">
+              <div className="w-12 h-12 rounded-2xl bg-pink-100 flex items-center justify-center mb-4 transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-6">
+                <Trophy className="w-6 h-6 text-pink-500 fill-pink-200" />
               </div>
               <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">Tuần này</p>
               <div className="flex items-baseline gap-1">

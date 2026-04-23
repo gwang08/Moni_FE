@@ -5,7 +5,7 @@ import { useUserStore } from '@/store/user-store';
 import { useTourStore } from '@/store/tour-store';
 import { apiClient } from '@/lib/api-client';
 import type { ApiResponse } from '@/types/auth.types';
-import { Pencil, Check, X, CalendarDays, Clock, ArrowRight } from 'lucide-react';
+import { Pencil, Check, X, ArrowRight } from 'lucide-react';
 import { ChibiMascot } from '@/components/ui/chibi-mascot';
 
 function getDaysRemaining(examDate: string | null): number | null {
@@ -20,7 +20,7 @@ function getDaysRemaining(examDate: string | null): number | null {
 }
 
 function formatDisplayDate(dateStr: string | null): string {
-  if (!dateStr) return '_ / _ / _';
+  if (!dateStr) return 'Chưa đặt';
   const [year, month, day] = dateStr.split('-');
   return `${day}/${month}/${year}`;
 }
@@ -33,41 +33,43 @@ export function ExamCountdown() {
   const [draft, setDraft] = useState('');
   const [daysRemaining, setDaysRemaining] = useState<number | null>(null);
 
-  // Live countdown: use draft when editing, store value otherwise
   const activeDate = editing ? (draft || null) : examDate;
   useEffect(() => {
     setDaysRemaining(getDaysRemaining(activeDate));
   }, [activeDate, editing]);
 
-  const startEdit = () => {
-    setDraft(examDate ?? '');
-    setEditing(true);
-  };
+  const startEdit = () => { setDraft(examDate ?? ''); setEditing(true); };
 
   const saveEdit = () => {
     setExamDate(draft || null);
     setEditing(false);
-    // Sync to backend (fire & forget)
     if (draft) {
       apiClient.put<ApiResponse<unknown>>('/users/me', { examDate: draft }, true).catch(() => {});
     }
-    
     if (tourStep === 2) nextStep();
   };
 
   const cancelEdit = () => setEditing(false);
 
+  // Derived totals for warm hero display
+  const weeks = daysRemaining !== null ? Math.floor(daysRemaining / 7) : null;
+  const hours = daysRemaining !== null ? daysRemaining * 24 : null;
+
   return (
-    <div id="exam-countdown-section" className={`bg-white h-full relative transition-all duration-300 ${tourStep === 2 ? 'z-50 ring-4 ring-orange-400 shadow-2xl rounded-2xl' : 'rounded-2xl shadow-sm border border-gray-100'}`}>
-      
+    <div
+      id="exam-countdown-section"
+      className={`relative h-full transition-all duration-300 ${
+        tourStep === 2 ? 'z-50 ring-4 ring-orange-400 shadow-2xl rounded-3xl' : 'rounded-3xl shadow-lg shadow-orange-500/20'
+      }`}
+    >
       {tourStep === 2 && (
-        <div className="absolute top-1/2 -translate-y-1/2 -left-6 -translate-x-full w-64 bg-white p-4 rounded-xl shadow-xl border border-gray-100 z-50 animate-in fade-in slide-in-from-right-4">
+        <div className="absolute top-1/2 -translate-y-1/2 -left-6 -translate-x-full w-64 bg-white p-4 rounded-2xl shadow-xl border border-orange-100 z-50 animate-in fade-in slide-in-from-right-4">
           <div className="flex gap-3 mb-2">
             <ChibiMascot mood="thinking" size={40} />
             <div className="font-bold text-gray-800 text-sm">Bước 2/3</div>
           </div>
           <p className="text-sm text-gray-600 mb-3">Hãy cập nhật Ngày thi dự kiến của bạn (nếu có). Bạn hoàn toàn có thể bỏ qua bước này!</p>
-          <button 
+          <button
             onClick={nextStep}
             className="w-full flex items-center justify-center gap-1 bg-gray-100 hover:bg-gray-200 text-gray-700 py-1.5 rounded-lg text-xs font-semibold transition-colors"
           >
@@ -77,83 +79,85 @@ export function ExamCountdown() {
         </div>
       )}
 
-      <div className="p-6">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-5">
-        <h3 className="text-base font-semibold text-gray-800">Lịch thi</h3>
-        {!editing ? (
-          <button
-            onClick={startEdit}
-            className="p-1.5 rounded-lg hover:bg-orange-50 text-gray-400 hover:text-orange-500 transition-colors"
-            title="Chỉnh sửa ngày thi"
-          >
-            <Pencil className="h-4 w-4" />
-          </button>
-        ) : (
-          <div className="flex gap-1">
-            <button onClick={saveEdit} className="p-1.5 rounded-lg hover:bg-green-50 text-gray-400 hover:text-green-600 transition-colors">
-              <Check className="h-4 w-4" />
-            </button>
-            <button onClick={cancelEdit} className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors">
-              <X className="h-4 w-4" />
-            </button>
-          </div>
-        )}
-      </div>
+      {/* Gradient hero card */}
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-orange-500 via-orange-500 to-pink-500 p-6 h-full text-white">
+        {/* Decorative blurs */}
+        <div className="absolute -top-10 -right-10 w-44 h-44 rounded-full bg-white/10 blur-2xl pointer-events-none"></div>
+        <div className="absolute -bottom-8 -left-8 w-32 h-32 rounded-full bg-pink-300/20 blur-2xl pointer-events-none"></div>
 
-      {/* Date Section */}
-      <div className="space-y-4">
-        <div className="flex items-start gap-4 p-4 rounded-xl bg-orange-50 border border-orange-100">
-          <div className="p-2 bg-orange-100 rounded-lg">
-            <CalendarDays className="h-5 w-5 text-orange-500" />
-          </div>
-          <div className="flex-1">
-            <p className="text-xs text-orange-600 font-medium mb-1">Ngày dự thi</p>
-            {editing ? (
-              <input
-                type="date"
-                value={draft}
-                onChange={(e) => setDraft(e.target.value)}
-                className="text-sm font-semibold text-gray-800 bg-white border border-orange-200 rounded-lg px-2 py-1 outline-none focus:ring-2 focus:ring-orange-300"
-              />
-            ) : (
-              <p className="text-lg font-bold text-gray-800">
-                {formatDisplayDate(examDate)}
-              </p>
-            )}
-          </div>
+        <div className="relative flex items-center justify-between mb-4">
+          <span className="inline-flex items-center gap-2 bg-white/20 backdrop-blur px-3 py-1 rounded-full text-xs font-bold">
+            📅 Lịch thi IELTS
+          </span>
+          {!editing ? (
+            <button
+              onClick={startEdit}
+              className="p-2 rounded-full hover:bg-white/20 transition-colors"
+              title="Chỉnh sửa ngày thi"
+            >
+              <Pencil className="h-4 w-4" />
+            </button>
+          ) : (
+            <div className="flex gap-1">
+              <button onClick={saveEdit} className="p-2 rounded-full hover:bg-white/20">
+                <Check className="h-4 w-4" />
+              </button>
+              <button onClick={cancelEdit} className="p-2 rounded-full hover:bg-white/20">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          )}
         </div>
 
-        <div className="flex items-start gap-4 p-4 rounded-xl bg-blue-50 border border-blue-100">
-          <div className="p-2 bg-blue-100 rounded-lg">
-            <Clock className="h-5 w-5 text-blue-500" />
-          </div>
-          <div>
-            <p className="text-xs text-blue-600 font-medium mb-1">Số ngày còn lại</p>
-            <p className="text-3xl font-bold text-gray-800">
-              {daysRemaining !== null ? (
-                <>
-                  {daysRemaining}
-                  <span className="text-base font-medium text-gray-500 ml-1">ngày</span>
-                </>
-              ) : (
-                <span className="text-lg font-medium text-gray-400">_ ngày</span>
-              )}
-            </p>
-          </div>
-        </div>
+        <div className="relative">
+          {daysRemaining !== null ? (
+            <div className="flex items-baseline gap-2 mb-1">
+              <span className="text-6xl font-extrabold tracking-tight leading-none">{daysRemaining}</span>
+              <span className="text-lg opacity-90">ngày còn lại</span>
+            </div>
+          ) : (
+            <div className="text-3xl font-extrabold mb-1 opacity-90">Chưa đặt ngày thi</div>
+          )}
 
-        {daysRemaining !== null && daysRemaining <= 30 && daysRemaining > 0 && (
-          <div className="text-center text-sm text-orange-600 font-medium bg-orange-50 rounded-xl py-2 px-4">
-            Sắp đến ngày thi rồi! Cố lên nào!
-          </div>
-        )}
-        {daysRemaining === 0 && (
-          <div className="text-center text-sm text-rose-600 font-medium bg-rose-50 rounded-xl py-2 px-4">
-            Hôm nay là ngày thi!
-          </div>
-        )}
-      </div>
+          {editing ? (
+            <input
+              type="date"
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              className="mt-2 text-sm font-bold text-gray-800 bg-white rounded-xl px-3 py-1.5 outline-none focus:ring-2 focus:ring-white"
+            />
+          ) : (
+            <p className="text-sm opacity-90 mb-5">Ngày dự thi: <b>{formatDisplayDate(examDate)}</b></p>
+          )}
+
+          {daysRemaining !== null && !editing && (
+            <div className="grid grid-cols-3 gap-2 mt-3">
+              <div className="bg-white/15 backdrop-blur rounded-2xl p-3 text-center">
+                <div className="text-xl font-extrabold">{weeks}</div>
+                <div className="text-[10px] uppercase tracking-widest opacity-80 font-bold">Tuần</div>
+              </div>
+              <div className="bg-white/15 backdrop-blur rounded-2xl p-3 text-center">
+                <div className="text-xl font-extrabold">{daysRemaining}</div>
+                <div className="text-[10px] uppercase tracking-widest opacity-80 font-bold">Ngày</div>
+              </div>
+              <div className="bg-white/15 backdrop-blur rounded-2xl p-3 text-center">
+                <div className="text-xl font-extrabold">{hours?.toLocaleString('vi-VN')}</div>
+                <div className="text-[10px] uppercase tracking-widest opacity-80 font-bold">Giờ</div>
+              </div>
+            </div>
+          )}
+
+          {daysRemaining !== null && daysRemaining <= 30 && daysRemaining > 0 && !editing && (
+            <div className="mt-4 text-center text-xs font-bold bg-white text-orange-600 rounded-2xl py-2 px-4">
+              🔥 Sắp đến ngày thi rồi! Cố lên nào!
+            </div>
+          )}
+          {daysRemaining === 0 && (
+            <div className="mt-4 text-center text-xs font-bold bg-white text-rose-600 rounded-2xl py-2 px-4">
+              🎯 Hôm nay là ngày thi!
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

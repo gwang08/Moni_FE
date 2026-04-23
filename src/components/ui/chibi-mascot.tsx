@@ -107,10 +107,23 @@ function Accessory({ mood }: { mood: ChibiMood }) {
 }
 
 export function ChibiMascot({ mood = 'happy', size = 80 }: Props) {
+  const moodLabels: Record<ChibiMood, string> = {
+    happy: "biểu cảm vui vẻ, sẵn sàng hỗ trợ",
+    worried: "biểu cảm hơi lo lắng, đang nhắc nhở bạn",
+    sad: "biểu cảm buồn bã, cần bạn cố gắng hơn",
+    excited: "biểu cảm hào hứng, chúc mừng thành tích của bạn",
+    thinking: "biểu cảm đang suy nghĩ, tìm giải pháp cho bạn"
+  };
+
   return (
-    <div className="relative mx-auto mb-2" style={{ width: size, height: size }}>
+    <div 
+      className="relative mx-auto mb-2" 
+      style={{ width: size, height: size }}
+      role="img"
+      aria-label={`Mascot Moni ${moodLabels[mood]}`}
+    >
       <div>
-        <svg viewBox="0 0 120 120" style={{ width: size, height: size }}>
+        <svg viewBox="0 0 120 120" style={{ width: size, height: size }} aria-hidden="true">
           {/* Body */}
           <circle cx="60" cy="65" r="35" fill="#FFA94D" />
           {/* Face */}

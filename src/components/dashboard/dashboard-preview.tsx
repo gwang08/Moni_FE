@@ -4,8 +4,7 @@ import { useHydration } from '@/hooks/use-hydration';
 import { SkeletonCard } from '@/components/ui/skeleton';
 import { TargetScores } from './target-scores';
 import { ExamCountdown } from './exam-countdown';
-import { ActivityCalendar } from './activity-calendar';
-import { WeeklyStats } from './weekly-stats';
+import { StudyProgress } from './study-progress';
 
 function DashboardSkeleton() {
   return (
@@ -36,8 +35,9 @@ export function DashboardPreview() {
           <div className="grid gap-6 md:grid-cols-2">
             <TargetScores />
             <ExamCountdown />
-            <ActivityCalendar />
-            <WeeklyStats />
+            <div className="md:col-span-2 mt-4">
+              <StudyProgress />
+            </div>
           </div>
         )}
       </div>

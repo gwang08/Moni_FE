@@ -221,13 +221,13 @@ export default function PaymentPage() {
     <div className="max-w-5xl mx-auto p-6 space-y-12">
       {/* Header */}
       <div className="text-center space-y-2">
-        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-medium">
+        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-emerald-100 text-emerald-700 text-sm font-medium">
           <Sparkles className="h-4 w-4" />
-          Nạp tiền & Gói chấm điểm tháng
+          Gói lượt chấm lẻ & Gói tháng
         </div>
         <h1 className="text-3xl font-bold tracking-tight">Chọn gói phù hợp với bạn</h1>
         <p className="text-muted-foreground text-sm max-w-md mx-auto">
-          Nạp ví trả phí theo lượt hoặc mua gói chấm điểm tháng để tiết kiệm hơn
+          Mua lượt chấm bài lẻ hoặc đăng ký gói tháng để tối ưu chi phí học tập
         </p>
       </div>
 
@@ -325,121 +325,169 @@ export default function PaymentPage() {
         </div>
       </section>
 
-      {/* ── Section 1: Gói chấm điểm tháng ── */}
+            {/* ── Section 2: Gói chấm điểm Pro ── */}
       <section className="space-y-4">
         <div className="flex items-center gap-2">
           <div className="p-2 rounded-lg bg-indigo-100">
             <Crown className="h-5 w-5 text-indigo-600" />
           </div>
           <div>
-            <h2 className="text-lg font-bold">Gói chấm điểm tháng</h2>
-            <p className="text-xs text-muted-foreground">Mua một lần, dùng suốt tháng — tiết kiệm hơn trả theo lượt</p>
+            <h2 className="text-lg font-bold">Gói chấm điểm Pro</h2>
+            <p className="text-xs text-muted-foreground">Bao gồm lượt chấm chi tiết từ Giảng viên/Mentor</p>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
-          {plansLoading
-            ? Array.from({ length: 3 }).map((_, i) => <PackageSkeleton key={i} />)
-            : plans.map((plan, idx) => (
-                <SubscriptionCard
-                  key={plan.id}
-                  plan={plan}
-                  idx={idx}
-                  activeSub={activeSub}
-                  onSelect={handleSelectPlan}
-                />
-              ))}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          {pkgLoading
+            ? Array.from({ length: 3
+              
+             }).map((_, i) => <PackageSkeleton key={i} />)
+            : packages
+                .filter((p) => p.category === 'PRO' || (!p.category && p.name.toUpperCase().includes('PRO')))
+                .map((pkg) => {
+                  const totalVnd = pkg.creditAmount;
+                  const expertTurns = Math.floor(totalVnd / 40000); 
+                  const aiTurns = Math.floor((totalVnd % 40000) / 10000) + 10; 
+
+                  return (
+                    <div
+                      key={pkg.id}
+                      className="relative rounded-2xl p-5 bg-gradient-to-br from-indigo-50 to-purple-50 border-2 border-indigo-200 hover:border-indigo-400 transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5 flex flex-col"
+                    >
+                      <h3 className="font-bold text-lg mb-1 text-gray-800">{pkg.name}</h3>
+
+                      <div className="flex items-baseline gap-1 mb-3">
+                        <span className="text-3xl font-extrabold text-indigo-600">{formatVnd(pkg.price)}</span>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2 mb-4">
+                        <div className="rounded-xl bg-white/70 border border-emerald-200 px-2 py-2 text-center">
+                          <div className="text-[9px] font-bold uppercase tracking-wider text-emerald-600">Lượt AI</div>
+                          <div className="text-lg font-black text-emerald-700">{aiTurns}</div>
+                        </div>
+                        <div className="rounded-xl bg-white/70 border border-indigo-200 px-2 py-2 text-center">
+                          <div className="text-[9px] font-bold uppercase tracking-wider text-indigo-600">Mentor</div>
+                          <div className="text-lg font-black text-indigo-700">{expertTurns}</div>
+                        </div>
+                      </div>
+
+                      <ul className="space-y-2 mb-5 flex-1">
+                        <li className="flex items-start gap-2 text-sm text-gray-700 font-bold">
+                          <CheckCircle2 className="h-4 w-4 text-indigo-500 mt-0.5 shrink-0" />
+                          Chấm & Feedback chi tiết từ Mentor
+                        </li>
+                        <li className="flex items-start gap-2 text-sm text-gray-700">
+                          <CheckCircle2 className="h-4 w-4 text-indigo-500 mt-0.5 shrink-0" />
+                          Chấm full Speaking & Writing Task 1/2
+                        </li>
+                        <li className="flex items-start gap-2 text-sm text-gray-700">
+                          <CheckCircle2 className="h-4 w-4 text-indigo-500 mt-0.5 shrink-0" />
+                          Ưu tiên trả kết quả sớm nhất
+                        </li>
+                      </ul>
+
+                      <Button
+                        onClick={() => handleSelectPackage(pkg)}
+                        className="w-full rounded-xl h-11 text-white font-semibold bg-indigo-600 hover:bg-indigo-700 shadow-md shadow-indigo-200"
+                      >
+                        <Crown className="h-4 w-4 mr-1.5" />
+                        Đăng ký ngay
+                      </Button>
+                    </div>
+                  );
+                })}
+          {packages.filter((p) => p.category === 'PRO' || (!p.category && p.name.toUpperCase().includes('PRO'))).length === 0 && (
+            <div className="col-span-full text-center py-6 border-2 border-dashed border-gray-100 rounded-2xl">
+              <p className="text-sm text-gray-400">Gói Pro sắp ra mắt với tính năng chấm Mentor chi tiết.</p>
+            </div>
+          )}
         </div>
       </section>
 
-      {/* ── Section 2: Nạp ví VND ── */}
+      {/* ── Section 3: Gói lượt chấm ── */}
       <section className="space-y-4">
         <div className="flex items-center gap-2">
-          <div className="p-2 rounded-lg bg-primary/10">
-            <Zap className="h-5 w-5 text-primary" />
+          <div className="p-2 rounded-lg bg-emerald-100">
+            <Zap className="h-5 w-5 text-emerald-600" />
           </div>
           <div>
-            <h2 className="text-lg font-bold">Nạp ví VND</h2>
-            <p className="text-xs text-muted-foreground">Trả phí theo lượt, không giới hạn thời gian</p>
+            <h2 className="text-lg font-bold">Gói lượt chấm</h2>
+            <p className="text-xs text-muted-foreground">Mua lẻ lượt chấm AI, không giới hạn thời gian sử dụng</p>
           </div>
         </div>
 
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {loading
-            ? Array.from({ length: 4 }).map((_, i) => <PackageSkeleton key={i} />)
-            : packages.map((pkg, idx) => {
-                const bonus = pkg.creditAmount - pkg.price;
-                const bonusPct = pkg.price > 0 ? Math.round((bonus / pkg.price) * 100) : 0;
-                const hasBonus = bonus > 0;
-                return (
-                  <button
-                    type="button"
-                    key={pkg.id}
-                    onClick={() => handleSelectPackage(pkg)}
-                    className={`relative text-left rounded-xl border-2 p-4 transition-all hover:shadow-md hover:-translate-y-0.5 ${
-                      hasBonus
-                        ? 'border-emerald-300 bg-emerald-50/40 hover:border-emerald-500'
-                        : 'border-gray-200 bg-white hover:border-emerald-400'
-                    }`}
-                  >
-                    {hasBonus && (
-                      <span className="absolute -top-2 right-3 bg-emerald-500 text-white text-[10px] font-semibold px-2 py-0.5 rounded-full shadow">
-                        +{bonusPct}%
-                      </span>
-                    )}
-                    <div className="text-xl font-bold text-gray-800">
-                      {formatVND(pkg.price)}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          {pkgLoading
+            ? Array.from({ length: 3 }).map((_, i) => <PackageSkeleton key={i} />)
+            : packages
+                .filter((p) => p.category === 'BASIC' || (!p.category && !p.name.toUpperCase().includes('PRO')))
+                .map((pkg) => {
+                  const turns = Math.round(pkg.creditAmount / 10000);
+                  const discount = pkg.price < turns * 10000 ? turns * 10000 - pkg.price : 0;
+
+                  return (
+                    <div
+                      key={pkg.id}
+                      className="relative rounded-2xl p-5 bg-gradient-to-br from-emerald-50 to-teal-50 border-2 border-emerald-200 hover:border-emerald-400 transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5 flex flex-col"
+                    >
+                      {discount > 0 && (
+                        <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-0.5 rounded-full bg-[#F97316] text-white text-[10px] font-bold shadow-md whitespace-nowrap">
+                          Tiết kiệm {formatVnd(discount)}
+                        </div>
+                      )}
+
+                      <h3 className="font-bold text-lg mb-1 text-gray-800">Gói {turns} lượt chấm</h3>
+
+                      <div className="flex items-baseline gap-1 mb-3">
+                        <span className="text-3xl font-extrabold text-gray-900">{formatVnd(pkg.price)}</span>
+                        {discount > 0 && (
+                          <span className="text-xs text-gray-400 line-through font-medium ml-1">
+                            {formatVnd(turns * 10000)}
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="mb-4">
+                        <div className="rounded-xl bg-white/70 border border-emerald-200 px-3 py-2 text-center">
+                          <div className="text-[10px] font-bold uppercase tracking-wider text-emerald-600">
+                            Tổng cộng
+                          </div>
+                          <div className="text-xl font-black text-emerald-700">
+                            {turns} <span className="text-sm font-bold">Lượt chấm AI</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <ul className="space-y-2 mb-5 flex-1">
+                        <li className="flex items-start gap-2 text-sm text-gray-700">
+                          <CheckCircle2 className="h-4 w-4 text-emerald-500 mt-0.5 shrink-0" />
+                          Chấm full Speaking & Writing Task 1/2
+                        </li>
+                        <li className="flex items-start gap-2 text-sm text-gray-700">
+                          <CheckCircle2 className="h-4 w-4 text-emerald-500 mt-0.5 shrink-0" />
+                          Không hết hạn lượt chấm
+                        </li>
+                        <li className="flex items-start gap-2 text-sm text-gray-700">
+                          <CheckCircle2 className="h-4 w-4 text-emerald-500 mt-0.5 shrink-0" />
+                          Tự động đồng bộ vào Lộ trình
+                        </li>
+                      </ul>
+
+                      <Button
+                        onClick={() => handleSelectPackage(pkg)}
+                        className="w-full rounded-xl h-11 text-white font-semibold bg-emerald-600 hover:bg-emerald-700 shadow-md shadow-emerald-200"
+                      >
+                        <Sparkles className="h-4 w-4 mr-1.5" />
+                        Mua ngay
+                      </Button>
                     </div>
-                    <div className={`text-xs mt-1 ${hasBonus ? 'text-emerald-600 font-semibold' : 'text-gray-500'}`}>
-                      Nhận {formatVnd(pkg.creditAmount)}
-                    </div>
-                  </button>
-                );
-              })}
+                  );
+                })}
         </div>
-      </section>
-
-      {/* Services pricing reference */}
-      <section className="bg-gray-50/80 rounded-2xl p-6 border">
-        <div className="flex items-center justify-between mb-5">
-          <div className="flex items-center gap-2">
-            <div className="p-2 rounded-lg bg-primary/10">
-              <Zap className="h-5 w-5 text-primary" />
-            </div>
-            <h2 className="text-lg font-bold">Chi phí dịch vụ</h2>
-          </div>
-        </div>
-
-        {loading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="h-16 bg-white rounded-xl animate-pulse" />
-            ))}
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {services.map((svc) => (
-              <div
-                key={svc.id}
-                className="bg-white rounded-xl p-4 flex justify-between items-center gap-3 border hover:border-primary/30 transition-colors"
-              >
-                <div>
-                  <p className="font-medium text-sm">{svc.name}</p>
-                  {svc.description && (
-                    <p className="text-gray-400 text-xs mt-0.5">{svc.description}</p>
-                  )}
-                </div>
-                <span className="text-primary font-bold text-sm whitespace-nowrap flex items-center gap-1 bg-primary/5 px-2.5 py-1 rounded-full">
-                  {formatVnd(svc.creditCost)}
-                </span>
-              </div>
-            ))}
-          </div>
-        )}
       </section>
 
       {/* History link */}
-      <div className="text-center">
+      <div className="text-center pt-4">
         <Button variant="ghost" size="sm" asChild className="text-muted-foreground">
           <Link href="/transactions">
             <Receipt className="h-4 w-4 mr-1.5" />

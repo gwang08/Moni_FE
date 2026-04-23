@@ -65,7 +65,7 @@ function SubBadge({ label }: { label: string }) {
 function NoQuotaBadge() {
   return (
     <span className="inline-flex items-center gap-1 bg-amber-500 text-white rounded-full px-2.5 py-1 text-xs font-semibold shrink-0 group-hover:bg-amber-600 transition-colors">
-      Mua gói →
+      Mua lượt →
     </span>
   );
 }

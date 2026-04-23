@@ -6,7 +6,9 @@ import 'react-calendar-heatmap/dist/styles.css';
 import { useAttemptHistory } from '@/hooks/use-attempt-history';
 import { Flame, Trophy } from 'lucide-react';
 
-const VI_MONTHS = ['Th1', 'Th2', 'Th3', 'Th4', 'Th5', 'Th6', 'Th7', 'Th8', 'Th9', 'Th10', 'Th11', 'Th12'];
+const VI_MONTHS: [string, string, string, string, string, string, string, string, string, string, string, string] = [
+  'Th1', 'Th2', 'Th3', 'Th4', 'Th5', 'Th6', 'Th7', 'Th8', 'Th9', 'Th10', 'Th11', 'Th12'
+];
 
 function getStartOfWeek(date: Date) {
   const d = new Date(date);
@@ -176,13 +178,13 @@ export function StudyProgress() {
                         weekdayLabels={['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7']}
                         monthLabels={VI_MONTHS}
                         tooltipDataAttrs={(value: any) => {
-                            if (!value || !value.date) return null;
+                            if (!value || !value.date) return { 'data-tooltip-id': 'heatmap-tooltip', 'data-tooltip-content': '' } as any;
                             const d = new Date(value.date);
                             const ds = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
                             return {
                                 'data-tooltip': `${value.count} bài luyện tập - ${ds}`,
-                                'title': `${value.count} bài luyện tập - ${ds}`
-                            };
+                                title: `${value.count} bài luyện tập - ${ds}`
+                            } as any;
                         }}
                     />
                 </div>

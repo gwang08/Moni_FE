@@ -3,27 +3,21 @@
 import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
-import { usePaymentStore } from '@/store/payment-store';
 import { getMyActiveSubscription } from '@/lib/subscription-api';
 import type { ExpertProfile } from '@/types/expert.types';
 import type { UserSubscriptionResponse } from '@/types/subscription.types';
-import { formatVnd } from '@/lib/utils';
-import { AlertTriangle, CheckCircle2, Loader2, Wallet } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, Loader2, ShoppingCart } from 'lucide-react';
 
 interface Props {
   expert: ExpertProfile;
   cost: number;
-  balance: number;
   submitting: boolean;
   onConfirm: () => void;
   onCancel: () => void;
-  /** Where to redirect after top-up completes (defaults to /scoring-history) */
-  returnUrl?: string;
 }
 
-export function SpeakingModeExpertInlineConfirm({ expert, cost, balance, submitting, onConfirm, onCancel, returnUrl }: Props) {
+export function SpeakingModeExpertInlineConfirm({ expert, cost, submitting, onConfirm, onCancel }: Props) {
   const router = useRouter();
-  const setReturnUrl = usePaymentStore((s) => s.setReturnUrl);
 
   const { data: sub } = useQuery<UserSubscriptionResponse | null>({
     queryKey: ['my-active-subscription'],
@@ -33,13 +27,6 @@ export function SpeakingModeExpertInlineConfirm({ expert, cost, balance, submitt
   });
   const willUseQuota = !!sub && (sub.remainExpert > 0 || sub.remainExpert === -1);
   const totalExpert = sub ? sub.remainExpert + sub.usedExpert : 0;
-
-  const hasEnough = willUseQuota || balance >= cost;
-
-  const handleTopUp = () => {
-    setReturnUrl(returnUrl || '/scoring-history');
-    router.push('/payment');
-  };
 
   const isOffline = expert.status === 'OFFLINE';
 
@@ -81,25 +68,10 @@ export function SpeakingModeExpertInlineConfirm({ expert, cost, balance, submitt
             </div>
           </>
         ) : (
-          <>
-            <div className="flex justify-between items-center text-sm">
-              <span className="text-gray-500">Chi phí</span>
-              <span className="font-bold text-gray-800">{formatVnd(cost)}</span>
-            </div>
-            <div className="h-px bg-gray-100" />
-            <div className="flex justify-between items-center text-sm">
-              <span className="text-gray-500">Số dư</span>
-              <span className={`font-bold ${hasEnough ? 'text-emerald-600' : 'text-red-500'}`}>
-                {formatVnd(balance)}
-              </span>
-            </div>
-            {!hasEnough && (
-              <div className="flex items-center gap-1.5 mt-1 text-xs text-red-500 font-semibold bg-red-50 px-3 py-1.5 rounded-lg">
-                <Wallet className="h-3.5 w-3.5" />
-                Không đủ số dư. Vui lòng nạp thêm.
-              </div>
-            )}
-          </>
+          <div className="flex items-center gap-1.5 text-xs text-amber-700 font-semibold bg-amber-50 px-3 py-2 rounded-lg">
+            <ShoppingCart className="h-3.5 w-3.5" />
+            Bạn chưa có lượt chấm Giảng viên. Vui lòng mua gói.
+          </div>
         )}
       </div>
 
@@ -113,7 +85,7 @@ export function SpeakingModeExpertInlineConfirm({ expert, cost, balance, submitt
         >
           Huỷ
         </Button>
-        {hasEnough ? (
+        {willUseQuota ? (
           <Button
             className="flex-1 h-10 rounded-xl font-semibold bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm"
             onClick={onConfirm}
@@ -128,10 +100,10 @@ export function SpeakingModeExpertInlineConfirm({ expert, cost, balance, submitt
         ) : (
           <Button
             className="flex-1 h-10 rounded-xl font-semibold bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm"
-            onClick={handleTopUp}
+            onClick={() => router.push('/payment')}
           >
-            <Wallet className="h-4 w-4 mr-1.5" />
-            Nạp tiền ngay
+            <ShoppingCart className="h-4 w-4 mr-1.5" />
+            Mua gói ngay
           </Button>
         )}
       </div>

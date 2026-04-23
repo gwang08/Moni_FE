@@ -94,18 +94,18 @@ export default function CheckoutPage() {
     ? checkoutItem.type === 'subscription'
       ? {
           name: checkoutItem.data.name,
-          subtitle: `Gói chấm điểm tháng · ${checkoutItem.data.durationDays} ngày`,
+          subtitle: `Gói chấm điểm · ${checkoutItem.data.durationDays} ngày`,
           amount: checkoutItem.data.priceVnd,
         }
       : {
           name: checkoutItem.data.name,
-          subtitle: `Nhận ${formatVnd(checkoutItem.data.creditAmount)} vào ví`,
+          subtitle: `Gói ${checkoutItem.data.quotaAi} lượt AI + ${checkoutItem.data.quotaExpert} lượt GV`,
           amount: checkoutItem.data.price,
         }
     : selectedPackage
     ? {
         name: selectedPackage.name,
-        subtitle: `Nhận ${formatVnd(selectedPackage.creditAmount)} vào ví`,
+        subtitle: `Gói ${selectedPackage.quotaAi} lượt AI + ${selectedPackage.quotaExpert} lượt GV`,
         amount: selectedPackage.price,
       }
     : null;
@@ -154,18 +154,14 @@ export default function CheckoutPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const { refreshProfile, updateUser } = useAuthStore();
+  const { refreshProfile } = useAuthStore();
   const queryClient = useQueryClient();
 
   const returnUrl = usePaymentStore((s) => s.returnUrl);
 
   const handlePaymentSuccess = useCallback(
-    (credit?: number) => {
+    () => {
       setStatus('completed');
-      // Update credit in store instantly if provided by SSE; always refresh profile
-      if (credit != null) {
-        updateUser({ credit });
-      }
       refreshProfile();
       // Invalidate subscription query so banner/scoring dialogs pick up new active sub immediately
       queryClient.invalidateQueries({ queryKey: ['my-active-subscription'] });
@@ -175,7 +171,7 @@ export default function CheckoutPage() {
         router.push(redirectTo);
       }, 2500);
     },
-    [clear, router, refreshProfile, updateUser, returnUrl, queryClient]
+    [clear, router, refreshProfile, returnUrl, queryClient]
   );
 
   // SSE realtime listener + polling fallback
@@ -213,7 +209,7 @@ export default function CheckoutPage() {
       try {
         const data = JSON.parse(event.data);
         if (data.paymentId === pendingPayment.id) {
-          handlePaymentSuccess(data.credit);
+          handlePaymentSuccess();
         }
       } catch { /* ignore parse errors */ }
     });
@@ -291,8 +287,8 @@ export default function CheckoutPage() {
           <h2 className="text-xl font-bold text-green-700">Thanh toán thành công!</h2>
           <p className="text-sm text-green-600">
             {checkoutItem?.type === 'subscription'
-              ? 'Gói chấm điểm tháng đã được kích hoạt'
-              : 'VND đã được cộng vào ví'}
+              ? 'Gói chấm điểm đã được kích hoạt'
+              : 'Giao dịch thành công'}
           </p>
           <div className="flex items-center justify-center gap-2 text-sm text-gray-500 pt-2">
             <Loader2 className="h-4 w-4 animate-spin" />

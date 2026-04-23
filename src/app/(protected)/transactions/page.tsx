@@ -2,25 +2,22 @@
 
 import { useEffect, useState, useRef, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, Loader2 } from 'lucide-react';
+import { Loader2, Receipt, ShoppingCart } from 'lucide-react';
 import { getCreditTransactions } from '@/lib/payment-api';
-import { useAuthStore } from '@/store/auth-store';
 import type { CreditTransactionResponse } from '@/types/payment.types';
-import { TransactionsStats } from '@/components/transactions/transactions-stats';
 import { TransactionsTable } from '@/components/transactions/transactions-table';
 
-type PaymentFilter = 'ALL' | 'TOPUP' | 'CONSUME' | 'REFUND';
+type PaymentFilter = 'ALL' | 'SUBSCRIPTION_PURCHASE' | 'CONSUME' | 'REFUND';
 
 const FILTER_OPTIONS: { value: PaymentFilter; label: string }[] = [
   { value: 'ALL', label: 'Tất cả' },
-  { value: 'TOPUP', label: 'Nạp tiền' },
+  { value: 'SUBSCRIPTION_PURCHASE', label: 'Mua gói' },
   { value: 'CONSUME', label: 'Sử dụng' },
-  { value: 'REFUND', label: 'Hoàn tiền' },
+  { value: 'REFUND', label: 'Hoàn lượt' },
 ];
 
 export default function TransactionsPage() {
   const router = useRouter();
-  const balance = useAuthStore((s) => s.user?.credit ?? 0);
   const [transactions, setTransactions] = useState<CreditTransactionResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -56,20 +53,45 @@ export default function TransactionsPage() {
         {/* Hero */}
         <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
           <div>
-            <h1 className="text-[26px] md:text-[30px] font-black tracking-tight">Lịch sử tín dụng</h1>
-            <p className="text-[13.5px] text-slate-500 font-medium mt-1">Theo dõi mọi giao dịch của bạn.</p>
+            <h1 className="text-[26px] md:text-[30px] font-black tracking-tight">Lịch sử giao dịch</h1>
+            <p className="text-[13.5px] text-slate-500 font-medium mt-1">Theo dõi mọi giao dịch mua gói và chấm bài.</p>
           </div>
           <button
             onClick={() => router.push('/payment')}
             className="px-4 py-2 rounded-xl bg-teal-600 text-white text-[13px] font-bold inline-flex items-center gap-2 hover:bg-teal-700 w-fit"
           >
-            <Plus className="h-4 w-4" />
-            Nạp tiền
+            <ShoppingCart className="h-4 w-4" />
+            Mua gói
           </button>
         </div>
 
-        {/* Stats */}
-        <TransactionsStats balance={balance} transactions={transactions} />
+        {/* Summary stats */}
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+          <div className="rounded-2xl bg-white border border-slate-100 shadow-sm p-5">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-black uppercase tracking-widest text-slate-400">Tổng giao dịch</span>
+              <Receipt className="h-4 w-4 text-slate-400" />
+            </div>
+            <div className="mt-1 text-[28px] font-black text-slate-900">{transactions.length}</div>
+          </div>
+          <div className="rounded-2xl bg-white border border-slate-100 shadow-sm p-5">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-black uppercase tracking-widest text-slate-400">Mua gói</span>
+              <ShoppingCart className="h-4 w-4 text-indigo-500" />
+            </div>
+            <div className="mt-1 text-[28px] font-black text-indigo-600">
+              {transactions.filter((t) => t.paymentType === 'SUBSCRIPTION_PURCHASE').length}
+            </div>
+          </div>
+          <div className="rounded-2xl bg-white border border-slate-100 shadow-sm p-5">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-black uppercase tracking-widest text-slate-400">Sử dụng</span>
+            </div>
+            <div className="mt-1 text-[28px] font-black text-rose-600">
+              {transactions.filter((t) => t.paymentType === 'CONSUME').length}
+            </div>
+          </div>
+        </div>
 
         {/* Filter bar */}
         <div className="rounded-2xl bg-white border border-slate-100 shadow-sm p-3 flex items-center gap-3 flex-wrap">

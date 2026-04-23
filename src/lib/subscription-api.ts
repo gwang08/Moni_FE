@@ -54,19 +54,6 @@ export async function getRoadmapSubscriptionStatus(): Promise<RoadmapSubscriptio
   };
 }
 
-/**
- * Purchase a subscription plan using credit balance.
- * Backend checks balance, deducts, activates subscription.
- * Throws if insufficient credit.
- */
-export async function purchaseWithCredit(planId: number): Promise<UserSubscriptionResponse> {
-  const raw = await apiClient.post<Record<string, unknown>>(
-    '/subscriptions/purchase-with-credit',
-    { planId },
-    true
-  );
-  return raw.subscription as UserSubscriptionResponse;
-}
 
 // ---- Admin-only endpoints (requires ROLE_ADMIN) ----
 

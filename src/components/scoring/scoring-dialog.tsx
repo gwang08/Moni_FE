@@ -34,7 +34,7 @@ export function ScoringDialog({
 }: ScoringDialogProps) {
   const router = useRouter();
   const user = useAuthStore((s) => s.user);
-  const balance = user?.credit ?? 0;
+  const balance = 0; // Credit system removed
 
   const aiCost = aiCreditCost ?? DEFAULT_AI_COST[skill];
   const expertCost = expertCreditCost ?? DEFAULT_EXPERT_COST[skill];

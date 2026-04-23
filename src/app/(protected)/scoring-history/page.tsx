@@ -10,7 +10,6 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { getExperts, createScoringSession, cancelScoringSessionByWritingSubmission } from '@/lib/expert-api';
 import { getWritingSubmissionDetail } from '@/lib/ai-api';
-import { getServices } from '@/lib/payment-api';
 import { SpeakingModeExpertGrid } from '@/components/speaking/speaking-mode-expert-grid';
 import { SpeakingModeExpertInlineConfirm } from '@/components/speaking/speaking-mode-expert-inline-confirm';
 import { useAuthStore } from '@/store/auth-store';
@@ -71,14 +70,7 @@ export default function ScoringHistoryPage() {
     setExpertModalOpen(true);
     if (experts.length === 0) {
       setLoadingExperts(true);
-      Promise.all([
-        getExperts().then(setExperts).catch(() => {}),
-        getServices()
-          .then((services) => {
-            setExpertCost(services.find((s) => s.serviceCode === 'EXPERT_WRITING_SCORE')?.creditCost ?? null);
-          })
-          .catch(() => {}),
-      ]).finally(() => setLoadingExperts(false));
+      getExperts().then(setExperts).catch(() => {}).finally(() => setLoadingExperts(false));
     }
   };
 
@@ -116,7 +108,7 @@ export default function ScoringHistoryPage() {
     setCancelling(true);
     try {
       await cancelScoringSessionByWritingSubmission(cancelSubId);
-      toast.success('Đã huỷ. Credit đã được hoàn — bạn có thể chọn giảng viên khác.');
+      toast.success('Đã huỷ. Lượt chấm đã được hoàn — bạn có thể chọn giảng viên khác.');
       queryClient.invalidateQueries({ queryKey: ['my-active-subscription'] });
       refreshProfile();
       setCancelSubId(null);
@@ -224,7 +216,6 @@ export default function ScoringHistoryPage() {
               <SpeakingModeExpertInlineConfirm
                 expert={confirming}
                 cost={expertCost ?? 0}
-                balance={user?.credit ?? 0}
                 submitting={submitting}
                 onConfirm={() => handleBookExpert(confirming)}
                 onCancel={() => setConfirming(null)}
@@ -263,7 +254,7 @@ export default function ScoringHistoryPage() {
           open={cancelSubId != null}
           onOpenChange={(open) => { if (!open) setCancelSubId(null); }}
           title="Huỷ gửi bài cho giảng viên?"
-          description="Nếu giảng viên đã bắt đầu chấm, bạn không thể huỷ. Nếu chưa nhận, credit/lượt sẽ được hoàn lại và bạn có thể chọn giảng viên khác."
+          description="Nếu giảng viên đã bắt đầu chấm, bạn không thể huỷ. Nếu chưa nhận, lượt sẽ được hoàn lại và bạn có thể chọn giảng viên khác."
           confirmText={cancelling ? 'Đang huỷ...' : 'Huỷ & chọn lại'}
           cancelText="Không"
           variant="destructive"

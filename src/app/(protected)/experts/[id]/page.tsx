@@ -11,10 +11,10 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Star, Award, ArrowLeft, X, Users, BookOpen, Loader2 } from 'lucide-react';
 import { getExpertDetail, createScoringSession } from '@/lib/expert-api';
-import { getServices } from '@/lib/payment-api';
+import { getMyActiveSubscription } from '@/lib/subscription-api';
+import type { UserSubscriptionResponse } from '@/types/subscription.types';
 import { apiClient } from '@/lib/api-client';
 import { useAuthStore } from '@/store/auth-store';
-import { formatVnd } from '@/lib/utils';
 import { toast } from 'sonner';
 import type { ExpertProfile } from '@/types/expert.types';
 import type { ApiResponse } from '@/types/auth.types';
@@ -52,18 +52,18 @@ export default function ExpertProfilePage({ params }: { params: Promise<{ id: st
   const [loading, setLoading] = useState(true);
   const [previewImg, setPreviewImg] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [activeSub, setActiveSub] = useState<UserSubscriptionResponse | null>(null);
 
   useEffect(() => {
     const id = Number(expertId);
     Promise.all([
       getExpertDetail(id),
       apiClient.get<ApiResponse<Review[]>>(`/api/v1/experts/${id}/reviews`, true).catch(() => ({ result: [] as Review[] })),
-      getServices().catch(() => []),
-    ]).then(([expertData, reviewsRes, services]) => {
+      getMyActiveSubscription().catch(() => null),
+    ]).then(([expertData, reviewsRes, sub]) => {
       setExpert(expertData);
       setReviews((reviewsRes as ApiResponse<Review[]>).result ?? []);
-      const svc = (services as { serviceCode: string; creditCost: number }[]).find((s) => s.serviceCode === 'EXPERT_SPEAKING_SCORE');
-      if (svc) setExpertCost(svc.creditCost);
+      setActiveSub(sub);
     }).catch(() => toast.error('Không thể tải thông tin giảng viên'))
       .finally(() => setLoading(false));
   }, [expertId]);
@@ -95,7 +95,6 @@ export default function ExpertProfilePage({ params }: { params: Promise<{ id: st
   );
 
   const certs = expert.certificates ?? [];
-  const balance = user?.credit ?? 0;
 
   return (
     <div className="max-w-4xl mx-auto pb-28">
@@ -230,21 +229,35 @@ export default function ExpertProfilePage({ params }: { params: Promise<{ id: st
         <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-sm border-t shadow-lg z-50">
           <div className="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="flex items-center gap-1.5 text-sm font-medium">
-                <span>Chi phí:</span>
-                <span className="text-lg font-bold text-primary">{formatVnd(expertCost)}</span>
-              </div>
-              <span className="text-xs text-muted-foreground">Số dư: {formatVnd(balance)}</span>
+              {activeSub && activeSub.remainExpert > 0 ? (
+                <span className="text-xs font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200 px-2.5 py-1 rounded-full">
+                  Trong gói · còn {activeSub.remainExpert} lượt
+                </span>
+              ) : (
+                <span className="text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-full">
+                  Chưa có lượt chấm
+                </span>
+              )}
             </div>
-            <Button
-              size="lg"
-              className="rounded-full px-8"
-              disabled={submitting || expert.status === 'OFFLINE' || balance < expertCost}
-              onClick={handleBook}
-            >
-              {submitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-              {expert.status === 'OFFLINE' ? 'Giảng viên ngoại tuyến' : balance < expertCost ? 'Không đủ credit' : 'Book giảng viên'}
-            </Button>
+            {activeSub && activeSub.remainExpert > 0 ? (
+              <Button
+                size="lg"
+                className="rounded-full px-8"
+                disabled={submitting || expert.status === 'OFFLINE'}
+                onClick={handleBook}
+              >
+                {submitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                {expert.status === 'OFFLINE' ? 'Giảng viên ngoại tuyến' : 'Book giảng viên'}
+              </Button>
+            ) : (
+              <Button
+                size="lg"
+                className="rounded-full px-8"
+                onClick={() => router.push('/payment')}
+              >
+                Mua gói ngay
+              </Button>
+            )}
           </div>
         </div>
       )}

@@ -63,7 +63,6 @@ export const useAuthStore = create<AuthStore>()(
             phoneNumber: userProfile.phoneNumber,
             dateOfBirth: userProfile.dateOfBirth,
             role,
-            credit: userProfile.credit ?? 0,
           };
 
           set({ user });
@@ -180,7 +179,6 @@ export const useAuthStore = create<AuthStore>()(
               phoneNumber: userProfile.phoneNumber,
               dateOfBirth: userProfile.dateOfBirth,
               role,
-              credit: userProfile.credit ?? 0,
             },
           });
         } catch (error) {

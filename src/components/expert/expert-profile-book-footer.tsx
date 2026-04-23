@@ -1,37 +1,58 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
+import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
+import { getMyActiveSubscription } from '@/lib/subscription-api';
 import type { ExpertProfile } from '@/types/expert.types';
-import { formatVnd } from '@/lib/utils';
+import type { UserSubscriptionResponse } from '@/types/subscription.types';
+import { ShoppingCart } from 'lucide-react';
 
 interface BookConfirmProps {
   expertName: string;
-  cost: number;
-  balance: number;
   submitting: boolean;
   onConfirm: () => void;
   onCancel: () => void;
 }
 
-function BookConfirm({ expertName, cost, balance, submitting, onConfirm, onCancel }: BookConfirmProps) {
-  const hasEnough = balance >= cost;
+function BookConfirm({ expertName, submitting, onConfirm, onCancel }: BookConfirmProps) {
+  const router = useRouter();
+  const { data: sub } = useQuery<UserSubscriptionResponse | null>({
+    queryKey: ['my-active-subscription'],
+    queryFn: getMyActiveSubscription,
+    staleTime: 5 * 60 * 1000,
+    retry: false,
+  });
+  const hasQuota = !!sub && (sub.remainExpert > 0 || sub.remainExpert === -1);
+
   return (
     <div className="border rounded-xl p-4 bg-orange-50 space-y-3">
       <p className="font-semibold text-sm">
         Xác nhận đặt lịch với <span className="text-orange-700">{expertName}</span>
       </p>
-      <div className="text-sm space-y-1 text-muted-foreground">
-        <p>Chi phí: <span className="font-semibold text-foreground">{formatVnd(cost)}</span></p>
-        <p>Số dư: <span className={`font-semibold ${hasEnough ? 'text-foreground' : 'text-destructive'}`}>{formatVnd(balance)}</span></p>
-        {!hasEnough && (
-          <p className="text-destructive font-medium">Không đủ số dư! Vui lòng <a href="/payment" className="underline">nạp thêm</a>.</p>
-        )}
-      </div>
+      {hasQuota ? (
+        <div className="text-sm space-y-1 text-muted-foreground">
+          <p>Chi phí: <span className="font-semibold text-indigo-700">-1 lượt Giảng viên</span></p>
+          <p>Còn lại ({sub!.planName}): <span className="font-semibold text-emerald-600">
+            {sub!.remainExpert === -1 ? 'Không giới hạn' : sub!.remainExpert}
+          </span></p>
+        </div>
+      ) : (
+        <div className="flex items-center gap-1.5 text-xs text-amber-700 font-semibold bg-amber-50 px-3 py-2 rounded-lg">
+          <ShoppingCart className="h-3.5 w-3.5" />
+          Bạn chưa có lượt chấm Giảng viên. Vui lòng mua gói.
+        </div>
+      )}
       <div className="flex gap-2">
         <Button variant="outline" size="sm" onClick={onCancel} disabled={submitting}>Huỷ</Button>
-        {hasEnough && (
+        {hasQuota ? (
           <Button size="sm" onClick={onConfirm} disabled={submitting}>
             {submitting ? 'Đang đặt...' : 'Xác nhận'}
+          </Button>
+        ) : (
+          <Button size="sm" onClick={() => router.push('/payment')}>
+            <ShoppingCart className="h-3.5 w-3.5 mr-1" />
+            Mua gói ngay
           </Button>
         )}
       </div>
@@ -43,7 +64,6 @@ interface Props {
   expert: ExpertProfile;
   testId: string | null;
   expertCost: number;
-  balance: number;
   showConfirm: boolean;
   submitting: boolean;
   onBookClick: () => void;
@@ -51,12 +71,11 @@ interface Props {
   onCancelConfirm: () => void;
 }
 
-/** Sticky footer with book button + inline credit confirmation for ExpertProfilePage */
+/** Sticky footer with book button + inline confirmation for ExpertProfilePage */
 export function ExpertProfileBookFooter({
   expert,
   testId,
   expertCost,
-  balance,
   showConfirm,
   submitting,
   onBookClick,
@@ -69,8 +88,6 @@ export function ExpertProfileBookFooter({
         {showConfirm && testId && (
           <BookConfirm
             expertName={expert.displayName}
-            cost={expertCost}
-            balance={balance}
             submitting={submitting}
             onConfirm={onConfirm}
             onCancel={onCancelConfirm}
@@ -90,7 +107,7 @@ export function ExpertProfileBookFooter({
             >
               {expert.status === 'OFFLINE'
                 ? 'Giảng viên không có mặt'
-                : `Book giảng viên này · ${formatVnd(expertCost)}`}
+                : 'Book giảng viên này'}
             </Button>
           )
         )}

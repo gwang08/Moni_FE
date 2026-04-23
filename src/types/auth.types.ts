@@ -30,7 +30,7 @@ export interface UserProfileResponse {
   phoneNumber: string | null;
   dateOfBirth: string;
   targetBand: number | null;
-  credit: number | null;
+
   role: string | null;
 }
 
@@ -61,7 +61,7 @@ export interface User {
   phoneNumber: string | null;
   dateOfBirth: string | null;
   role: string; // 'LEARNER' | 'EXPERT' | 'ADMIN'
-  credit: number;
+
 }
 
 export interface AuthState {

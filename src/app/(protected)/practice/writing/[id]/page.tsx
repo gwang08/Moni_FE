@@ -13,13 +13,11 @@ import { WritingExamView } from '@/components/writing/writing-exam-view';
 import { WritingScoringProgressDialog } from '@/components/writing/writing-scoring-progress-dialog';
 import { WritingScoringOptionsDialog } from '@/components/writing/writing-scoring-options-dialog';
 import { WritingExpertSelectionDialog } from '@/components/writing/writing-expert-selection-dialog';
-import { getServices, getServiceQuota, type ServiceQuotaResponse } from '@/lib/payment-api';
 import { getMyActiveSubscription } from '@/lib/subscription-api';
 import type { UserSubscriptionResponse } from '@/types/subscription.types';
 import { useWritingStore } from '@/store/writing-store';
 import { usePracticeStore } from '@/store/practice-store';
 import { useAuthStore } from '@/store/auth-store';
-import { usePaymentStore } from '@/store/payment-store';
 import { useTestDetail } from '@/hooks/use-test-detail';
 import { useElapsedTimer } from '@/hooks/use-elapsed-timer';
 import { useCountdownTimer } from '@/hooks/use-countdown-timer';
@@ -74,8 +72,6 @@ export default function WritingExercisePage({ params }: Props) {
   const markCompleted = usePracticeStore((state) => state.markCompleted);
   const refreshProfile = useAuthStore((state) => state.refreshProfile);
   const queryClient = useQueryClient();
-  const balance = useAuthStore((state) => state.user?.credit ?? 0);
-  const setPaymentReturnUrl = usePaymentStore((state) => state.setReturnUrl);
 
   const [activeStimulusIdx, setActiveStimulusIdx] = useState(0);
   const [taskContents, setTaskContents] = useState<string[]>([]);
@@ -83,23 +79,19 @@ export default function WritingExercisePage({ params }: Props) {
   const [exitOpen, setExitOpen] = useState(false);
   const [showSample, setShowSample] = useState(false);
   const [showScoringDialog, setShowScoringDialog] = useState(false);
-  // aiQuota phản ánh đúng: nếu user chưa dùng AI hôm nay → effectiveCost=0 (miễn phí), ngược lại = giá VND thật
-  const [aiQuota, setAiQuota] = useState<ServiceQuotaResponse | null>(null);
-  const [expertCost, setExpertCost] = useState<number | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [submissionId, setSubmissionId] = useState<number | null>(null);
   const [showExpertDialog, setShowExpertDialog] = useState(false);
   const [activeSubscription, setActiveSubscription] = useState<UserSubscriptionResponse | null>(null);
   const [confirmSubmitOpen, setConfirmSubmitOpen] = useState(false);
+  const [expertCost, setExpertCost] = useState<number | null>(null);
 
-  // Khi thiếu số dư: đóng dialog, set returnUrl='/scoring-history' để sau khi nạp xong
-  // checkout auto-redirect về history → user chấm lại bài vừa submit
-  const handleTopUp = useCallback(() => {
+  // Khi không có lượt chấm: chuyển user sang trang mua gói
+  const handleBuyPackage = useCallback(() => {
     setShowScoringDialog(false);
-    setPaymentReturnUrl('/scoring-history');
     router.push('/payment');
-  }, [router, setPaymentReturnUrl]);
+  }, [router]);
 
   const handleSubmitRef = useRef<() => Promise<void>>(() => Promise.resolve());
 
@@ -127,16 +119,9 @@ export default function WritingExercisePage({ params }: Props) {
     }
   }, [isExamMode, examSession.session?.status, id, router, submitted]);
 
-  // On mount: reset store + fetch service costs
+  // On mount: reset store + fetch subscription
   useEffect(() => {
     reset();
-    // Lấy expert cost (cố định) từ /services; aiCost lấy từ /services/quota/ để biết còn free hôm nay không
-    getServices()
-      .then((services) => {
-        setExpertCost(services.find((s) => s.serviceCode === 'EXPERT_WRITING_SCORE')?.creditCost ?? null);
-      })
-      .catch(() => {});
-    getServiceQuota('AI_WRITING_SCORE').then(setAiQuota).catch(() => {});
     // Fetch active subscription to display quota source in scoring dialog
     getMyActiveSubscription().then(setActiveSubscription).catch(() => {});
   }, [reset]);
@@ -336,14 +321,11 @@ export default function WritingExercisePage({ params }: Props) {
         />
         <WritingScoringOptionsDialog
           open={showScoringDialog}
-          aiQuota={aiQuota}
-          expertCost={expertCost}
-          balance={balance}
           activeSubscription={activeSubscription}
           onAIScore={() => { setShowScoringDialog(false); handleGrade(); }}
           onExpertScore={() => { setShowScoringDialog(false); setShowExpertDialog(true); }}
           onSkip={() => { setShowScoringDialog(false); router.push('/scoring-history'); }}
-          onTopUp={handleTopUp}
+          onBuyPackage={handleBuyPackage}
         />
         <WritingExpertSelectionDialog
           open={showExpertDialog}
@@ -398,14 +380,11 @@ export default function WritingExercisePage({ params }: Props) {
 
       <WritingScoringOptionsDialog
         open={showScoringDialog}
-        aiQuota={aiQuota}
-        expertCost={expertCost}
-        balance={balance}
         activeSubscription={activeSubscription}
         onAIScore={() => { setShowScoringDialog(false); handleGrade(); }}
         onExpertScore={() => { setShowScoringDialog(false); setShowExpertDialog(true); }}
         onSkip={() => { setShowScoringDialog(false); router.push('/scoring-history'); }}
-        onTopUp={handleTopUp}
+        onBuyPackage={handleBuyPackage}
       />
       <WritingExpertSelectionDialog
         open={showExpertDialog}

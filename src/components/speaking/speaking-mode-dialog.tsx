@@ -173,12 +173,11 @@ export function SpeakingModeDialog({ open, testId, aiQuota = null, expertCost = 
               />
             </div>
 
-            {/* Credit confirm */}
+            {/* Expert confirm */}
             {confirming && (
               <SpeakingModeExpertInlineConfirm
                 expert={confirming}
                 cost={expertCost ?? 0}
-                balance={user?.credit ?? 0}
                 submitting={submitting}
                 onConfirm={() => handleBook(confirming)}
                 onCancel={() => setConfirming(null)}

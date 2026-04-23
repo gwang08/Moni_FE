@@ -54,8 +54,8 @@ const TYPE_META: Record<string, { label: string; tint: string; icon: React.Eleme
   },
 };
 
-// Cols: icon | loại | chi tiết | số tiền VND | số lượt (quota) | dư sau | thời gian
-const COLS = 'grid-cols-[40px_100px_1fr_100px_140px_100px_140px] gap-4';
+// Cols: icon | loại | chi tiết | số tiền VND | số lượt (quota) | thời gian
+const COLS = 'grid-cols-[40px_100px_1fr_100px_140px_140px] gap-4';
 
 export function TransactionsTable({ transactions }: Props) {
   if (transactions.length === 0) {
@@ -75,7 +75,6 @@ export function TransactionsTable({ transactions }: Props) {
         <div>Chi tiết</div>
         <div className="text-center">Số tiền</div>
         <div className="text-center">Số lượt</div>
-        <div className="text-center">Dư sau</div>
         <div>Thời gian</div>
       </div>
 
@@ -150,10 +149,6 @@ function TransactionRow({ tx }: { tx: CreditTransactionResponse }) {
             <span className="text-slate-300 text-xs">—</span>
           )}
         </div>
-        {/* Dư sau (VND balance) */}
-        <span className="text-center text-[12px] font-semibold text-slate-600 tabular-nums">
-          {(isSubPurchase || isQuotaConsume) ? '—' : formatVnd(tx.balanceAfter)}
-        </span>
         <span className="text-[11.5px] text-slate-500 font-semibold tabular-nums whitespace-nowrap">{formatDate(tx.createdAt)}</span>
       </div>
 
@@ -182,9 +177,7 @@ function TransactionRow({ tx }: { tx: CreditTransactionResponse }) {
           {isQuotaConsume && (
             <div className="text-[10.5px] text-slate-400 font-semibold tabular-nums">{quotaBeforeAfterText}</div>
           )}
-          {!isSubPurchase && !isQuotaConsume && (
-            <div className="text-[10.5px] text-slate-400 font-semibold tabular-nums">Dư {formatVnd(tx.balanceAfter)}</div>
-          )}
+
         </div>
       </div>
     </div>

@@ -1,17 +1,13 @@
 'use client';
 
-import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Sparkles, Zap, Receipt, Crown, CheckCircle2, BadgeCheck, Route, CalendarCheck, Target, Brain, Award, Wallet, Loader2 } from 'lucide-react';
-import { toast } from 'sonner';
+import { useQuery } from '@tanstack/react-query';
+import { Sparkles, Zap, Receipt, Crown, CheckCircle2, BadgeCheck, Route, CalendarCheck, Target, Brain, Award } from 'lucide-react';
 import { getPackages, getServices } from '@/lib/payment-api';
-import { listPlans, getMyActiveSubscription, getRoadmapSubscriptionStatus, purchaseWithCredit } from '@/lib/subscription-api';
+import { listPlans, getMyActiveSubscription, getRoadmapSubscriptionStatus } from '@/lib/subscription-api';
 import { usePaymentStore } from '@/store/payment-store';
-import { useAuthStore } from '@/store/auth-store';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { formatVnd } from '@/lib/utils';
 import { SkeletonCard, SkeletonLine } from '@/components/ui/skeleton';
 import type { PackagePricingResponse } from '@/types/payment.types';
@@ -126,17 +122,7 @@ function SubscriptionCard({ plan, idx, activeSub, onSelect }: SubscriptionCardPr
 
 export default function PaymentPage() {
   const router = useRouter();
-  const queryClient = useQueryClient();
   const { setSelectedPackage, setCheckoutItem } = usePaymentStore();
-  const creditBalance = useAuthStore((s) => s.user?.credit ?? 0);
-  const refreshProfile = useAuthStore((s) => s.refreshProfile);
-
-  // Credit purchase dialog state
-  const [creditDialog, setCreditDialog] = useState<{ open: boolean; plan: SubscriptionPlanResponse | null }>({
-    open: false,
-    plan: null,
-  });
-  const [purchasing, setPurchasing] = useState(false);
 
   const { data: packages = [], isLoading: pkgLoading } = useQuery({
     queryKey: ['packages'],
@@ -189,32 +175,8 @@ export default function PaymentPage() {
   };
 
   const handleSelectPlan = (plan: SubscriptionPlanResponse) => {
-    if (creditBalance >= plan.priceVnd) {
-      // Đủ tiền → hiện dialog xác nhận trừ credit
-      setCreditDialog({ open: true, plan });
-    } else {
-      // Không đủ → qua checkout QR
-      setCheckoutItem({ type: 'subscription', data: plan });
-      router.push('/payment/checkout');
-    }
-  };
-
-  const handleCreditPurchase = async () => {
-    if (!creditDialog.plan) return;
-    setPurchasing(true);
-    try {
-      await purchaseWithCredit(creditDialog.plan.id);
-      toast.success(`Đã kích hoạt ${creditDialog.plan.name} thành công!`);
-      setCreditDialog({ open: false, plan: null });
-      // Refresh data
-      refreshProfile();
-      queryClient.invalidateQueries({ queryKey: ['my-active-subscription'] });
-      queryClient.invalidateQueries({ queryKey: ['my-roadmap-subscription'] });
-    } catch {
-      toast.error('Mua gói thất bại. Vui lòng thử lại.');
-    } finally {
-      setPurchasing(false);
-    }
+    setCheckoutItem({ type: 'subscription', data: plan });
+    router.push('/payment/checkout');
   };
 
   return (
@@ -491,63 +453,7 @@ export default function PaymentPage() {
         </Button>
       </div>
 
-      {/* Credit Purchase Confirmation Dialog */}
-      <Dialog open={creditDialog.open} onOpenChange={(open) => !purchasing && setCreditDialog({ open, plan: open ? creditDialog.plan : null })}>
-        <DialogContent className="max-w-[400px] p-0 overflow-hidden">
-          {creditDialog.plan && (
-            <>
-              {/* Header gradient */}
-              <div className="bg-gradient-to-br from-indigo-500 to-purple-600 px-6 pt-6 pb-5 text-white">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="p-2.5 rounded-xl bg-white/20 backdrop-blur-sm">
-                    <Wallet className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-lg leading-tight">{creditDialog.plan.name}</h3>
-                    <p className="text-indigo-100 text-xs mt-0.5">{creditDialog.plan.durationDays} ngày sử dụng</p>
-                  </div>
-                </div>
-                <div className="text-3xl font-extrabold tracking-tight">
-                  {formatVND(creditDialog.plan.priceVnd)}
-                </div>
-              </div>
 
-              {/* Body */}
-              <div className="px-6 py-5 space-y-4">
-                <div className="flex items-center justify-between py-2.5 border-b border-dashed border-gray-200">
-                  <span className="text-sm text-gray-500">Số dư hiện tại</span>
-                  <span className="text-sm font-bold text-gray-800">{formatVnd(creditBalance)}</span>
-                </div>
-                <div className="flex items-center justify-between py-2.5">
-                  <span className="text-sm text-gray-500">Số dư sau khi mua</span>
-                  <span className="text-sm font-bold text-emerald-600">
-                    {formatVnd(creditBalance - creditDialog.plan.priceVnd)}
-                  </span>
-                </div>
-
-                <div className="flex gap-3 pt-2">
-                  <Button
-                    variant="outline"
-                    className="flex-1 h-11 rounded-xl font-semibold"
-                    onClick={() => setCreditDialog({ open: false, plan: null })}
-                    disabled={purchasing}
-                  >
-                    Hủy
-                  </Button>
-                  <Button
-                    onClick={handleCreditPurchase}
-                    disabled={purchasing}
-                    className="flex-1 h-11 rounded-xl font-semibold bg-indigo-600 hover:bg-indigo-700"
-                  >
-                    {purchasing ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : <CheckCircle2 className="h-4 w-4 mr-1.5" />}
-                    Xác nhận
-                  </Button>
-                </div>
-              </div>
-            </>
-          )}
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

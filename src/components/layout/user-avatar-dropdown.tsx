@@ -9,7 +9,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useAuthStore } from '@/store/auth-store';
-import { User, LogOut, Shield, CreditCard, Plus, LogIn, GraduationCap, LayoutDashboard } from 'lucide-react';
+import { User, LogOut, Shield, CreditCard, LogIn, GraduationCap, LayoutDashboard } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { toast } from 'sonner';
@@ -64,7 +64,7 @@ export function UserAvatarDropdown({ variant = 'light' }: UserAvatarDropdownProp
       {user.role === 'USER' && (
         <Link
           href="/payment"
-          className={`hidden sm:flex items-center gap-1.5 rounded-full pl-3 pr-1 py-1 transition-colors group ${
+          className={`hidden sm:flex items-center gap-1.5 rounded-full px-3 py-1 transition-colors ${
             isDark
               ? 'border-white/30 border bg-white/10 hover:bg-white/20'
               : 'border rounded-full hover:bg-accent'
@@ -72,10 +72,6 @@ export function UserAvatarDropdown({ variant = 'light' }: UserAvatarDropdownProp
         >
           <span className={`text-sm font-semibold tabular-nums ${isDark ? 'text-white' : ''}`}>
             {formatVnd(creditBalance)}
-          </span>
-          <span className="flex items-center gap-0.5 rounded-full bg-primary text-primary-foreground px-2 py-0.5 text-xs font-medium group-hover:bg-primary/90 transition-colors">
-            <Plus className="h-3 w-3" />
-            Nạp
           </span>
         </Link>
       )}
@@ -115,10 +111,6 @@ export function UserAvatarDropdown({ variant = 'light' }: UserAvatarDropdownProp
                 <div className="flex items-center gap-1.5">
                   <span className="text-sm font-semibold">{formatVnd(creditBalance)}</span>
                 </div>
-                <span className="flex items-center gap-0.5 rounded-full bg-primary text-primary-foreground px-2 py-0.5 text-xs font-medium">
-                  <Plus className="h-3 w-3" />
-                  Nạp
-                </span>
               </Link>
             </div>
           )}

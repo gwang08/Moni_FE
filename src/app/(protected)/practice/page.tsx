@@ -341,7 +341,7 @@ function PracticePage() {
 
         {/* Page title */}
         <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">
+          <h1 className="text-lg font-bold text-gray-900">
             {SKILL_CONFIG[activeSkill].label} — {modeLabel}
           </h1>
           {activePassage && (
@@ -457,7 +457,7 @@ function PracticePage() {
                       )}
                     </div>
                     <div className="p-4">
-                      <h3 className="font-semibold text-gray-800 mb-1 line-clamp-2">{exercise.title}</h3>
+                      <h3 className="text-sm font-semibold text-gray-800 mb-1 line-clamp-2">{exercise.title}</h3>
                       <div className="flex items-center gap-2 text-xs text-gray-400">
                         {(exercise.questionCount ?? 0) > 0 && <span>{exercise.questionCount} câu hỏi</span>}
                         {exercise.duration && exercise.skill !== 'listening' && exercise.skill !== 'speaking' && <span>· {toMinutes(exercise.duration)} phút</span>}
@@ -465,7 +465,7 @@ function PracticePage() {
                     </div>
                     {/* Hover overlay */}
                     <div className="absolute inset-0 bg-white rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex flex-col p-4">
-                      <h3 className="font-bold text-gray-800 line-clamp-2 mb-2">{exercise.title}</h3>
+                      <h3 className="text-sm font-bold text-gray-800 line-clamp-2 mb-2">{exercise.title}</h3>
                       {exercise.questionTypes && exercise.questionTypes.length > 0 && (
                         <ul className="text-sm text-gray-600 space-y-1 flex-1">
                           {exercise.questionTypes.map((qt) => (

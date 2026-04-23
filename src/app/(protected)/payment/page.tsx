@@ -221,13 +221,13 @@ export default function PaymentPage() {
     <div className="max-w-5xl mx-auto p-6 space-y-12">
       {/* Header */}
       <div className="text-center space-y-2">
-        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-medium">
+        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-emerald-100 text-emerald-700 text-sm font-medium">
           <Sparkles className="h-4 w-4" />
-          Nạp tiền & Gói chấm điểm tháng
+          Gói lượt chấm lẻ & Gói tháng
         </div>
         <h1 className="text-3xl font-bold tracking-tight">Chọn gói phù hợp với bạn</h1>
         <p className="text-muted-foreground text-sm max-w-md mx-auto">
-          Nạp ví trả phí theo lượt hoặc mua gói chấm điểm tháng để tiết kiệm hơn
+          Mua lượt chấm bài lẻ hoặc đăng ký gói tháng để tối ưu chi phí học tập
         </p>
       </div>
 
@@ -352,94 +352,83 @@ export default function PaymentPage() {
         </div>
       </section>
 
-      {/* ── Section 2: Nạp ví VND ── */}
+      {/* ── Section 2: Gói lượt chấm bài ── */}
       <section className="space-y-4">
         <div className="flex items-center gap-2">
-          <div className="p-2 rounded-lg bg-primary/10">
-            <Zap className="h-5 w-5 text-primary" />
+          <div className="p-2 rounded-lg bg-emerald-100">
+            <Zap className="h-5 w-5 text-emerald-600" />
           </div>
           <div>
-            <h2 className="text-lg font-bold">Nạp ví VND</h2>
-            <p className="text-xs text-muted-foreground">Trả phí theo lượt, không giới hạn thời gian</p>
+            <h2 className="text-lg font-bold">Gói lượt chấm bài</h2>
+            <p className="text-xs text-muted-foreground">Mua lẻ lượt chấm AI, không giới hạn thời gian sử dụng</p>
           </div>
         </div>
 
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {loading
-            ? Array.from({ length: 4 }).map((_, i) => <PackageSkeleton key={i} />)
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          {pkgLoading
+            ? Array.from({ length: 3 }).map((_, i) => <PackageSkeleton key={i} />)
             : packages.map((pkg, idx) => {
-                const bonus = pkg.creditAmount - pkg.price;
-                const bonusPct = pkg.price > 0 ? Math.round((bonus / pkg.price) * 100) : 0;
-                const hasBonus = bonus > 0;
+                // Calculate turns based on 1 turn = 10,000đ logic
+                // package.creditAmount is the VND balance in backend
+                const turns = Math.round(pkg.creditAmount / 10000);
+                const discount = pkg.price < (turns * 10000) ? (turns * 10000 - pkg.price) : 0;
+
                 return (
-                  <button
-                    type="button"
+                  <div
                     key={pkg.id}
-                    onClick={() => handleSelectPackage(pkg)}
-                    className={`relative text-left rounded-xl border-2 p-4 transition-all hover:shadow-md hover:-translate-y-0.5 ${
-                      hasBonus
-                        ? 'border-emerald-300 bg-emerald-50/40 hover:border-emerald-500'
-                        : 'border-gray-200 bg-white hover:border-emerald-400'
-                    }`}
+                    className="relative rounded-2xl p-6 bg-white border-2 border-gray-100 hover:border-emerald-500 transition-all duration-200 hover:shadow-lg hover:-translate-y-1 flex flex-col group"
                   >
-                    {hasBonus && (
-                      <span className="absolute -top-2 right-3 bg-emerald-500 text-white text-[10px] font-semibold px-2 py-0.5 rounded-full shadow">
-                        +{bonusPct}%
-                      </span>
+                    {discount > 0 && (
+                      <div className="absolute -top-3 right-4 px-3 py-0.5 rounded-full bg-orange-500 text-white text-[10px] font-bold shadow-sm">
+                        Tiết kiệm {formatVnd(discount)}
+                      </div>
                     )}
-                    <div className="text-xl font-bold text-gray-800">
-                      {formatVND(pkg.price)}
+
+                    <div className="mb-4">
+                      <div className="text-sm font-medium text-gray-500 mb-1">Gói lượt chấm</div>
+                      <div className="text-4xl font-black text-emerald-600">
+                        {turns} <span className="text-xl font-bold">Lượt</span>
+                      </div>
                     </div>
-                    <div className={`text-xs mt-1 ${hasBonus ? 'text-emerald-600 font-semibold' : 'text-gray-500'}`}>
-                      Nhận {formatVnd(pkg.creditAmount)}
+
+                    <div className="flex items-center gap-2 mb-6">
+                      <span className="text-2xl font-extrabold text-gray-900">{formatVnd(pkg.price)}</span>
+                      {discount > 0 && (
+                        <span className="text-sm text-gray-400 line-through font-medium">
+                          {formatVnd(turns * 10000)}
+                        </span>
+                      )}
                     </div>
-                  </button>
+
+                    <ul className="space-y-2 mb-6 flex-1">
+                      <li className="flex items-center gap-2 text-xs text-gray-600">
+                        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
+                        Chấm full Speaking & Writing Task 1/2
+                      </li>
+                      <li className="flex items-center gap-2 text-xs text-gray-600">
+                        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
+                        Không hết hạn lượt chấm
+                      </li>
+                      <li className="flex items-center gap-2 text-xs text-gray-600">
+                        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
+                        Tự động đồng bộ vào Lộ trình học
+                      </li>
+                    </ul>
+
+                    <Button
+                      onClick={() => handleSelectPackage(pkg)}
+                      className="w-full rounded-xl h-10 bg-emerald-600 hover:bg-emerald-700 text-white font-bold"
+                    >
+                      Mua ngay
+                    </Button>
+                  </div>
                 );
               })}
         </div>
       </section>
 
-      {/* Services pricing reference */}
-      <section className="bg-gray-50/80 rounded-2xl p-6 border">
-        <div className="flex items-center justify-between mb-5">
-          <div className="flex items-center gap-2">
-            <div className="p-2 rounded-lg bg-primary/10">
-              <Zap className="h-5 w-5 text-primary" />
-            </div>
-            <h2 className="text-lg font-bold">Chi phí dịch vụ</h2>
-          </div>
-        </div>
-
-        {loading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="h-16 bg-white rounded-xl animate-pulse" />
-            ))}
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {services.map((svc) => (
-              <div
-                key={svc.id}
-                className="bg-white rounded-xl p-4 flex justify-between items-center gap-3 border hover:border-primary/30 transition-colors"
-              >
-                <div>
-                  <p className="font-medium text-sm">{svc.name}</p>
-                  {svc.description && (
-                    <p className="text-gray-400 text-xs mt-0.5">{svc.description}</p>
-                  )}
-                </div>
-                <span className="text-primary font-bold text-sm whitespace-nowrap flex items-center gap-1 bg-primary/5 px-2.5 py-1 rounded-full">
-                  {formatVnd(svc.creditCost)}
-                </span>
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
-
       {/* History link */}
-      <div className="text-center">
+      <div className="text-center pt-4">
         <Button variant="ghost" size="sm" asChild className="text-muted-foreground">
           <Link href="/transactions">
             <Receipt className="h-4 w-4 mr-1.5" />

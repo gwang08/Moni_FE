@@ -135,42 +135,51 @@ export function WeeklyStats() {
       </div>
 
       {/* Desktop Table Layout */}
-      <div className="hidden sm:block overflow-x-auto">
-        <table className="w-full text-sm border-separate border-spacing-y-1.5">
+      <div className="hidden sm:block overflow-x-auto mt-4">
+        <table className="w-full text-sm border-separate border-spacing-y-2">
           <thead>
-            <tr className="text-muted-foreground">
-              <th className="text-left py-2 pr-3 text-[11px] font-bold uppercase tracking-wider whitespace-nowrap">Ngày</th>
+            <tr className="text-gray-500">
+              <th className="text-left py-2 px-3 text-[11px] font-bold uppercase tracking-[0.1em] whitespace-nowrap">Ngày</th>
               {SKILLS.map((s) => (
-                <th key={s} className="text-center py-2 px-2 text-[11px] font-bold uppercase tracking-wider whitespace-nowrap">
+                <th key={s} className="text-center py-2 px-2 text-[11px] font-bold uppercase tracking-[0.1em] whitespace-nowrap">
                   {SKILL_LABELS[s]}
                 </th>
               ))}
-              <th className="text-center py-2 pl-2 text-[11px] font-bold uppercase tracking-wider whitespace-nowrap">Thời gian</th>
+              <th className="text-center py-2 pl-2 text-[11px] font-bold uppercase tracking-[0.1em] whitespace-nowrap">Thời gian</th>
             </tr>
           </thead>
           <tbody>
             {dayStats.map((day) => {
               const isToday = day.dateStr === todayStr;
               return (
-                <tr key={day.dateStr} className={`group transition-all ${isToday ? 'bg-primary/5 shadow-sm' : 'hover:bg-secondary/40'}`}>
-                  <td className={`py-3 px-3 text-xs font-bold rounded-l-xl border-y border-l border-transparent ${isToday ? 'text-primary border-primary/10' : 'text-foreground'}`}>
-                    {day.label}
-                    {isToday && <span className="ml-1.5 text-[10px] opacity-70">★</span>}
+                <tr key={day.dateStr} className={`group transition-all ${isToday ? 'bg-[#F2F9F5]' : 'hover:bg-gray-50'}`}>
+                  <td className={`py-4 px-3 text-sm font-bold rounded-l-xl ${isToday ? 'text-[#00A859]' : 'text-gray-800'}`}>
+                    {day.label === 'CN' ? (
+                      <span>CN {isToday && <span className="ml-1 text-[10px] opacity-80">★</span>}</span>
+                    ) : (
+                      <>
+                        <span className="block">Thứ</span>
+                        <span className="block">
+                          {day.label.replace('Thứ ', '')}
+                          {isToday && <span className="ml-1 text-[10px] opacity-80">★</span>}
+                        </span>
+                      </>
+                    )}
                   </td>
                   {SKILLS.map((skill) => (
-                    <td key={skill} className={`py-3 px-2 text-center border-y border-transparent ${isToday ? 'border-primary/10' : ''}`}>
+                    <td key={skill} className="py-4 px-2 text-center">
                       {day.skills[skill] > 0 ? (
-                        <span className="inline-flex items-center justify-center w-6 h-6 rounded-lg bg-primary/10 text-primary text-[11px] font-extrabold">
+                        <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-[#E5F5EC] text-[#00A859] text-xs font-bold">
                           {day.skills[skill]}
                         </span>
                       ) : (
-                        <span className="text-muted-foreground/30 text-xs">-</span>
+                        <span className="text-gray-300 text-sm font-medium">-</span>
                       )}
                     </td>
                   ))}
-                  <td className={`py-3 px-3 text-center text-xs font-bold rounded-r-xl border-y border-r border-transparent ${isToday ? 'text-primary border-primary/10' : 'text-muted-foreground'}`}>
+                  <td className={`py-4 px-3 text-center text-sm font-bold rounded-r-xl ${isToday ? 'text-[#00A859]' : 'text-gray-400'}`}>
                     {day.totalMinutes > 0 ? (
-                      <span className="text-foreground">{formatMinutes(day.totalMinutes)}</span>
+                      <span className="text-gray-700">{formatMinutes(day.totalMinutes)}</span>
                     ) : (
                       <span className="opacity-30">0m</span>
                     )}
@@ -181,19 +190,19 @@ export function WeeklyStats() {
           </tbody>
           <tfoot>
             <tr>
-              <td colSpan={6} className="py-4 px-3">
-                <div className="flex justify-between items-center bg-secondary/30 rounded-xl p-3 border border-border">
-                   <span className="text-xs font-bold text-foreground">Tổng cộng tuần này</span>
-                   <div className="flex gap-4">
+              <td colSpan={7} className="pt-6 pb-2">
+                <div className="flex justify-between items-center bg-gray-50/80 rounded-xl p-4 border border-gray-100">
+                   <span className="text-sm font-bold text-gray-800">Tổng cộng tuần này</span>
+                   <div className="flex gap-6">
                       <div className="flex items-center gap-2">
-                        <span className="text-[11px] text-muted-foreground font-medium">Hoàn thành:</span>
-                        <span className="text-xs font-bold text-primary">
+                        <span className="text-xs text-gray-500 font-medium">Hoàn thành:</span>
+                        <span className="text-sm font-bold text-[#00A859]">
                           {Object.values(totals.skills).reduce((a, b) => a + b, 0)} bài
                         </span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className="text-[11px] text-muted-foreground font-medium">Thời gian:</span>
-                        <span className="text-xs font-extrabold text-foreground">{formatMinutes(totals.totalMinutes)}</span>
+                        <span className="text-xs text-gray-500 font-medium">Thời gian:</span>
+                        <span className="text-sm font-extrabold text-gray-800">{formatMinutes(totals.totalMinutes)}</span>
                       </div>
                    </div>
                 </div>

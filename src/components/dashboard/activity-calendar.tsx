@@ -67,46 +67,51 @@ export function ActivityCalendar() {
   };
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 font-sans">
       {/* Header */}
-      <div className="flex items-center justify-between mb-1">
-        <h3 className="text-base font-semibold text-gray-800">
+      <div className="flex items-start justify-between mb-2">
+        <h3 className="text-lg font-bold text-gray-800 leading-tight w-1/2">
           Biểu đồ &quot;chăm chỉ&quot; của bạn
         </h3>
-        <div className="flex items-center gap-1">
-          <button onClick={prevMonth} className="p-1 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-700 transition-colors">
-            <ChevronLeft className="h-4 w-4" />
+        <div className="flex items-center gap-3">
+          <button onClick={prevMonth} className="p-1 rounded-full hover:bg-gray-100 text-gray-400 hover:text-gray-700 transition-colors">
+            <ChevronLeft className="h-5 w-5" />
           </button>
-          <span className="text-sm font-medium text-gray-700 min-w-[80px] text-center">
-            {VI_MONTHS[viewMonth]} {viewYear}
-          </span>
-          <button onClick={nextMonth} className="p-1 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-700 transition-colors">
-            <ChevronRight className="h-4 w-4" />
+          <div className="flex flex-col items-center justify-center min-w-[80px]">
+            <span className="text-base font-semibold text-gray-800">
+              {VI_MONTHS[viewMonth]}
+            </span>
+            <span className="text-base font-semibold text-gray-800">
+              {viewYear}
+            </span>
+          </div>
+          <button onClick={nextMonth} className="p-1 rounded-full hover:bg-gray-100 text-gray-400 hover:text-gray-700 transition-colors">
+            <ChevronRight className="h-5 w-5" />
           </button>
         </div>
       </div>
-      <p className="text-xs text-gray-400 mb-4">
+      <p className="text-sm text-gray-400 mb-6">
         Các ngày có chấm xanh là ngày bạn đã luyện tập
       </p>
 
       {/* Weekday Labels */}
-      <div className="grid grid-cols-8 gap-1 mb-1">
-        <div className="text-xs text-gray-400 text-center" />
+      <div className="grid grid-cols-8 gap-2 mb-3">
+        <div className="text-sm text-gray-400 text-center" />
         {VI_WEEKDAYS.map((d) => (
-          <div key={d} className="text-xs font-medium text-gray-400 text-center">{d}</div>
+          <div key={d} className="text-sm font-medium text-gray-400 text-center">{d}</div>
         ))}
       </div>
 
       {/* Calendar Grid */}
-      <div className="space-y-1">
+      <div className="space-y-2">
         {weeks.map((week, wi) => (
-          <div key={wi} className="grid grid-cols-8 gap-1 items-center">
+          <div key={wi} className="grid grid-cols-8 gap-2 items-center">
             <button
               onClick={() => setSelectedWeek(selectedWeek === wi ? null : wi)}
-              className={`text-xs rounded-md py-1 font-medium transition-colors ${
+              className={`text-sm rounded-md py-1 font-medium transition-colors ${
                 selectedWeek === wi
                   ? 'bg-orange-100 text-orange-600'
-                  : 'text-gray-400 hover:bg-gray-100 hover:text-gray-600'
+                  : 'text-gray-400 hover:bg-gray-50 hover:text-gray-600'
               }`}
             >
               T{wi + 1}
@@ -124,27 +129,24 @@ export function ActivityCalendar() {
                 <div
                   key={di}
                   title={dateStr}
-                  className={`flex flex-col items-center justify-center rounded-lg py-1 transition-colors cursor-default ${
+                  className={`flex flex-col items-center justify-center rounded-xl py-1.5 transition-colors cursor-default ${
                     isHighlighted ? 'bg-orange-50' : 'hover:bg-gray-50'
                   }`}
                 >
                   <span
-                    className={`text-xs font-medium w-6 h-6 flex items-center justify-center rounded-full ${
+                    className={`text-sm font-medium w-8 h-8 flex items-center justify-center rounded-full ${
                       isToday
-                        ? hasActivity
-                          ? 'bg-green-500 text-white'
-                          : 'bg-orange-400 text-white'
-                        : 'text-gray-600'
+                        ? 'bg-[#F97316] text-white'
+                        : 'text-gray-700'
                     }`}
                   >
                     {day}
                   </span>
-                  {hasActivity && !isToday && (
-                    <span className="w-1.5 h-1.5 rounded-full bg-green-500 mt-0.5" />
-                  )}
-                  {!hasActivity && !isToday && (
-                    <span className="w-1.5 h-1.5 mt-0.5" />
-                  )}
+                  <div className="h-1.5 mt-1 flex justify-center w-full">
+                    {hasActivity && (
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#00A859]" />
+                    )}
+                  </div>
                 </div>
               );
             })}
@@ -153,14 +155,14 @@ export function ActivityCalendar() {
       </div>
 
       {/* Legend */}
-      <div className="flex items-center gap-4 mt-4 pt-3 border-t border-gray-100">
-        <div className="flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded-full bg-green-500" />
-          <span className="text-xs text-gray-500">Có nộp bài</span>
+      <div className="flex items-center gap-6 mt-6 pt-5 border-t border-gray-100">
+        <div className="flex items-center gap-2">
+          <span className="w-3 h-3 rounded-full bg-[#00A859]" />
+          <span className="text-sm text-gray-500 font-medium">Có nộp bài</span>
         </div>
-        <div className="flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded-full bg-orange-400" />
-          <span className="text-xs text-gray-500">Hôm nay</span>
+        <div className="flex items-center gap-2">
+          <span className="w-3 h-3 rounded-full bg-[#F97316]" />
+          <span className="text-sm text-gray-500 font-medium">Hôm nay</span>
         </div>
       </div>
     </div>

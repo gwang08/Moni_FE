@@ -30,12 +30,18 @@ export interface NormalisedData {
   feedbackImprovements?: string;
 }
 
-export const CRIT_META = [
-  { key: 'TR', altKeys: ['TA'], label: 'Task Response', short: 'TR' },
-  { key: 'CC', altKeys: ['CC'], label: 'Coherence & Cohesion', short: 'CC' },
-  { key: 'LR', altKeys: ['LR'], label: 'Lexical Resource', short: 'LR' },
-  { key: 'GRA', altKeys: ['GRA'], label: 'Grammatical Range', short: 'GRA' },
-];
+export function getCritMeta(taskType?: number) {
+  const taLabel = taskType === 1 ? 'Task Achievement' : 'Task Response';
+  const taShort = taskType === 1 ? 'TA' : 'TR';
+  return [
+    { key: 'TR', altKeys: ['TA'], label: taLabel, short: taShort },
+    { key: 'CC', altKeys: ['CC'], label: 'Coherence & Cohesion', short: 'CC' },
+    { key: 'LR', altKeys: ['LR'], label: 'Lexical Resource', short: 'LR' },
+    { key: 'GRA', altKeys: ['GRA'], label: 'Grammatical Range', short: 'GRA' },
+  ];
+}
+
+export const CRIT_META = getCritMeta();
 
 function dig(o: any, ...paths: string[]): number {
   for (const p of paths) {
@@ -59,7 +65,7 @@ export function cleanFeedback(text: any): string | undefined {
     .trim() || undefined;
 }
 
-export function normalise(raw: Record<string, unknown>): NormalisedData {
+export function normalise(raw: Record<string, unknown>, taskType?: number): NormalisedData {
   const isFormatB = 'overallScore' in raw || 'analysisResult' in raw || 'feedbackResponse' in raw;
 
   const overall = isFormatB
@@ -70,7 +76,8 @@ export function normalise(raw: Record<string, unknown>): NormalisedData {
     ? ((raw as any)?.analysisResult?.criteria || (raw as any)?.criteria)
     : ((raw as any)?.assessment?.criteria || (raw as any)?.criteria);
 
-  const criteria: NormalisedCriterion[] = CRIT_META.map(({ key, altKeys, label, short }) => {
+  const critMeta = getCritMeta(taskType);
+  const criteria: NormalisedCriterion[] = critMeta.map(({ key, altKeys, label, short }) => {
     const cObj: any = critSource?.[key] ?? altKeys.reduce((acc: any, k) => acc ?? critSource?.[k], undefined);
     const band = Number(cObj?.adjusted_band ?? cObj?.band ?? 0);
     return {

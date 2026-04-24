@@ -89,7 +89,7 @@ export default function WritingResultPage({ params }: Props) {
   const rawForDisplay: Record<string, unknown> | null =
     rawScoringData ?? (hasEvaluation ? (submission.evaluation as Record<string, unknown>) : null);
 
-  const normData = rawForDisplay ? normalise(rawForDisplay) : null;
+  const normData = rawForDisplay ? normalise(rawForDisplay, taskType) : null;
   const scored = normData !== null;
 
   const submittedDate = new Date(

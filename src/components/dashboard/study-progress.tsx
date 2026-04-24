@@ -140,17 +140,17 @@ export function StudyProgress() {
         <div>
           <h3 className="text-lg font-extrabold text-gray-900">Hành trình nỗ lực</h3>
           <p className="text-xs text-gray-500 mt-0.5">
-            Đã hoàn thành <span className="text-orange-600 font-bold">{totalThisYear}</span> bài luyện trong năm {year}
+            Đã hoàn thành <span className="text-emerald-600 font-bold">{totalThisYear}</span> bài luyện trong năm {year}
           </p>
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
-          <div className="flex items-center gap-2 bg-orange-50 px-3 py-1.5 rounded-full">
-            <Flame className="w-4 h-4 text-orange-500" fill="#fb923c" />
-            <span className="text-xs font-bold text-orange-700"><b className="text-base">{currentStreak}</b> ngày streak</span>
+          <div className="flex items-center gap-2 bg-emerald-50 px-3 py-1.5 rounded-full">
+            <Flame className="w-4 h-4 text-emerald-500" fill="#fb923c" />
+            <span className="text-xs font-bold text-emerald-700"><b className="text-base">{currentStreak}</b> ngày streak</span>
           </div>
-          <div className="flex items-center gap-2 bg-pink-50 px-3 py-1.5 rounded-full">
-            <Trophy className="w-4 h-4 text-pink-500" fill="#fbcfe8" />
+          <div className="flex items-center gap-2 bg-gray-50 px-3 py-1.5 rounded-full">
+            <Trophy className="w-4 h-4 text-gray-500" fill="#fbcfe8" />
             <span className="text-xs font-bold text-pink-700"><b className="text-base">{totalThisWeek}</b> bài tuần này</span>
           </div>
         </div>
@@ -211,10 +211,10 @@ export function StudyProgress() {
         <span>Ít</span>
         <div className="flex gap-1">
           <span className="w-3 h-3 rounded-sm bg-slate-100"></span>
-          <span className="w-3 h-3 rounded-sm bg-orange-200"></span>
-          <span className="w-3 h-3 rounded-sm bg-orange-400"></span>
-          <span className="w-3 h-3 rounded-sm bg-orange-500"></span>
-          <span className="w-3 h-3 rounded-sm bg-orange-700"></span>
+          <span className="w-3 h-3 rounded-sm bg-emerald-200"></span>
+          <span className="w-3 h-3 rounded-sm bg-emerald-400"></span>
+          <span className="w-3 h-3 rounded-sm bg-emerald-500"></span>
+          <span className="w-3 h-3 rounded-sm bg-emerald-700"></span>
         </div>
         <span>Nhiều</span>
       </div>

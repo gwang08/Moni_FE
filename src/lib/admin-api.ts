@@ -3,6 +3,13 @@ import type { ApiResponse } from '@/types/auth.types';
 import type { PagedResponse } from '@/types/test.types';
 import type { CreditTransactionResponse } from '@/types/payment.types';
 import type { ScoringSession, ExpertEvaluation } from '@/types/expert.types';
+import type { AttemptHistory } from '@/lib/practice-api';
+import type { WritingSubmission } from '@/lib/ai-api';
+import type {
+  LearnerRoadmapInsights,
+  WeeklyPlanResponse,
+  WeeklyPlanSummary,
+} from '@/types/roadmap.types';
 import type {
   TagResponse,
   TagRequest,
@@ -231,6 +238,37 @@ export async function getUserById(userId: string): Promise<UserResponse> {
 
 export async function banUser(userId: string): Promise<void> {
   await apiClient.put(`/credentials/${userId}/ban`, undefined, true);
+}
+
+// Admin User Detail — xem chi tiết 1 học viên (practice / writing / expert / roadmap)
+export async function getAdminUserAttempts(userId: string): Promise<AttemptHistory[]> {
+  const res = await apiClient.get<ApiResponse<AttemptHistory[]>>(`/users/${userId}/attempts`, true);
+  return res.result ?? [];
+}
+
+export async function getAdminUserWritingSubmissions(userId: string): Promise<WritingSubmission[]> {
+  const res = await apiClient.get<ApiResponse<WritingSubmission[]>>(`/users/${userId}/writing-submissions`, true);
+  return res.result ?? [];
+}
+
+export async function getAdminUserScoringSessions(userId: string): Promise<ScoringSession[]> {
+  const res = await apiClient.get<ApiResponse<ScoringSession[]>>(`/users/${userId}/scoring-sessions`, true);
+  return res.result ?? [];
+}
+
+export async function getAdminUserRoadmapInsights(userId: string): Promise<LearnerRoadmapInsights | null> {
+  const res = await apiClient.get<ApiResponse<LearnerRoadmapInsights>>(`/users/${userId}/roadmap-insights`, true);
+  return res.result ?? null;
+}
+
+export async function getAdminUserWeeklyPlan(userId: string): Promise<WeeklyPlanResponse | null> {
+  const res = await apiClient.get<ApiResponse<WeeklyPlanResponse>>(`/users/${userId}/weekly-plan`, true);
+  return res.result ?? null;
+}
+
+export async function getAdminUserWeeklyPlanHistory(userId: string): Promise<WeeklyPlanSummary[]> {
+  const res = await apiClient.get<ApiResponse<WeeklyPlanSummary[]>>(`/users/${userId}/weekly-plan-history`, true);
+  return res.result ?? [];
 }
 
 // Media

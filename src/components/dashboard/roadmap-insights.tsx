@@ -104,10 +104,10 @@ function MetricBar({
   const v = clamp01(value01);
   const bar =
     accent === 'sky'
-      ? 'from-sky-500 to-indigo-500'
+      ? 'from-sky-500 to-emerald-500'
       : accent === 'emerald'
         ? 'from-emerald-500 to-lime-500'
-        : 'from-amber-500 to-rose-500';
+        : 'from-amber-500 to-gray-500';
   const glow =
     accent === 'sky'
       ? 'shadow-[0_0_0_1px_rgba(56,189,248,0.25),0_10px_30px_-14px_rgba(59,130,246,0.45)]'
@@ -157,7 +157,7 @@ function TagRow({ m }: { m: LearnerTagMetric }) {
   const isWeak = mastery < 0.5;
 
   return (
-    <div className={`rounded-lg border px-3 py-2 ${isWeak ? 'border-rose-100 bg-rose-50/30' : 'border-gray-100 bg-white'}`}>
+    <div className={`rounded-lg border px-3 py-2 ${isWeak ? 'border-gray-100 bg-gray-50/30' : 'border-gray-100 bg-white'}`}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="text-sm font-semibold text-gray-800 truncate">
@@ -177,12 +177,12 @@ function TagRow({ m }: { m: LearnerTagMetric }) {
       <div className="mt-2 grid grid-cols-2 gap-2">
         <div className="h-1.5 rounded-full bg-gray-100 overflow-hidden">
           <div
-            className={`h-full bg-gradient-to-r ${isWeak ? 'from-rose-400 to-orange-400' : 'from-sky-500 to-indigo-500'}`}
+            className={`h-full bg-gradient-to-r ${isWeak ? 'from-gray-400 to-emerald-400' : 'from-sky-500 to-emerald-500'}`}
             style={{ width: `${Math.round(mastery * 100)}%` }}
           />
         </div>
         <div className="h-1.5 rounded-full bg-gray-100 overflow-hidden">
-          <div className="h-full bg-gradient-to-r from-amber-500 to-rose-500" style={{ width: `${Math.round(conf * 100)}%` }} />
+          <div className="h-full bg-gradient-to-r from-amber-500 to-gray-500" style={{ width: `${Math.round(conf * 100)}%` }} />
         </div>
       </div>
     </div>
@@ -209,7 +209,7 @@ function TagGroupAccordion({
           {open ? '▼' : '►'} {group.label}
           <span className="text-gray-400 font-normal">— {group.items.length} mục</span>
           {weakCount > 0 && (
-            <span className="text-rose-500 font-normal">({weakCount} cần cải thiện)</span>
+            <span className="text-gray-500 font-normal">({weakCount} cần cải thiện)</span>
           )}
         </div>
         {open ? (
@@ -292,7 +292,7 @@ function SkillMetricsPanel({
       <div className="flex items-center gap-3 text-xs text-gray-500">
         <span>{totalMetrics} chỉ số</span>
         {weakMetrics > 0 && (
-          <span className="text-rose-500 font-medium">• {weakMetrics} cần cải thiện</span>
+          <span className="text-gray-500 font-medium">• {weakMetrics} cần cải thiện</span>
         )}
         {totalMetrics > 0 && weakMetrics === 0 && (
           <span className="text-emerald-500 font-medium">• Tất cả đều tốt ✓</span>
@@ -545,13 +545,13 @@ export function RoadmapInsights({ weekNumber }: { weekNumber?: number }) {
                     onClick={() => setActiveSkill(tab.key)}
                     className={`relative px-4 py-2.5 text-xs font-medium whitespace-nowrap transition-colors ${
                       isActive
-                        ? 'text-blue-700 bg-white border-b-2 border-blue-600'
+                        ? 'text-gray-700 bg-white border-b-2 border-gray-600'
                         : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100/60'
                     }`}
                   >
                     {tab.label}
                     {weakCount > 0 && (
-                      <span className="ml-1.5 inline-flex items-center justify-center h-4 min-w-[16px] px-1 rounded-full text-[10px] font-bold bg-rose-100 text-rose-600">
+                      <span className="ml-1.5 inline-flex items-center justify-center h-4 min-w-[16px] px-1 rounded-full text-[10px] font-bold bg-gray-100 text-rose-600">
                         {weakCount}
                       </span>
                     )}

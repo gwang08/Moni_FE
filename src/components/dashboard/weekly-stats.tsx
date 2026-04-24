@@ -17,10 +17,10 @@ const SKILL_LABELS: Record<SkillKey, string> = {
 
 // Warm playful tone per skill — matches target-scores theme
 const SKILL_STYLE: Record<SkillKey, { text: string; track: string; fill: string }> = {
-  reading:   { text: 'text-blue-700',    track: 'bg-blue-100',    fill: 'bg-blue-500' },
-  listening: { text: 'text-purple-700',  track: 'bg-purple-100',  fill: 'bg-purple-500' },
+  reading:   { text: 'text-gray-700',    track: 'bg-gray-100',    fill: 'bg-gray-500' },
+  listening: { text: 'text-gray-700',  track: 'bg-gray-100',  fill: 'bg-gray-500' },
   writing:   { text: 'text-emerald-700', track: 'bg-emerald-100', fill: 'bg-emerald-500' },
-  speaking:  { text: 'text-pink-700',    track: 'bg-pink-100',    fill: 'bg-pink-500' },
+  speaking:  { text: 'text-pink-700',    track: 'bg-gray-100',    fill: 'bg-gray-500' },
 };
 
 function getWeekRange(): { start: Date; end: Date; label: string } {
@@ -75,7 +75,7 @@ export function WeeklyStats() {
     <div className="bg-white rounded-3xl shadow-sm p-6 h-full flex flex-col">
       <div className="flex items-start justify-between mb-5 gap-2">
         <div className="flex items-center gap-3 min-w-0">
-          <div className="w-10 h-10 shrink-0 rounded-2xl bg-pink-100 flex items-center justify-center">
+          <div className="w-10 h-10 shrink-0 rounded-2xl bg-gray-100 flex items-center justify-center">
             <BarChart3 className="w-5 h-5 text-pink-600" />
           </div>
           <div className="min-w-0">
@@ -83,7 +83,7 @@ export function WeeklyStats() {
             <p className="text-xs text-gray-500 mt-0.5 truncate">Phân bổ bài luyện theo kỹ năng</p>
           </div>
         </div>
-        <span className="text-xs font-bold bg-orange-50 text-orange-600 px-3 py-1 rounded-full whitespace-nowrap shrink-0">{label}</span>
+        <span className="text-xs font-bold bg-emerald-50 text-emerald-600 px-3 py-1 rounded-full whitespace-nowrap shrink-0">{label}</span>
       </div>
 
       <div className="space-y-4 flex-1">
@@ -109,11 +109,11 @@ export function WeeklyStats() {
       </div>
 
       <div className="mt-6 pt-5 border-t border-dashed border-gray-200 grid grid-cols-2 gap-3">
-        <div className="bg-orange-50 rounded-2xl p-3 text-center">
-          <div className="text-xs font-bold text-orange-600 uppercase tracking-wide">Tổng bài</div>
+        <div className="bg-emerald-50 rounded-2xl p-3 text-center">
+          <div className="text-xs font-bold text-emerald-600 uppercase tracking-wide">Tổng bài</div>
           <div className="text-2xl font-extrabold text-gray-900 mt-0.5">{total}</div>
         </div>
-        <div className="bg-pink-50 rounded-2xl p-3 text-center">
+        <div className="bg-gray-50 rounded-2xl p-3 text-center">
           <div className="text-xs font-bold text-pink-600 uppercase tracking-wide">Thời gian</div>
           <div className="text-2xl font-extrabold text-gray-900 mt-0.5">{formatMinutes(totalMinutes)}</div>
         </div>

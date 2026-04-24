@@ -41,11 +41,11 @@ function formatStimulusTitle(title: string | null | undefined, skill: RoadmapSki
 const WEEKDAY_SHORT = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
 
 const SKILL_STYLE: Record<RoadmapSkill, { bg: string; text: string; border: string; dot: string }> = {
-  READING: { bg: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-200', dot: 'bg-blue-500' },
-  LISTENING: { bg: 'bg-purple-50', text: 'text-purple-700', border: 'border-purple-200', dot: 'bg-purple-500' },
+  READING: { bg: 'bg-gray-50', text: 'text-gray-700', border: 'border-gray-200', dot: 'bg-gray-500' },
+  LISTENING: { bg: 'bg-gray-50', text: 'text-gray-700', border: 'border-gray-200', dot: 'bg-gray-500' },
   WRITING: { bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200', dot: 'bg-emerald-500' },
-  SPEAKING: { bg: 'bg-orange-50', text: 'text-orange-700', border: 'border-orange-200', dot: 'bg-orange-500' },
-  VOCABULARY: { bg: 'bg-rose-50', text: 'text-rose-700', border: 'border-rose-200', dot: 'bg-rose-500' },
+  SPEAKING: { bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200', dot: 'bg-emerald-500' },
+  VOCABULARY: { bg: 'bg-gray-50', text: 'text-gray-700', border: 'border-gray-200', dot: 'bg-gray-500' },
 };
 
 const VERDICT_CONFIG: Record<PerformanceVerdict, { icon: typeof TrendingUp; label: string; color: string }> = {
@@ -63,7 +63,7 @@ function DifficultyBar({ level }: { level: number }) {
         <div
           key={i}
           className={`h-2 w-3 rounded-sm transition-colors ${
-            i < filled ? 'bg-gradient-to-r from-orange-400 to-rose-400' : 'bg-gray-200'
+            i < filled ? 'bg-gradient-to-r from-emerald-400 to-gray-400' : 'bg-gray-200'
           }`}
         />
       ))}
@@ -215,16 +215,16 @@ export function LearningRoadmap({ weekNumber }: { weekNumber?: number }) {
 
   if (!plan) {
     return (
-      <div id="learning-roadmap-section" className={`bg-white rounded-2xl border border-gray-100 shadow-sm p-6 relative transition-all duration-500 ${tourStep >= 5 && tourStep <= 7 ? 'z-50 ring-4 ring-orange-500 shadow-2xl scale-[1.01]' : ''}`}>
+      <div id="learning-roadmap-section" className={`bg-white rounded-2xl border border-gray-100 shadow-sm p-6 relative transition-all duration-500 ${tourStep >= 5 && tourStep <= 7 ? 'z-50 ring-4 ring-emerald-500 shadow-2xl scale-[1.01]' : ''}`}>
         
         {/* Tour Step 5: Intro */}
         {tourStep === 5 && (
-          <div className="absolute -top-6 left-1/2 -translate-x-1/2 -translate-y-full w-80 bg-white p-5 rounded-2xl shadow-xl border border-orange-100 z-50 animate-in fade-in slide-in-from-top-4">
+          <div className="absolute -top-6 left-1/2 -translate-x-1/2 -translate-y-full w-80 bg-white p-5 rounded-2xl shadow-xl border border-emerald-100 z-50 animate-in fade-in slide-in-from-top-4">
             <div className="flex gap-3 mb-3">
               <ChibiMascot mood="excited" size={48} />
               <div>
                 <div className="font-bold text-gray-800">Bước 1/3</div>
-                <div className="text-orange-600 text-sm font-semibold">Weekly Plan Cá Nhân Hoá</div>
+                <div className="text-emerald-600 text-sm font-semibold">Weekly Plan Cá Nhân Hoá</div>
               </div>
             </div>
             <p className="text-sm text-gray-600 mb-4 leading-relaxed">
@@ -232,7 +232,7 @@ export function LearningRoadmap({ weekNumber }: { weekNumber?: number }) {
             </p>
             <button 
               onClick={nextStep}
-              className="w-full bg-gradient-to-r from-orange-400 to-rose-400 hover:from-orange-500 hover:to-rose-500 text-white py-2 rounded-xl text-sm font-bold shadow-md transition-all"
+              className="w-full bg-gradient-to-r from-emerald-400 to-gray-400 hover:from-emerald-500 hover:to-gray-500 text-white py-2 rounded-xl text-sm font-bold shadow-md transition-all"
             >
               Tiếp theo
             </button>
@@ -241,12 +241,12 @@ export function LearningRoadmap({ weekNumber }: { weekNumber?: number }) {
 
         {/* Tour Step 6: Sat Assessment */}
         {tourStep === 6 && (
-          <div className="absolute top-1/3 -right-6 translate-x-full w-80 bg-white p-5 rounded-2xl shadow-xl border border-purple-100 z-50 animate-in fade-in slide-in-from-left-4">
+          <div className="absolute top-1/3 -right-6 translate-x-full w-80 bg-white p-5 rounded-2xl shadow-xl border border-gray-100 z-50 animate-in fade-in slide-in-from-left-4">
             <div className="flex gap-3 mb-3">
               <ChibiMascot mood="thinking" size={48} />
               <div>
                 <div className="font-bold text-gray-800">Bước 2/3</div>
-                <div className="text-purple-600 text-sm font-semibold">Weekly Assessment (Thứ 7)</div>
+                <div className="text-gray-600 text-sm font-semibold">Weekly Assessment (Thứ 7)</div>
               </div>
             </div>
             <p className="text-sm text-gray-600 mb-4 leading-relaxed">
@@ -254,7 +254,7 @@ export function LearningRoadmap({ weekNumber }: { weekNumber?: number }) {
             </p>
             <button 
               onClick={nextStep}
-              className="w-full bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 text-white py-2 rounded-xl text-sm font-bold shadow-md transition-all"
+              className="w-full bg-gradient-to-r from-gray-500 to-emerald-500 hover:from-gray-600 hover:to-emerald-600 text-white py-2 rounded-xl text-sm font-bold shadow-md transition-all"
             >
               Tiếp theo
             </button>
@@ -284,12 +284,12 @@ export function LearningRoadmap({ weekNumber }: { weekNumber?: number }) {
         )}
 
         <div className="flex items-center gap-2 mb-4">
-          <BookOpen className="h-5 w-5 text-orange-500" />
+          <BookOpen className="h-5 w-5 text-emerald-500" />
           <h2 className="text-lg font-bold text-gray-800">Lộ trình học tập</h2>
         </div>
         <div className="text-center py-8">
-          <div className="w-12 h-12 bg-orange-50 rounded-full flex items-center justify-center mx-auto mb-3">
-            <BookOpen className="h-6 w-6 text-orange-400" />
+          <div className="w-12 h-12 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-3">
+            <BookOpen className="h-6 w-6 text-emerald-400" />
           </div>
           <p className="text-sm text-gray-500">
             Làm bài đánh giá trình độ để nhận lộ trình học tập phù hợp nhé!
@@ -426,16 +426,16 @@ export function LearningRoadmap({ weekNumber }: { weekNumber?: number }) {
   const isTourActive = tourStep >= 5 && tourStep <= 7;
 
   return (
-    <div id="learning-roadmap-section" className={`bg-white rounded-2xl border border-gray-100 shadow-sm relative transition-all duration-500 ${isTourActive ? 'z-50 ring-4 ring-orange-500 shadow-2xl scale-[1.01]' : ''}`}>
+    <div id="learning-roadmap-section" className={`bg-white rounded-2xl border border-gray-100 shadow-sm relative transition-all duration-500 ${isTourActive ? 'z-50 ring-4 ring-emerald-500 shadow-2xl scale-[1.01]' : ''}`}>
       
       {/* Tour Step 5: Intro */}
       {tourStep === 5 && (
-        <div className="absolute -top-4 left-1/2 -translate-x-1/2 -translate-y-full w-80 bg-white p-5 rounded-2xl shadow-2xl border border-orange-100 z-50 animate-in fade-in slide-in-from-bottom-4 duration-300">
+        <div className="absolute -top-4 left-1/2 -translate-x-1/2 -translate-y-full w-80 bg-white p-5 rounded-2xl shadow-2xl border border-emerald-100 z-50 animate-in fade-in slide-in-from-bottom-4 duration-300">
           <div className="flex gap-3 mb-3">
             <ChibiMascot mood="excited" size={48} />
             <div>
               <div className="font-bold text-gray-800">Bước 1/3</div>
-              <div className="text-orange-600 text-sm font-semibold">Weekly Plan Cá Nhân Hoá</div>
+              <div className="text-emerald-600 text-sm font-semibold">Weekly Plan Cá Nhân Hoá</div>
             </div>
           </div>
           <p className="text-sm text-gray-600 mb-4 leading-relaxed">
@@ -443,7 +443,7 @@ export function LearningRoadmap({ weekNumber }: { weekNumber?: number }) {
           </p>
           <button 
             onClick={nextStep}
-            className="w-full bg-gradient-to-r from-orange-400 to-rose-400 hover:from-orange-500 hover:to-rose-500 text-white py-2 rounded-xl text-sm font-bold shadow-md transition-all"
+            className="w-full bg-gradient-to-r from-emerald-400 to-gray-400 hover:from-emerald-500 hover:to-gray-500 text-white py-2 rounded-xl text-sm font-bold shadow-md transition-all"
           >
             Tiếp theo
           </button>
@@ -452,12 +452,12 @@ export function LearningRoadmap({ weekNumber }: { weekNumber?: number }) {
 
       {/* Tour Step 6: Sat Assessment */}
       {tourStep === 6 && (
-        <div className="absolute top-4 right-4 w-72 bg-white p-5 rounded-2xl shadow-2xl border border-purple-100 z-50 animate-in fade-in zoom-in-95 duration-300">
+        <div className="absolute top-4 right-4 w-72 bg-white p-5 rounded-2xl shadow-2xl border border-gray-100 z-50 animate-in fade-in zoom-in-95 duration-300">
           <div className="flex gap-3 mb-3">
             <ChibiMascot mood="thinking" size={48} />
             <div>
               <div className="font-bold text-gray-800">Bước 2/3</div>
-              <div className="text-purple-600 text-sm font-semibold">Weekly Assessment (Thứ 7)</div>
+              <div className="text-gray-600 text-sm font-semibold">Weekly Assessment (Thứ 7)</div>
             </div>
           </div>
           <p className="text-sm text-gray-600 mb-4 leading-relaxed">
@@ -465,7 +465,7 @@ export function LearningRoadmap({ weekNumber }: { weekNumber?: number }) {
           </p>
           <button 
             onClick={nextStep}
-            className="w-full bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 text-white py-2 rounded-xl text-sm font-bold shadow-md transition-all"
+            className="w-full bg-gradient-to-r from-gray-500 to-emerald-500 hover:from-gray-600 hover:to-emerald-600 text-white py-2 rounded-xl text-sm font-bold shadow-md transition-all"
           >
             Tiếp theo
           </button>
@@ -495,11 +495,11 @@ export function LearningRoadmap({ weekNumber }: { weekNumber?: number }) {
       )}
 
       {/* Header */}
-      <div className="px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-orange-50/50 to-rose-50/30">
+      <div className="px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-emerald-50/50 to-gray-50/30">
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-xl bg-orange-100">
-              <BookOpen className="h-5 w-5 text-orange-600" />
+            <div className="p-2 rounded-xl bg-emerald-100">
+              <BookOpen className="h-5 w-5 text-emerald-600" />
             </div>
             <div>
               <h2 className="text-base font-bold text-gray-800">
@@ -548,7 +548,7 @@ export function LearningRoadmap({ weekNumber }: { weekNumber?: number }) {
                 <div
                   className={`text-[11px] font-semibold mb-2 py-1 rounded-md ${
                     isToday
-                      ? 'bg-orange-500 text-white'
+                      ? 'bg-emerald-500 text-white'
                       : allDone
                         ? 'bg-green-100 text-green-700'
                         : isDay7
@@ -598,17 +598,17 @@ export function LearningRoadmap({ weekNumber }: { weekNumber?: number }) {
 
       {/* Monthly Assessment Banner */}
       {plan.monthlyAssessmentPending && (
-        <div className="mx-6 mb-4 rounded-xl bg-gradient-to-r from-violet-50 to-indigo-50 border border-violet-200 px-4 py-3 flex items-center justify-between">
+        <div className="mx-6 mb-4 rounded-xl bg-gradient-to-r from-emerald-50 to-emerald-50 border border-emerald-200 px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Trophy className="h-5 w-5 text-violet-600" />
+            <Trophy className="h-5 w-5 text-emerald-600" />
             <div>
-              <p className="text-sm font-semibold text-violet-800">Bài đánh giá tháng {plan.monthCycle} đã sẵn sàng!</p>
-              <p className="text-xs text-violet-600">Làm Full Test để đánh giá toàn diện trình độ IELTS</p>
+              <p className="text-sm font-semibold text-emerald-800">Bài đánh giá tháng {plan.monthCycle} đã sẵn sàng!</p>
+              <p className="text-xs text-emerald-600">Làm Full Test để đánh giá toàn diện trình độ IELTS</p>
             </div>
           </div>
           <button
             onClick={() => router.push('/full-test')}
-            className="flex items-center gap-1 text-xs font-semibold text-violet-700 bg-violet-100 hover:bg-violet-200 px-3 py-1.5 rounded-lg transition-colors"
+            className="flex items-center gap-1 text-xs font-semibold text-emerald-700 bg-emerald-100 hover:bg-emerald-200 px-3 py-1.5 rounded-lg transition-colors"
           >
             Làm bài <ArrowRight className="h-3 w-3" />
           </button>
@@ -657,9 +657,9 @@ export function LearningRoadmap({ weekNumber }: { weekNumber?: number }) {
               <div className="p-6 flex-1 overflow-y-auto">
                 <div className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100/50 flex flex-col items-center justify-center min-h-[300px] text-center mb-6 relative overflow-hidden">
                   {/* Decorative faint background element */}
-                  <div className="absolute top-[-20%] right-[-10%] w-32 h-32 bg-indigo-50 rounded-full blur-3xl opacity-50" />
+                  <div className="absolute top-[-20%] right-[-10%] w-32 h-32 bg-emerald-50 rounded-full blur-3xl opacity-50" />
                   
-                  <span className="text-xs font-bold px-3 py-1 bg-indigo-50 text-indigo-600 rounded-full uppercase tracking-wider mb-4 border border-indigo-100/50">
+                  <span className="text-xs font-bold px-3 py-1 bg-emerald-50 text-emerald-600 rounded-full uppercase tracking-wider mb-4 border border-emerald-100/50">
                     {learnedWords[vocabCurrentIdx].pos}
                   </span>
                   
@@ -668,7 +668,7 @@ export function LearningRoadmap({ weekNumber }: { weekNumber?: number }) {
                   </h2>
                   
                   {learnedWords[vocabCurrentIdx].phonetic && (
-                    <p className="text-indigo-400 font-mono text-base mb-6">
+                    <p className="text-emerald-400 font-mono text-base mb-6">
                       {learnedWords[vocabCurrentIdx].phonetic}
                     </p>
                   )}
@@ -697,10 +697,10 @@ export function LearningRoadmap({ weekNumber }: { weekNumber?: number }) {
                   <button
                     onClick={() => handleVocabChoice('NOT_LEARNED')}
                     disabled={vocabSubmitting}
-                    className="flex flex-col items-center justify-center p-4 bg-white border border-rose-100/60 rounded-2xl shadow-sm hover:bg-rose-50 hover:border-rose-200 transition-all active:scale-95 disabled:opacity-50"
+                    className="flex flex-col items-center justify-center p-4 bg-white border border-gray-100/60 rounded-2xl shadow-sm hover:bg-gray-50 hover:border-gray-200 transition-all active:scale-95 disabled:opacity-50"
                   >
                     <span className="text-xl mb-1">🤔</span>
-                    <span className="font-semibold text-rose-600 text-sm">Chưa học</span>
+                    <span className="font-semibold text-amber-600 text-sm">Chưa học</span>
                   </button>
                   <button
                     onClick={() => handleVocabChoice('LEARNED')}

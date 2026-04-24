@@ -12,7 +12,7 @@ function StatTile({ value, label, tone }: { value: number; label: string; tone: 
     slate: 'bg-slate-50 text-slate-800',
     amber: 'bg-amber-100 text-amber-700',
     emerald: 'bg-emerald-100 text-emerald-700',
-    blue: 'bg-blue-100 text-blue-700',
+    blue: 'bg-gray-100 text-gray-700',
   }[tone];
   return (
     <div className={`p-5 rounded-2xl text-center ${toneClass}`}>
@@ -38,7 +38,7 @@ export function VocabReviewStats() {
     return (
       <div className="col-span-full bg-white rounded-3xl shadow-sm p-8">
         <div className="flex items-center justify-center py-8">
-          <Loader2 className="h-8 w-8 animate-spin text-orange-400" />
+          <Loader2 className="h-8 w-8 animate-spin text-emerald-400" />
         </div>
       </div>
     );
@@ -52,8 +52,8 @@ export function VocabReviewStats() {
     <div className="col-span-full bg-white rounded-3xl shadow-sm p-7">
       <div className="flex items-center justify-between mb-5">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-orange-100 flex items-center justify-center">
-            <BookMarked className="w-5 h-5 text-orange-600" />
+          <div className="w-10 h-10 rounded-2xl bg-emerald-100 flex items-center justify-center">
+            <BookMarked className="w-5 h-5 text-emerald-600" />
           </div>
           <div>
             <h3 className="text-lg font-extrabold text-gray-900">Kho từ vựng</h3>
@@ -73,7 +73,7 @@ export function VocabReviewStats() {
           href="/vocabulary/review"
           className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl text-sm font-extrabold transition-all ${
             dueCount > 0
-              ? 'bg-gradient-to-r from-orange-500 to-pink-500 text-white shadow-md shadow-orange-500/30 hover:shadow-lg'
+              ? 'bg-gradient-to-r from-emerald-500 to-gray-500 text-white shadow-md shadow-emerald-500/30 hover:shadow-lg'
               : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
           }`}
         >

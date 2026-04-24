@@ -31,10 +31,10 @@ const SKILL_LABELS: Record<SkillKey, string> = {
 
 // Warm playful theme — per-skill ring & accent colors
 const SKILL_THEME: Record<SkillKey, { ring: string; track: string; text: string; bg: string }> = {
-  reading:   { ring: '#3b82f6', track: '#dbeafe', text: 'text-blue-700',    bg: 'bg-blue-50' },
-  listening: { ring: '#8b5cf6', track: '#ede9fe', text: 'text-purple-700',  bg: 'bg-purple-50' },
+  reading:   { ring: '#3b82f6', track: '#dbeafe', text: 'text-gray-700',    bg: 'bg-gray-50' },
+  listening: { ring: '#8b5cf6', track: '#ede9fe', text: 'text-gray-700',  bg: 'bg-gray-50' },
   writing:   { ring: '#10b981', track: '#d1fae5', text: 'text-emerald-700', bg: 'bg-emerald-50' },
-  speaking:  { ring: '#ec4899', track: '#fce7f3', text: 'text-pink-700',    bg: 'bg-pink-50' },
+  speaking:  { ring: '#ec4899', track: '#fce7f3', text: 'text-pink-700',    bg: 'bg-gray-50' },
 };
 
 const SKILLS: SkillKey[] = ['reading', 'listening', 'writing', 'speaking'];
@@ -192,13 +192,13 @@ export function TargetScores() {
     const diff = target - current;
     if (diff <= 0) return 'text-emerald-600';
     if (diff <= 1.0) return 'text-amber-600';
-    return 'text-rose-500';
+    return 'text-gray-500';
   };
 
   return (
-    <div className={`bg-white h-full relative transition-all duration-300 ${tourStep === 1 || tourStep === 3 ? 'z-50 ring-4 ring-orange-400 shadow-2xl rounded-3xl' : 'rounded-3xl shadow-sm'}`}>
+    <div className={`bg-white h-full relative transition-all duration-300 ${tourStep === 1 || tourStep === 3 ? 'z-50 ring-4 ring-emerald-400 shadow-2xl rounded-3xl' : 'rounded-3xl shadow-sm'}`}>
       {tourStep === 1 && (
-        <div className="absolute top-1/2 -translate-y-1/2 -right-6 translate-x-full w-64 bg-white p-4 rounded-2xl shadow-xl border border-orange-100 z-50 animate-in fade-in slide-in-from-left-4">
+        <div className="absolute top-1/2 -translate-y-1/2 -right-6 translate-x-full w-64 bg-white p-4 rounded-2xl shadow-xl border border-emerald-100 z-50 animate-in fade-in slide-in-from-left-4">
           <div className="flex gap-3 mb-2">
             <ChibiMascot mood="excited" size={40} />
             <div className="font-bold text-gray-800 text-sm">Bước 1/3</div>
@@ -207,7 +207,7 @@ export function TargetScores() {
         </div>
       )}
       {tourStep === 3 && (
-        <div className="absolute top-3/4 -translate-y-1/2 -right-6 translate-x-full w-64 bg-white p-4 rounded-2xl shadow-xl border border-orange-100 z-50 animate-in fade-in slide-in-from-left-4">
+        <div className="absolute top-3/4 -translate-y-1/2 -right-6 translate-x-full w-64 bg-white p-4 rounded-2xl shadow-xl border border-emerald-100 z-50 animate-in fade-in slide-in-from-left-4">
           <div className="flex gap-3 mb-2">
             <ChibiMascot mood="excited" size={40} />
             <div className="font-bold text-gray-800 text-sm">Bước 3/3</div>
@@ -220,13 +220,13 @@ export function TargetScores() {
         {/* Header */}
         <div className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-orange-100 flex items-center justify-center">
-              <Target className="w-5 h-5 text-orange-600" />
+            <div className="w-10 h-10 rounded-2xl bg-emerald-100 flex items-center justify-center">
+              <Target className="w-5 h-5 text-emerald-600" />
             </div>
             <div>
               <h3 className="text-lg font-extrabold text-gray-900">Mục tiêu 4 kỹ năng</h3>
               <p className="text-xs text-gray-500 mt-0.5">
-                {overallScore !== null ? <>Overall mục tiêu: <b className="text-orange-600">{overallScore.toFixed(1)}</b></> : 'Từng bước nhỏ, tiến bộ lớn'}
+                {overallScore !== null ? <>Overall mục tiêu: <b className="text-emerald-600">{overallScore.toFixed(1)}</b></> : 'Từng bước nhỏ, tiến bộ lớn'}
               </p>
             </div>
           </div>
@@ -235,14 +235,14 @@ export function TargetScores() {
               <>
                 <button
                   onClick={handleAiClick}
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-full bg-orange-50 hover:bg-orange-100 text-orange-600 text-xs font-bold transition-all"
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-full bg-emerald-50 hover:bg-emerald-100 text-emerald-600 text-xs font-bold transition-all"
                 >
                   <Sparkles className="h-3.5 w-3.5" />
                   AI gợi ý
                 </button>
                 <button
                   onClick={startEdit}
-                  className="p-2 rounded-full hover:bg-orange-50 text-gray-400 hover:text-orange-500 transition-colors"
+                  className="p-2 rounded-full hover:bg-emerald-50 text-gray-400 hover:text-emerald-500 transition-colors"
                   title="Chỉnh sửa mục tiêu"
                 >
                   <Pencil className="h-4 w-4" />
@@ -253,7 +253,7 @@ export function TargetScores() {
                 <button onClick={saveEdit} className="p-2 rounded-full hover:bg-emerald-50 text-gray-400 hover:text-emerald-600 transition-colors">
                   <Check className="h-4 w-4" />
                 </button>
-                <button onClick={cancelEdit} className="p-2 rounded-full hover:bg-rose-50 text-gray-400 hover:text-rose-500 transition-colors">
+                <button onClick={cancelEdit} className="p-2 rounded-full hover:bg-gray-50 text-gray-400 hover:text-gray-500 transition-colors">
                   <X className="h-4 w-4" />
                 </button>
               </>
@@ -274,7 +274,7 @@ export function TargetScores() {
                     value={draft[skill]}
                     onChange={(e) => setDraft((d) => ({ ...d, [skill]: e.target.value }))}
                     placeholder="0–9"
-                    className="w-full text-lg font-extrabold bg-white rounded-xl px-3 py-1.5 border-0 outline-none focus:ring-2 focus:ring-orange-300"
+                    className="w-full text-lg font-extrabold bg-white rounded-xl px-3 py-1.5 border-0 outline-none focus:ring-2 focus:ring-emerald-300"
                   />
                 </div>
               );
@@ -314,7 +314,7 @@ export function TargetScores() {
             <div className="flex flex-col gap-2">
               <PlacementGenerateLoading open={generating} />
               {(tourStep > 0 && tourStep < 3) ? (
-                <div className="flex items-center gap-2 text-xs text-blue-600 bg-blue-50 px-3 py-2 rounded-2xl italic">
+                <div className="flex items-center gap-2 text-xs text-gray-600 bg-gray-50 px-3 py-2 rounded-2xl italic">
                   <Info className="w-4 h-4 shrink-0" />
                   <span>Đang trong quá trình thiết lập lộ trình...</span>
                 </div>
@@ -330,7 +330,7 @@ export function TargetScores() {
                 className={`w-full text-center text-sm font-bold py-2.5 rounded-2xl transition-colors ${
                   (tourStep > 0 ? tourStep !== 3 : !hasScores)
                     ? 'text-gray-400 bg-gray-50 cursor-not-allowed'
-                    : 'text-white bg-gradient-to-r from-orange-500 to-pink-500 hover:shadow-lg hover:shadow-orange-500/30'
+                    : 'text-white bg-gradient-to-r from-emerald-500 to-gray-500 hover:shadow-lg hover:shadow-emerald-500/30'
                 } disabled:opacity-50`}
               >
                 Bắt đầu đánh giá →
@@ -362,7 +362,7 @@ export function TargetScores() {
         <Dialog open={showMissingDialog} onOpenChange={setShowMissingDialog}>
           <DialogContent className="max-w-sm p-0 overflow-hidden border-0 rounded-3xl shadow-2xl" showCloseButton={false}>
             <VisuallyHidden><DialogTitle>Chuẩn bị nhận gợi ý từ AI</DialogTitle></VisuallyHidden>
-            <div className="bg-gradient-to-b from-orange-50 via-orange-50/50 to-white pt-6 pb-2 px-6">
+            <div className="bg-gradient-to-b from-emerald-50 via-emerald-50/50 to-white pt-6 pb-2 px-6">
               <ChibiMascot mood="thinking" size={72} />
               <div className="text-center space-y-1.5">
                 <h2 className="text-lg font-extrabold text-gray-800">Chuẩn bị nhận gợi ý</h2>
@@ -393,7 +393,7 @@ export function TargetScores() {
                   {!step.done && (
                     <button
                       onClick={step.action}
-                      className="text-xs font-bold text-orange-600 hover:text-orange-700 bg-orange-50 hover:bg-orange-100 px-3 py-1.5 rounded-full transition-colors shrink-0"
+                      className="text-xs font-bold text-emerald-600 hover:text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-3 py-1.5 rounded-full transition-colors shrink-0"
                     >
                       Làm ngay
                     </button>
@@ -402,7 +402,7 @@ export function TargetScores() {
               ))}
               <button
                 onClick={() => setShowMissingDialog(false)}
-                className="w-full mt-2 rounded-2xl h-11 text-sm font-extrabold shadow-md hover:shadow-lg transition-all bg-gradient-to-r from-orange-500 to-pink-500 text-white"
+                className="w-full mt-2 rounded-2xl h-11 text-sm font-extrabold shadow-md hover:shadow-lg transition-all bg-gradient-to-r from-emerald-500 to-gray-500 text-white"
               >
                 Đã hiểu
               </button>

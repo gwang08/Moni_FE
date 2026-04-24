@@ -52,7 +52,7 @@ function formatDate(dateStr: string): string {
 function EmptyState() {
   return (
     <div className="flex flex-col items-center justify-center py-12 gap-5">
-      <div className="w-28 h-28 rounded-full bg-gradient-to-br from-orange-100 to-amber-100 flex items-center justify-center shadow-inner">
+      <div className="w-28 h-28 rounded-full bg-gradient-to-br from-emerald-100 to-amber-100 flex items-center justify-center shadow-inner">
         <div className="text-5xl select-none">📝</div>
       </div>
       <div className="text-center space-y-2 max-w-xs">
@@ -63,7 +63,7 @@ function EmptyState() {
       </div>
       <Link
         href="/practice"
-        className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold transition-colors shadow-sm"
+        className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-semibold transition-colors shadow-sm"
       >
         Tiến hành làm bài tập ngay
       </Link>
@@ -80,15 +80,15 @@ function EntryCard({ entry }: { entry: UnifiedEntry }) {
       href={entry.reviewUrl}
       className={`flex items-center gap-4 px-4 py-3 rounded-xl border transition-all ${
         isInProgress 
-          ? 'border-orange-200 bg-orange-50/20 hover:bg-orange-50/40 shadow-sm' 
-          : 'border-gray-100 hover:border-orange-200 hover:bg-orange-50/30'
+          ? 'border-emerald-200 bg-emerald-50/20 hover:bg-emerald-50/40 shadow-sm' 
+          : 'border-gray-100 hover:border-emerald-200 hover:bg-emerald-50/30'
       }`}
     >
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
           <p className="text-sm font-medium text-gray-800 truncate">{entry.title}</p>
           {entry.testMode === 'FULL_TEST' && (
-            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-violet-100 text-violet-700">
+            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-100 text-emerald-700">
               Full Test
             </span>
           )}
@@ -98,20 +98,20 @@ function EntryCard({ entry }: { entry: UnifiedEntry }) {
             </span>
           )}
           {entry.source === 'ai' && entry.id.startsWith('speaking-') && (
-            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-blue-100 text-blue-700">
+            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-gray-100 text-gray-700">
               <Bot className="h-2.5 w-2.5" /> AI
             </span>
           )}
           {isInProgress && (
-            <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded font-bold bg-orange-500 text-white animate-pulse">
+            <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded font-bold bg-emerald-500 text-white animate-pulse">
               <Clock className="h-2.5 w-2.5" /> ĐANG LÀM
             </span>
           )}
           {entry.id.startsWith('writing-sub-') && entry.status && (
             <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${
               entry.status === 'Đã chấm' ? 'bg-green-100 text-green-700' :
-              entry.status === 'Đang chấm' ? 'bg-blue-100 text-blue-700' :
-              'bg-orange-100 text-orange-700'
+              entry.status === 'Đang chấm' ? 'bg-gray-100 text-gray-700' :
+              'bg-emerald-100 text-emerald-700'
             }`}>
               {entry.status}
             </span>
@@ -119,7 +119,7 @@ function EntryCard({ entry }: { entry: UnifiedEntry }) {
           {isSpeakingExpert && entry.status && entry.status !== 'COMPLETED' && (
             <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${
               entry.status === 'QUEUED' ? 'bg-yellow-100 text-yellow-700' :
-              entry.status === 'IN_PROGRESS' ? 'bg-blue-100 text-blue-700' :
+              entry.status === 'IN_PROGRESS' ? 'bg-gray-100 text-gray-700' :
               'bg-gray-100 text-gray-600'
             }`}>
               {entry.status === 'QUEUED' ? 'Đang chờ' : entry.status === 'IN_PROGRESS' ? 'Đang diễn ra' : 'Đã huỷ'}
@@ -129,7 +129,7 @@ function EntryCard({ entry }: { entry: UnifiedEntry }) {
         <div className="flex items-center gap-3 mt-1 text-xs text-gray-400">
           <span>{formatDate(entry.date)}</span>
           {entry.elapsedSeconds > 0 && (
-            <span className={`flex items-center gap-1 ${isInProgress ? 'text-orange-600 font-medium' : ''}`}>
+            <span className={`flex items-center gap-1 ${isInProgress ? 'text-emerald-600 font-medium' : ''}`}>
               <Clock className="h-3 w-3" />
               {formatTime(entry.elapsedSeconds)}
             </span>
@@ -140,12 +140,12 @@ function EntryCard({ entry }: { entry: UnifiedEntry }) {
         <div className="flex-shrink-0 text-right">
           {entry.testMode === 'FULL_TEST' && typeof entry.bandScore === 'number' ? (
             <>
-              <p className="text-sm font-bold text-violet-700">Band {entry.bandScore.toFixed(1)}</p>
+              <p className="text-sm font-bold text-emerald-700">Band {entry.bandScore.toFixed(1)}</p>
               <p className="text-xs text-gray-400">{entry.percentage}%</p>
             </>
           ) : (
             <>
-              <p className={`text-sm font-bold ${entry.percentage >= 70 ? 'text-green-600' : entry.percentage >= 50 ? 'text-orange-500' : 'text-red-500'}`}>
+              <p className={`text-sm font-bold ${entry.percentage >= 70 ? 'text-green-600' : entry.percentage >= 50 ? 'text-emerald-500' : 'text-red-500'}`}>
                 {entry.score}/{entry.total}
               </p>
               <p className="text-xs text-gray-400">{entry.percentage}%</p>
@@ -155,7 +155,7 @@ function EntryCard({ entry }: { entry: UnifiedEntry }) {
       )}
       {isInProgress && entry.total === 0 && (
         <div className="flex-shrink-0">
-          <Button size="sm" variant="outline" className="h-8 rounded-full border-orange-200 text-orange-600 hover:bg-orange-50 hover:text-orange-700 text-[11px] font-bold">
+          <Button size="sm" variant="outline" className="h-8 rounded-full border-emerald-200 text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700 text-[11px] font-bold">
             TIẾP TỤC
           </Button>
         </div>
@@ -361,7 +361,7 @@ export function PracticeHistory() {
             onClick={() => { setActiveTab(key); setScoreFilter('all'); setSearchQuery(''); setDateFrom(''); setDateTo(''); }}
             className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-all ${
               activeTab === key
-                ? 'bg-orange-500 text-white shadow-sm'
+                ? 'bg-emerald-500 text-white shadow-sm'
                 : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
             }`}
           >
@@ -400,14 +400,14 @@ export function PracticeHistory() {
             onClick={() => setShowDateFilter(!showDateFilter)}
             className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors shrink-0 ${
               showDateFilter || dateFrom || dateTo
-                ? 'bg-orange-100 text-orange-700'
+                ? 'bg-emerald-100 text-emerald-700'
                 : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
             }`}
           >
             <Calendar className="h-3 w-3" />
             Thời gian
             {(dateFrom || dateTo) && (
-              <span className="w-1.5 h-1.5 rounded-full bg-orange-500 ml-0.5" />
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 ml-0.5" />
             )}
           </button>
         </div>
@@ -420,7 +420,7 @@ export function PracticeHistory() {
               value={dateFrom}
               onChange={(e) => setDateFrom(e.target.value)}
               className="h-9 px-3 text-sm border border-gray-200 rounded-lg
-                focus:ring-2 focus:ring-orange-200 focus:border-orange-400 outline-none"
+                focus:ring-2 focus:ring-emerald-200 focus:border-emerald-400 outline-none"
               placeholder="Từ ngày"
             />
             <span className="text-gray-400 text-sm">→</span>
@@ -429,7 +429,7 @@ export function PracticeHistory() {
               value={dateTo}
               onChange={(e) => setDateTo(e.target.value)}
               className="h-9 px-3 text-sm border border-gray-200 rounded-lg
-                focus:ring-2 focus:ring-orange-200 focus:border-orange-400 outline-none"
+                focus:ring-2 focus:ring-emerald-200 focus:border-emerald-400 outline-none"
               placeholder="Đến ngày"
             />
             {(dateFrom || dateTo) && (
@@ -456,7 +456,7 @@ export function PracticeHistory() {
                 onClick={() => setScoreFilter(f)}
                 className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-colors ${
                   scoreFilter === f
-                    ? 'bg-orange-100 text-orange-700'
+                    ? 'bg-emerald-100 text-emerald-700'
                     : 'text-gray-500 hover:bg-gray-100'
                 }`}
               >
@@ -472,7 +472,7 @@ export function PracticeHistory() {
                 setDateTo('');
                 setScoreFilter('all');
               }}
-              className="text-xs text-orange-600 hover:text-orange-700 font-medium ml-1"
+              className="text-xs text-emerald-600 hover:text-emerald-700 font-medium ml-1"
             >
               Xóa tất cả bộ lọc
             </button>

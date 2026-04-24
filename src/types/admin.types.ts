@@ -134,6 +134,7 @@ export interface TestUpdateRequest {
 
 // Matches backend UserProfileResponse (snake_case fields)
 export interface UserResponse {
+  id: string | null;
   email: string;
   full_name: string | null;
   avatar_url: string | null;

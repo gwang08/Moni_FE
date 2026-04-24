@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { ShieldBan, Users, Search } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { ShieldBan, Users, Search, ChevronRight } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { AdminHeader } from '@/components/admin/admin-header';
 import { Button } from '@/components/ui/button';
@@ -13,6 +14,7 @@ import { SkeletonTable } from '@/components/ui/skeleton';
 import type { UserResponse } from '@/types/admin.types';
 
 export default function AdminUsersPage() {
+  const router = useRouter();
   const queryClient = useQueryClient();
   const [banTarget, setBanTarget] = useState<UserResponse | null>(null);
   const [search, setSearch] = useState('');
@@ -89,27 +91,33 @@ export default function AdminUsersPage() {
                     </td>
                   </tr>
                 ) : filtered.map(user => (
-                  <tr key={user.email} className="hover:bg-gray-50/50 transition-colors">
+                  <tr
+                    key={user.id ?? user.email}
+                    className="hover:bg-emerald-50/40 transition-colors cursor-pointer group"
+                    onClick={() => user.id && router.push(`/admin/users/${user.id}`)}
+                  >
                     <td className="px-4 py-3 text-gray-800 font-medium">{user.full_name || '—'}</td>
                     <td className="px-4 py-3 text-gray-700">{user.email}</td>
                     <td className="px-4 py-3 text-gray-500">{user.phoneNumber || '—'}</td>
                     <td className="px-4 py-3">
                       {user.targetBand ? (
-                        <span className="inline-flex px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 text-xs font-semibold">
+                        <span className="inline-flex px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 text-xs font-semibold border border-emerald-100">
                           {user.targetBand}
                         </span>
                       ) : '—'}
                     </td>
                     <td className="px-4 py-3">
-                      <div className="flex items-center justify-end">
+                      <div className="flex items-center justify-end gap-1">
                         <Button
                           size="icon"
                           variant="ghost"
                           className="h-8 w-8 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50"
-                          onClick={() => setBanTarget(user)}
+                          onClick={(e) => { e.stopPropagation(); setBanTarget(user); }}
+                          title="Ban người dùng"
                         >
                           <ShieldBan className="h-4 w-4" />
                         </Button>
+                        <ChevronRight className="h-4 w-4 text-gray-300 group-hover:text-emerald-600 transition-colors" />
                       </div>
                     </td>
                   </tr>
@@ -127,7 +135,8 @@ export default function AdminUsersPage() {
           confirmText="Ban"
           variant="destructive"
           onConfirm={() => {
-            if (banTarget?.email) return banMutation.mutateAsync(banTarget.email);
+            const id = banTarget?.id ?? banTarget?.email;
+            if (id) return banMutation.mutateAsync(id);
           }}
         />
       </div>

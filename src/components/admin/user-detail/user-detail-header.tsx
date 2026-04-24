@@ -2,7 +2,7 @@
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, ShieldBan, Mail, Phone, Cake, Target, Coins } from 'lucide-react';
+import { ArrowLeft, ShieldBan, Mail, Phone, Cake, Target } from 'lucide-react';
 import type { UserResponse } from '@/types/admin.types';
 
 interface Props {
@@ -58,12 +58,6 @@ export function UserDetailHeader({ user, onBack, onBan }: Props) {
             <InfoRow icon={<Target className="h-3.5 w-3.5" />} label="Target Band" value={user.targetBand != null ? String(user.targetBand) : '—'} />
           </div>
 
-          {user.credit != null && (
-            <div className="mt-3 inline-flex items-center gap-1.5 text-xs text-gray-600 bg-gray-50 px-2.5 py-1 rounded-md border border-gray-100">
-              <Coins className="h-3.5 w-3.5 text-amber-500" />
-              Credit hiện tại: <span className="font-semibold text-gray-800">{user.credit}</span>
-            </div>
-          )}
         </div>
 
         <Button

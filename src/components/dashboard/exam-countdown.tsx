@@ -59,11 +59,11 @@ export function ExamCountdown() {
     <div
       id="exam-countdown-section"
       className={`relative h-full transition-all duration-300 ${
-        tourStep === 2 ? 'z-50 ring-4 ring-orange-400 shadow-2xl rounded-3xl' : 'rounded-3xl shadow-lg shadow-orange-500/20'
+        tourStep === 2 ? 'z-50 ring-4 ring-emerald-400 shadow-2xl rounded-3xl' : 'rounded-3xl shadow-lg shadow-emerald-500/20'
       }`}
     >
       {tourStep === 2 && (
-        <div className="absolute top-1/2 -translate-y-1/2 -left-6 -translate-x-full w-64 bg-white p-4 rounded-2xl shadow-xl border border-orange-100 z-50 animate-in fade-in slide-in-from-right-4">
+        <div className="absolute top-1/2 -translate-y-1/2 -left-6 -translate-x-full w-64 bg-white p-4 rounded-2xl shadow-xl border border-emerald-100 z-50 animate-in fade-in slide-in-from-right-4">
           <div className="flex gap-3 mb-2">
             <ChibiMascot mood="thinking" size={40} />
             <div className="font-bold text-gray-800 text-sm">Bước 2/3</div>
@@ -80,10 +80,10 @@ export function ExamCountdown() {
       )}
 
       {/* Gradient hero card */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-orange-500 via-orange-500 to-pink-500 p-6 h-full text-white">
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-emerald-600 to-emerald-500 p-6 h-full text-white">
         {/* Decorative blurs */}
         <div className="absolute -top-10 -right-10 w-44 h-44 rounded-full bg-white/10 blur-2xl pointer-events-none"></div>
-        <div className="absolute -bottom-8 -left-8 w-32 h-32 rounded-full bg-pink-300/20 blur-2xl pointer-events-none"></div>
+        <div className="absolute -bottom-8 -left-8 w-32 h-32 rounded-full bg-emerald-300/20 blur-2xl pointer-events-none"></div>
 
         <div className="relative flex items-center justify-between mb-4">
           <span className="inline-flex items-center gap-1.5 bg-white/20 backdrop-blur px-3 py-1 rounded-full text-xs font-bold">
@@ -149,13 +149,13 @@ export function ExamCountdown() {
           )}
 
           {daysRemaining !== null && daysRemaining <= 30 && daysRemaining > 0 && !editing && (
-            <div className="mt-4 flex items-center justify-center gap-2 text-xs font-bold bg-white text-orange-600 rounded-2xl py-2 px-4">
+            <div className="mt-4 flex items-center justify-center gap-2 text-xs font-bold bg-white text-emerald-700 rounded-2xl py-2 px-4">
               <Flame className="w-4 h-4" />
               Sắp đến ngày thi rồi! Cố lên nào!
             </div>
           )}
           {daysRemaining === 0 && (
-            <div className="mt-4 flex items-center justify-center gap-2 text-xs font-bold bg-white text-rose-600 rounded-2xl py-2 px-4">
+            <div className="mt-4 flex items-center justify-center gap-2 text-xs font-bold bg-white text-red-600 rounded-2xl py-2 px-4">
               <TargetIcon className="w-4 h-4" />
               Hôm nay là ngày thi!
             </div>

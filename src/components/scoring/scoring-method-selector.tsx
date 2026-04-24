@@ -4,45 +4,27 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Bot, GraduationCap, Zap, Video } from 'lucide-react';
-import { formatVnd } from '@/lib/utils';
 
 interface ScoringMethodSelectorProps {
   onSelectAI: () => void;
   onSelectExpert: () => void;
-  aiCreditCost: number;
-  expertCreditCost: number;
-  currentBalance: number;
   skill: 'writing' | 'speaking';
-}
-
-function CreditCost({ amount }: { amount: number }) {
-  return (
-    <span className="inline-flex items-center gap-1 font-semibold">
-      {formatVnd(amount)}
-    </span>
-  );
 }
 
 export function ScoringMethodSelector({
   onSelectAI,
   onSelectExpert,
-  aiCreditCost,
-  expertCreditCost,
-  currentBalance,
   skill,
 }: ScoringMethodSelectorProps) {
-  const canAffordAI = currentBalance >= aiCreditCost;
-  const canAffordExpert = currentBalance >= expertCreditCost;
-
   return (
     <div className="flex flex-col gap-3 w-full">
       <p className="text-sm text-muted-foreground text-center">Chọn phương thức chấm điểm</p>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {/* AI Scoring */}
-        <Card className="p-5 flex flex-col gap-3 border-2 hover:border-primary/50 transition-colors cursor-pointer group">
+        <Card className="p-5 flex flex-col gap-3 border-2 hover:border-emerald-400/60 transition-colors cursor-pointer group">
           <div className="flex items-center gap-2">
-            <div className="p-2 rounded-xl bg-blue-100 text-blue-600">
+            <div className="p-2 rounded-xl bg-emerald-50 text-emerald-600">
               <Bot className="h-5 w-5" />
             </div>
             <div>
@@ -60,22 +42,12 @@ export function ScoringMethodSelector({
               : 'Phân tích Fluency, Vocabulary, Grammar, Pronunciation theo tiêu chí IELTS.'}
           </p>
 
-          <div className="flex items-center justify-between">
-            <span className="text-xs text-muted-foreground">
-              Số dư: <CreditCost amount={currentBalance} />
-            </span>
-            <span className="text-xs font-medium">
-              <CreditCost amount={aiCreditCost} />
-            </span>
-          </div>
-
           <Button
             onClick={onSelectAI}
             size="sm"
-            variant={canAffordAI ? 'default' : 'outline'}
-            className="w-full"
+            className="w-full bg-emerald-600 hover:bg-emerald-700 text-white"
           >
-            {canAffordAI ? 'Chọn AI' : 'Không đủ credit'}
+            Chọn AI
           </Button>
         </Card>
 
@@ -98,22 +70,12 @@ export function ScoringMethodSelector({
             Được chấm điểm trực tiếp bởi giảng viên có kinh nghiệm qua video call.
           </p>
 
-          <div className="flex items-center justify-between">
-            <span className="text-xs text-muted-foreground">
-              Số dư: <CreditCost amount={currentBalance} />
-            </span>
-            <span className="text-xs font-medium">
-              <CreditCost amount={expertCreditCost} />
-            </span>
-          </div>
-
           <Button
             onClick={onSelectExpert}
             size="sm"
-            variant={canAffordExpert ? 'default' : 'outline'}
             className="w-full bg-amber-500 hover:bg-amber-600 text-white border-0"
           >
-            {canAffordExpert ? 'Chọn Giảng viên' : 'Không đủ credit'}
+            Chọn Giảng viên
           </Button>
         </Card>
       </div>

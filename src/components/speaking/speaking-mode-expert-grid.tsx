@@ -5,11 +5,9 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Star, Info } from 'lucide-react';
 import type { ExpertProfile } from '@/types/expert.types';
-import { formatVnd } from '@/lib/utils';
 
 interface Props {
   experts: ExpertProfile[];
-  expertCost: number | null;
   onBook: (expert: ExpertProfile) => void;
   onDetail: (expert: ExpertProfile) => void;
 }
@@ -35,7 +33,7 @@ function Stars({ rating }: { rating: number }) {
   );
 }
 
-export function SpeakingModeExpertGrid({ experts, expertCost, onBook, onDetail }: Props) {
+export function SpeakingModeExpertGrid({ experts, onBook, onDetail }: Props) {
   if (experts.length === 0) {
     return <p className="text-muted-foreground text-center py-8 text-sm">Không có giảng viên nào phù hợp.</p>;
   }
@@ -79,14 +77,9 @@ export function SpeakingModeExpertGrid({ experts, expertCost, onBook, onDetail }
               </div>
             </div>
 
-            {/* Rating + Cost */}
-            <div className="flex justify-between items-center">
+            {/* Rating */}
+            <div className="flex items-center">
               <Stars rating={expert.rating} />
-              {expertCost != null && (
-                <span className="text-[11px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full">
-                  {formatVnd(expertCost)}
-                </span>
-              )}
             </div>
 
             {/* Actions */}

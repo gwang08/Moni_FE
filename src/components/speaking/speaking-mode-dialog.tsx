@@ -151,11 +151,11 @@ export function SpeakingModeDialog({ open, testId, aiQuota = null, expertCost = 
                 <span className="text-xs font-semibold text-indigo-700 bg-indigo-100 border border-indigo-200 px-2 py-0.5 rounded-full">
                   Trong gói · còn {activeSubscription.remainExpert} lượt
                 </span>
-              ) : expertCost != null ? (
-                <span className="flex items-center gap-1 text-xs font-medium text-orange-800 bg-orange-200/60 px-2 py-0.5 rounded-full">
-                  {formatVnd(expertCost)}
+              ) : (
+                <span className="text-xs font-semibold text-orange-800 bg-orange-200/60 border border-orange-300 px-2 py-0.5 rounded-full">
+                  Cần mua gói
                 </span>
-              ) : null}
+              )}
             </button>
           </div>
         )}
@@ -194,7 +194,6 @@ export function SpeakingModeDialog({ open, testId, aiQuota = null, expertCost = 
             ) : (
               <SpeakingModeExpertGrid
                 experts={filtered}
-                expertCost={expertCost}
                 onBook={(e) => setConfirming(e)}
                 onDetail={(e) => { onClose(); router.push(`/experts/${e.id}?testId=${testId}`); }}
               />

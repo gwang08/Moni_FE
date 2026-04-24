@@ -241,7 +241,6 @@ export default function ScoringHistoryPage() {
                 experts={experts.filter(
                   (e) => !expertSearch.trim() || e.displayName.toLowerCase().includes(expertSearch.toLowerCase()),
                 )}
-                expertCost={expertCost}
                 onBook={setConfirming}
                 onDetail={(e) => router.push(`/experts/${e.id}`)}
               />

@@ -156,7 +156,6 @@ export function WritingExpertSelectionDialog({ open, onOpenChange, submissionId,
         ) : (
           <SpeakingModeExpertGrid
             experts={filtered}
-            expertCost={expertCost}
             onBook={setConfirming}
             onDetail={(e) => router.push(`/experts/${e.id}`)}
           />

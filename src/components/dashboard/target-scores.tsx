@@ -29,12 +29,12 @@ const SKILL_LABELS: Record<SkillKey, string> = {
   speaking: 'Speaking',
 };
 
-// Warm playful theme — per-skill ring & accent colors
+// Unified green theme — all skills use emerald with gray tracks
 const SKILL_THEME: Record<SkillKey, { ring: string; track: string; text: string; bg: string }> = {
-  reading:   { ring: '#3b82f6', track: '#dbeafe', text: 'text-gray-700',    bg: 'bg-gray-50' },
-  listening: { ring: '#8b5cf6', track: '#ede9fe', text: 'text-gray-700',  bg: 'bg-gray-50' },
-  writing:   { ring: '#10b981', track: '#d1fae5', text: 'text-emerald-700', bg: 'bg-emerald-50' },
-  speaking:  { ring: '#ec4899', track: '#fce7f3', text: 'text-pink-700',    bg: 'bg-gray-50' },
+  reading:   { ring: '#10b981', track: '#e5e7eb', text: 'text-emerald-700', bg: 'bg-emerald-50' },
+  listening: { ring: '#10b981', track: '#e5e7eb', text: 'text-emerald-700', bg: 'bg-emerald-50' },
+  writing:   { ring: '#10b981', track: '#e5e7eb', text: 'text-emerald-700', bg: 'bg-emerald-50' },
+  speaking:  { ring: '#10b981', track: '#e5e7eb', text: 'text-emerald-700', bg: 'bg-emerald-50' },
 };
 
 const SKILLS: SkillKey[] = ['reading', 'listening', 'writing', 'speaking'];

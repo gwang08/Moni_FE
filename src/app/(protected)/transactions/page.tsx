@@ -44,6 +44,19 @@ export default function TransactionsPage() {
       });
   }, [transactions, typeFilter, sortOrder]);
 
+  const totalSpent = useMemo(() => {
+    let sum = 0;
+    for (const t of transactions) {
+      if (t.delta < 0) {
+        sum += Math.abs(t.delta);
+      } else if (t.paymentType === 'SUBSCRIPTION_PURCHASE' && t.remark) {
+        const m = t.remark.match(/·\s*([\d.,]+)đ/);
+        if (m) sum += Number(m[1].replace(/[.,]/g, ''));
+      }
+    }
+    return sum;
+  }, [transactions]);
+
   const countByType = (type: PaymentFilter) =>
     type === 'ALL' ? transactions.length : transactions.filter((t) => t.paymentType === type).length;
 
@@ -73,7 +86,7 @@ export default function TransactionsPage() {
               <Wallet className="h-4 w-4 text-teal-500" />
             </div>
             <div className="mt-1 text-[28px] font-black text-teal-600">
-              {Math.abs(transactions.reduce((sum, t) => sum + (t.delta < 0 ? t.delta : 0), 0)).toLocaleString('vi-VN')}đ
+              {totalSpent.toLocaleString('vi-VN')}đ
             </div>
           </div>
           <div className="rounded-2xl bg-white border border-slate-100 shadow-sm p-5">

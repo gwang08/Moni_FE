@@ -131,7 +131,7 @@ function TransactionRow({ tx }: { tx: CreditTransactionResponse }) {
           {isQuotaConsume
             ? '—'
             : isSubPurchase
-              ? (subPurchaseAmount ? '-' + subPurchaseAmount : '—')
+              ? (subPurchaseAmount ?? '—')
               : (tx.delta >= 0 ? '+' : '') + formatVnd(Math.abs(tx.delta))}
         </span>
         {/* Số lượt — stacked: delta to, before→after nhỏ xám */}
@@ -171,7 +171,7 @@ function TransactionRow({ tx }: { tx: CreditTransactionResponse }) {
             {isQuotaConsume
               ? '-1 lượt'
               : isSubPurchase
-                ? (subPurchaseAmount ? '-' + subPurchaseAmount : '—')
+                ? (subPurchaseAmount ?? '—')
                 : (isPositive ? '+' : '') + formatVnd(Math.abs(tx.delta))}
           </div>
           {isQuotaConsume && (

@@ -196,9 +196,11 @@ export function LearningRoadmap({ weekNumber }: { weekNumber?: number }) {
   }, []);
 
   const today = useMemo(() => {
+    // Use simulatedToday from plan if set (admin simulation mode), otherwise real date
+    if (plan?.simulatedToday) return plan.simulatedToday;
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-  }, []);
+  }, [plan?.simulatedToday]);
 
   const slotsByDay = useMemo(() => {
     if (!plan) return new Map<number, DailySlotResponse[]>();

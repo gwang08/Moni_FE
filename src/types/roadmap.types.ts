@@ -88,6 +88,8 @@ export interface WeeklyPlanResponse {
   todayCompleted: boolean;
   suggestVocabulary: boolean;
   monthlyAssessmentPending: boolean;
+  /** Simulation only: overrides "today" for this plan. Null = use real date. */
+  simulatedToday: string | null;
 }
 
 export interface WeeklyPlanSummary {

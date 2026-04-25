@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { Loader2, Receipt, ShoppingCart } from 'lucide-react';
+import { Loader2, Receipt, ShoppingCart, Wallet } from 'lucide-react';
 import { getCreditTransactions } from '@/lib/payment-api';
 import type { CreditTransactionResponse } from '@/types/payment.types';
 import { TransactionsTable } from '@/components/transactions/transactions-table';
@@ -66,7 +66,16 @@ export default function TransactionsPage() {
         </div>
 
         {/* Summary stats */}
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="rounded-2xl bg-white border border-slate-100 shadow-sm p-5">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-black uppercase tracking-widest text-slate-400">Tổng chi tiêu</span>
+              <Wallet className="h-4 w-4 text-teal-500" />
+            </div>
+            <div className="mt-1 text-[28px] font-black text-teal-600">
+              {Math.abs(transactions.reduce((sum, t) => sum + (t.delta < 0 ? t.delta : 0), 0)).toLocaleString('vi-VN')}đ
+            </div>
+          </div>
           <div className="rounded-2xl bg-white border border-slate-100 shadow-sm p-5">
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-black uppercase tracking-widest text-slate-400">Tổng giao dịch</span>

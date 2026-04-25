@@ -26,10 +26,10 @@ import { useLoginPrompt } from '@/hooks/use-login-prompt';
 import { LoginPromptDialog } from '@/components/auth/login-prompt-dialog';
 
 const SKILL_CONFIG = {
-  reading: { icon: BookOpen, color: 'text-blue-600', bgColor: 'bg-blue-100', borderColor: 'border-blue-500', label: 'Reading' },
-  listening: { icon: Headphones, color: 'text-purple-600', bgColor: 'bg-purple-100', borderColor: 'border-purple-500', label: 'Listening' },
-  writing: { icon: Pencil, color: 'text-green-600', bgColor: 'bg-green-100', borderColor: 'border-green-500', label: 'Writing' },
-  speaking: { icon: Mic, color: 'text-orange-600', bgColor: 'bg-orange-100', borderColor: 'border-orange-500', label: 'Speaking' },
+  reading: { icon: BookOpen, color: 'text-blue-700', bgColor: 'bg-blue-100', gradient: 'from-blue-500 to-indigo-500', label: 'Reading' },
+  listening: { icon: Headphones, color: 'text-purple-700', bgColor: 'bg-purple-100', gradient: 'from-purple-500 to-violet-500', label: 'Listening' },
+  writing: { icon: Pencil, color: 'text-emerald-700', bgColor: 'bg-emerald-100', gradient: 'from-emerald-500 to-teal-500', label: 'Writing' },
+  speaking: { icon: Mic, color: 'text-orange-700', bgColor: 'bg-orange-100', gradient: 'from-orange-500 to-amber-500', label: 'Speaking' },
 };
 
 const DEFAULT_IMAGES: Record<string, string> = {
@@ -303,7 +303,7 @@ function PracticePage() {
   const modeLabel = activeMode === 'FULL_TEST' ? 'Bài thi' : 'Phần thi';
 
   return (
-    <div className="flex h-[calc(100vh-56px)] overflow-hidden">
+    <div className="flex h-[calc(100vh-56px)] overflow-hidden bg-slate-50/60">
       <PracticeSidebar
         activeSkill={activeSkill}
         activeMode={activeMode}
@@ -320,9 +320,9 @@ function PracticePage() {
       />
 
       {/* Main Content */}
-      <main className="flex-1 p-6 overflow-y-auto h-full">
+      <main className="flex-1 overflow-y-auto h-full">
         {/* Mobile Skill Tabs */}
-        <div className="flex items-center gap-4 mb-6 border-b pb-4 lg:hidden">
+        <div className="flex items-center gap-2 px-4 pt-4 pb-2 overflow-x-auto lg:hidden">
           {(Object.keys(SKILL_CONFIG) as Skill[]).map((skill) => {
             const config = SKILL_CONFIG[skill];
             const Icon = config.icon;
@@ -330,176 +330,234 @@ function PracticePage() {
               <button
                 key={skill}
                 onClick={() => handleSkillChange(skill)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${activeSkill === skill ? `${config.bgColor} ${config.color}` : 'hover:bg-gray-100'}`}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-[13px] font-bold whitespace-nowrap transition-all ${
+                  activeSkill === skill
+                    ? `bg-gradient-to-r ${config.gradient} text-white shadow-md`
+                    : 'bg-white text-slate-600 border border-slate-200 hover:border-slate-300'
+                }`}
               >
                 <Icon className="h-4 w-4" />
-                <span className="font-medium">{config.label}</span>
+                {config.label}
               </button>
             );
           })}
         </div>
 
-        {/* Page title */}
-        <div className="mb-6">
-          <h1 className="text-lg font-bold text-gray-900">
-            {SKILL_CONFIG[activeSkill].label} — {modeLabel}
-          </h1>
-          {activePassage && (
-            <p className="text-sm text-gray-500 mt-1">
-              {activeSkill === 'writing' ? `Task ${activePassage}` : `Passage ${activePassage}`}
-            </p>
+        <div className="p-5 md:p-7 space-y-5">
+          {/* Header + Search */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h1 className="text-[22px] font-black text-slate-900 tracking-tight flex items-center gap-2.5">
+                {(() => { const Icon = SKILL_CONFIG[activeSkill].icon; return <Icon className={`h-5 w-5 ${SKILL_CONFIG[activeSkill].color}`} />; })()}
+                {SKILL_CONFIG[activeSkill].label}
+                <span className="text-slate-300 font-normal mx-1">/</span>
+                <span className="text-slate-600 font-bold">{modeLabel}</span>
+              </h1>
+              {activePassage && (
+                <p className="text-[13px] text-slate-500 font-medium mt-0.5 ml-8">
+                  {activeSkill === 'writing' ? `Task ${activePassage}` : `Passage ${activePassage}`}
+                </p>
+              )}
+            </div>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <Input
+                placeholder="Tìm theo tên bài tập..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9 w-64 bg-white border-slate-200 rounded-xl text-[13px] font-medium focus:border-teal-400 focus:ring-teal-400/20 shadow-sm"
+              />
+            </div>
+          </div>
+
+          {/* Filter Bar */}
+          <div className="flex items-center gap-3 flex-wrap">
+            <div className="flex items-center bg-white rounded-xl border border-slate-200 p-1 shadow-sm">
+              <button
+                onClick={() => setShowCompleted(false)}
+                className={`px-4 py-2 rounded-lg text-[12.5px] font-bold transition-all ${
+                  !showCompleted ? 'bg-teal-600 text-white shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                }`}
+              >
+                Bài chưa làm
+              </button>
+              <button
+                onClick={() => setShowCompleted(true)}
+                className={`px-4 py-2 rounded-lg text-[12.5px] font-bold transition-all ${
+                  showCompleted ? 'bg-amber-500 text-white shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                }`}
+              >
+                Bài đã làm
+              </button>
+            </div>
+
+            {/* Test Type Filter (Academic / General Training) */}
+            {(activeSkill === 'reading' || activeSkill === 'writing') && (
+              <div className="flex items-center bg-white rounded-xl border border-slate-200 p-1 shadow-sm">
+                {([null, 'ACADEMIC', 'GENERAL_TRAINING'] as (TestType | null)[]).map((type) => {
+                  const label = type === null ? 'Tất cả' : type === 'ACADEMIC' ? 'Academic' : 'General Training';
+                  const isActive = activeTestType === type;
+                  return (
+                    <button
+                      key={type ?? 'all'}
+                      onClick={() => handleTestTypeChange(type)}
+                      className={`px-3 py-2 rounded-lg text-[12.5px] font-bold transition-all whitespace-nowrap ${
+                        isActive ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
+            <span className="text-[12px] text-slate-400 font-semibold ml-auto">
+              {filteredExercises.length} bài
+            </span>
+          </div>
+
+          {/* Question Type Filter — for reading/listening */}
+          {(activeSkill === 'reading' || activeSkill === 'listening') && (
+            <QuestionTypeFilter
+              availableTypes={availableQuestionTypes}
+              activeType={activeQuestionType}
+              onTypeChange={handleQuestionTypeChange}
+            />
           )}
-        </div>
 
-        {/* Filter Row */}
-        <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
-          <div className="flex items-center gap-2">
-            <Button variant={!showCompleted ? 'default' : 'outline'} size="sm" onClick={() => setShowCompleted(false)}>Bài chưa làm</Button>
-            <Button variant={showCompleted ? 'default' : 'outline'} size="sm" onClick={() => setShowCompleted(true)} className={showCompleted ? 'bg-orange-500 hover:bg-orange-600' : ''}>Bài đã làm</Button>
-          </div>
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <Input placeholder="Tìm theo tên bài tập" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9 w-64 bg-white border-gray-300 focus:border-orange-400" />
-          </div>
-        </div>
-
-        {/* Test Type Filter (Academic / General Training) — for Reading & Writing */}
-        {(activeSkill === 'reading' || activeSkill === 'writing') && (
-          <div className="flex items-center gap-2 mb-4">
-            <span className="text-sm text-gray-500 mr-1">Dạng đề:</span>
-            {([null, 'ACADEMIC', 'GENERAL_TRAINING'] as (TestType | null)[]).map((type) => {
-              const label = type === null ? 'Tất cả' : type === 'ACADEMIC' ? 'Academic' : 'General Training';
-              const isActive = activeTestType === type;
-              return (
-                <button
-                  key={type ?? 'all'}
-                  onClick={() => handleTestTypeChange(type)}
-                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                    isActive ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                  }`}
-                >
-                  {label}
-                </button>
-              );
-            })}
-          </div>
-        )}
-
-        {/* Question Type Filter — for reading/listening */}
-        {(activeSkill === 'reading' || activeSkill === 'listening') && (
-          <QuestionTypeFilter
-            availableTypes={availableQuestionTypes}
-            activeType={activeQuestionType}
-            onTypeChange={handleQuestionTypeChange}
-          />
-        )}
-
-        {/* Writing Filters Panel — for writing */}
-        {activeSkill === 'writing' && (
-          <div className="mb-6">
+          {/* Writing Filters Panel */}
+          {activeSkill === 'writing' && (
             <WritingFiltersPanel
               filters={writingFilters}
               onChange={handleWritingFiltersChange}
               activePassage={activePassage}
             />
-          </div>
-        )}
+          )}
 
-        {/* Content Area */}
-        {loading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {Array.from({ length: 8 }).map((_, i) => (
-              <SkeletonCard key={i} className="h-56" />
-            ))}
-          </div>
-        ) : error ? (
-          <div className="text-center py-12">
-            <p className="text-red-500 mb-4">{error}</p>
-            <Button onClick={retry} variant="outline">Thử lại</Button>
-          </div>
-        ) : filteredExercises.length === 0 ? (
-          <div className="text-center py-12 text-gray-500">
-            <p>Không tìm thấy bài tập nào.</p>
-          </div>
-        ) : (
-          <>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {filteredExercises.map((exercise) => {
-                const config = SKILL_CONFIG[exercise.skill];
-                const isCompleted = completedExercises.includes(exercise.id);
-                const imgSrc = exercise.thumbnailUrl || DEFAULT_IMAGES[exercise.skill] || DEFAULT_IMAGES.reading;
-                const activeExam = activeSessions.get(Number(exercise.id));
-                const remainingMin = activeExam ? Math.floor(activeExam.remainingSeconds / 60) : 0;
-                const remainingSec = activeExam ? activeExam.remainingSeconds % 60 : 0;
-                return (
-                  <div key={exercise.id} className={`relative bg-white rounded-xl overflow-hidden border hover:shadow-lg transition-all cursor-pointer group ${activeExam ? 'ring-2 ring-orange-400' : ''}`} onClick={() => activeExam ? router.push(`/practice/${exercise.skill}/${exercise.id}?mode=exam`) : handleStartExercise(exercise)}>
-                    <div className="relative h-36 bg-gray-200 overflow-hidden">
-                      <img src={imgSrc} alt={exercise.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
-                      <div className="absolute top-2 left-2 bg-black/60 text-white text-xs px-2 py-1 rounded-full flex items-center gap-1">
-                        <Users className="h-3 w-3" />{exercise.attemptCount ?? 0} lượt làm bài
-                      </div>
-                      <Badge className={`absolute bottom-2 left-2 ${config.bgColor} ${config.color} border-0`}>{config.label}</Badge>
-                      {exercise.section && (
-                        <Badge className="absolute bottom-2 right-2 bg-white/90 text-gray-700 border border-gray-200 text-xs" style={{ marginRight: (isCompleted || activeExam) ? '2.5rem' : '0.5rem' }}>
-                          {getTestSectionLabel(exercise.skill, exercise.section)}
-                        </Badge>
-                      )}
-                      {activeExam && (
-                        <div className="absolute top-2 right-2 bg-orange-500 text-white text-[10px] font-bold px-2 py-1 rounded-full flex items-center gap-1 animate-pulse">
-                          <Clock className="h-3 w-3" />
-                          {remainingMin}:{String(remainingSec).padStart(2, '0')}
-                        </div>
-                      )}
-                      {!activeExam && isCompleted && (
-                        <div className="absolute top-2 right-2 bg-green-500 text-white p-1 rounded-full">
-                          <CheckCircle className="h-4 w-4" />
-                        </div>
-                      )}
-                    </div>
-                    <div className="p-4">
-                      <h3 className="text-sm font-semibold text-gray-800 mb-1 line-clamp-2">{exercise.title}</h3>
-                      <div className="flex items-center gap-2 text-xs text-gray-400">
-                        {(exercise.questionCount ?? 0) > 0 && <span>{exercise.questionCount} câu hỏi</span>}
-                        {exercise.duration && exercise.skill !== 'listening' && exercise.skill !== 'speaking' && <span>· {toMinutes(exercise.duration)} phút</span>}
-                      </div>
-                    </div>
-                    {/* Hover overlay */}
-                    <div className="absolute inset-0 bg-white rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex flex-col p-4">
-                      <h3 className="text-sm font-bold text-gray-800 line-clamp-2 mb-2">{exercise.title}</h3>
-                      {exercise.questionTypes && exercise.questionTypes.length > 0 && (
-                        <ul className="text-sm text-gray-600 space-y-1 flex-1">
-                          {exercise.questionTypes.map((qt) => (
-                            <li key={qt} className="flex items-center gap-1">
-                              <span className="text-gray-400">·</span> {QUESTION_TYPE_LABELS[qt] || qt.replace(/_/g, ' ')}
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-                      {activeExam ? (
-                        <Button className="w-full mt-auto bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white rounded-full flex items-center gap-2">
-                          <Play className="h-4 w-4" /> Làm tiếp ({remainingMin}:{String(remainingSec).padStart(2, '0')})
-                        </Button>
-                      ) : (
-                        <Button className="w-full mt-auto bg-green-500 hover:bg-green-600 text-white rounded-full">
-                          Làm bài
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
+          {/* Content Area */}
+          {loading ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <SkeletonCard key={i} className="h-64 rounded-2xl" />
+              ))}
             </div>
-
-            {/* Pagination */}
-            {totalPages > 1 && (
-              <div className="flex justify-center items-center gap-4 mt-8">
-                <Button variant="outline" onClick={() => setPage(page - 1)} disabled={page <= 1}>Trang trước</Button>
-                <span className="text-sm text-gray-600">Trang {page} / {totalPages}</span>
-                <Button variant="outline" onClick={() => setPage(page + 1)} disabled={page >= totalPages}>Trang sau</Button>
+          ) : error ? (
+            <div className="rounded-2xl border-2 border-dashed border-rose-200 bg-rose-50/30 p-16 text-center">
+              <p className="text-[14px] font-bold text-rose-600 mb-3">{error}</p>
+              <Button onClick={retry} variant="outline" className="rounded-xl">Thử lại</Button>
+            </div>
+          ) : filteredExercises.length === 0 ? (
+            <div className="rounded-2xl border-2 border-dashed border-slate-200 bg-white/60 p-16 text-center">
+              <p className="text-[14px] font-bold text-slate-500">Không tìm thấy bài tập nào.</p>
+              <p className="text-[12.5px] text-slate-400 mt-1">Thử thay đổi bộ lọc hoặc tìm kiếm khác</p>
+            </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+                {filteredExercises.map((exercise) => {
+                  const config = SKILL_CONFIG[exercise.skill];
+                  const isCompleted = completedExercises.includes(exercise.id);
+                  const imgSrc = exercise.thumbnailUrl || DEFAULT_IMAGES[exercise.skill] || DEFAULT_IMAGES.reading;
+                  const activeExam = activeSessions.get(Number(exercise.id));
+                  const remainingMin = activeExam ? Math.floor(activeExam.remainingSeconds / 60) : 0;
+                  const remainingSec = activeExam ? activeExam.remainingSeconds % 60 : 0;
+                  return (
+                    <div
+                      key={exercise.id}
+                      className={`relative bg-white rounded-2xl overflow-hidden border border-slate-100 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200 cursor-pointer group shadow-sm ${
+                        activeExam ? 'ring-2 ring-orange-400' : ''
+                      }`}
+                      onClick={() => activeExam ? router.push(`/practice/${exercise.skill}/${exercise.id}?mode=exam`) : handleStartExercise(exercise)}
+                    >
+                      <div className="relative h-40 bg-slate-100 overflow-hidden">
+                        <img src={imgSrc} alt={exercise.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
+                        <div className="absolute top-2.5 left-2.5 bg-black/50 backdrop-blur-sm text-white text-[10.5px] font-bold px-2.5 py-1 rounded-full flex items-center gap-1">
+                          <Users className="h-3 w-3" />{exercise.attemptCount ?? 0} lượt
+                        </div>
+                        <div className="absolute bottom-2.5 left-2.5 flex items-center gap-1.5">
+                          <Badge className={`${config.bgColor} ${config.color} border-0 text-[10.5px] font-bold shadow-sm`}>{config.label}</Badge>
+                          {exercise.section && (
+                            <Badge className="bg-white/90 text-slate-700 border-0 text-[10.5px] font-bold shadow-sm">
+                              {getTestSectionLabel(exercise.skill, exercise.section)}
+                            </Badge>
+                          )}
+                        </div>
+                        {activeExam && (
+                          <div className="absolute top-2.5 right-2.5 bg-orange-500 text-white text-[10px] font-bold px-2.5 py-1 rounded-full flex items-center gap-1 animate-pulse shadow-lg">
+                            <Clock className="h-3 w-3" />
+                            {remainingMin}:{String(remainingSec).padStart(2, '0')}
+                          </div>
+                        )}
+                        {!activeExam && isCompleted && (
+                          <div className="absolute top-2.5 right-2.5 bg-emerald-500 text-white p-1.5 rounded-full shadow-lg">
+                            <CheckCircle className="h-3.5 w-3.5" />
+                          </div>
+                        )}
+                      </div>
+                      <div className="p-4">
+                        <h3 className="text-[13.5px] font-bold text-slate-900 mb-1.5 line-clamp-2 leading-snug">{exercise.title}</h3>
+                        <div className="flex items-center gap-1.5 text-[11.5px] text-slate-400 font-medium">
+                          {(exercise.questionCount ?? 0) > 0 && <span>{exercise.questionCount} câu</span>}
+                          {exercise.duration && exercise.skill !== 'listening' && exercise.skill !== 'speaking' && <span>· {toMinutes(exercise.duration)} phút</span>}
+                        </div>
+                      </div>
+                      {/* Hover overlay */}
+                      <div className="absolute inset-0 bg-white/95 backdrop-blur-sm rounded-2xl opacity-0 group-hover:opacity-100 transition-all duration-200 flex flex-col p-5">
+                        <h3 className="text-[14px] font-extrabold text-slate-900 line-clamp-2 mb-3">{exercise.title}</h3>
+                        {exercise.questionTypes && exercise.questionTypes.length > 0 && (
+                          <ul className="text-[12.5px] text-slate-600 space-y-1.5 flex-1 overflow-y-auto">
+                            {exercise.questionTypes.map((qt) => (
+                              <li key={qt} className="flex items-center gap-2">
+                                <span className={`w-1.5 h-1.5 rounded-full bg-gradient-to-r ${config.gradient} shrink-0`} />
+                                <span className="font-medium">{QUESTION_TYPE_LABELS[qt] || qt.replace(/_/g, ' ')}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                        {activeExam ? (
+                          <Button className="w-full mt-auto bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-600 hover:to-emerald-600 text-white rounded-xl font-bold text-[13px] shadow-lg flex items-center gap-2 py-5">
+                            <Play className="h-4 w-4" /> Làm tiếp ({remainingMin}:{String(remainingSec).padStart(2, '0')})
+                          </Button>
+                        ) : (
+                          <Button className="w-full mt-auto bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-600 hover:to-emerald-600 text-white rounded-xl font-bold text-[13px] shadow-lg py-5">
+                            Làm bài
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
-            )}
-          </>
-        )}
+
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <div className="flex justify-center items-center gap-3 mt-8 pb-4">
+                  <Button
+                    variant="outline"
+                    onClick={() => setPage(page - 1)}
+                    disabled={page <= 1}
+                    className="rounded-xl text-[12.5px] font-bold"
+                  >
+                    Trang trước
+                  </Button>
+                  <span className="text-[12.5px] text-slate-500 font-bold px-3 py-2 bg-white rounded-xl border border-slate-200 shadow-sm tabular-nums">
+                    {page} / {totalPages}
+                  </span>
+                  <Button
+                    variant="outline"
+                    onClick={() => setPage(page + 1)}
+                    disabled={page >= totalPages}
+                    className="rounded-xl text-[12.5px] font-bold"
+                  >
+                    Trang sau
+                  </Button>
+                </div>
+              )}
+            </>
+          )}
+        </div>
       </main>
 
       <ModeSelectionModal exercise={selectedExercise} open={modalOpen} onOpenChange={setModalOpen} />

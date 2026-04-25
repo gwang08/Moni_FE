@@ -43,8 +43,6 @@ const SKILL_TABS: { key: SkillTab; label: string }[] = [
 /** Map tagType to which skill tabs it should appear in */
 const TAG_TYPE_TO_SKILLS: Record<string, SkillTab[]> = {
   QUESTION_TYPE: ['reading', 'listening'],
-  PASSAGE: ['reading'],
-  SECTION: ['listening'],
   TASK: ['writing'],
   WRITING_TYPE: ['writing'],
   WRITING_CRITERIA: ['writing'],
@@ -53,19 +51,18 @@ const TAG_TYPE_TO_SKILLS: Record<string, SkillTab[]> = {
   SPEAKING_CRITERIA: ['speaking'],
 };
 
+/** Tag types to hide from the dashboard (structural, not useful for learner profiling) */
+const HIDDEN_TAG_TYPES = new Set(['PASSAGE', 'SECTION', 'SKILL', 'DIFFICULTY']);
+
 const TAG_TYPE_LABELS: Record<string, string> = {
   QUESTION_TYPE: 'Dạng bài (Question Types)',
   TOPIC: 'Chủ đề (Topics)',
-  DIFFICULTY: 'Độ khó (Difficulty)',
   WRITING_TYPE: 'Dạng bài viết (Writing Types)',
   WRITING_TOPIC: 'Chủ đề bài viết (Writing Topics)',
   WRITING_CRITERIA: 'Tiêu chí chấm điểm (Scoring Criteria)',
   SPEAKING_CRITERIA: 'Tiêu chí chấm điểm (Scoring Criteria)',
-  PASSAGE: 'Passage',
-  SECTION: 'Section',
   TASK: 'Task',
   PART: 'Part',
-  SKILL: 'Kỹ năng',
 };
 
 function getTagTypeLabel(tagType: string): string {
@@ -232,9 +229,9 @@ function TagGroupAccordion({
 /** Group metrics by tagType for a given skill tab */
 function useSkillMetrics(allMetrics: LearnerTagMetric[], skill: SkillTab) {
   return useMemo(() => {
-    // Filter metrics that belong to this skill tab
+    // Filter metrics that belong to this skill tab and are not hidden structural types
     const filtered = allMetrics.filter(m =>
-      getSkillsForMetric(m).includes(skill)
+      getSkillsForMetric(m).includes(skill) && !HIDDEN_TAG_TYPES.has(m.tagType || '')
     );
 
     // Group by tagType
@@ -245,11 +242,10 @@ function useSkillMetrics(allMetrics: LearnerTagMetric[], skill: SkillTab) {
       grouped[key].push(m);
     }
 
-    // Sort: QUESTION_TYPE/TASK/PART first, then TOPIC, DIFFICULTY last
+    // Sort: QUESTION_TYPE/TASK/PART first, then TOPIC
     const priority: Record<string, number> = {
       QUESTION_TYPE: 0, WRITING_TYPE: 0, TASK: 0, PART: 0,
       TOPIC: 1, WRITING_TOPIC: 1,
-      DIFFICULTY: 2, PASSAGE: 2, SECTION: 2, SKILL: 3,
     };
 
     return Object.entries(grouped)

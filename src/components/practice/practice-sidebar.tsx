@@ -1,6 +1,6 @@
 'use client';
 
-import { BookOpen, Pencil, Headphones, Mic } from 'lucide-react';
+import { BookOpen, Pencil, Headphones, Mic, ChevronRight } from 'lucide-react';
 import type { Skill, TestMode } from '@/types/practice.types';
 
 const SKILLS = [
@@ -8,7 +8,12 @@ const SKILLS = [
     key: 'reading' as Skill,
     label: 'Reading',
     icon: BookOpen,
-    color: 'text-blue-600',
+    gradient: 'from-blue-500 to-indigo-500',
+    activeBg: 'bg-blue-50',
+    activeBorder: 'border-blue-400',
+    iconColor: 'text-blue-600',
+    dotColor: 'bg-blue-600',
+    dotBorder: 'border-blue-600',
     modes: ['PRACTICE', 'FULL_TEST'] as TestMode[],
     subItems: ['Passage 1', 'Passage 2', 'Passage 3'],
   },
@@ -16,7 +21,12 @@ const SKILLS = [
     key: 'listening' as Skill,
     label: 'Listening',
     icon: Headphones,
-    color: 'text-orange-500',
+    gradient: 'from-purple-500 to-violet-500',
+    activeBg: 'bg-purple-50',
+    activeBorder: 'border-purple-400',
+    iconColor: 'text-purple-600',
+    dotColor: 'bg-purple-600',
+    dotBorder: 'border-purple-600',
     modes: ['PRACTICE', 'FULL_TEST'] as TestMode[],
     subItems: ['Section 1', 'Section 2', 'Section 3', 'Section 4'],
   },
@@ -24,7 +34,12 @@ const SKILLS = [
     key: 'writing' as Skill,
     label: 'Writing',
     icon: Pencil,
-    color: 'text-red-500',
+    gradient: 'from-emerald-500 to-teal-500',
+    activeBg: 'bg-emerald-50',
+    activeBorder: 'border-emerald-400',
+    iconColor: 'text-emerald-600',
+    dotColor: 'bg-emerald-600',
+    dotBorder: 'border-emerald-600',
     modes: ['PRACTICE', 'FULL_TEST'] as TestMode[],
     subItems: ['Task 1', 'Task 2'],
   },
@@ -32,7 +47,12 @@ const SKILLS = [
     key: 'speaking' as Skill,
     label: 'Speaking',
     icon: Mic,
-    color: 'text-teal-500',
+    gradient: 'from-orange-500 to-amber-500',
+    activeBg: 'bg-orange-50',
+    activeBorder: 'border-orange-400',
+    iconColor: 'text-orange-600',
+    dotColor: 'bg-orange-600',
+    dotBorder: 'border-orange-600',
     modes: ['PRACTICE', 'FULL_TEST'] as TestMode[],
     subItems: ['Part 1', 'Part 2', 'Part 3'],
   },
@@ -61,12 +81,10 @@ export function PracticeSidebar({
   const handleSelect = (skill: Skill, mode: TestMode) => {
     if (activeSkill !== skill) onSkillChange(skill);
     onModeChange(mode);
-    // Don't call onPassageChange here - onModeChange already handles it
   };
 
   const handlePassage = (skill: Skill, passage: number) => {
     if (activeSkill !== skill) onSkillChange(skill);
-    // For writing, use onWritingTaskChange instead of onPassageChange
     if (skill === 'writing' && onWritingTaskChange) {
       onWritingTaskChange(activePassage === passage ? null : (passage as 1 | 2));
     } else {
@@ -75,76 +93,94 @@ export function PracticeSidebar({
   };
 
   return (
-    <aside className="w-64 bg-gray-50/50 border-r p-4 hidden lg:block overflow-y-auto sticky top-[56px] max-h-[calc(100vh-56px)]">
-      <h2 className="text-lg font-bold text-gray-800 mb-4">Luyện tập</h2>
-      <div className="space-y-3">
+    <aside className="w-[260px] bg-white border-r border-slate-100 hidden lg:flex flex-col sticky top-[56px] max-h-[calc(100vh-56px)]">
+      <div className="px-5 pt-5 pb-3">
+        <h2 className="text-[15px] font-extrabold text-slate-800 tracking-tight">Luyện tập</h2>
+      </div>
+
+      <div className="flex-1 overflow-y-auto px-3 pb-4 space-y-1.5">
         {SKILLS.map((skill) => {
           const isActive = activeSkill === skill.key;
           const Icon = skill.icon;
 
           return (
-            <div
-              key={skill.key}
-              className={`rounded-xl border-2 transition-all ${
-                isActive ? 'bg-green-50 border-green-400' : 'bg-white border-gray-200'
-              }`}
-            >
+            <div key={skill.key} className="rounded-xl overflow-hidden">
               {/* Skill header */}
-              <div className="flex items-center gap-2.5 px-3.5 py-2.5 border-b border-gray-100">
-                <Icon className={`h-5 w-5 ${skill.color}`} />
-                <span className="font-semibold text-sm text-gray-900">{skill.label}</span>
-              </div>
+              <button
+                onClick={() => { if (!isActive) onSkillChange(skill.key); }}
+                className={`w-full flex items-center gap-3 px-3.5 py-2.5 transition-all ${
+                  isActive
+                    ? `${skill.activeBg} border-l-[3px] ${skill.activeBorder}`
+                    : 'hover:bg-slate-50 border-l-[3px] border-transparent'
+                }`}
+              >
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                  isActive ? `bg-gradient-to-br ${skill.gradient} text-white shadow-sm` : 'bg-slate-100 text-slate-500'
+                }`}>
+                  <Icon className="h-4 w-4" />
+                </div>
+                <span className={`text-[13.5px] font-bold flex-1 text-left ${isActive ? 'text-slate-900' : 'text-slate-600'}`}>
+                  {skill.label}
+                </span>
+                <ChevronRight className={`h-3.5 w-3.5 transition-transform ${isActive ? 'rotate-90 text-slate-500' : 'text-slate-300'}`} />
+              </button>
 
-              {/* Modes always visible */}
-              <div className="px-3 py-2.5 space-y-1">
-                {skill.modes.map((mode) => {
-                  const isSelected = isActive && activeMode === mode;
+              {/* Expanded content */}
+              {isActive && (
+                <div className="pl-5 pr-2 pb-2 pt-1 space-y-0.5">
+                  {skill.modes.map((mode) => {
+                    const isSelected = activeMode === mode;
 
-                  return (
-                    <div key={mode}>
-                      <button
-                        onClick={() => handleSelect(skill.key, mode)}
-                        className="w-full flex items-center gap-2.5 px-2 py-1.5 rounded-lg text-left hover:bg-black/5 transition-colors"
-                      >
-                        <span className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ${
-                          isSelected ? 'border-gray-900' : 'border-gray-300'
-                        }`}>
-                          {isSelected && <span className="w-2.5 h-2.5 rounded-full bg-gray-900" />}
-                        </span>
-                        <span className={`text-sm ${isSelected ? 'font-semibold text-gray-900' : 'text-gray-500'}`}>
-                          {MODE_LABELS[mode]}
-                        </span>
-                      </button>
+                    return (
+                      <div key={mode}>
+                        <button
+                          onClick={() => handleSelect(skill.key, mode)}
+                          className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left transition-colors ${
+                            isSelected ? 'bg-white shadow-sm border border-slate-200' : 'hover:bg-white/60'
+                          }`}
+                        >
+                          <span className={`w-[18px] h-[18px] rounded-full border-2 flex items-center justify-center shrink-0 ${
+                            isSelected ? skill.dotBorder : 'border-slate-300'
+                          }`}>
+                            {isSelected && <span className={`w-2 h-2 rounded-full ${skill.dotColor}`} />}
+                          </span>
+                          <span className={`text-[13px] ${isSelected ? 'font-bold text-slate-900' : 'font-medium text-slate-500'}`}>
+                            {MODE_LABELS[mode]}
+                          </span>
+                        </button>
 
-                      {/* Sub-items for Reading/Listening/Speaking phần thi */}
-                      {isSelected && mode === 'PRACTICE' && skill.subItems.length > 0 && (
-                        <div className="ml-7 pl-3 border-l-2 border-gray-300 space-y-0.5 mt-0.5 mb-1">
-                          {skill.subItems.map((item, idx) => {
-                            const pNum = idx + 1;
-                            const isPActive = activePassage === pNum;
-                            return (
-                              <button
-                                key={idx}
-                                onClick={() => handlePassage(skill.key, pNum)}
-                                className="w-full flex items-center gap-2.5 px-2 py-1.5 rounded-lg text-left hover:bg-black/5 transition-colors"
-                              >
-                                <span className={`w-4.5 h-4.5 rounded-full border-2 flex items-center justify-center shrink-0 ${
-                                  isPActive ? 'border-gray-900' : 'border-gray-300'
-                                }`}>
-                                  {isPActive && <span className="w-2 h-2 rounded-full bg-gray-900" />}
-                                </span>
-                                <span className={`text-sm ${isPActive ? 'font-semibold text-gray-900' : 'text-gray-500'}`}>
-                                  {item}
-                                </span>
-                              </button>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
+                        {/* Sub-items */}
+                        {isSelected && mode === 'PRACTICE' && skill.subItems.length > 0 && (
+                          <div className="ml-6 pl-3 border-l-2 border-slate-200 space-y-0.5 mt-0.5 mb-1">
+                            {skill.subItems.map((item, idx) => {
+                              const pNum = idx + 1;
+                              const isPActive = activePassage === pNum;
+                              return (
+                                <button
+                                  key={idx}
+                                  onClick={() => handlePassage(skill.key, pNum)}
+                                  className={`w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-left transition-colors ${
+                                    isPActive ? 'bg-white shadow-sm border border-slate-200' : 'hover:bg-white/60'
+                                  }`}
+                                >
+                                  <span className={`w-[15px] h-[15px] rounded-full border-2 flex items-center justify-center shrink-0 ${
+                                    isPActive ? skill.dotBorder : 'border-slate-300'
+                                  }`}>
+                                    {isPActive && <span className={`w-1.5 h-1.5 rounded-full ${skill.dotColor}`} />}
+                                  </span>
+                                  <span className={`text-[12.5px] ${isPActive ? 'font-bold text-slate-900' : 'font-medium text-slate-500'}`}>
+                                    {item}
+                                  </span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           );
         })}

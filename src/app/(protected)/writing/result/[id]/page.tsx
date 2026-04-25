@@ -146,14 +146,26 @@ export default function WritingResultPage({ params }: Props) {
           </div>
         )}
 
-        {/* 3-column insights */}
-        {normData && <ResultInsights data={normData} />}
+        {/* 3-column insights (hide when feedback skipped) */}
+        {normData && !normData.feedbackSkipped && <ResultInsights data={normData} />}
 
         {/* Accordion phân tích chi tiết */}
         {normData && <ResultCriteriaDetail criteria={normData.criteria} />}
 
+        {/* Off-topic / spam warning */}
+        {normData?.feedbackSkipped && (
+          <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5 shadow-sm">
+            <p className="text-amber-800 font-semibold text-sm">
+              {normData.feedbackSkipReason || 'Bài viết bị đánh giá lạc đề hoặc không hợp lệ nên không có phản hồi cải thiện.'}
+            </p>
+            <p className="text-amber-600 text-xs mt-2">
+              {normData.overall_strategy}
+            </p>
+          </div>
+        )}
+
         {/* Essay với highlights hoặc plain */}
-        {normData && normData.improvements.length > 0 ? (
+        {normData && !normData.feedbackSkipped && normData.improvements.length > 0 ? (
           <div className="space-y-5 pt-2">
             <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 px-1">
               <div>

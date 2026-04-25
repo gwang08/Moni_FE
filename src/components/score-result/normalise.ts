@@ -28,6 +28,8 @@ export interface NormalisedData {
   summary?: string;
   strengths?: string;
   feedbackImprovements?: string;
+  feedbackSkipped?: boolean;
+  feedbackSkipReason?: string;
 }
 
 export function getCritMeta(taskType?: number) {
@@ -113,5 +115,7 @@ export function normalise(raw: Record<string, unknown>, taskType?: number): Norm
     summary: cleanFeedback(fbObj?.summary),
     strengths: cleanFeedback(fbObj?.strengths),
     feedbackImprovements: cleanFeedback(fbObj?.improvements),
+    feedbackSkipped: fbObj?.skipped === true,
+    feedbackSkipReason: typeof fbObj?.reason === 'string' ? fbObj.reason : undefined,
   };
 }

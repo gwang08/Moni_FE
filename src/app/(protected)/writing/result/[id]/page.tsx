@@ -13,6 +13,8 @@ import { useTestDetail } from '@/hooks/use-test-detail';
 import { useAuthStore } from '@/store/auth-store';
 import { useWritingStore } from '@/store/writing-store';
 import { getWritingSubmissionDetail, type WritingSubmissionDetail } from '@/lib/ai-api';
+import { getMyActiveSubscription } from '@/lib/subscription-api';
+import type { UserSubscriptionResponse } from '@/types/subscription.types';
 import type { WritingTaskType } from '@/types/writing.types';
 import { normalise } from '@/components/score-result/normalise';
 import { ResultHero } from '@/components/score-result/hero';
@@ -34,6 +36,7 @@ export default function WritingResultPage({ params }: Props) {
   const [submission, setSubmission] = useState<WritingSubmissionDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [essayOpen, setEssayOpen] = useState(true);
+  const [activeSubscription, setActiveSubscription] = useState<UserSubscriptionResponse | null>(null);
 
   const testIdStr = submission?.testId ? String(submission.testId) : '';
   const { testDetail } = useTestDetail(testIdStr);
@@ -52,6 +55,7 @@ export default function WritingResultPage({ params }: Props) {
 
   useEffect(() => {
     fetchSubmission();
+    getMyActiveSubscription().then(setActiveSubscription).catch(() => {});
   }, [fetchSubmission]);
 
   const handleAiScore = async () => {
@@ -91,6 +95,13 @@ export default function WritingResultPage({ params }: Props) {
 
   const normData = rawForDisplay ? normalise(rawForDisplay, taskType) : null;
   const scored = normData !== null;
+
+  const AI_UNLIMITED_CAP = 500;
+  const hasAiQuota = activeSubscription
+    ? activeSubscription.remainAi === -1
+      ? activeSubscription.usedAi < AI_UNLIMITED_CAP
+      : activeSubscription.remainAi > 0
+    : false;
 
   const submittedDate = new Date(
     submission.submittedAt.includes('Z') ? submission.submittedAt : submission.submittedAt + 'Z',
@@ -208,15 +219,37 @@ export default function WritingResultPage({ params }: Props) {
             <p className="text-[14px] text-slate-600 text-center max-w-md mb-8 leading-relaxed font-medium">
               AI sẽ cung cấp band điểm dự kiến, phân tích chi tiết theo 4 tiêu chí IELTS và chữa lỗi trực tiếp trên bài.
             </p>
-            <Button
-              onClick={handleAiScore}
-              disabled={isGrading}
-              size="lg"
-              className="gap-2.5 bg-teal-600 hover:bg-teal-700 text-white shadow-xl shadow-teal-500/20 px-8 py-6 rounded-full font-bold text-[15px] transition-all hover:-translate-y-0.5"
-            >
-              <Sparkles className="h-5 w-5 text-amber-300" />
-              Bắt đầu chấm điểm
-            </Button>
+            {hasAiQuota ? (
+              <div className="flex flex-col items-center gap-2">
+                <Button
+                  onClick={handleAiScore}
+                  disabled={isGrading}
+                  size="lg"
+                  className="gap-2.5 bg-teal-600 hover:bg-teal-700 text-white shadow-xl shadow-teal-500/20 px-8 py-6 rounded-full font-bold text-[15px] transition-all hover:-translate-y-0.5"
+                >
+                  <Sparkles className="h-5 w-5 text-amber-300" />
+                  Bắt đầu chấm điểm
+                </Button>
+                <span className="text-xs text-slate-500 font-medium">
+                  Còn{' '}
+                  {activeSubscription!.remainAi === -1
+                    ? AI_UNLIMITED_CAP - activeSubscription!.usedAi
+                    : activeSubscription!.remainAi}{' '}
+                  lượt chấm AI
+                </span>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center gap-3">
+                <p className="text-sm text-amber-600 font-semibold">Bạn chưa có lượt chấm AI</p>
+                <Button
+                  onClick={() => router.push('/payment')}
+                  size="lg"
+                  className="gap-2.5 bg-amber-500 hover:bg-amber-600 text-white shadow-xl shadow-amber-500/20 px-8 py-6 rounded-full font-bold text-[15px] transition-all hover:-translate-y-0.5"
+                >
+                  Mua gói chấm điểm
+                </Button>
+              </div>
+            )}
           </div>
         )}
       </div>

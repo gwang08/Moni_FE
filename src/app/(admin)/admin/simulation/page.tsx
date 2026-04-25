@@ -126,14 +126,14 @@ export default function SimulationPage() {
             </div>
           </div>
 
-          {/* Skip Day */}
+          {/* Advance Day */}
           <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
             <div className="flex items-center gap-2 mb-4">
               <FastForward className="h-5 w-5 text-indigo-500" />
-              <h3 className="font-bold text-gray-800">Skip Day</h3>
+              <h3 className="font-bold text-gray-800">Advance Day</h3>
             </div>
             <p className="text-xs text-gray-500 mb-4">
-              Lùi lịch để "hack" thời gian, đưa các task của ngày mai về thành hôm nay
+              Tua nhanh tới ngày tiếp theo trong tuần (mở task ngày mai)
             </p>
             <button
               onClick={handleSkipDay}
@@ -145,7 +145,7 @@ export default function SimulationPage() {
               ) : (
                 <FastForward className="h-4 w-4" />
               )}
-              Skip 1 Ngày
+              Tua 1 Ngày
             </button>
           </div>
 

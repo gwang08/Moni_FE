@@ -22,6 +22,7 @@ import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { useElapsedTimer } from '@/hooks/use-elapsed-timer';
 import { useCountdownTimer } from '@/hooks/use-countdown-timer';
 import { useExamSession } from '@/hooks/use-exam-session';
+import { toMinutes } from '@/lib/duration-utils';
 import { submitAttempt } from '@/lib/practice-api';
 import { completeSlot } from '@/lib/roadmap-api';
 import type { SavedAnswer } from '@/lib/exam-api';
@@ -83,7 +84,7 @@ export default function ListeningExercisePage({ params }: Props) {
     } catch { return {}; }
   });
 
-  const testDuration = testDetail?.duration ?? 0;
+  const testDuration = toMinutes(testDetail?.duration);
 
   const elapsedTimer = useElapsedTimer(submitted || isExamMode);
   const countdownTimer = useCountdownTimer(

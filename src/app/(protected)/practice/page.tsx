@@ -500,7 +500,7 @@ function PracticePage() {
                         <h3 className="text-[13.5px] font-bold text-slate-900 mb-1.5 line-clamp-2 leading-snug">{exercise.title}</h3>
                         <div className="flex items-center gap-1.5 text-[11.5px] text-slate-400 font-medium">
                           {(exercise.questionCount ?? 0) > 0 && <span>{exercise.questionCount} câu</span>}
-                          {exercise.duration && exercise.skill !== 'listening' && exercise.skill !== 'speaking' && <span>· {toMinutes(exercise.duration)} phút</span>}
+                          {exercise.duration && <span>· {toMinutes(exercise.duration)} phút</span>}
                         </div>
                       </div>
                       {/* Hover overlay */}

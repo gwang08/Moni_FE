@@ -14,28 +14,40 @@ export function useCountdownTimer(
   onTimeUp?: () => void,
   initialRemainingSeconds?: number,
 ) {
-  const totalSeconds = initialRemainingSeconds ?? durationMinutes * 60;
-  const [remaining, setRemaining] = useState(totalSeconds);
+  const [remaining, setRemaining] = useState<number | null>(null);
+  const [totalSeconds, setTotalSeconds] = useState<number | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const onTimeUpRef = useRef(onTimeUp);
   onTimeUpRef.current = onTimeUp;
   const initializedRef = useRef(false);
 
-  // Re-init when server provides remainingSeconds (e.g., after session loads)
+  // 1. Initialize with server value (resume/exam start)
   useEffect(() => {
-    if (initialRemainingSeconds != null && !initializedRef.current) {
+    if (initialRemainingSeconds != null) {
       setRemaining(initialRemainingSeconds);
+      setTotalSeconds(initialRemainingSeconds);
       initializedRef.current = true;
     }
   }, [initialRemainingSeconds]);
 
+  // 2. Initialize with durationMinutes fallback (practice mode or first-time start if server value not yet here)
   useEffect(() => {
-    if (stop || remaining <= 0) {
+    // Only set if not already initialized by server and no server value is provided yet
+    if (!initializedRef.current && initialRemainingSeconds == null && durationMinutes > 0) {
+      const seconds = durationMinutes * 60;
+      setRemaining(seconds);
+      setTotalSeconds(seconds);
+    }
+  }, [durationMinutes, initialRemainingSeconds]);
+
+  useEffect(() => {
+    if (stop || remaining == null || remaining <= 0) {
       if (intervalRef.current) clearInterval(intervalRef.current);
       return;
     }
     intervalRef.current = setInterval(() => {
       setRemaining((prev) => {
+        if (prev === null) return null;
         if (prev <= 1) {
           onTimeUpRef.current?.();
           return 0;
@@ -48,11 +60,12 @@ export function useCountdownTimer(
     };
   }, [stop, remaining]);
 
-  const minutes = Math.floor(remaining / 60);
-  const seconds = remaining % 60;
+  const safeRemaining = remaining ?? 0;
+  const minutes = Math.floor(safeRemaining / 60);
+  const seconds = safeRemaining % 60;
   const formatted = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-  const isTimeUp = remaining <= 0;
-  const elapsed = totalSeconds - remaining;
+  const isTimeUp = remaining !== null && remaining <= 0;
+  const elapsed = totalSeconds !== null && remaining !== null ? Math.max(0, totalSeconds - remaining) : 0;
 
-  return { remaining, elapsed, formatted, isTimeUp };
+  return { remaining: safeRemaining, elapsed, formatted, isTimeUp };
 }

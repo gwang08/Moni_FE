@@ -100,8 +100,10 @@ export default function WritingExercisePage({ params }: Props) {
   const { elapsed, formatted: elapsedTime } = useElapsedTimer(isGrading || isExamMode);
 
   const examSession = useExamSession(Number(id), isExamMode);
+  const testDuration = toMinutes(testDetail?.duration);
+
   const countdownTimer = useCountdownTimer(
-    testDetail?.duration && testDetail.duration > 0 ? toMinutes(testDetail.duration) : 60,
+    testDuration > 0 ? testDuration : 60,
     submitted || !isExamMode,
     () => {
       if (!submitted && handleSubmitRef.current) {

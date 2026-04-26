@@ -443,7 +443,7 @@ export function LearningRoadmap({ weekNumber }: { weekNumber?: number }) {
               onClick={() => {
                 stopTour();
                 const weekNum = plan.weekNumber;
-                sessionStorage.setItem(`newWeekTourDone_${weekNum}`, '1');
+                localStorage.setItem(`newWeekTourDone_${weekNum}`, '1');
                 window.scrollTo({ top: 0, behavior: 'smooth' });
               }}
               className="w-full bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white py-3 rounded-xl text-base font-bold shadow-lg shadow-green-200 transition-all"

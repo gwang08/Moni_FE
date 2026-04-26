@@ -109,7 +109,7 @@ export default function DashboardPage() {
         // New week tour: trigger first time user visits week 2+
         if (currentPlan && currentPlan.weekNumber > 1) {
           const tourKey = `newWeekTourDone_${currentPlan.weekNumber}`;
-          if (!sessionStorage.getItem(tourKey)) {
+          if (!localStorage.getItem(tourKey)) {
             setTimeout(() => setTourStep(10), 500);
           }
         }

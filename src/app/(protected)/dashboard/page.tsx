@@ -107,10 +107,11 @@ export default function DashboardPage() {
         if (weeks.length > 0) setSelectedWeek(weeks[0].week);
 
         // New week tour: trigger on day 1 of week 2+
+        // TODO: restore date check after testing
+        // Original: currentPlan.weekStartDate === todayStr
         if (currentPlan && currentPlan.weekNumber > 1) {
-          const todayStr = new Date().toISOString().split('T')[0];
           const tourKey = `newWeekTourDone_${currentPlan.weekNumber}`;
-          if (currentPlan.weekStartDate === todayStr && !sessionStorage.getItem(tourKey)) {
+          if (!sessionStorage.getItem(tourKey)) {
             setTimeout(() => setTourStep(10), 500);
           }
         }

@@ -71,17 +71,19 @@ interface SubscriptionCardProps {
 function SubscriptionCard({ plan, idx, activeSub, onSelect }: SubscriptionCardProps) {
   const style = SUB_STYLES[idx % SUB_STYLES.length];
   const isActive = activeSub?.planId === plan.id;
+  const isLocked = !!activeSub && !isActive;
   const features = buildPlanFeatures(plan);
 
   let btnLabel = 'Đăng ký ngay';
   if (isActive) btnLabel = 'Gia hạn';
-  else if (activeSub) btnLabel = 'Đổi gói';
 
   return (
     <div
-      className={`relative rounded-2xl p-5 bg-gradient-to-br ${style.gradient} border-2 ${style.border} transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5 flex flex-col`}
+      className={`relative rounded-2xl p-5 bg-gradient-to-br ${style.gradient} border-2 ${
+        isLocked ? 'border-gray-200 opacity-60' : style.border
+      } transition-all duration-200 ${isLocked ? '' : 'hover:shadow-lg hover:-translate-y-0.5'} flex flex-col`}
     >
-      {style.popular && (
+      {style.popular && !isLocked && (
         <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-0.5 rounded-full bg-indigo-600 text-white text-xs font-semibold shadow-md whitespace-nowrap">
           Phổ biến
         </div>
@@ -109,13 +111,19 @@ function SubscriptionCard({ plan, idx, activeSub, onSelect }: SubscriptionCardPr
         ))}
       </ul>
 
-      <Button
-        onClick={() => onSelect(plan)}
-        className={`w-full rounded-xl h-11 text-white font-semibold ${style.btn}`}
-      >
-        <Sparkles className="h-4 w-4 mr-1.5" />
-        {btnLabel}
-      </Button>
+      {isLocked ? (
+        <Button disabled className="w-full rounded-xl h-11 font-semibold bg-gray-300 text-gray-500 cursor-not-allowed">
+          Gói hiện tại chưa hết hạn
+        </Button>
+      ) : (
+        <Button
+          onClick={() => onSelect(plan)}
+          className={`w-full rounded-xl h-11 text-white font-semibold ${style.btn}`}
+        >
+          <Sparkles className="h-4 w-4 mr-1.5" />
+          {btnLabel}
+        </Button>
+      )}
     </div>
   );
 }
@@ -211,6 +219,7 @@ export default function PaymentPage() {
             : roadmapPlans.length > 0
             ? roadmapPlans.map((plan, idx) => {
                 const isActive = roadmapStatus?.subscription?.planId === plan.id && roadmapStatus?.hasActiveSubscription;
+                const isLocked = roadmapStatus?.hasActiveSubscription && !isActive;
                 const roadmapFeatures = [
                   { icon: CalendarCheck, text: 'Lộ trình học từng tuần được AI cá nhân hóa' },
                   { icon: Target, text: 'Bài tập tập trung vào điểm yếu của bạn' },
@@ -224,7 +233,9 @@ export default function PaymentPage() {
                 return (
                   <div
                     key={plan.id}
-                    className="relative rounded-2xl p-5 bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 border-2 border-indigo-300 hover:border-indigo-500 transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5 flex flex-col"
+                    className={`relative rounded-2xl p-5 bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 border-2 ${
+                      isLocked ? 'border-gray-200 opacity-60' : 'border-indigo-300 hover:border-indigo-500'
+                    } transition-all duration-200 ${isLocked ? '' : 'hover:shadow-lg hover:-translate-y-0.5'} flex flex-col`}
                   >
                     {isActive && (
                       <div className="absolute -top-3 right-4 flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-500 text-white text-xs font-semibold shadow-md">
@@ -244,7 +255,7 @@ export default function PaymentPage() {
                       <p className="text-xs text-gray-600 mb-3">{plan.description}</p>
                     )}
 
-                    {/* Quota highlight — cho user biết rõ được bao nhiêu lượt AI + Giảng viên */}
+                    {/* Quota highlight */}
                     <div className="grid grid-cols-2 gap-2 mb-4">
                       <div className="rounded-lg bg-white/70 border border-indigo-200 px-2.5 py-2 text-center">
                         <div className="text-[10px] font-bold uppercase tracking-wider text-indigo-600">Lượt AI</div>
@@ -269,13 +280,19 @@ export default function PaymentPage() {
                       ))}
                     </ul>
 
-                    <Button
-                      onClick={() => handleSelectPlan(plan)}
-                      className="w-full rounded-xl h-11 text-white font-semibold bg-indigo-600 hover:bg-indigo-700"
-                    >
-                      <Sparkles className="h-4 w-4 mr-1.5" />
-                      {btnLabel}
-                    </Button>
+                    {isLocked ? (
+                      <Button disabled className="w-full rounded-xl h-11 font-semibold bg-gray-300 text-gray-500 cursor-not-allowed">
+                        Gói hiện tại chưa hết hạn
+                      </Button>
+                    ) : (
+                      <Button
+                        onClick={() => handleSelectPlan(plan)}
+                        className="w-full rounded-xl h-11 text-white font-semibold bg-indigo-600 hover:bg-indigo-700"
+                      >
+                        <Sparkles className="h-4 w-4 mr-1.5" />
+                        {btnLabel}
+                      </Button>
+                    )}
                   </div>
                 );
               })

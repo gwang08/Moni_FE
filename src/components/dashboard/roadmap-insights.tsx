@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState, useCallback } from 'react';
-import { Activity, TriangleAlert, Info, ChevronDown, ChevronUp, Sparkles, RefreshCw, ArrowRight } from 'lucide-react';
+import { Activity, TriangleAlert, Info, ChevronDown, ChevronUp, Sparkles, ArrowRight } from 'lucide-react';
 import { SkeletonCard } from '@/components/ui/skeleton';
 import { getRoadmapInsights, getMetricAiSummary } from '@/lib/roadmap-api';
 import type { MetricAiSummary } from '@/lib/roadmap-api';
@@ -432,10 +432,10 @@ export function RoadmapInsights({ weekNumber }: { weekNumber?: number }) {
   const isNewWeekTourActive = tourStep === 11;
 
   return (
-    <div id="roadmap-insights-section" className={`rounded-2xl border border-gray-100 shadow-sm overflow-hidden relative transition-all duration-500 ${isNewWeekTourActive ? 'z-50 ring-4 ring-emerald-500 shadow-2xl scale-[1.01]' : ''}`}>
-      {/* Tour Step 11: AI Summary spotlight */}
+    <div id="roadmap-insights-section" className={`rounded-2xl border border-gray-100 shadow-sm relative transition-all duration-500 ${isNewWeekTourActive ? 'z-[60] ring-4 ring-emerald-500 shadow-2xl scale-[1.01]' : 'overflow-hidden'}`}>
+      {/* Tour Step 11: AI Summary spotlight - rendered as fixed overlay to avoid overflow-hidden clipping */}
       {tourStep === 11 && (
-        <div className="absolute -top-4 left-1/2 -translate-x-1/2 -translate-y-full w-80 bg-white p-5 rounded-2xl shadow-2xl border border-emerald-100 z-50 animate-in fade-in slide-in-from-bottom-4 duration-300">
+        <div className="fixed top-24 left-1/2 -translate-x-1/2 w-80 bg-white p-5 rounded-2xl shadow-2xl border border-emerald-100 z-[70] animate-in fade-in slide-in-from-bottom-4 duration-300">
           <div className="flex gap-3 mb-3">
             <ChibiMascot mood="thinking" size={48} />
             <div>
@@ -518,14 +518,6 @@ export function RoadmapInsights({ weekNumber }: { weekNumber?: number }) {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between gap-2">
                   <h3 className="text-sm font-bold text-gray-800">Phân tích AI</h3>
-                  <button
-                    onClick={fetchAiSummary}
-                    disabled={aiSummaryLoading}
-                    className="text-xs text-emerald-600 hover:text-emerald-700 flex items-center gap-1 disabled:opacity-50"
-                  >
-                    <RefreshCw className={`h-3 w-3 ${aiSummaryLoading ? 'animate-spin' : ''}`} />
-                    Tạo lại
-                  </button>
                 </div>
               </div>
             </div>

@@ -209,7 +209,7 @@ export default function DashboardPage() {
 
       {/* Dim backdrop for new-week tour steps 11-12 */}
       {(tourStep === 11 || tourStep === 12) && (
-        <div className="fixed inset-0 bg-black/60 z-40 transition-opacity duration-300" />
+        <div className="fixed inset-0 bg-black/60 z-50 transition-opacity duration-300" />
       )}
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">

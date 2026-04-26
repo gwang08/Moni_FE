@@ -428,11 +428,11 @@ export function LearningRoadmap({ weekNumber }: { weekNumber?: number }) {
   const isTourActive = (tourStep >= 5 && tourStep <= 7) || tourStep === 12;
 
   return (
-    <div id="learning-roadmap-section" className={`bg-white rounded-2xl border border-gray-100 shadow-sm relative transition-all duration-500 ${isTourActive ? 'z-50 ring-4 ring-emerald-500 shadow-2xl scale-[1.01]' : ''}`}>
+    <div id="learning-roadmap-section" className={`bg-white rounded-2xl border border-gray-100 shadow-sm relative transition-all duration-500 ${isTourActive ? 'z-[60] ring-4 ring-emerald-500 shadow-2xl scale-[1.01]' : ''}`}>
 
       {/* Tour Step 12: New week plan intro */}
       {tourStep === 12 && (
-        <div className="absolute -top-4 left-1/2 -translate-x-1/2 -translate-y-full w-[340px] bg-white p-6 rounded-3xl shadow-[0_0_50px_rgba(0,0,0,0.15)] border-2 border-emerald-100 z-50 animate-in fade-in zoom-in-95 duration-300">
+        <div className="fixed top-24 left-1/2 -translate-x-1/2 w-[340px] bg-white p-6 rounded-3xl shadow-[0_0_50px_rgba(0,0,0,0.15)] border-2 border-emerald-100 z-[70] animate-in fade-in zoom-in-95 duration-300">
           <div className="flex flex-col items-center text-center">
             <ChibiMascot mood="excited" size={80} />
             <h3 className="font-bold text-gray-800 text-lg mt-3 mb-1">Kế hoạch tuần mới!</h3>

@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
-import { BookOpen, Mic, ChevronRight, Tag, RefreshCw, CheckCircle2, Clock, Eye } from 'lucide-react';
+import { BookOpen, Mic, ChevronRight, Tag, RefreshCw, CheckCircle2, Clock, Eye, Map } from 'lucide-react';
 import { AdminHeader } from '@/components/admin/admin-header';
 import { listAllPrompts, type PromptInfo } from '@/lib/admin-api';
 
@@ -32,6 +32,12 @@ const SKILL_META: Record<string, { label: string; icon: typeof BookOpen; color: 
     color: 'text-emerald-600',
     bg: 'bg-emerald-50 border-emerald-100',
   },
+  roadmap: {
+    label: 'Roadmap',
+    icon: Map,
+    color: 'text-orange-600',
+    bg: 'bg-orange-50 border-orange-100',
+  },
 };
 
 const FILENAME_LABELS: Record<string, string> = {
@@ -51,10 +57,11 @@ const FILENAME_LABELS: Record<string, string> = {
   'phase5_feedback.txt': 'Phase 5 — Feedback',
   'analyze_chart.txt': 'Vision — Chart/Process Analysis',
   'quiz_generation.txt': 'Vocab — AI Quiz Generation',
+  'metric_summary.txt': 'Roadmap — AI Metric Summary',
 };
 
 export default function AdminPromptsPage() {
-  const [activeSkill, setActiveSkill] = useState<'all' | 'writing' | 'speaking' | 'vision' | 'vocab'>(
+  const [activeSkill, setActiveSkill] = useState<'all' | 'writing' | 'speaking' | 'vision' | 'vocab' | 'roadmap'>(
     'all'
   );
 
@@ -101,27 +108,25 @@ export default function AdminPromptsPage() {
 
         {/* Skill filter tabs */}
         <div className="flex gap-2 bg-white border border-gray-100 rounded-2xl p-1 shadow-sm w-fit overflow-x-auto max-w-full">
-          {(['all', 'writing', 'speaking', 'vision', 'vocab'] as const).map((skill) => (
-            <button
-              key={skill}
-              onClick={() => setActiveSkill(skill)}
-              className={`px-5 py-2 rounded-xl text-sm font-semibold transition-all whitespace-nowrap ${
-                activeSkill === skill
-                  ? 'bg-blue-600 text-white shadow-sm'
-                  : 'text-gray-600 hover:bg-gray-100'
-              }`}
-            >
-              {skill === 'all'
-                ? 'Tất cả'
-                : skill === 'writing'
-                  ? '📝 Writing'
-                  : skill === 'speaking'
-                    ? '🎙️ Speaking'
-                    : skill === 'vision'
-                      ? '👁️ Vision'
-                      : '🏷️ Vocab'}
-            </button>
-          ))}
+          {(['all', 'writing', 'speaking', 'vision', 'vocab', 'roadmap'] as const).map((skill) => {
+            const labels: Record<string, string> = {
+              all: 'Tất cả', writing: '📝 Writing', speaking: '🎙️ Speaking',
+              vision: '👁️ Vision', vocab: '🏷️ Vocab', roadmap: '🗺️ Roadmap',
+            };
+            return (
+              <button
+                key={skill}
+                onClick={() => setActiveSkill(skill)}
+                className={`px-5 py-2 rounded-xl text-sm font-semibold transition-all whitespace-nowrap ${
+                  activeSkill === skill
+                    ? 'bg-blue-600 text-white shadow-sm'
+                    : 'text-gray-600 hover:bg-gray-100'
+                }`}
+              >
+                {labels[skill]}
+              </button>
+            );
+          })}
         </div>
 
         {/* Stats */}

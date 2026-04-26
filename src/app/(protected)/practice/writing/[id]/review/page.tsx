@@ -84,16 +84,16 @@ export default function WritingReviewPage({ params }: Props) {
   }
 
   return (
-    <div className="h-[calc(100vh-56px)] flex flex-col">
+    <div className="h-[calc(100vh-56px)] flex flex-col bg-white overflow-hidden practice-view">
       {/* Header */}
-      <div className="bg-white border-b px-4 py-3 flex items-center gap-3 shrink-0">
-        <Link href="/practice?skill=writing">
+      <div className="shrink-0 bg-white border-b px-4 py-3 flex items-center gap-3">
+        <Link href="/scoring-history?skill=writing">
           <Button variant="ghost" size="icon">
             <ArrowLeft className="h-5 w-5" />
           </Button>
         </Link>
-        <div>
-          <h1 className="font-bold">{testDetail.title}</h1>
+        <div className="min-w-0 flex-1">
+          <h1 className="font-bold truncate" title={testDetail.title}>{testDetail.title}</h1>
           <p className="text-xs text-muted-foreground">Xem lại bài viết</p>
         </div>
       </div>

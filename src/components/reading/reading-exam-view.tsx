@@ -209,7 +209,7 @@ export function ReadingExamView({
   }
 
   return (
-    <div className="h-[calc(100vh-56px)] flex flex-col bg-[#f5f6f8] relative">
+    <div className="h-[calc(100vh-56px)] flex flex-col bg-[#f5f6f8] relative practice-view">
       <style jsx global>{`
         .reading-scrollbar {
           scrollbar-width: auto;

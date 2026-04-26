@@ -290,14 +290,14 @@ export default function ReadingReviewPage({ params }: Props) {
   }
 
   return (
-    <div className="h-[calc(100vh-56px)] flex flex-col">
+    <div className="h-[calc(100vh-56px)] flex flex-col practice-view">
       {/* Header */}
       <div className="bg-white border-b px-4 py-3 flex items-center gap-3 shrink-0">
-        <Link href={`/practice/reading/${id}/result`}>
+        <Link href="/scoring-history?skill=reading">
           <Button variant="ghost" size="icon"><ArrowLeft className="h-5 w-5" /></Button>
         </Link>
-        <div>
-          <h1 className="font-bold">{testDetail.title}</h1>
+        <div className="min-w-0 flex-1">
+          <h1 className="font-bold truncate" title={testDetail.title}>{testDetail.title}</h1>
           <p className="text-xs text-muted-foreground">Xem giải thích chi tiết</p>
           {attemptLabel && (
             <p className="text-[10px] text-gray-500 font-medium">
@@ -332,11 +332,11 @@ export default function ReadingReviewPage({ params }: Props) {
       <div className="flex-1 flex overflow-hidden">
         {/* Left: Passage with evidence highlight */}
         <div className="w-1/2 overflow-y-auto custom-scrollbar-thick p-6 border-r border-gray-200">
-          <h2 className="text-xl font-bold mb-4">
-            {stimuli.length > 1
-              ? `${testDetail.title} - Passage ${enrichedStimulus.section ?? safeActiveStimulusIdx + 1}`
-              : testDetail.title}
-          </h2>
+          {stimuli.length > 1 && (
+            <h2 className="text-lg font-bold mb-4 text-slate-800">
+              Passage {enrichedStimulus.section ?? safeActiveStimulusIdx + 1}
+            </h2>
+          )}
           <div
             className="prose max-w-none bg-white rounded-lg leading-relaxed text-base"
             dangerouslySetInnerHTML={{ __html: passageHtml }}

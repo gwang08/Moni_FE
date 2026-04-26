@@ -90,8 +90,11 @@ export const TestEditBasicInfoTab = forwardRef<TestEditBasicInfoHandle, Props>(f
   const taskTypeCodes = isTask1 ? WRITING_TASK1_TYPE_CODES : isTask2 ? WRITING_TASK2_TYPE_CODES : {};
   const validWritingTypeTags = writingTypeTags.filter((t) => 
     Object.keys(taskTypeCodes).some(label => {
-      const normalizedLabel = label.replace(/^Task [123]:\s*/i, '').toLowerCase();
-      return normalizedLabel === t.name.toLowerCase();
+      const normalizedLabel = label.replace(/^Task [12]:\s*/i, '').toLowerCase();
+      const normalizedTagName = t.name.toLowerCase();
+      return normalizedTagName === normalizedLabel || 
+             (normalizedLabel === 'mixed graph' && (normalizedTagName === 'multiple charts' || normalizedTagName === 'mixed chart' || normalizedTagName === 'mixed graph')) ||
+             (normalizedTagName === 'mixed graph' && (normalizedLabel === 'mixed chart' || normalizedLabel === 'multiple charts'));
     })
   );
 

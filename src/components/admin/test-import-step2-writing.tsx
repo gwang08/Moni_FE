@@ -17,6 +17,7 @@ import { Input } from '@/components/ui/input';
 import {
   WRITING_TASK1_TYPE_CODES,
   WRITING_TASK2_TYPE_CODES,
+  WRITING_TYPE_CODE_LABELS,
 } from '@/components/practice/writing-filter-constants';
 import { getTags } from '@/lib/admin-api';
 import type { TagResponse, StimulusRequest, QuestionTypeCode, QuestionGroupRequest } from '@/types/admin.types';
@@ -74,11 +75,11 @@ export function TestImportStep2Writing({ stimuli, onChange, onNext, onBack, sect
   // Derive currently selected writing type tag ID from questionTypeCode
   const validWritingTypeTags = writingTypeTags.filter((t) => 
     Object.keys(typeCodes).some(label => {
-      const normalizedLabel = label.replace('Task 1: ', '').replace('Task 2: ', '').toLowerCase();
+      const normalizedLabel = label.replace(/^Task [12]:\s*/i, '').toLowerCase();
       const normalizedTagName = t.name.toLowerCase();
       return normalizedTagName === normalizedLabel || 
-             (normalizedLabel === 'mixed chart' && (normalizedTagName.includes('multi chart') || normalizedTagName.includes('mixed'))) ||
-             (normalizedTagName === 'mixed graph' && normalizedLabel === 'mixed chart');
+             (normalizedLabel === 'mixed graph' && (normalizedTagName === 'multiple charts' || normalizedTagName === 'mixed chart' || normalizedTagName === 'mixed graph')) ||
+             (normalizedTagName === 'mixed graph' && (normalizedLabel === 'mixed chart' || normalizedLabel === 'multiple charts'));
     })
   );
 
@@ -87,11 +88,11 @@ export function TestImportStep2Writing({ stimuli, onChange, onNext, onBack, sect
     const label = Object.keys(typeCodes).find((l) => typeCodes[l] === currentTypeCode);
     if (!label) return false;
     
-    const normalizedLabel = label.replace('Task 1: ', '').replace('Task 2: ', '').toLowerCase();
+    const normalizedLabel = label.replace(/^Task [12]:\s*/i, '').toLowerCase();
     const normalizedTagName = t.name.toLowerCase();
     return normalizedTagName === normalizedLabel || 
-           (normalizedLabel === 'mixed chart' && (normalizedTagName.includes('multi chart') || normalizedTagName.includes('mixed'))) ||
-           (normalizedTagName === 'mixed graph' && normalizedLabel === 'mixed chart');
+           (normalizedLabel === 'mixed graph' && (normalizedTagName === 'multiple charts' || normalizedTagName === 'mixed chart' || normalizedTagName === 'mixed graph')) ||
+           (normalizedTagName === 'mixed graph' && (normalizedLabel === 'mixed chart' || normalizedLabel === 'multiple charts'));
   });
 
   const isValid = stimulus.content.trim().length > 0 && (selectedWritingTypeTag !== undefined);
@@ -125,13 +126,13 @@ export function TestImportStep2Writing({ stimuli, onChange, onNext, onBack, sect
 
     // Find the matching code from typeCodes using the same logic as filtering
     const matchingLabel = Object.keys(typeCodes).find(label => {
-      const normalizedLabel = label.replace('Task 1: ', '').replace('Task 2: ', '').toLowerCase();
+      const normalizedLabel = label.replace(/^Task [12]:\s*/i, '').toLowerCase();
       const normalizedTagName = tag.name.toLowerCase();
       
       // Strict matching to avoid "Map Labeling" matching "Map"
       return normalizedTagName === normalizedLabel || 
-             (normalizedLabel === 'mixed chart' && (normalizedTagName.includes('multi chart') || normalizedTagName.includes('mixed'))) ||
-             (normalizedTagName === 'mixed graph' && normalizedLabel === 'mixed chart');
+             (normalizedLabel === 'mixed graph' && (normalizedTagName === 'multiple charts' || normalizedTagName === 'mixed chart' || normalizedTagName === 'mixed graph')) ||
+             (normalizedTagName === 'mixed graph' && (normalizedLabel === 'mixed chart' || normalizedLabel === 'multiple charts'));
     });
 
     const code = (matchingLabel ? typeCodes[matchingLabel] : Object.values(typeCodes)[0] || '') as QuestionTypeCode;
@@ -180,9 +181,22 @@ export function TestImportStep2Writing({ stimuli, onChange, onNext, onBack, sect
               className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="">-- Chọn dạng đề --</option>
-              {validWritingTypeTags.map((tag) => (
-                <option key={tag.id} value={tag.id}>{tag.name}</option>
-              ))}
+              {validWritingTypeTags.map((tag) => {
+                // Find matching label from WRITING_TYPE_CODE_LABELS
+                const matchingLabelKey = Object.keys(typeCodes).find(label => {
+                  const normalizedLabel = label.replace(/^Task [12]:\s*/i, '').toLowerCase();
+                  const normalizedTagName = tag.name.toLowerCase();
+                  return normalizedTagName === normalizedLabel || 
+                         (normalizedLabel === 'mixed graph' && (normalizedTagName === 'multiple charts' || normalizedTagName === 'mixed chart' || normalizedTagName === 'mixed graph')) ||
+                         (normalizedTagName === 'mixed graph' && (normalizedLabel === 'mixed chart' || normalizedLabel === 'multiple charts'));
+                });
+                const code = matchingLabelKey ? typeCodes[matchingLabelKey] : null;
+                const displayName = code ? WRITING_TYPE_CODE_LABELS[code] : tag.name;
+
+                return (
+                  <option key={tag.id} value={tag.id}>{displayName}</option>
+                );
+              })}
             </select>
           </div>
         )}

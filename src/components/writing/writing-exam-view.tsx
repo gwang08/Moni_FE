@@ -133,8 +133,13 @@ export function WritingExamView({
   const canGoPrev = activeTaskIndex > 0;
   const canGoNext = activeTaskIndex < totalTasks - 1;
 
+  // For Task 1, we strip <img> tags from the prompt because we render the chartImageUrl separately
+  const displayPrompt = taskType === 1 
+    ? prompt.replace(/<img\b[^>]*>/gi, '') 
+    : prompt;
+
   return (
-    <div className="flex flex-col h-[calc(100vh-56px)] bg-white">
+    <div className="flex flex-col h-[calc(100vh-56px)] bg-white practice-view">
       {/* ===== Top bar: IELTS style ===== */}
       <div className="flex items-center justify-between bg-white border-b border-gray-200 px-4 py-2 shrink-0">
         {/* Left: IELTS logo + timer */}
@@ -179,8 +184,8 @@ export function WritingExamView({
         <div className="overflow-hidden" style={{ width: `${leftWidth}%` }}>
           <div className="h-full overflow-y-auto px-8 py-6">
             <div className="max-w-2xl mx-auto">
-              <div className="text-[15px] text-gray-800 leading-relaxed space-y-4 font-medium">
-                <div dangerouslySetInnerHTML={{ __html: prompt }} />
+              <div className="text-[15px] text-gray-800 leading-relaxed space-y-4 font-medium prose prose-sm max-w-none">
+                <div dangerouslySetInnerHTML={{ __html: displayPrompt }} />
               </div>
               {chartImageUrl && (
                 <div className="mt-6 flex justify-center">

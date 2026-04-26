@@ -147,18 +147,8 @@ export default function TestImportPage() {
               ? Math.ceil(speakingDuration / 60)
               : 60,
         stimuli: stimuli.map((s, i) => {
-          let content = s.content;
-          // For Writing Task 1, embed the chart image if it exists
-          if (basicInfo.skill === 'WRITING' && basicInfo.section === 1 && s.mediaUrl) {
-            const imgHtml = `<p><img src="${s.mediaUrl}" alt="Chart" /></p>`;
-            if (!content.includes(s.mediaUrl)) {
-              content = imgHtml + content;
-            }
-          }
-          
           return {
             ...s,
-            content,
             title: s.title || `Passage ${i + 1}`,
             section: s.section ?? i + 1,
             questionGroups: s.questionGroups.map((g) => ({
@@ -190,7 +180,6 @@ export default function TestImportPage() {
           try {
             const file = await urlToFile(chartStimulus.mediaUrl, 'chart.png', 'image/png');
             await analyzeChart(chartStimulus.id, file);
-            toast.success('Đã tự động phân tích dữ liệu biểu đồ');
           } catch (err) {
             console.error('Auto chart analysis failed:', err);
           }

@@ -4,7 +4,7 @@ import { use, useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowRight, CheckCircle2, Clock, RotateCcw, XCircle, CircleDashed } from 'lucide-react';
+import { ArrowLeft, ArrowRight, CheckCircle2, Clock, RotateCcw, XCircle, CircleDashed } from 'lucide-react';
 import { SkeletonResult } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { ReadingScoreDonut } from '@/components/reading/reading-score-donut';
@@ -124,8 +124,15 @@ export default function ListeningResultPage({ params }: Props) {
     <div className="min-h-[calc(100vh-56px)] bg-slate-50/80">
       <div className="mx-auto max-w-4xl px-4 py-10 space-y-8">
         {/* Header */}
-        <div className="text-center space-y-1">
-          <p className="text-sm text-slate-500">Kết quả làm bài</p>
+        <div className="relative text-center space-y-1">
+          <div className="absolute left-0 top-0">
+            <Link href="/scoring-history?skill=listening">
+              <Button variant="ghost" size="icon" className="rounded-full hover:bg-white shadow-sm">
+                <ArrowLeft className="h-5 w-5 text-slate-600" />
+              </Button>
+            </Link>
+          </div>
+          <p className="text-sm text-slate-500 pt-2">Kết quả làm bài</p>
           <h1 className="text-3xl font-semibold tracking-tight text-slate-900">{testDetail.title}</h1>
           {attemptLabel && (
             <p className="text-xs font-medium text-slate-500">

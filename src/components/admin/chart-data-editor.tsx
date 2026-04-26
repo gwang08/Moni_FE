@@ -29,7 +29,7 @@ interface Props {
 }
 
 const CHART_TYPES = [
-  'Line Graph', 'Bar Chart', 'Pie Chart', 'Table', 'Mixed Chart', 'Map', 'Process'
+  'Line Graph', 'Bar Chart', 'Pie Chart', 'Table', 'Mixed Graph', 'Map', 'Process'
 ];
 
 export function ChartDataEditor({ data, onChange }: Props) {
@@ -44,35 +44,108 @@ export function ChartDataEditor({ data, onChange }: Props) {
       
       // Flexible normalization for AI results
       let normalizedTrends: string[] = [];
-      if (Array.isArray(parsed.keyTrends)) {
-        normalizedTrends = parsed.keyTrends;
-      } else if (typeof parsed.keyTrends === 'string') {
-        normalizedTrends = [parsed.keyTrends];
+      const rawTrends = parsed.keyTrends || parsed.key_trends || parsed.trends || [];
+      if (Array.isArray(rawTrends)) {
+        normalizedTrends = rawTrends.map(t => String(t));
+      } else if (typeof rawTrends === 'string') {
+        normalizedTrends = [rawTrends];
       }
 
       let normalizedValues: ValueItem[] = [];
-      if (Array.isArray(parsed.values)) {
-        if (parsed.values.length > 0 && typeof parsed.values[0] === 'string') {
+      const rawValues = parsed.values || parsed.data || parsed.items || parsed.details || [];
+      
+      if (Array.isArray(rawValues)) {
+        if (rawValues.length > 0 && typeof rawValues[0] === 'string') {
           // Flattened string array from AI (e.g. process steps)
           normalizedValues = [{
             category: 'Thông tin chi tiết',
-            details: parsed.values.map((v: string) => ({ label: 'Chi tiết', value: v }))
+            details: rawValues.map((v: string) => ({ label: 'Chi tiết', value: String(v) }))
           }];
         } else {
-          // Standard object array
-          normalizedValues = parsed.values.map((v: any) => ({
-            category: v.category || '',
-            details: Array.isArray(v.details) ? v.details.map((d: any) => ({
-              label: d.label || '',
-              value: d.value || ''
-            })) : []
-          }));
+          // Standard object array or flat objects
+          normalizedValues = rawValues.map((v: any) => {
+            if (!v || typeof v !== 'object') return { category: 'Dữ liệu', details: [{ label: 'Giá trị', value: String(v) }] };
+
+            // If it already has the standard structure
+            if (Array.isArray(v.details)) {
+              return {
+                category: v.category || '',
+                details: v.details.map((d: any) => ({
+                  label: d.label || '',
+                  value: String(d.value || '')
+                }))
+              };
+            }
+
+            // If it's a flat object: { "City (%)": 83, "Nationality": "Dutch" }
+            const details: Detail[] = [];
+            let detectedCategory = v.category || '';
+            
+            Object.entries(v).forEach(([key, val]) => {
+              const lowerKey = key.toLowerCase();
+              if (['category', 'id'].includes(lowerKey)) return;
+              
+              // Heuristic: Use common identity fields as category if category is missing
+              if (!detectedCategory && ['nationality', 'year', 'country', 'name', 'item', 'label', 'location', 'entity'].includes(lowerKey)) {
+                detectedCategory = String(val);
+              }
+              
+              details.push({
+                label: key,
+                value: String(val)
+              });
+            });
+
+            return {
+              category: detectedCategory || 'Dữ liệu',
+              details: details
+            };
+          });
         }
+      } else if (rawValues && typeof rawValues === 'object') {
+        // AI returned an object/map of values instead of an array
+        normalizedValues = Object.entries(rawValues).map(([key, val]: [string, any]) => {
+          if (val && typeof val === 'object' && !Array.isArray(val)) {
+            return {
+              category: key,
+              details: Object.entries(val).map(([k, v]) => ({ label: k, value: String(v) }))
+            };
+          }
+          return {
+            category: 'Thông tin',
+            details: [{ label: key, value: String(val) }]
+          };
+        });
+      }
+
+      // Normalized chart type matching
+      const rawChartType = (parsed.chartType || parsed.chart_type || '').toLowerCase().trim();
+      let normalizedChartType = 'Line Graph'; // Default
+      
+      const isMixed = rawChartType.includes('mixed') || 
+                      rawChartType.includes('multi') || 
+                      rawChartType.includes(' and ') || 
+                      rawChartType.includes(' combined ') ||
+                      rawChartType.includes('&') ||
+                      rawChartType.includes('+');
+
+      if (isMixed) {
+        normalizedChartType = 'Mixed Graph';
+      } else {
+        const matchedType = CHART_TYPES.find(t => {
+          const target = t.toLowerCase();
+          // Exact or slugified match
+          if (target === rawChartType.replace(/_/g, ' ').replace(/-/g, ' ')) return true;
+          // Substring match for simpler types
+          if (rawChartType.includes(target) && target.length > 3) return true;
+          return false;
+        });
+        if (matchedType) normalizedChartType = matchedType;
       }
 
       const sanitized: ChartData = {
         title: parsed.title || '',
-        chartType: parsed.chartType || 'Line Graph',
+        chartType: normalizedChartType,
         keyTrends: normalizedTrends,
         values: normalizedValues
       };

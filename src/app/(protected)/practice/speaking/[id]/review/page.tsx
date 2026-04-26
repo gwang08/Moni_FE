@@ -98,16 +98,16 @@ export default function SpeakingReviewPage({ params }: Props) {
   questions.sort((a, b) => a.partNumber - b.partNumber || a.position - b.position);
 
   return (
-    <div className="min-h-[calc(100vh-56px)] bg-violet-50/30">
+    <div className="min-h-[calc(100vh-56px)] bg-violet-50/30 practice-view">
       {/* Header */}
       <div className="bg-white border-b px-4 py-3 flex items-center gap-3 sticky top-0 z-10">
-        <Link href="/practice?skill=speaking">
+        <Link href="/scoring-history?skill=speaking">
           <Button variant="ghost" size="icon">
             <ArrowLeft className="h-5 w-5" />
           </Button>
         </Link>
         <div className="flex-1 min-w-0">
-          <h1 className="font-bold truncate">{testDetail.title}</h1>
+          <h1 className="font-bold truncate" title={testDetail.title}>{testDetail.title}</h1>
           <p className="text-xs text-muted-foreground">Xem lại bài nói</p>
         </div>
         <Mic className="h-5 w-5 text-violet-400 shrink-0" />

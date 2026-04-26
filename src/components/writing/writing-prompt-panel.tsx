@@ -19,6 +19,11 @@ export function WritingPromptPanel({
 }: WritingPromptPanelProps) {
   const [zoomOpen, setZoomOpen] = useState(false);
 
+  // For Task 1, we strip <img> tags from the prompt because we render the chartImageUrl separately
+  const displayPrompt = taskType === 1 
+    ? prompt.replace(/<img\b[^>]*>/gi, '') 
+    : prompt;
+
   return (
     <div className="space-y-4">
       {/* Task label */}
@@ -34,7 +39,7 @@ export function WritingPromptPanel({
         <p className="text-[11px] font-bold text-teal-500 uppercase tracking-wider mb-2.5">
           Đề bài
         </p>
-        <div className="text-[13px] text-gray-700 leading-relaxed prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: prompt }} />
+        <div className="text-[13px] text-gray-700 leading-relaxed prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: displayPrompt }} />
       </div>
 
       {/* Chart image */}

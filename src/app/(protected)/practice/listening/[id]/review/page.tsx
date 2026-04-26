@@ -337,18 +337,18 @@ export default function ListeningReviewPage({ params }: Props) {
   }
 
   return (
-    <div className="h-[calc(100vh-56px)] flex flex-col bg-white overflow-hidden">
+    <div className="h-[calc(100vh-56px)] flex flex-col bg-white overflow-hidden practice-view">
       {/* ===== Header Section ===== */}
       <div className="shrink-0 bg-white z-20 relative">
         <div className="px-4 py-3 flex items-center justify-between border-b border-gray-100">
-          <div className="flex items-center gap-3">
-            <Link href={`/practice/listening/${id}/result`}>
+          <div className="flex items-center gap-3 min-w-0 flex-1">
+            <Link href="/scoring-history?skill=listening">
               <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-500 hover:bg-gray-100">
                 <ArrowLeft className="h-5 w-5" />
               </Button>
             </Link>
-            <div>
-              <h1 className="font-bold text-slate-900 leading-tight">{testDetail.title}</h1>
+            <div className="min-w-0 flex-1">
+              <h1 className="font-bold text-slate-900 leading-tight truncate" title={testDetail.title}>{testDetail.title}</h1>
               <p className="text-[10px] text-gray-400 font-medium">Xem giải thích chi tiết</p>
               {attemptLabel && (
                 <p className="text-[10px] text-gray-500 font-medium">

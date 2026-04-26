@@ -204,7 +204,7 @@ export function ReadingPracticeView({
   }
 
   return (
-    <div className="h-[calc(100vh-56px)] flex flex-col bg-[#f5f6f8]">
+    <div className="h-[calc(100vh-56px)] flex flex-col bg-[#f5f6f8] practice-view">
       {/* Header */}
       <ReadingPracticeHeader elapsedTime={elapsedTime} />
 

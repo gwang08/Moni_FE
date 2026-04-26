@@ -34,7 +34,7 @@ export const WRITING_TASK1_TYPE_CODES: Record<string, string> = {
   'Task 1: Bar Chart': 'BAR_CHART',
   'Task 1: Pie Chart': 'PIE_CHART',
   'Task 1: Table': 'TABLE',
-  'Task 1: Mixed Chart': 'MIXED_GRAPH',
+  'Task 1: Mixed Graph': 'MIXED_GRAPH',
   'Task 1: Map': 'MAP',
   'Task 1: Process': 'PROCESS',
 };

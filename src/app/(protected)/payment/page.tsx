@@ -366,7 +366,7 @@ export default function PaymentPage() {
                         className="w-full rounded-xl h-11 text-white font-semibold bg-indigo-600 hover:bg-indigo-700 shadow-md shadow-indigo-200"
                       >
                         <Crown className="h-4 w-4 mr-1.5" />
-                        Đăng ký ngay
+                        Mua ngay
                       </Button>
                     </div>
                   );

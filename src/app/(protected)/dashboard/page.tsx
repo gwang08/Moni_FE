@@ -105,6 +105,15 @@ export default function DashboardPage() {
         weeks.sort((a, b) => b.week - a.week);
         setAvailableWeeks(weeks);
         if (weeks.length > 0) setSelectedWeek(weeks[0].week);
+
+        // New week tour: trigger on day 1 of week 2+
+        if (currentPlan && currentPlan.weekNumber > 1) {
+          const todayStr = new Date().toISOString().split('T')[0];
+          const tourKey = `newWeekTourDone_${currentPlan.weekNumber}`;
+          if (currentPlan.weekStartDate === todayStr && !sessionStorage.getItem(tourKey)) {
+            setTimeout(() => setTourStep(10), 500);
+          }
+        }
       } catch (err) {
         console.error('Failed to load weeks navigation:', err);
         setHasRoadmapSub(false);
@@ -153,7 +162,7 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 relative">
-      {tourStep > 0 && (
+      {tourStep > 0 && (tourStep <= 7 || tourStep === 10) && (
         <div className="fixed inset-0 bg-black/60 z-40 transition-opacity duration-300 flex flex-col items-center justify-center">
           {tourStep === 4 && (
             <div className="flex flex-col items-center animate-in fade-in zoom-in-95 duration-500">
@@ -175,7 +184,32 @@ export default function DashboardPage() {
               </button>
             </div>
           )}
+          {tourStep === 10 && (
+            <div className="flex flex-col items-center animate-in fade-in zoom-in-95 duration-500">
+              <ChibiMascot mood="excited" size={160} />
+              <h2 className="text-3xl font-extrabold text-white mt-6 mb-2 text-center text-shadow-lg">
+                Tuần mới bắt đầu rồi!
+              </h2>
+              <p className="text-white/90 text-lg mb-12 text-center max-w-md">
+                Cùng xem AI phân tích kết quả tuần trước nhé
+              </p>
+              <button
+                onClick={() => {
+                  document.getElementById('roadmap-insights-section')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                  setTimeout(() => setTourStep(11), 800);
+                }}
+                className="w-16 h-16 rounded-full bg-white text-emerald-600 flex items-center justify-center hover:bg-emerald-50 hover:scale-110 transition-all shadow-[0_0_40px_rgba(255,255,255,0.4)] animate-bounce"
+              >
+                <ArrowDown className="w-8 h-8" />
+              </button>
+            </div>
+          )}
         </div>
+      )}
+
+      {/* Dim backdrop for new-week tour steps 11-12 */}
+      {(tourStep === 11 || tourStep === 12) && (
+        <div className="fixed inset-0 bg-black/60 z-40 transition-opacity duration-300" />
       )}
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">

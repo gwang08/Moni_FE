@@ -108,6 +108,19 @@ export async function getLearnMetricStatus(): Promise<LearnMetricStatus> {
   return res.result ?? { hasExistingMetrics: false, hasPlacementResult: false };
 }
 
+export interface MetricAiSummary {
+  summary: string;
+  generatedAt: string;
+}
+
+export async function getMetricAiSummary(): Promise<MetricAiSummary | null> {
+  const res = await apiClient.get<ApiResponse<MetricAiSummary>>(
+    '/api/v1/learner/goals/insights/ai-summary',
+    true
+  );
+  return res.result ?? null;
+}
+
 export async function getVocabQuiz(slotId: number): Promise<QuizResponse | null> {
   const res = await apiClient.get<ApiResponse<QuizResponse>>(
     `/api/v1/learner/weekly-plan/slots/${slotId}/vocab-test`,

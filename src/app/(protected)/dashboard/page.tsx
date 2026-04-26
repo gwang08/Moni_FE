@@ -106,11 +106,10 @@ export default function DashboardPage() {
         setAvailableWeeks(weeks);
         if (weeks.length > 0) setSelectedWeek(weeks[0].week);
 
-        // New week tour: trigger on day 1 of week 2+
+        // New week tour: trigger first time user visits week 2+
         if (currentPlan && currentPlan.weekNumber > 1) {
-          const todayStr = new Date().toISOString().split('T')[0];
           const tourKey = `newWeekTourDone_${currentPlan.weekNumber}`;
-          if (currentPlan.weekStartDate === todayStr && !sessionStorage.getItem(tourKey)) {
+          if (!sessionStorage.getItem(tourKey)) {
             setTimeout(() => setTourStep(10), 500);
           }
         }

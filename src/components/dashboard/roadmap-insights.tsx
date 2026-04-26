@@ -349,12 +349,12 @@ export function RoadmapInsights({ weekNumber }: { weekNumber?: number }) {
     fetchInsights();
   }, [weekNumber]);
 
-  // Auto-fetch AI summary when tour step 11 is triggered or on first load for week > 1
+  // Auto-fetch AI summary when week > 1 (has previous week data to analyze)
   useEffect(() => {
-    if (tourStep === 11 && !aiSummary && !aiSummaryLoading) {
+    if (weekNumber && weekNumber > 1 && !aiSummary && !aiSummaryLoading) {
       fetchAiSummary();
     }
-  }, [tourStep, aiSummary, aiSummaryLoading, fetchAiSummary]);
+  }, [weekNumber, aiSummary, aiSummaryLoading, fetchAiSummary]);
 
   useEffect(() => {
     const handler = () => fetchInsights();

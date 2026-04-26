@@ -108,14 +108,14 @@ export function ExamGuideScreen({ onNext, showQuestion, onToggleShowQuestion, re
           <span className="font-bold text-[#c24b3a]">
             Làm bài ở nơi yên tĩnh, ít tiếng ồn và âm thanh nhiễu.
           </span>{' '}
-          Nói gần microphone để YouPass ghi âm được chất lượng tốt nhất. Chất lượng file ghi âm quá thấp,
+          Nói gần microphone để Moni ghi âm được chất lượng tốt nhất. Chất lượng file ghi âm quá thấp,
           nhiều tạp âm sẽ ảnh hưởng rất nhiều đến việc chấm điểm bạn nha.
         </p>
         <p className="leading-relaxed">
           <span className="font-bold text-[#c24b3a]">
             Lưu ý giới hạn thời gian trả lời!!
           </span>{' '}
-          Với kinh nghiệm đi thi rất nhiều lần của đội ngũ Học thuật tại YouPass, khi đi thi thật, Giám khảo sẽ
+          Với kinh nghiệm đi thi rất nhiều lần của đội ngũ Học thuật tại Moni, khi đi thi thật, Giám khảo sẽ
           ngắt phần trả lời và chuyển sang câu khác nếu bạn nói quá dài chứ không đợi bạn nói hết ý. Vì vậy bạn hãy tập làm quen với việc trả lời trong một khoảng thời gian cố định bạn nhé!
         </p>
       </div>

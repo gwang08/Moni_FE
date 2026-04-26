@@ -425,11 +425,35 @@ export function LearningRoadmap({ weekNumber }: { weekNumber?: number }) {
   const verdict = plan.previousVerdict ? VERDICT_CONFIG[plan.previousVerdict] : null;
   const VerdictIcon = verdict?.icon;
 
-  const isTourActive = tourStep >= 5 && tourStep <= 7;
+  const isTourActive = (tourStep >= 5 && tourStep <= 7) || tourStep === 12;
 
   return (
     <div id="learning-roadmap-section" className={`bg-white rounded-2xl border border-gray-100 shadow-sm relative transition-all duration-500 ${isTourActive ? 'z-50 ring-4 ring-emerald-500 shadow-2xl scale-[1.01]' : ''}`}>
-      
+
+      {/* Tour Step 12: New week plan intro */}
+      {tourStep === 12 && (
+        <div className="absolute -top-4 left-1/2 -translate-x-1/2 -translate-y-full w-[340px] bg-white p-6 rounded-3xl shadow-[0_0_50px_rgba(0,0,0,0.15)] border-2 border-emerald-100 z-50 animate-in fade-in zoom-in-95 duration-300">
+          <div className="flex flex-col items-center text-center">
+            <ChibiMascot mood="excited" size={80} />
+            <h3 className="font-bold text-gray-800 text-lg mt-3 mb-1">Kế hoạch tuần mới!</h3>
+            <p className="text-sm text-gray-600 mb-5 leading-relaxed">
+              Đây là kế hoạch tuần mới của bạn. Hệ thống đã tự động điều chỉnh độ khó dựa trên kết quả tuần trước. Hãy bám sát lộ trình nhé!
+            </p>
+            <button
+              onClick={() => {
+                stopTour();
+                const weekNum = plan.weekNumber;
+                sessionStorage.setItem(`newWeekTourDone_${weekNum}`, '1');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              className="w-full bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white py-3 rounded-xl text-base font-bold shadow-lg shadow-green-200 transition-all"
+            >
+              Bắt đầu tuần mới!
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Tour Step 5: Intro */}
       {tourStep === 5 && (
         <div className="absolute -top-4 left-1/2 -translate-x-1/2 -translate-y-full w-80 bg-white p-5 rounded-2xl shadow-2xl border border-emerald-100 z-50 animate-in fade-in slide-in-from-bottom-4 duration-300">

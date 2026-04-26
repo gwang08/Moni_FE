@@ -1,9 +1,12 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
-import { Activity, TriangleAlert, Info, ChevronDown, ChevronUp } from 'lucide-react';
+import { useEffect, useMemo, useState, useCallback } from 'react';
+import { Activity, TriangleAlert, Info, ChevronDown, ChevronUp, Sparkles, RefreshCw, ArrowRight } from 'lucide-react';
 import { SkeletonCard } from '@/components/ui/skeleton';
-import { getRoadmapInsights } from '@/lib/roadmap-api';
+import { getRoadmapInsights, getMetricAiSummary } from '@/lib/roadmap-api';
+import type { MetricAiSummary } from '@/lib/roadmap-api';
+import { useTourStore } from '@/store/tour-store';
+import { ChibiMascot } from '@/components/ui/chibi-mascot';
 import type { LearnerRoadmapInsights, LearnerTagMetric } from '@/types/roadmap.types';
 
 /* ─────────────────── Helpers ─────────────────── */
@@ -314,6 +317,21 @@ export function RoadmapInsights({ weekNumber }: { weekNumber?: number }) {
   const [loading, setLoading] = useState(true);
   const [insights, setInsights] = useState<LearnerRoadmapInsights | null>(null);
   const [activeSkill, setActiveSkill] = useState<SkillTab>('reading');
+  const [aiSummary, setAiSummary] = useState<MetricAiSummary | null>(null);
+  const [aiSummaryLoading, setAiSummaryLoading] = useState(false);
+  const { step: tourStep, setStep: setTourStep, stopTour } = useTourStore();
+
+  const fetchAiSummary = useCallback(async () => {
+    setAiSummaryLoading(true);
+    try {
+      const data = await getMetricAiSummary();
+      setAiSummary(data);
+    } catch {
+      setAiSummary(null);
+    } finally {
+      setAiSummaryLoading(false);
+    }
+  }, []);
 
   const fetchInsights = async () => {
     setLoading(true);
@@ -330,6 +348,13 @@ export function RoadmapInsights({ weekNumber }: { weekNumber?: number }) {
   useEffect(() => {
     fetchInsights();
   }, [weekNumber]);
+
+  // Auto-fetch AI summary when tour step 11 is triggered or on first load for week > 1
+  useEffect(() => {
+    if (tourStep === 11 && !aiSummary && !aiSummaryLoading) {
+      fetchAiSummary();
+    }
+  }, [tourStep, aiSummary, aiSummaryLoading, fetchAiSummary]);
 
   useEffect(() => {
     const handler = () => fetchInsights();
@@ -404,8 +429,35 @@ export function RoadmapInsights({ weekNumber }: { weekNumber?: number }) {
     );
   }
 
+  const isNewWeekTourActive = tourStep === 11;
+
   return (
-    <div className="rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+    <div id="roadmap-insights-section" className={`rounded-2xl border border-gray-100 shadow-sm overflow-hidden relative transition-all duration-500 ${isNewWeekTourActive ? 'z-50 ring-4 ring-emerald-500 shadow-2xl scale-[1.01]' : ''}`}>
+      {/* Tour Step 11: AI Summary spotlight */}
+      {tourStep === 11 && (
+        <div className="absolute -top-4 left-1/2 -translate-x-1/2 -translate-y-full w-80 bg-white p-5 rounded-2xl shadow-2xl border border-emerald-100 z-50 animate-in fade-in slide-in-from-bottom-4 duration-300">
+          <div className="flex gap-3 mb-3">
+            <ChibiMascot mood="thinking" size={48} />
+            <div>
+              <div className="font-bold text-gray-800">Phân tích tuần trước</div>
+              <div className="text-emerald-600 text-sm font-semibold">AI đã phân tích kết quả học của bạn</div>
+            </div>
+          </div>
+          <p className="text-sm text-gray-600 mb-4 leading-relaxed">
+            Hãy đọc kỹ phân tích bên dưới để hiểu rõ điểm mạnh và điểm cần cải thiện nhé!
+          </p>
+          <button
+            onClick={() => {
+              document.getElementById('learning-roadmap-section')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              setTimeout(() => setTourStep(12), 800);
+            }}
+            className="w-full bg-gradient-to-r from-emerald-400 to-gray-400 hover:from-emerald-500 hover:to-gray-500 text-white py-2 rounded-xl text-sm font-bold shadow-md transition-all flex items-center justify-center gap-2"
+          >
+            Xem kế hoạch tuần mới <ArrowRight className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
       {/* Header */}
       <div className="relative bg-[radial-gradient(circle_at_20%_20%,rgba(59,130,246,0.12),transparent_35%),radial-gradient(circle_at_80%_15%,rgba(244,63,94,0.12),transparent_35%),radial-gradient(circle_at_40%_90%,rgba(16,185,129,0.10),transparent_40%)] px-6 py-5">
         <div className="absolute inset-0 opacity-50 pointer-events-none">
@@ -453,6 +505,43 @@ export function RoadmapInsights({ weekNumber }: { weekNumber?: number }) {
                 </div>
               )}
             </div>
+          </div>
+        )}
+
+        {/* AI Summary Card */}
+        {(aiSummary || aiSummaryLoading || tourStep === 11) && (
+          <div className="rounded-xl border border-emerald-200 bg-gradient-to-br from-emerald-50/80 to-white p-4">
+            <div className="flex items-start gap-3 mb-3">
+              <div className="flex-shrink-0 p-2 rounded-xl bg-emerald-100">
+                <Sparkles className="h-5 w-5 text-emerald-600" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between gap-2">
+                  <h3 className="text-sm font-bold text-gray-800">Phân tích AI</h3>
+                  <button
+                    onClick={fetchAiSummary}
+                    disabled={aiSummaryLoading}
+                    className="text-xs text-emerald-600 hover:text-emerald-700 flex items-center gap-1 disabled:opacity-50"
+                  >
+                    <RefreshCw className={`h-3 w-3 ${aiSummaryLoading ? 'animate-spin' : ''}`} />
+                    Tạo lại
+                  </button>
+                </div>
+              </div>
+            </div>
+            {aiSummaryLoading ? (
+              <div className="space-y-2">
+                <div className="h-3 bg-emerald-100 rounded-full animate-pulse w-full" />
+                <div className="h-3 bg-emerald-100 rounded-full animate-pulse w-5/6" />
+                <div className="h-3 bg-emerald-100 rounded-full animate-pulse w-4/6" />
+                <div className="h-3 bg-emerald-100 rounded-full animate-pulse w-full" />
+                <div className="h-3 bg-emerald-100 rounded-full animate-pulse w-3/6" />
+              </div>
+            ) : aiSummary ? (
+              <div className="text-sm text-gray-700 leading-relaxed whitespace-pre-line">
+                {aiSummary.summary}
+              </div>
+            ) : null}
           </div>
         )}
 

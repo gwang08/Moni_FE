@@ -78,11 +78,11 @@ export default function DashboardPage() {
     if (!hydrated || fetchedRef.current) return;
     fetchedRef.current = true;
 
-    async function loadWeeks() {
+    async function loadWeeks(): Promise<boolean> {
       try {
         const roadmapStatus = await getRoadmapSubscriptionStatus();
         setHasRoadmapSub(roadmapStatus.hasActiveSubscription);
-        if (!roadmapStatus.hasActiveSubscription) return;
+        if (!roadmapStatus.hasActiveSubscription) return false;
 
         const [currentPlan, history, metricStatus] = await Promise.all([
           getWeeklyPlan().catch(() => null),
@@ -92,7 +92,7 @@ export default function DashboardPage() {
 
         if (!currentPlan && metricStatus.hasExistingMetrics && history.length > 0) {
           setShowReturningDialog(true);
-          return;
+          return true;
         }
 
         const weeks = [];
@@ -113,9 +113,11 @@ export default function DashboardPage() {
             setTimeout(() => setTourStep(10), 500);
           }
         }
+        return true;
       } catch (err) {
         console.error('Failed to load weeks navigation:', err);
         setHasRoadmapSub(false);
+        return false;
       }
     }
 
@@ -145,14 +147,30 @@ export default function DashboardPage() {
       } catch { /* ignore */ }
     }
 
-    if (sessionStorage.getItem('showRoadmapTour')) {
+    const shouldStartTour = !!sessionStorage.getItem('showRoadmapTour');
+    if (shouldStartTour) {
       sessionStorage.removeItem('showRoadmapTour');
-      setTimeout(() => setTourStep(4), 500);
+      // Reset tour immediately to clear stale step (e.g. step 3) while waiting for subscription check
+      setTourStep(0);
     } else {
       fetchPlacement();
     }
 
-    loadWeeks();
+    loadWeeks().then((hasSub) => {
+      if (!shouldStartTour) return;
+      if (hasSub) {
+        // User has subscription — start roadmap tour
+        setTimeout(() => setTourStep(4), 500);
+      } else {
+        // No subscription — scroll to paywall and focus on it
+        setTimeout(() => {
+          setTourStep(8);
+          setTimeout(() => {
+            document.getElementById('roadmap-paywall-section')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }, 100);
+        }, 500);
+      }
+    });
     fetchProfile();
     refreshProfile();
   }, [hydrated]);
@@ -161,7 +179,7 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 relative">
-      {tourStep > 0 && (tourStep <= 7 || tourStep === 10) && (
+      {tourStep > 0 && (tourStep <= 7 || tourStep === 10) && hasRoadmapSub === true && (
         <div className="fixed inset-0 bg-black/60 z-40 transition-opacity duration-300 flex flex-col items-center justify-center">
           {tourStep === 4 && (
             <div className="flex flex-col items-center animate-in fade-in zoom-in-95 duration-500">
@@ -206,8 +224,13 @@ export default function DashboardPage() {
         </div>
       )}
 
+      {/* Dim backdrop for paywall tour step 8 */}
+      {tourStep === 8 && (
+        <div className="fixed inset-0 bg-black/60 z-40 transition-opacity duration-300" />
+      )}
+
       {/* Dim backdrop for new-week tour steps 11-12 */}
-      {(tourStep === 11 || tourStep === 12) && (
+      {(tourStep === 11 || tourStep === 12) && hasRoadmapSub === true && (
         <div className="fixed inset-0 bg-black/60 z-50 transition-opacity duration-300" />
       )}
 
@@ -253,7 +276,26 @@ export default function DashboardPage() {
 
             {/* Row 2 — Roadmap (personal insights + weekly plan) */}
             {hasRoadmapSub === false ? (
-              <RoadmapPaywall />
+              <div id="roadmap-paywall-section" className={`relative transition-all duration-300 ${tourStep === 8 ? 'z-50 ring-4 ring-emerald-400 shadow-2xl rounded-2xl' : ''}`}>
+                {tourStep === 8 && (
+                  <div className="absolute -top-4 left-1/2 -translate-x-1/2 -translate-y-full w-80 bg-white p-4 rounded-2xl shadow-xl border border-emerald-100 z-50 animate-in fade-in slide-in-from-bottom-4">
+                    <div className="flex gap-3 mb-2">
+                      <ChibiMascot mood="excited" size={40} />
+                      <div className="font-bold text-gray-800 text-sm">Gần xong rồi!</div>
+                    </div>
+                    <p className="text-sm text-gray-600 mb-3">
+                      Moni đã phân tích xong trình độ của bạn! Hãy mua Gói Lộ Trình để AI lên kế hoạch học tập cá nhân hóa cho bạn nhé.
+                    </p>
+                    <button
+                      onClick={() => setTourStep(0)}
+                      className="w-full flex items-center justify-center gap-1 bg-gray-100 hover:bg-gray-200 text-gray-700 py-1.5 rounded-lg text-xs font-semibold transition-colors"
+                    >
+                      Đã hiểu!
+                    </button>
+                  </div>
+                )}
+                <RoadmapPaywall />
+              </div>
             ) : hasRoadmapSub === true ? (
               <div className="space-y-6">
                 {availableWeeks.length > 0 && (

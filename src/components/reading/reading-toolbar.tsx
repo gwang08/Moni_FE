@@ -26,9 +26,9 @@ export function ReadingToolbar({ showVocab = true, onFinish, examMode = false }:
         size="sm"
         onClick={() => setActiveTool(activeTool === 'highlight' ? null : 'highlight')}
         className={`gap-2 h-8 px-3 rounded text-[13px] font-semibold transition-colors ${
-          activeTool === 'highlight' 
-            ? 'bg-[#16a34a] text-white hover:bg-[#15803d]' 
-            : 'bg-[#16a34a] text-white hover:bg-[#15803d]'
+          activeTool === 'highlight'
+            ? 'bg-[#16a34a] text-white hover:bg-[#15803d]'
+            : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
         }`}
       >
         <Highlighter className="h-4 w-4" />
@@ -39,10 +39,10 @@ export function ReadingToolbar({ showVocab = true, onFinish, examMode = false }:
         variant="ghost"
         size="sm"
         onClick={() => setActiveTool(activeTool === 'note' ? null : 'note')}
-        className={`gap-2 h-8 px-3 rounded text-[13px] font-semibold border border-gray-300 transition-colors ${
-          activeTool === 'note' 
-            ? 'bg-gray-100 text-gray-900' 
-            : 'bg-white text-gray-700 hover:bg-gray-50'
+        className={`gap-2 h-8 px-3 rounded text-[13px] font-semibold border transition-colors ${
+          activeTool === 'note'
+            ? 'bg-[#16a34a] text-white border-[#16a34a] hover:bg-[#15803d]'
+            : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
         }`}
       >
         <StickyNote className="h-4 w-4" />

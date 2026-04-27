@@ -22,8 +22,19 @@ function VocabNavItem() {
   const [dueCount, setDueCount] = useState(0);
 
   useEffect(() => {
-    getDueReview().then(due => setDueCount(due.length)).catch(() => { });
-  }, []);
+    const refresh = () => {
+      getDueReview().then(due => setDueCount(due.length)).catch(() => { });
+    };
+    refresh();
+    // Refetch khi: window focus, custom event từ review/flashcard, hoặc pathname đổi
+    const onFocus = () => refresh();
+    window.addEventListener('focus', onFocus);
+    window.addEventListener('vocab-due-changed', refresh);
+    return () => {
+      window.removeEventListener('focus', onFocus);
+      window.removeEventListener('vocab-due-changed', refresh);
+    };
+  }, [pathname]);
 
   return (
     <Link

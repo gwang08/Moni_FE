@@ -73,9 +73,17 @@ export default function ExpertDashboardPage() {
     const ping = () =>
       apiClient.patch('/api/v1/experts/me/status', { status: 'AVAILABLE' }, true).catch(() => {});
     const hb = setInterval(ping, 20_000);
+
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') ping();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    window.addEventListener('focus', ping);
+
     return () => {
       clearInterval(hb);
-      apiClient.patch('/api/v1/experts/me/status', { status: 'OFFLINE' }, true).catch(() => {});
+      document.removeEventListener('visibilitychange', onVisible);
+      window.removeEventListener('focus', ping);
     };
   }, []);
 

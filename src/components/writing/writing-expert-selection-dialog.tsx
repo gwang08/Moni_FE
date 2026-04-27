@@ -53,6 +53,23 @@ export function WritingExpertSelectionDialog({ open, onOpenChange, submissionId,
     }
   }, [open, experts.length]);
 
+  // Auto-refetch mỗi 15s khi dialog mở để cập nhật trạng thái online/offline real-time
+  useEffect(() => {
+    if (!open) return;
+    const refresh = () => {
+      getExperts()
+        .then(setExperts)
+        .catch(() => {});
+    };
+    const id = setInterval(refresh, 15_000);
+    const onFocus = () => refresh();
+    window.addEventListener('focus', onFocus);
+    return () => {
+      clearInterval(id);
+      window.removeEventListener('focus', onFocus);
+    };
+  }, [open]);
+
   const handleBook = async (expert: ExpertProfile | null) => {
     if (!submissionId) return;
     setSubmitting(true);

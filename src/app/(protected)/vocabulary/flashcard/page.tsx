@@ -92,6 +92,8 @@ export default function FlashcardPage() {
     const currentWord = words[index];
     try {
       await submitReview(currentWord.id, quality);
+      // Notify navbar badge để cập nhật số từ cần luyện ngay lập tức
+      window.dispatchEvent(new Event('vocab-due-changed'));
     } catch {
       toast.error('Không thể lưu đánh giá');
     }

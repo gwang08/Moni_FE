@@ -53,6 +53,24 @@ export function SpeakingModeDialog({ open, testId, aiQuota = null, expertCost = 
       .finally(() => setLoadingExperts(false));
   };
 
+  // Auto-refetch expert list every 15s khi đang ở step chọn giảng viên,
+  // để cập nhật trạng thái online/offline real-time mà không cần đóng/mở dialog.
+  useEffect(() => {
+    if (!open || step !== 2) return;
+    const refresh = () => {
+      getExpertsForSpeaking()
+        .then((list) => setExperts(list))
+        .catch(() => {});
+    };
+    const id = setInterval(refresh, 15_000);
+    const onFocus = () => refresh();
+    window.addEventListener('focus', onFocus);
+    return () => {
+      clearInterval(id);
+      window.removeEventListener('focus', onFocus);
+    };
+  }, [open, step]);
+
   const handleBook = async (expert: ExpertProfile) => {
     setSubmitting(true);
     try {

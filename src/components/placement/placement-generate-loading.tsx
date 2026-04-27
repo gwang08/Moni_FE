@@ -11,8 +11,8 @@ import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
 
 const STEPS = [
   { label: 'Đang chuẩn bị bài test...', duration: 800, check: 'Khởi tạo hệ thống' },
-  { label: 'Chọn đề Reading cho bạn...', duration: 1000, check: 'Chọn đề Reading từ ngân hàng đề' },
-  { label: 'Chọn đề Listening cho bạn...', duration: 1000, check: 'Chọn đề Listening từ ngân hàng đề' },
+  { label: 'Tải đề Reading & Listening...', duration: 800, check: 'Tải đề Reading & Listening' },
+  { label: 'Tải đề Writing & Speaking...', duration: 800, check: 'Tải đề Writing & Speaking' },
   { label: 'Sắp xong rồi!', duration: 600, check: 'Hoàn tất chuẩn bị' },
 ];
 

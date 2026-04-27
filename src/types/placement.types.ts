@@ -12,9 +12,15 @@ export interface PlacementResult {
   listeningCorrect: number | null;
   isSelfAssessed: boolean;
   completedAt: string;
+  writingCriteria?: Record<string, number>;
+  speakingCriteria?: Record<string, number>;
+  writingFeedback?: Record<string, unknown>;
+  speakingFeedback?: Record<string, unknown>;
 }
 
 export interface PlacementTestPair {
   readingTest: TestDetailResponse;
   listeningTest: TestDetailResponse;
+  writingTest: TestDetailResponse;
+  speakingTest: TestDetailResponse;
 }

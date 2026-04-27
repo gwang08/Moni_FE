@@ -58,6 +58,7 @@ const navGroups: NavGroup[] = [
       { href: '/admin/tests', label: 'Phần thi', icon: FileText },
       { href: '/admin/full-tests', label: 'Bài thi', icon: ClipboardList },
       { href: '/admin/tags', label: 'Nhãn', icon: Tag },
+      { href: '/admin/placement-config', label: 'Placement Config', icon: ClipboardList },
     ],
   },
   {

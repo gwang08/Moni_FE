@@ -128,12 +128,12 @@ export function StudyProgress() {
       <style dangerouslySetInnerHTML={{__html: `
         .react-calendar-heatmap text { font-size: 8px; fill: #94a3b8; font-weight: 600; }
         .react-calendar-heatmap .color-empty { fill: #f1f5f9; rx: 3; ry: 3; }
-        .react-calendar-heatmap .color-scale-1 { fill: #fed7aa; rx: 3; ry: 3; }
-        .react-calendar-heatmap .color-scale-2 { fill: #fb923c; rx: 3; ry: 3; }
-        .react-calendar-heatmap .color-scale-3 { fill: #f97316; rx: 3; ry: 3; }
-        .react-calendar-heatmap .color-scale-4 { fill: #c2410c; rx: 3; ry: 3; }
+        .react-calendar-heatmap .color-scale-1 { fill: #ccfbf1; rx: 3; ry: 3; }
+        .react-calendar-heatmap .color-scale-2 { fill: #5eead4; rx: 3; ry: 3; }
+        .react-calendar-heatmap .color-scale-3 { fill: #14b8a6; rx: 3; ry: 3; }
+        .react-calendar-heatmap .color-scale-4 { fill: #0f766e; rx: 3; ry: 3; }
         .react-calendar-heatmap rect { cursor: pointer; }
-        .react-calendar-heatmap rect:hover { stroke: #ea580c; stroke-width: 1.5px; }
+        .react-calendar-heatmap rect:hover { stroke: #0d9488; stroke-width: 1.5px; }
       `}} />
 
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-5">

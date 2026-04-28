@@ -364,11 +364,6 @@ export default function AdminDashboardPage() {
                   </div>
                 </div>
 
-<<<<<<< HEAD
-                {/* Doughnut Chart: Expert vs AI Revenue */}
-                <div className="flex flex-col items-center justify-center rounded-lg bg-gray-50 p-4">
-                  <p className="mb-2 text-sm font-semibold text-gray-700">Tỉ trọng bài chấm</p>
-=======
                 <div className="group relative overflow-hidden rounded-2xl border border-pink-100 p-5 transition-all hover:shadow-lg hover:shadow-pink-100/50">
                   <div className="absolute inset-0 bg-gradient-to-br from-pink-50 via-rose-50 to-pink-100/30" />
                   <div className="absolute -right-3 -top-3 h-16 w-16 rounded-full bg-pink-200/30 transition-transform group-hover:scale-125" />
@@ -417,7 +412,6 @@ export default function AdminDashboardPage() {
                 {/* Doughnut Chart */}
                 <div className="flex flex-col items-center justify-center rounded-2xl border border-gray-100 bg-gradient-to-br from-slate-50 to-gray-50 p-6">
                   <p className="mb-4 text-sm font-semibold text-gray-700">Tỉ trọng doanh thu credit</p>
->>>>>>> ae5b291 (ui: redesign admin dashboard for better visual polish)
                   {doughnutData.length > 0 ? (
                     <div className="flex w-full flex-col items-center gap-4">
                       <ResponsiveContainer width="100%" height={180}>

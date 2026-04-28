@@ -10,6 +10,7 @@ import {
   LogOut,
   UserCog,
   KeyRound,
+  User,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/auth-store';
 import { cn } from '@/lib/utils';
@@ -26,6 +27,7 @@ import { toast } from 'sonner';
 const navItems = [
   { label: 'Dashboard', href: '/expert/dashboard', icon: LayoutDashboard },
   { label: 'Phiên chấm', href: '/expert/sessions', icon: ClipboardList },
+  { label: 'Hồ sơ', href: '/expert/profile?tab=profile', icon: User },
 ];
 
 function getInitials(name?: string | null) {
@@ -82,7 +84,8 @@ export default function ExpertLayout({ children }: { children: React.ReactNode }
 
           <nav className="flex-1 px-4 py-4 space-y-1 overflow-y-auto">
             {navItems.map((item) => {
-              const isActive = pathname.startsWith(item.href);
+              const itemPath = item.href.split('?')[0];
+              const isActive = pathname.startsWith(itemPath);
               return (
                 <Link
                   key={item.href}

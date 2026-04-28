@@ -10,7 +10,7 @@ import { apiClient } from '@/lib/api-client';
 import { formatApiError } from '@/lib/error-messages';
 import type { ApiResponse } from '@/types/auth.types';
 import type { ExpertProfile, UpdateExpertRequest } from '@/types/expert.types';
-import { Loader2, Plus, X, Upload, Image as ImageIcon } from 'lucide-react';
+import { Loader2, Plus, X, Upload, FileText } from 'lucide-react';
 
 // Tiptap imports
 import { useEditor, EditorContent } from '@tiptap/react';
@@ -32,9 +32,11 @@ export function EditExpertProfileForm() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [uploadingCertIndex, setUploadingCertIndex] = useState<number | null>(null);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const certInputRef = useRef<HTMLInputElement>(null);
 
   // Form states
   const [displayName, setDisplayName] = useState('');
@@ -105,15 +107,36 @@ export function EditExpertProfileForm() {
     if (!file) return;
 
     setUploading(true);
+    setError('');
     try {
-      const res = await apiClient.upload<{ result: string }>('/api/v1/files/upload', file);
+      const res = await apiClient.upload<{ result: string }>('/api/v1/user/media/upload', file);
       if (res.result) {
         setAvatarUrl(res.result);
       }
     } catch (err) {
-      setError('Tải ảnh lên thất bại');
+      setError(formatApiError(err) || 'Tải ảnh lên thất bại');
     } finally {
       setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  const handleCertificateUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingCertIndex(certificates.length);
+    setError('');
+    try {
+      const res = await apiClient.upload<{ result: string }>('/api/v1/user/media/upload', file);
+      if (res.result) {
+        setCertificates([...certificates, res.result]);
+      }
+    } catch (err) {
+      setError(formatApiError(err) || 'Tải chứng chỉ lên thất bại');
+    } finally {
+      setUploadingCertIndex(null);
+      if (certInputRef.current) certInputRef.current.value = '';
     }
   };
 
@@ -154,18 +177,18 @@ export function EditExpertProfileForm() {
     }
   };
 
-  const addCertificate = () => {
-    setCertificates([...certificates, '']);
-  };
-
   const removeCertificate = (index: number) => {
     setCertificates(certificates.filter((_, i) => i !== index));
   };
 
-  const updateCertificate = (index: number, value: string) => {
-    const newCerts = [...certificates];
-    newCerts[index] = value;
-    setCertificates(newCerts);
+  const isImageUrl = (url: string) => /\.(jpg|jpeg|png|gif|webp|bmp|svg)(\?.*)?$/i.test(url);
+  const getFileName = (url: string) => {
+    try {
+      const parts = url.split('/');
+      return decodeURIComponent(parts[parts.length - 1].split('?')[0]) || 'Chứng chỉ';
+    } catch {
+      return 'Chứng chỉ';
+    }
   };
 
   if (loading) {
@@ -194,40 +217,27 @@ export function EditExpertProfileForm() {
           )}
         </div>
         
-        <div className="flex-1 space-y-3 text-center sm:text-left">
+        <div className="flex-1 space-y-2 text-center sm:text-left">
           <div className="flex flex-wrap justify-center sm:justify-start gap-2">
-            <Button 
-              type="button" 
-              variant="outline" 
-              size="sm" 
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
               onClick={() => fileInputRef.current?.click()}
               disabled={uploading || saving}
               className="bg-white border-slate-200"
             >
-              <Upload className="mr-2 h-4 w-4" /> Tải ảnh lên
+              <Upload className="mr-2 h-4 w-4" /> {uploading ? 'Đang tải...' : 'Tải ảnh đại diện'}
             </Button>
-            <input 
-              type="file" 
-              ref={fileInputRef} 
-              className="hidden" 
-              accept="image/*" 
-              onChange={handleFileUpload} 
+            <input
+              type="file"
+              ref={fileInputRef}
+              className="hidden"
+              accept="image/*"
+              onChange={handleFileUpload}
             />
           </div>
-          <div className="max-w-xs mx-auto sm:mx-0">
-            <Label htmlFor="avatarUrl" className="text-xs text-slate-500 mb-1 block uppercase tracking-wider font-semibold">Hoặc sử dụng URL</Label>
-            <div className="relative">
-              <ImageIcon className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-400" />
-              <Input
-                id="avatarUrl"
-                value={avatarUrl}
-                onChange={(e) => setAvatarUrl(e.target.value)}
-                className="pl-9 h-9 text-sm bg-slate-50 border-slate-200"
-                placeholder="https://example.com/avatar.jpg"
-                disabled={saving || uploading}
-              />
-            </div>
-          </div>
+          <p className="text-xs text-slate-500">Hỗ trợ JPG, PNG, GIF — tối đa 5MB</p>
         </div>
       </div>
 
@@ -319,40 +329,71 @@ export function EditExpertProfileForm() {
       </div>
 
       <div className="space-y-4">
-        <Label className="text-slate-700 font-semibold">Chứng chỉ (URLs)</Label>
-        <div className="grid grid-cols-1 gap-3">
+        <Label className="text-slate-700 font-semibold">Chứng chỉ</Label>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {certificates.map((cert, index) => (
-            <div key={index} className="flex gap-2 group animate-in slide-in-from-left-2 duration-200">
-              <Input
-                value={cert}
-                onChange={(e) => updateCertificate(index, e.target.value)}
-                disabled={saving}
-                className="border-slate-200 flex-1"
-                placeholder="https://example.com/certificate.jpg"
-              />
+            <div
+              key={index}
+              className="relative flex items-center gap-3 p-3 rounded-xl border border-slate-200 bg-slate-50 group animate-in slide-in-from-left-2 duration-200"
+            >
+              {isImageUrl(cert) ? (
+                <a href={cert} target="_blank" rel="noopener noreferrer" className="shrink-0">
+                  <img src={cert} alt="Chứng chỉ" className="h-14 w-14 object-cover rounded-lg border border-slate-200" />
+                </a>
+              ) : (
+                <div className="h-14 w-14 flex items-center justify-center rounded-lg bg-blue-100 border border-slate-200 shrink-0">
+                  <FileText className="h-6 w-6 text-blue-600" />
+                </div>
+              )}
+              <a
+                href={cert}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex-1 min-w-0 text-sm text-slate-700 hover:text-blue-600 truncate"
+                title={cert}
+              >
+                {getFileName(cert)}
+              </a>
               <Button
                 type="button"
                 variant="ghost"
                 size="icon"
                 onClick={() => removeCertificate(index)}
                 disabled={saving}
-                className="text-slate-400 hover:text-red-500 hover:bg-red-50"
+                className="text-slate-400 hover:text-red-500 hover:bg-red-50 shrink-0"
               >
                 <X className="h-4 w-4" />
               </Button>
             </div>
           ))}
         </div>
+
+        <input
+          type="file"
+          ref={certInputRef}
+          className="hidden"
+          accept="image/*,application/pdf"
+          onChange={handleCertificateUpload}
+        />
         <Button
           type="button"
           variant="outline"
           size="sm"
-          onClick={addCertificate}
-          disabled={saving}
+          onClick={() => certInputRef.current?.click()}
+          disabled={saving || uploadingCertIndex !== null}
           className="border-dashed border-2 hover:border-blue-500 hover:text-blue-600"
         >
-          <Plus className="mr-2 h-4 w-4" /> Thêm chứng chỉ mới
+          {uploadingCertIndex !== null ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Đang tải lên...
+            </>
+          ) : (
+            <>
+              <Plus className="mr-2 h-4 w-4" /> Tải chứng chỉ mới
+            </>
+          )}
         </Button>
+        <p className="text-xs text-slate-500">Hỗ trợ ảnh (JPG, PNG) hoặc PDF</p>
       </div>
 
       {error && (

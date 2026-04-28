@@ -7,7 +7,6 @@ import { calculateOverallScore } from '@/lib/calendar-utils';
 import { generatePlacement, resetPlacement } from '@/lib/placement-api';
 import { useTourStore } from '@/store/tour-store';
 import { apiClient } from '@/lib/api-client';
-import { getRoadmapInsights } from '@/lib/roadmap-api';
 import type { ApiResponse } from '@/types/auth.types';
 import type { SkillKey } from '@/types';
 import { Pencil, Check, X, RotateCcw, Sparkles, CheckCircle2, Circle, Target, BarChart3, AlertTriangle, Info } from 'lucide-react';
@@ -130,11 +129,8 @@ export function TargetScores() {
         targetBand: overall,
       }, true);
 
-      const insights = await getRoadmapInsights().catch(() => null);
-      if (insights?.targetOverAmbitious) {
-        toast.warning(insights.targetWarning || 'Muc tieu co the hoi qua tam so voi thoi gian con lai.');
-      }
-
+      // Burnout warning toast removed per UX feedback — inline warning in
+      // roadmap-insights still surfaces the same info contextually.
       window.dispatchEvent(new Event('roadmap-updated'));
       if (tourStep === 1) nextStep();
     } catch { /* keep UI responsive */ }

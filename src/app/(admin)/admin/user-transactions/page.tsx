@@ -20,6 +20,7 @@ function formatDateInput(date: Date): string {
 }
 
 const TYPE_CONFIG: Record<string, { label: string; color: string }> = {
+  SUBSCRIPTION_PURCHASE: { label: 'Mua gói', color: 'bg-green-100 text-green-700' },
   TOPUP: { label: 'Nạp tiền', color: 'bg-green-100 text-green-700' },
   CONSUME: { label: 'Thanh toán', color: 'bg-orange-100 text-orange-700' },
   REFUND: { label: 'Hoàn tiền', color: 'bg-blue-100 text-blue-700' },
@@ -27,7 +28,7 @@ const TYPE_CONFIG: Record<string, { label: string; color: string }> = {
 
 const TYPE_FILTERS = [
   { value: 'ALL', label: 'Tất cả' },
-  { value: 'TOPUP', label: 'Nạp tiền' },
+  { value: 'SUBSCRIPTION_PURCHASE', label: 'Mua gói' },
   { value: 'CONSUME', label: 'Thanh toán' },
   { value: 'REFUND', label: 'Hoàn tiền' },
 ];
@@ -205,6 +206,8 @@ export default function AdminUserTransactionsPage() {
                     <th className="px-4 py-3 text-left font-medium text-gray-600">Người dùng</th>
                     <th className="px-4 py-3 text-left font-medium text-gray-600">Email</th>
                     <th className="px-4 py-3 text-left font-medium text-gray-600">Dịch vụ</th>
+                    <th className="px-4 py-3 text-left font-medium text-gray-600">Gói mua</th>
+                    <th className="px-4 py-3 text-right font-medium text-gray-600">Giá tiền</th>
                     <th className="px-4 py-3 text-right font-medium text-gray-600">Credit</th>
                     <th className="px-4 py-3 text-left font-medium text-gray-600">Loại</th>
                     <th className="px-4 py-3 text-left font-medium text-gray-600">Thời gian</th>
@@ -213,7 +216,7 @@ export default function AdminUserTransactionsPage() {
                 <tbody className="divide-y divide-gray-100">
                   {paginatedData.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="py-10 text-center text-gray-400">
+                      <td colSpan={8} className="py-10 text-center text-gray-400">
                         Không có giao dịch nào
                       </td>
                     </tr>
@@ -227,12 +230,25 @@ export default function AdminUserTransactionsPage() {
                       if (tx.paymentType === 'CONSUME') {
                         deltaDisplay = `-${Math.abs(tx.delta)}`;
                         deltaColor = 'text-orange-600';
-                      } else if (tx.paymentType === 'TOPUP') {
+                      } else if (tx.paymentType === 'SUBSCRIPTION_PURCHASE' || tx.paymentType === 'TOPUP') {
                         deltaDisplay = `+${tx.delta}`;
                         deltaColor = 'text-green-600';
                       } else {
                         deltaDisplay = tx.delta >= 0 ? `+${tx.delta}` : `${tx.delta}`;
                         deltaColor = tx.delta >= 0 ? 'text-green-600' : 'text-red-500';
+                      }
+
+                      let packagePurchased = tx.packageName || '-';
+                      let priceStr = '-';
+
+                      if (tx.paymentType === 'SUBSCRIPTION_PURCHASE' && tx.remark) {
+                        const parts = tx.remark.split(' · ');
+                        if (parts.length === 2) {
+                          packagePurchased = parts[0].replace(/^Mua\s+/i, '');
+                          priceStr = parts[1];
+                        } else {
+                          packagePurchased = tx.remark;
+                        }
                       }
 
                       return (
@@ -243,7 +259,11 @@ export default function AdminUserTransactionsPage() {
                           <td className="px-4 py-3 text-gray-500">
                             {tx.userEmail || tx.userId}
                           </td>
-                          <td className="px-4 py-3 text-gray-700">{tx.serviceName || tx.packageName || '-'}</td>
+                          <td className="px-4 py-3 text-gray-700">{tx.serviceName || '-'}</td>
+                          <td className="px-4 py-3 text-gray-700">{packagePurchased}</td>
+                          <td className="px-4 py-3 font-medium text-right text-emerald-600">
+                            {priceStr}
+                          </td>
                           <td className={`px-4 py-3 font-bold tabular-nums text-right ${deltaColor}`}>
                             {deltaDisplay}
                           </td>

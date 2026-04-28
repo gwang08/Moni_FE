@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 import type { PackagePricingResponse, PaymentInitResponse } from '@/types/payment.types';
 import type { SubscriptionPlanResponse } from '@/types/subscription.types';
 
@@ -20,18 +21,28 @@ interface PaymentStore {
   clear: () => void;
 }
 
-export const usePaymentStore = create<PaymentStore>((set) => ({
-  selectedPackage: null,
-  checkoutItem: null,
-  pendingPayment: null,
-  returnUrl: null,
-  setSelectedPackage: (pkg) => set({ selectedPackage: pkg, checkoutItem: { type: 'package', data: pkg } }),
-  setCheckoutItem: (item) => set({
-    checkoutItem: item,
-    // Keep selectedPackage in sync for backward-compat with checkout page
-    selectedPackage: item.type === 'package' ? item.data : null,
-  }),
-  setPendingPayment: (payment) => set({ pendingPayment: payment }),
-  setReturnUrl: (url) => set({ returnUrl: url }),
-  clear: () => set({ selectedPackage: null, checkoutItem: null, pendingPayment: null, returnUrl: null }),
-}));
+export const usePaymentStore = create<PaymentStore>()(
+  persist(
+    (set) => ({
+      selectedPackage: null,
+      checkoutItem: null,
+      pendingPayment: null,
+      returnUrl: null,
+      setSelectedPackage: (pkg) =>
+        set({ selectedPackage: pkg, checkoutItem: { type: 'package', data: pkg } }),
+      setCheckoutItem: (item) =>
+        set({
+          checkoutItem: item,
+          // Keep selectedPackage in sync for backward-compat with checkout page
+          selectedPackage: item.type === 'package' ? item.data : null,
+        }),
+      setPendingPayment: (payment) => set({ pendingPayment: payment }),
+      setReturnUrl: (url) => set({ returnUrl: url }),
+      clear: () =>
+        set({ selectedPackage: null, checkoutItem: null, pendingPayment: null, returnUrl: null }),
+    }),
+    {
+      name: 'payment-store',
+    }
+  )
+);

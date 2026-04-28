@@ -120,6 +120,16 @@ export default function CheckoutPage() {
     if (initCalled.current) return;
     initCalled.current = true;
     const init = async () => {
+      // Check if we can reuse the existing pending payment from localStorage
+      if (pendingPayment && pendingPayment.expiredAt && displayItem) {
+        const expiresMs = parseLocalDateTime(pendingPayment.expiredAt);
+        // Reuse if it's the exact same amount and has more than 10 seconds remaining
+        if (expiresMs > Date.now() + 10000 && pendingPayment.amount === displayItem.amount) {
+          setLoading(false);
+          return;
+        }
+      }
+
       try {
         let payment;
         if (checkoutItem?.type === 'subscription') {
@@ -152,7 +162,7 @@ export default function CheckoutPage() {
     };
     init();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [checkoutItem, selectedPackage, displayItem]);
 
   const { refreshProfile } = useAuthStore();
   const queryClient = useQueryClient();

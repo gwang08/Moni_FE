@@ -114,13 +114,11 @@ export default function AdminDashboardPage() {
     }));
   }, [currentData, revenueRange]);
 
-  // Doughnut chart data: Expert vs AI revenue (credit-based)
+  // Doughnut chart data: Expert vs AI jobs
   const doughnutData = useMemo(() => {
     if (!currentData) return [];
-    const expertTotal = (currentData.expertWritingCredits ?? 0) + (currentData.expertSpeakingCredits ?? 0);
-    // Use totalAiCredits if available, otherwise fall back to job count as a proxy
-    const aiCredits = (currentData as any).totalAiCredits ?? 0;
-    const aiTotal = aiCredits || ((currentData.aiWritingJobs ?? 0) + (currentData.aiSpeakingJobs ?? 0));
+    const expertTotal = (currentData.expertWritingJobs ?? 0) + (currentData.expertSpeakingJobs ?? 0);
+    const aiTotal = (currentData.aiWritingJobs ?? 0) + (currentData.aiSpeakingJobs ?? 0);
     const total = expertTotal + aiTotal;
     if (total === 0) return [];
     return [
@@ -343,7 +341,7 @@ export default function AdminDashboardPage() {
 
                 {/* Doughnut Chart: Expert vs AI Revenue */}
                 <div className="flex flex-col items-center justify-center rounded-lg bg-gray-50 p-4">
-                  <p className="mb-2 text-sm font-semibold text-gray-700">Tỉ trọng doanh thu credit</p>
+                  <p className="mb-2 text-sm font-semibold text-gray-700">Tỉ trọng bài chấm</p>
                   {doughnutData.length > 0 ? (
                     <div className="flex w-full flex-col items-center gap-2">
                       <ResponsiveContainer width="100%" height={160}>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUserStore } from '@/store/user-store';
 import { calculateOverallScore } from '@/lib/calendar-utils';
@@ -79,7 +79,6 @@ export function TargetScores() {
   const targetScores = useUserStore((s) => s.targetScores);
   const setTargetScore = useUserStore((s) => s.setTargetScore);
   const placementResult = useUserStore((s) => s.placementResult);
-  const examDate = useUserStore((s) => s.examDate);
   const clearPlacementResult = useUserStore((s) => s.clearPlacementResult);
 
   const { step: tourStep, nextStep } = useTourStore();
@@ -170,12 +169,24 @@ export function TargetScores() {
     }
   };
 
-  const allReady = hasScores && !!examDate && !!placementResult;
+  // examDate is OPTIONAL — AI can analyze on band gap alone
+  const allReady = hasScores && !!placementResult;
 
   const handleAiClick = () => {
     if (allReady) setShowAiDialog(true);
     else setShowMissingDialog(true);
   };
+
+  // Auto-open AI recommendation dialog ONCE right after user completes placement test.
+  // result-step.tsx sets sessionStorage flag with placement id; we consume it here.
+  useEffect(() => {
+    if (!placementResult || !hasScores) return;
+    const triggerId = sessionStorage.getItem('triggerAiRecommendation');
+    if (triggerId && Number(triggerId) === placementResult.id) {
+      sessionStorage.removeItem('triggerAiRecommendation');
+      setShowAiDialog(true);
+    }
+  }, [placementResult, hasScores]);
 
   const getCurrentBand = (skill: SkillKey): number | null => {
     if (!placementResult) return null;
@@ -368,13 +379,6 @@ export function TargetScores() {
             <div className="px-6 pb-5 pt-3 space-y-3">
               {[
                 { done: hasScores, label: 'Nhập mục tiêu band điểm', action: () => { setShowMissingDialog(false); startEdit(); } },
-                {
-                  done: !!examDate, label: 'Nhập ngày dự thi',
-                  action: () => {
-                    setShowMissingDialog(false);
-                    setTimeout(() => { document.getElementById('exam-countdown-section')?.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 100);
-                  },
-                },
                 { done: !!placementResult, label: 'Làm bài đánh giá trình độ', action: () => { setShowMissingDialog(false); handleStartTest(); } },
               ].map((step) => (
                 <div key={step.label} className="flex items-center gap-3">

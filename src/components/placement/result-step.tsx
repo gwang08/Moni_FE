@@ -191,6 +191,7 @@ export function ResultStep({
         <Button
           onClick={() => {
             sessionStorage.setItem('showRoadmapTour', 'true');
+            sessionStorage.setItem('triggerAiRecommendation', String(result.id));
             router.push('/dashboard');
           }}
           className="w-full h-12 rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-semibold text-sm shadow-md shadow-teal-200/50 transition-all"

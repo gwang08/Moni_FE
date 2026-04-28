@@ -211,6 +211,14 @@ export default function ExpertSessionPage({ params }: Props) {
       toast.error('Vui lòng điền đầy đủ điểm số');
       return;
     }
+    const outOfRange = criteria.find((c) => {
+      const n = parseFloat(scores[c.key]);
+      return isNaN(n) || n < 0 || n > 9;
+    });
+    if (outOfRange) {
+      toast.error(`Điểm ${outOfRange.label} phải từ 0 đến 9`);
+      return;
+    }
     if (!feedback.trim()) {
       toast.error('Vui lòng nhập nhận xét');
       return;
@@ -482,7 +490,18 @@ export default function ExpertSessionPage({ params }: Props) {
                       type="number"
                       min={0} max={9} step={0.5}
                       value={scores[c.key] ?? ''}
-                      onChange={(e) => setScores((prev) => ({ ...prev, [c.key]: e.target.value }))}
+                      onChange={(e) => {
+                        const raw = e.target.value;
+                        if (raw === '') {
+                          setScores((prev) => ({ ...prev, [c.key]: '' }));
+                          return;
+                        }
+                        const num = parseFloat(raw);
+                        if (isNaN(num)) return;
+                        // IELTS band: 0–9, clamp to keep UI honest
+                        const clamped = Math.max(0, Math.min(9, num));
+                        setScores((prev) => ({ ...prev, [c.key]: String(clamped) }));
+                      }}
                       disabled={isReadOnly}
                       className="w-20 h-9 font-bold text-center text-emerald-700 bg-white border-gray-200 focus:border-emerald-500 focus:ring-emerald-500/20 disabled:opacity-100 disabled:cursor-default"
                       placeholder="0.0"

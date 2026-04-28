@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUserStore } from '@/store/user-store';
 import { calculateOverallScore } from '@/lib/calendar-utils';
@@ -179,14 +179,32 @@ export function TargetScores() {
 
   // Auto-open AI recommendation dialog ONCE right after user completes placement test.
   // result-step.tsx sets sessionStorage flag with placement id; we consume it here.
+  // IMPORTANT: defer opening if a roadmap tour is pending/active so the user sees the
+  // intro overlay first and confirms ("Đã hiểu") before the AI dialog appears.
+  const aiTriggerFiredRef = useRef(false);
   useEffect(() => {
     if (!placementResult || !hasScores) return;
-    const triggerId = sessionStorage.getItem('triggerAiRecommendation');
-    if (triggerId && Number(triggerId) === placementResult.id) {
+    if (aiTriggerFiredRef.current) return;
+
+    const tryFire = () => {
+      if (aiTriggerFiredRef.current) return;
+      // Wait while tour is active or about to start
+      if (useTourStore.getState().step > 0) return;
+      if (typeof window !== 'undefined' && sessionStorage.getItem('showRoadmapTour')) return;
+
+      const triggerId = sessionStorage.getItem('triggerAiRecommendation');
+      if (!triggerId || Number(triggerId) !== placementResult.id) return;
+
       sessionStorage.removeItem('triggerAiRecommendation');
+      aiTriggerFiredRef.current = true;
       setShowAiDialog(true);
-    }
-  }, [placementResult, hasScores]);
+    };
+
+    tryFire();
+    // Re-attempt after the dashboard finishes the post-placement tour
+    window.addEventListener('roadmap-tour-completed', tryFire);
+    return () => window.removeEventListener('roadmap-tour-completed', tryFire);
+  }, [placementResult, hasScores, tourStep]);
 
   const getCurrentBand = (skill: SkillKey): number | null => {
     if (!placementResult) return null;

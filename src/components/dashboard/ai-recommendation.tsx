@@ -138,7 +138,12 @@ export function AiRecommendationDialog({ open, onOpenChange }: Props) {
           thay vì dialog tự cao và bị đè bởi header trang. Footer (Apply/Để sau) cũng sticky
           dưới đáy dialog để user luôn thấy CTA mà không phải scroll xuống.
         */}
-        <DialogContent className="max-w-2xl p-0 border-0 rounded-3xl shadow-2xl overflow-hidden bg-white max-h-[85vh] flex flex-col gap-0">
+        {/*
+          Vị trí: thay vì center theo top-[50%], dán dialog cách header trang ~24px.
+          Page header ~64px + ~24px gap = top-[88px], translate-y-0 để override default.
+          max-h chừa thêm ~40px ở đáy → dialog không bao giờ chạm header trang.
+        */}
+        <DialogContent className="!top-[88px] !translate-y-0 max-w-2xl p-0 border-0 rounded-3xl shadow-2xl overflow-hidden bg-white max-h-[calc(100vh-128px)] flex flex-col gap-0">
           <VisuallyHidden><DialogTitle>Gợi ý từ AI</DialogTitle></VisuallyHidden>
 
           {/* Sticky compact header */}

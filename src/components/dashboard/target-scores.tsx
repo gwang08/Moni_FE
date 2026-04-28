@@ -176,11 +176,32 @@ export function TargetScores() {
   // Auto-open AI recommendation dialog ONCE right after user completes placement test.
   // result-step.tsx sets sessionStorage flag with placement id; we consume it here.
   //
-  // Strict rule to prevent overlap with the post-placement tour:
-  // - If `showRoadmapTour` flag is present on mount → DO NOT fire on mount;
-  //   wait for `roadmap-tour-completed` event (dispatched by dashboard once user
-  //   clicks "Đã hiểu" and the tour overlay is visually gone).
-  // - If no tour pending → fire on mount when triggerAiRecommendation matches.
+  // ROOT-CAUSE GATE: dialog must NEVER overlap với tour overlay (paywall step 8 / step 4-7).
+  // Trước đây chỉ check tourPending tại thời điểm effect chạy → race khi effect re-run vì
+  // hasScores/placementResult đổi async (vd: refreshProfile cập nhật target scores) khiến
+  // gate đánh giá lại sai và setShowAiDialog(true) bị gọi giữa tour.
+  //
+  // Fix: thêm `tourPendingState` mirror cho cả 2 tín hiệu (tourStep + sessionStorage flag).
+  // Set true ngay khi tour bắt đầu hoặc flag tồn tại; chỉ set false khi nhận event
+  // `roadmap-tour-completed` (dispatch bởi dashboard 400ms sau khi tour kết thúc thật sự).
+  // Render dialog với `open={showAiDialog && !tourPendingState}` → defense-in-depth.
+  const [tourPendingState, setTourPendingState] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    return useTourStore.getState().step > 0 || !!sessionStorage.getItem('showRoadmapTour');
+  });
+
+  // Mark pending khi tour vào active step
+  useEffect(() => {
+    if (tourStep > 0) setTourPendingState(true);
+  }, [tourStep]);
+
+  // Lắng nghe event hoàn tất tour để mở khoá
+  useEffect(() => {
+    const onCompleted = () => setTourPendingState(false);
+    window.addEventListener('roadmap-tour-completed', onCompleted);
+    return () => window.removeEventListener('roadmap-tour-completed', onCompleted);
+  }, []);
+
   const aiTriggerFiredRef = useRef(false);
   useEffect(() => {
     if (!placementResult || !hasScores) return;
@@ -190,23 +211,24 @@ export function TargetScores() {
       if (aiTriggerFiredRef.current) return;
       const triggerId = sessionStorage.getItem('triggerAiRecommendation');
       if (!triggerId || Number(triggerId) !== placementResult.id) return;
+      // Re-check gate ngay lúc fire — phòng race nếu listener fire trong lúc tour vẫn pending
+      const stillPending =
+        useTourStore.getState().step > 0
+        || !!sessionStorage.getItem('showRoadmapTour');
+      if (stillPending) return;
       sessionStorage.removeItem('triggerAiRecommendation');
       aiTriggerFiredRef.current = true;
       setShowAiDialog(true);
     };
 
-    const tourPending =
-      useTourStore.getState().step > 0
-      || (typeof window !== 'undefined' && !!sessionStorage.getItem('showRoadmapTour'));
-
-    if (!tourPending) {
-      // No tour in flight — safe to fire immediately
+    if (!tourPendingState) {
+      // Không có tour — fire ngay
       fireIfReady();
     }
-    // Always also listen for tour completion (handles the tour-then-AI flow)
+    // Cũng lắng nghe sự kiện hoàn tất tour (cover trường hợp tour-then-AI)
     window.addEventListener('roadmap-tour-completed', fireIfReady);
     return () => window.removeEventListener('roadmap-tour-completed', fireIfReady);
-  }, [placementResult, hasScores]);
+  }, [placementResult, hasScores, tourPendingState]);
 
   const getCurrentBand = (skill: SkillKey): number | null => {
     if (!placementResult) return null;
@@ -427,7 +449,8 @@ export function TargetScores() {
           </DialogContent>
         </Dialog>
 
-        <AiRecommendationDialog open={showAiDialog} onOpenChange={setShowAiDialog} />
+        {/* Hard render-level gate: dialog không bao giờ được phép hiển thị khi tour pending */}
+        <AiRecommendationDialog open={showAiDialog && !tourPendingState} onOpenChange={setShowAiDialog} />
       </div>
     </div>
   );

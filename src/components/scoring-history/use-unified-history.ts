@@ -22,6 +22,9 @@ export interface HistoryEntry {
   writingSubmissionId?: number; // dùng để gọi expert modal
   // Marker phụ (task number, skill tag…)
   tag?: string;
+  // Trạng thái ScoringSession liên kết (chỉ writing) — dùng để gate nút Huỷ:
+  // chỉ cho huỷ khi 'QUEUED' (giảng viên chưa nhận).
+  scoringSessionStatus?: string | null;
 }
 
 function toDateSafe(d?: string | null): string {
@@ -86,6 +89,7 @@ export function useUnifiedHistory() {
         href: `/writing/result/${w.submissionId}`,
         writingSubmissionId: w.submissionId,
         tag: w.taskType === 'TASK_1' ? 'Task 1' : 'Task 2',
+        scoringSessionStatus: w.scoringSessionStatus ?? null,
       });
     }
 

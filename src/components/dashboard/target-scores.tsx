@@ -175,32 +175,38 @@ export function TargetScores() {
 
   // Auto-open AI recommendation dialog ONCE right after user completes placement test.
   // result-step.tsx sets sessionStorage flag with placement id; we consume it here.
-  // IMPORTANT: defer opening if a roadmap tour is pending/active so the user sees the
-  // intro overlay first and confirms ("Đã hiểu") before the AI dialog appears.
+  //
+  // Strict rule to prevent overlap with the post-placement tour:
+  // - If `showRoadmapTour` flag is present on mount → DO NOT fire on mount;
+  //   wait for `roadmap-tour-completed` event (dispatched by dashboard once user
+  //   clicks "Đã hiểu" and the tour overlay is visually gone).
+  // - If no tour pending → fire on mount when triggerAiRecommendation matches.
   const aiTriggerFiredRef = useRef(false);
   useEffect(() => {
     if (!placementResult || !hasScores) return;
     if (aiTriggerFiredRef.current) return;
 
-    const tryFire = () => {
+    const fireIfReady = () => {
       if (aiTriggerFiredRef.current) return;
-      // Wait while tour is active or about to start
-      if (useTourStore.getState().step > 0) return;
-      if (typeof window !== 'undefined' && sessionStorage.getItem('showRoadmapTour')) return;
-
       const triggerId = sessionStorage.getItem('triggerAiRecommendation');
       if (!triggerId || Number(triggerId) !== placementResult.id) return;
-
       sessionStorage.removeItem('triggerAiRecommendation');
       aiTriggerFiredRef.current = true;
       setShowAiDialog(true);
     };
 
-    tryFire();
-    // Re-attempt after the dashboard finishes the post-placement tour
-    window.addEventListener('roadmap-tour-completed', tryFire);
-    return () => window.removeEventListener('roadmap-tour-completed', tryFire);
-  }, [placementResult, hasScores, tourStep]);
+    const tourPending =
+      useTourStore.getState().step > 0
+      || (typeof window !== 'undefined' && !!sessionStorage.getItem('showRoadmapTour'));
+
+    if (!tourPending) {
+      // No tour in flight — safe to fire immediately
+      fireIfReady();
+    }
+    // Always also listen for tour completion (handles the tour-then-AI flow)
+    window.addEventListener('roadmap-tour-completed', fireIfReady);
+    return () => window.removeEventListener('roadmap-tour-completed', fireIfReady);
+  }, [placementResult, hasScores]);
 
   const getCurrentBand = (skill: SkillKey): number | null => {
     if (!placementResult) return null;

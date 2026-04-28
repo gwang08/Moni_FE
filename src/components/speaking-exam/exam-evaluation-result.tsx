@@ -61,8 +61,16 @@ export function ExamEvaluationResult({ evaluation, recordings, title }: Props) {
   const [selectedCriteria, setSelectedCriteria] = useState<keyof typeof CRITERIA_META | null>(null);
   const [showDetailedFeedback, setShowDetailedFeedback] = useState(false);
 
-  // We do not have duration mapped in recordings yet, using a placeholder for now
-  const timeString = recordings && recordings.length > 0 ? `Hoàn tất` : 'Không có dữ liệu';
+  // Tổng thời gian user thực sự nói = sum durationMs của tất cả bản ghi.
+  const totalSeconds = recordings?.reduce((acc, r) => acc + Math.round((r.durationMs || 0) / 1000), 0) ?? 0;
+  const formatSpeakingTime = (s: number) => {
+    if (s <= 0) return 'Không có dữ liệu';
+    const m = Math.floor(s / 60);
+    const sec = s % 60;
+    if (m === 0) return `${sec}s`;
+    return sec === 0 ? `${m}m` : `${m}m ${sec}s`;
+  };
+  const timeString = formatSpeakingTime(totalSeconds);
 
   return (
     <div className="w-full max-w-[1000px] mx-auto font-sans relative">
@@ -183,8 +191,10 @@ export function ExamEvaluationResult({ evaluation, recordings, title }: Props) {
       </div>
 
       {/* ── MODAL: DETAILED AI FEEDBACK & RECORDINGS ── */}
+      {/* Anchor below sticky header (h-14 = 56px). Override Radix defaults
+          (top-1/2 translate-y-1/2) so the modal never tucks under the navbar. */}
       <Dialog open={showDetailedFeedback} onOpenChange={setShowDetailedFeedback}>
-        <DialogContent className="w-[95vw] sm:max-w-[95vw] md:max-w-5xl lg:max-w-6xl max-h-[90vh] overflow-y-auto bg-white p-6 md:p-8 rounded-3xl border-gray-100 outline-none">
+        <DialogContent className="w-[95vw] sm:max-w-[95vw] md:max-w-5xl lg:max-w-6xl max-h-[calc(100vh-6rem)] overflow-y-auto bg-white p-6 md:p-8 rounded-3xl border-gray-100 outline-none !top-20 !translate-y-0">
           <DialogTitle className="text-2xl font-bold text-gray-800 mb-6 border-b border-gray-100 pb-4 tracking-tight">
             {title ? title : 'Chi tiết Đề bài & Bài làm'}
           </DialogTitle>

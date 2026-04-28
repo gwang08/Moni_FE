@@ -132,44 +132,44 @@ export function AiRecommendationDialog({ open, onOpenChange }: Props) {
     <>
       <ChibiAnimationStyles />
       <Dialog open={open} onOpenChange={handleOpenChange}>
-        <DialogContent className="max-w-2xl p-0 overflow-hidden border-0 rounded-3xl shadow-2xl max-h-[90vh] overflow-y-auto bg-white">
+        {/*
+          Layout: flex-col + max-h-[85vh]. Header sticky trong dialog (icon + title gọn,
+          không còn block xanh cao 150px) → khi nội dung dài, body scroll bên trong dialog
+          thay vì dialog tự cao và bị đè bởi header trang. Footer (Apply/Để sau) cũng sticky
+          dưới đáy dialog để user luôn thấy CTA mà không phải scroll xuống.
+        */}
+        <DialogContent className="max-w-2xl p-0 border-0 rounded-3xl shadow-2xl overflow-hidden bg-white max-h-[85vh] flex flex-col gap-0">
           <VisuallyHidden><DialogTitle>Gợi ý từ AI</DialogTitle></VisuallyHidden>
 
-          {/* Header */}
-          <div className="relative bg-gradient-to-br from-emerald-500 via-emerald-600 to-teal-600 px-6 pt-6 pb-12">
-            <div className="absolute inset-0 opacity-20 pointer-events-none" style={{
-              backgroundImage: 'radial-gradient(circle at 20% 20%, white 1px, transparent 1px), radial-gradient(circle at 70% 60%, white 1px, transparent 1px)',
-              backgroundSize: '40px 40px',
-            }} />
-            <div className="relative flex items-start gap-4">
-              <div className="shrink-0 bg-white/20 backdrop-blur-sm rounded-2xl p-2 ring-2 ring-white/30">
-                <ChibiMascot mood="thinking" size={56} />
-              </div>
-              <div className="flex-1 pt-1">
-                <div className="inline-flex items-center gap-1.5 bg-white/20 backdrop-blur-sm text-white text-xs font-semibold px-2.5 py-1 rounded-full mb-2">
-                  <Sparkles className="w-3 h-3" />
+          {/* Sticky compact header */}
+          <div className="shrink-0 border-b border-gray-100 px-5 py-3.5 flex items-center gap-3 bg-white">
+            <div className="shrink-0 w-10 h-10 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-md shadow-emerald-200/60">
+              <Sparkles className="w-5 h-5 text-white" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <h2 className="text-[15px] font-extrabold text-gray-900 truncate">Gợi ý mục tiêu cá nhân hoá</h2>
+                <span className="hidden sm:inline-flex shrink-0 items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded-full">
                   AI Coach
-                </div>
-                <h2 className="text-xl font-extrabold text-white leading-tight">Gợi ý mục tiêu cá nhân hoá</h2>
-                <p className="text-emerald-50 text-sm mt-1 leading-relaxed">
-                  Moni đã phân tích trình độ hiện tại và đề xuất mục tiêu thực tế cho bạn
-                </p>
+                </span>
               </div>
+              <p className="text-xs text-gray-500 truncate">Moni phân tích trình độ và đề xuất mục tiêu thực tế</p>
             </div>
           </div>
 
-          {/* Body */}
-          <div className="px-6 pb-6 -mt-6">
+          {/* Scrollable body */}
+          <div className="flex-1 overflow-y-auto px-5 py-4">
             {loading && (
-              <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-12 flex flex-col items-center gap-3">
+              <div className="flex flex-col items-center gap-3 py-12">
                 <Loader2 className="h-10 w-10 animate-spin text-emerald-500" />
                 <p className="text-sm font-medium text-gray-600">Moni đang phân tích kết quả của bạn...</p>
               </div>
             )}
 
             {!loading && !recommendation && (
-              <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8 text-center">
-                <p className="text-sm text-gray-600 mb-4">Bấm để bắt đầu phân tích</p>
+              <div className="flex flex-col items-center gap-3 py-8">
+                <ChibiMascot mood="thinking" size={64} />
+                <p className="text-sm text-gray-600">Bấm để bắt đầu phân tích</p>
                 <button
                   onClick={handleGetRecommendation}
                   className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-sm font-bold shadow-md shadow-emerald-500/30 hover:shadow-lg hover:from-emerald-600 hover:to-teal-600 transition-all"
@@ -183,7 +183,7 @@ export function AiRecommendationDialog({ open, onOpenChange }: Props) {
             {!loading && recommendation && (
               <div className="space-y-4">
                 {/* Analysis card */}
-                <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-5">
+                <div className="bg-white rounded-2xl border border-gray-100 p-5">
                   <div className="flex items-center gap-2 mb-3">
                     <div className="w-8 h-8 rounded-xl bg-emerald-100 flex items-center justify-center">
                       <Lightbulb className="w-4 h-4 text-emerald-600" />
@@ -201,7 +201,7 @@ export function AiRecommendationDialog({ open, onOpenChange }: Props) {
                 </div>
 
                 {/* Recommended scores */}
-                <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-5">
+                <div className="bg-white rounded-2xl border border-gray-100 p-5">
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-2">
                       <div className="w-8 h-8 rounded-xl bg-emerald-100 flex items-center justify-center">
@@ -292,40 +292,42 @@ export function AiRecommendationDialog({ open, onOpenChange }: Props) {
                     </ul>
                   </div>
                 )}
-
-                {/* Actions */}
-                <div className="flex gap-2 pt-1">
-                  <button
-                    onClick={() => onOpenChange(false)}
-                    className="flex-1 py-3 rounded-2xl text-sm font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 transition-colors"
-                  >
-                    Để sau
-                  </button>
-                  <button
-                    onClick={handleApply}
-                    disabled={applied}
-                    className={`flex-[2] py-3 rounded-2xl text-sm font-extrabold transition-all flex items-center justify-center gap-2 ${
-                      applied
-                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                        : 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-md shadow-emerald-500/30 hover:shadow-lg hover:from-emerald-600 hover:to-teal-600'
-                    }`}
-                  >
-                    {applied ? (
-                      <>
-                        <CheckCircle2 className="h-4 w-4" />
-                        Đã áp dụng
-                      </>
-                    ) : (
-                      <>
-                        <Sparkles className="h-4 w-4" />
-                        Áp dụng mục tiêu này
-                      </>
-                    )}
-                  </button>
-                </div>
               </div>
             )}
           </div>
+
+          {/* Sticky footer — chỉ hiện khi đã có recommendation */}
+          {!loading && recommendation && (
+            <div className="shrink-0 border-t border-gray-100 bg-white px-5 py-3 flex gap-2">
+              <button
+                onClick={() => onOpenChange(false)}
+                className="flex-1 py-3 rounded-2xl text-sm font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 transition-colors"
+              >
+                Để sau
+              </button>
+              <button
+                onClick={handleApply}
+                disabled={applied}
+                className={`flex-[2] py-3 rounded-2xl text-sm font-extrabold transition-all flex items-center justify-center gap-2 ${
+                  applied
+                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                    : 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-md shadow-emerald-500/30 hover:shadow-lg hover:from-emerald-600 hover:to-teal-600'
+                }`}
+              >
+                {applied ? (
+                  <>
+                    <CheckCircle2 className="h-4 w-4" />
+                    Đã áp dụng
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="h-4 w-4" />
+                    Áp dụng mục tiêu này
+                  </>
+                )}
+              </button>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </>

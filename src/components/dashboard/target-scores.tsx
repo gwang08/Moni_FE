@@ -283,9 +283,18 @@ export function TargetScores() {
               </p>
             </div>
           </div>
-          <div className="flex gap-1">
+          <div className="flex items-center gap-1">
             {!editing ? (
               <>
+                {/* Persistent AI gợi ý button — luôn cho user mở lại dialog gợi ý kể cả sau khi đã đóng lần đầu */}
+                <button
+                  onClick={handleAiClick}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 active:scale-95 transition-all"
+                  title="Nhận gợi ý mục tiêu từ AI"
+                >
+                  <Sparkles className="h-3.5 w-3.5" />
+                  AI gợi ý
+                </button>
                 <button
                   onClick={startEdit}
                   className="p-2 rounded-full hover:bg-emerald-50 text-gray-400 hover:text-emerald-500 transition-colors"

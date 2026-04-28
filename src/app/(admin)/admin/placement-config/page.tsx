@@ -322,9 +322,8 @@ export default function PlacementConfigPage() {
           onOpenChange={() => setConfirmActivateId(null)}
           title="Kích hoạt cấu hình này?"
           description="Cấu hình hiện tại (nếu có) sẽ bị vô hiệu hóa. Tất cả người học mới sẽ dùng cấu hình này cho bài placement test."
-          onConfirm={() => confirmActivateId && activateMutation.mutate(confirmActivateId)}
+          onConfirm={() => { if (confirmActivateId) activateMutation.mutate(confirmActivateId); }}
           confirmText="Kích hoạt"
-          loading={activateMutation.isPending}
         />
 
         {/* Confirm Delete */}
@@ -333,9 +332,8 @@ export default function PlacementConfigPage() {
           onOpenChange={() => setConfirmDeleteId(null)}
           title="Xóa cấu hình này?"
           description="Hành động này không thể hoàn tác."
-          onConfirm={() => confirmDeleteId && deleteMutation.mutate(confirmDeleteId)}
+          onConfirm={() => { if (confirmDeleteId) deleteMutation.mutate(confirmDeleteId); }}
           confirmText="Xóa"
-          loading={deleteMutation.isPending}
           variant="destructive"
         />
       </div>

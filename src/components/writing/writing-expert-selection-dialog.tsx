@@ -119,32 +119,8 @@ export function WritingExpertSelectionDialog({ open, onOpenChange, submissionId,
         </VisuallyHidden>
         <h3 className="text-lg font-bold mb-2">Chọn giảng viên chấm Writing</h3>
 
-        {/* Working hours banner */}
-        {isWithinWorkingHours() ? (
-          <div className="mb-3 flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-800">
-            <Sun className="h-4 w-4 shrink-0" />
-            <span>Đang trong giờ làm việc (8h–22h) — thường có kết quả trong vài giờ.</span>
-          </div>
-        ) : (
-          <div className="mb-3 flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
-            <Moon className="h-4 w-4 shrink-0" />
-            <span>Ngoài giờ làm việc (8h–22h) — có thể nhận kết quả vào sáng mai.</span>
-          </div>
-        )}
-
-        {/* Random booking — 1-click lazy option */}
-        {!confirming && (
-          <Button
-            onClick={() => handleBook(null)}
-            disabled={submitting}
-            className="w-full mb-3 gap-2 bg-gradient-to-r from-indigo-500 to-purple-600 hover:opacity-90"
-          >
-            <Shuffle className="h-4 w-4" />
-            {submitting ? 'Đang gửi...' : 'Gửi ngẫu nhiên cho giảng viên'}
-          </Button>
-        )}
-
-        {confirming && (
+        {confirming ? (
+          // Replace-mode: chỉ hiện confirm card, ẩn banner + search + grid để modal không tràn viewport
           <SpeakingModeExpertInlineConfirm
             expert={confirming}
             cost={expertCost ?? 0}
@@ -152,30 +128,55 @@ export function WritingExpertSelectionDialog({ open, onOpenChange, submissionId,
             onConfirm={() => handleBook(confirming)}
             onCancel={() => setConfirming(null)}
           />
-        )}
-
-        <div className="relative mb-3">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-          <Input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Tìm theo tên..."
-            className="pl-9"
-          />
-        </div>
-
-        {loadingExperts ? (
-          <div className="grid grid-cols-2 gap-3">
-            {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="h-28 rounded-xl bg-muted animate-pulse" />
-            ))}
-          </div>
         ) : (
-          <SpeakingModeExpertGrid
-            experts={filtered}
-            onBook={setConfirming}
-            onDetail={(e) => router.push(`/experts/${e.id}`)}
-          />
+          <>
+            {/* Working hours banner */}
+            {isWithinWorkingHours() ? (
+              <div className="mb-3 flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-800">
+                <Sun className="h-4 w-4 shrink-0" />
+                <span>Đang trong giờ làm việc (8h–22h) — thường có kết quả trong vài giờ.</span>
+              </div>
+            ) : (
+              <div className="mb-3 flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                <Moon className="h-4 w-4 shrink-0" />
+                <span>Ngoài giờ làm việc (8h–22h) — có thể nhận kết quả vào sáng mai.</span>
+              </div>
+            )}
+
+            {/* Random booking — 1-click lazy option */}
+            <Button
+              onClick={() => handleBook(null)}
+              disabled={submitting}
+              className="w-full mb-3 gap-2 bg-gradient-to-r from-indigo-500 to-purple-600 hover:opacity-90"
+            >
+              <Shuffle className="h-4 w-4" />
+              {submitting ? 'Đang gửi...' : 'Gửi ngẫu nhiên cho giảng viên'}
+            </Button>
+
+            <div className="relative mb-3">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Tìm theo tên..."
+                className="pl-9"
+              />
+            </div>
+
+            {loadingExperts ? (
+              <div className="grid grid-cols-2 gap-3">
+                {[1, 2, 3, 4].map((i) => (
+                  <div key={i} className="h-28 rounded-xl bg-muted animate-pulse" />
+                ))}
+              </div>
+            ) : (
+              <SpeakingModeExpertGrid
+                experts={filtered}
+                onBook={setConfirming}
+                onDetail={(e) => router.push(`/experts/${e.id}`)}
+              />
+            )}
+          </>
         )}
       </DialogContent>
     </Dialog>

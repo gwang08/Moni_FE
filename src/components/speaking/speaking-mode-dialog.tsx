@@ -180,19 +180,8 @@ export function SpeakingModeDialog({ open, testId, aiQuota = null, expertCost = 
 
         {step === 2 && (
           <div className="space-y-3 mt-1">
-            {/* Search */}
-            <div className="relative mb-4">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <Input
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Nhập tên giảng viên để tìm kiếm..."
-                className="pl-10 h-11 rounded-xl border-gray-200 bg-gray-50 hover:bg-gray-100/50 focus:bg-white focus:border-orange-300 focus:ring-4 focus:ring-orange-100 transition-all"
-              />
-            </div>
-
-            {/* Expert confirm */}
-            {confirming && (
+            {confirming ? (
+              // Replace-mode: chỉ hiện confirm card, ẩn search + grid để modal không tràn viewport
               <SpeakingModeExpertInlineConfirm
                 expert={confirming}
                 cost={expertCost ?? 0}
@@ -200,21 +189,34 @@ export function SpeakingModeDialog({ open, testId, aiQuota = null, expertCost = 
                 onConfirm={() => handleBook(confirming)}
                 onCancel={() => setConfirming(null)}
               />
-            )}
-
-            {/* Expert grid or loading skeleton */}
-            {loadingExperts ? (
-              <div className="grid grid-cols-2 gap-3">
-                {Array.from({ length: 4 }).map((_, i) => (
-                  <div key={i} className="h-28 rounded-xl bg-muted animate-pulse" />
-                ))}
-              </div>
             ) : (
-              <SpeakingModeExpertGrid
-                experts={filtered}
-                onBook={(e) => setConfirming(e)}
-                onDetail={(e) => { onClose(); router.push(`/experts/${e.id}?testId=${testId}`); }}
-              />
+              <>
+                {/* Search */}
+                <div className="relative mb-4">
+                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Input
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder="Nhập tên giảng viên để tìm kiếm..."
+                    className="pl-10 h-11 rounded-xl border-gray-200 bg-gray-50 hover:bg-gray-100/50 focus:bg-white focus:border-orange-300 focus:ring-4 focus:ring-orange-100 transition-all"
+                  />
+                </div>
+
+                {/* Expert grid or loading skeleton */}
+                {loadingExperts ? (
+                  <div className="grid grid-cols-2 gap-3">
+                    {Array.from({ length: 4 }).map((_, i) => (
+                      <div key={i} className="h-28 rounded-xl bg-muted animate-pulse" />
+                    ))}
+                  </div>
+                ) : (
+                  <SpeakingModeExpertGrid
+                    experts={filtered}
+                    onBook={(e) => setConfirming(e)}
+                    onDetail={(e) => { onClose(); router.push(`/experts/${e.id}?testId=${testId}`); }}
+                  />
+                )}
+              </>
             )}
           </div>
         )}

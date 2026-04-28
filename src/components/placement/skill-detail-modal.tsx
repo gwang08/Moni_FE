@@ -15,12 +15,15 @@ interface Props {
   onClose: () => void;
 }
 
-const SKILL_META: Record<SkillKey, { label: string; icon: typeof BookOpen; color: string; bg: string; bgGrad: string; border: string; accent: string }> = {
-  reading:   { label: 'Reading',   icon: BookOpen,    color: 'text-blue-600',    bg: 'bg-blue-50',    bgGrad: 'from-blue-500 to-indigo-600',    border: 'border-blue-200',    accent: 'blue' },
-  listening: { label: 'Listening', icon: Headphones,  color: 'text-purple-600',  bg: 'bg-purple-50',  bgGrad: 'from-purple-500 to-violet-600',  border: 'border-purple-200',  accent: 'purple' },
-  writing:   { label: 'Writing',   icon: PenLine,     color: 'text-emerald-600', bg: 'bg-emerald-50', bgGrad: 'from-emerald-500 to-teal-600',   border: 'border-emerald-200', accent: 'emerald' },
-  speaking:  { label: 'Speaking',  icon: Mic,         color: 'text-orange-600',  bg: 'bg-orange-50',  bgGrad: 'from-orange-500 to-rose-600',    border: 'border-orange-200',  accent: 'orange' },
+// Unified emerald theme — brand color is green. Header gradient is the same across skills.
+const SKILL_META: Record<SkillKey, { label: string; icon: typeof BookOpen }> = {
+  reading:   { label: 'Reading',   icon: BookOpen },
+  listening: { label: 'Listening', icon: Headphones },
+  writing:   { label: 'Writing',   icon: PenLine },
+  speaking:  { label: 'Speaking',  icon: Mic },
 };
+
+const HEADER_GRADIENT = 'from-emerald-500 to-teal-600';
 
 const WRITING_CRITERIA_LABELS: Record<string, string> = {
   TA: 'Task Achievement',
@@ -39,7 +42,8 @@ const SPEAKING_CRITERIA_LABELS: Record<string, string> = {
 
 function BandBar({ label, band, maxBand = 9 }: { label: string; band: number; maxBand?: number }) {
   const pct = (band / maxBand) * 100;
-  const color = band >= 7 ? 'bg-teal-500' : band >= 5 ? 'bg-blue-500' : band >= 3 ? 'bg-orange-500' : 'bg-red-400';
+  // Single brand color (emerald), with a softer shade for low scores
+  const color = band >= 5 ? 'bg-emerald-500' : 'bg-emerald-300';
   return (
     <div className="space-y-1.5">
       <div className="flex items-center justify-between">
@@ -78,11 +82,12 @@ export function SkillDetailModal({ skill, result, testDetail, userAnswers, userT
   const criteriaLabels = skill === 'writing' ? WRITING_CRITERIA_LABELS : SPEAKING_CRITERIA_LABELS;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/50 backdrop-blur-sm overflow-y-auto py-6 px-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden">
+    // Sit BELOW the sticky navbar (h-14 = 56px) so header never covers the modal top.
+    <div className="fixed inset-x-0 top-14 bottom-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm overflow-y-auto py-6 px-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden my-auto">
 
-        {/* Header with gradient */}
-        <div className={`relative bg-gradient-to-br ${meta.bgGrad} px-6 pt-5 pb-6 text-white`}>
+        {/* Header — unified emerald gradient (brand color) */}
+        <div className={`relative bg-gradient-to-br ${HEADER_GRADIENT} px-6 pt-5 pb-6 text-white`}>
           <button
             onClick={onClose}
             className="absolute top-4 right-4 p-1.5 rounded-lg bg-white/20 hover:bg-white/30 transition-colors"
@@ -134,7 +139,7 @@ export function SkillDetailModal({ skill, result, testDetail, userAnswers, userT
               <div className="flex items-center gap-3 mb-2">
                 <div className="flex-1 bg-gray-100 rounded-full h-2.5 overflow-hidden flex">
                   <div
-                    className="h-full bg-teal-500 transition-all duration-500"
+                    className="h-full bg-emerald-500 transition-all duration-500"
                     style={{ width: `${(correctQ / totalQ) * 100}%` }}
                   />
                   <div
@@ -144,8 +149,8 @@ export function SkillDetailModal({ skill, result, testDetail, userAnswers, userT
                 </div>
               </div>
               <div className="flex items-center gap-4 text-xs">
-                <span className="flex items-center gap-1.5 text-teal-600 font-semibold">
-                  <span className="w-2 h-2 rounded-full bg-teal-500" />
+                <span className="flex items-center gap-1.5 text-emerald-600 font-semibold">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500" />
                   {correctQ} đúng
                 </span>
                 <span className="flex items-center gap-1.5 text-red-500 font-semibold">
@@ -184,15 +189,15 @@ export function SkillDetailModal({ skill, result, testDetail, userAnswers, userT
                   <div
                     key={q.id}
                     className={`rounded-xl border overflow-hidden ${
-                      q.isCorrect ? 'border-teal-100' : 'border-red-100'
+                      q.isCorrect ? 'border-emerald-100' : 'border-red-100'
                     }`}
                   >
                     {/* Question header */}
                     <div className={`flex items-center gap-2.5 px-4 py-2.5 ${
-                      q.isCorrect ? 'bg-teal-50/60' : 'bg-red-50/60'
+                      q.isCorrect ? 'bg-emerald-50/60' : 'bg-red-50/60'
                     }`}>
                       <div className={`shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-white text-[10px] font-bold ${
-                        q.isCorrect ? 'bg-teal-500' : 'bg-red-400'
+                        q.isCorrect ? 'bg-emerald-500' : 'bg-red-400'
                       }`}>
                         {q.isCorrect ? '✓' : '✗'}
                       </div>
@@ -209,21 +214,21 @@ export function SkillDetailModal({ skill, result, testDetail, userAnswers, userT
                       {/* User's answer */}
                       <div className="flex items-start gap-2">
                         <span className={`text-[11px] font-semibold uppercase tracking-wider mt-0.5 shrink-0 w-16 ${
-                          q.isCorrect ? 'text-teal-500' : 'text-red-400'
+                          q.isCorrect ? 'text-emerald-500' : 'text-red-400'
                         }`}>
                           Bạn chọn
                         </span>
-                        <span className={`text-sm ${q.isCorrect ? 'text-teal-700' : 'text-red-600'}`}>
+                        <span className={`text-sm ${q.isCorrect ? 'text-emerald-700' : 'text-red-600'}`}>
                           {q.userAnswer}
                         </span>
                       </div>
                       {/* Correct answer (only if wrong) */}
                       {!q.isCorrect && q.correctAnswer && (
                         <div className="flex items-start gap-2">
-                          <span className="text-[11px] font-semibold uppercase tracking-wider mt-0.5 shrink-0 w-16 text-teal-500">
+                          <span className="text-[11px] font-semibold uppercase tracking-wider mt-0.5 shrink-0 w-16 text-emerald-500">
                             Đáp án
                           </span>
-                          <span className="text-sm text-teal-700 font-medium">
+                          <span className="text-sm text-emerald-700 font-medium">
                             {q.correctAnswer}
                           </span>
                         </div>

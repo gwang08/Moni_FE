@@ -180,6 +180,8 @@ export default function DashboardPage() {
   // Detect tour completion: when tourStep transitions back to 0 after being active,
   // clear the `showRoadmapTour` flag and notify other components (e.g. target-scores
   // waits for this to open the AI recommendation dialog).
+  // Dispatch is deferred ~400ms so the user sees the tour overlay/ring fully disappear
+  // before the AI dialog opens — prevents visual overlap reported by users.
   const tourActiveRef = useRef(false);
   useEffect(() => {
     if (tourStep > 0) {
@@ -190,7 +192,10 @@ export default function DashboardPage() {
       tourActiveRef.current = false;
       if (typeof window !== 'undefined') {
         sessionStorage.removeItem('showRoadmapTour');
-        window.dispatchEvent(new Event('roadmap-tour-completed'));
+        const t = setTimeout(() => {
+          window.dispatchEvent(new Event('roadmap-tour-completed'));
+        }, 400);
+        return () => clearTimeout(t);
       }
     }
   }, [tourStep]);

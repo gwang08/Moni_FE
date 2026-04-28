@@ -200,7 +200,7 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-gray-50 relative">
       {tourStep > 0 && (tourStep <= 7 || tourStep === 10) && hasRoadmapSub === true && (
-        <div className="fixed inset-0 top-14 bg-black/60 z-30 transition-opacity duration-300 flex flex-col items-center justify-center">
+        <div className="fixed inset-x-0 bottom-0 top-14 bg-black/60 z-30 transition-opacity duration-300 flex flex-col items-center justify-center">
           {tourStep === 4 && (
             <div className="flex flex-col items-center animate-in fade-in zoom-in-95 duration-500">
               <ChibiMascot mood="excited" size={160} />
@@ -246,12 +246,12 @@ export default function DashboardPage() {
 
       {/* Dim backdrop for paywall tour step 8 — sits below sticky header (z-50) */}
       {tourStep === 8 && (
-        <div className="fixed inset-0 top-14 bg-black/60 z-30 transition-opacity duration-300" />
+        <div className="fixed inset-x-0 bottom-0 top-14 bg-black/60 z-30 transition-opacity duration-300" />
       )}
 
       {/* Dim backdrop for new-week tour steps 11-12 — sits below sticky header (z-50) */}
       {(tourStep === 11 || tourStep === 12) && hasRoadmapSub === true && (
-        <div className="fixed inset-0 top-14 bg-black/60 z-30 transition-opacity duration-300" />
+        <div className="fixed inset-x-0 bottom-0 top-14 bg-black/60 z-30 transition-opacity duration-300" />
       )}
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">

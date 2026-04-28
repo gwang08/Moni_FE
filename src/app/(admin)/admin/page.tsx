@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { BookOpen, Bot, Coins, FileText, UserPlus, Users } from 'lucide-react';
+import { BookOpen, Bot, Coins, FileText, TrendingUp, UserPlus, Users } from 'lucide-react';
 import { SkeletonCard } from '@/components/ui/skeleton';
 import { useQuery } from '@tanstack/react-query';
 import { getAdminRevenueDashboard } from '@/lib/admin-api';
@@ -67,7 +67,6 @@ export default function AdminDashboardPage() {
   const initialFrom = defaultFromDate.toISOString().split('T')[0];
   const initialTo = today.toISOString().split('T')[0];
 
-  // Revenue date range
   const [revenueRange, setRevenueRange] = useState<DateRange>({
     startDate: initialFrom,
     endDate: initialTo,
@@ -86,7 +85,6 @@ export default function AdminDashboardPage() {
       }),
   });
 
-  // Chart data with gradient area
   const chartData = useMemo(() => {
     if (!currentData?.dailyRevenue) return [];
 
@@ -95,7 +93,6 @@ export default function AdminDashboardPage() {
       revenueMap.set(d.date, d.amount);
     });
 
-    // Get all dates in range and fill missing dates with 0
     const startDate = new Date(revenueRange.startDate);
     const endDate = new Date(revenueRange.endDate);
     const allDates: string[] = [];
@@ -127,7 +124,6 @@ export default function AdminDashboardPage() {
     ];
   }, [currentData]);
 
-  // Stacked bar chart data for scoring sessions
   const stackedBarData = useMemo(() => {
     if (!currentData?.dailyExpertJobs) return [];
 
@@ -136,7 +132,6 @@ export default function AdminDashboardPage() {
       jobMap.set(d.date, d);
     });
 
-    // Get all dates in range and fill missing dates with 0
     const startDate = new Date(revenueRange.startDate);
     const endDate = new Date(revenueRange.endDate);
     const allDates: string[] = [];
@@ -164,7 +159,9 @@ export default function AdminDashboardPage() {
   const isLoading = isCurrentLoading;
   const hasError = Boolean(currentError);
 
-  // Custom tooltip component
+  const totalJobs = (currentData?.expertWritingJobs ?? 0) + (currentData?.expertSpeakingJobs ?? 0) +
+    (currentData?.aiWritingJobs ?? 0) + (currentData?.aiSpeakingJobs ?? 0);
+
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       const value = payload[0].value;
@@ -180,12 +177,23 @@ export default function AdminDashboardPage() {
     return null;
   };
 
+  const dateRangeLabel = `${new Date(revenueRange.startDate).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })} - ${new Date(revenueRange.endDate).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })}`;
+
   return (
     <div>
       <AdminHeader title="Tổng quan" />
       <div className="space-y-6 p-6">
-        {/* Date Range Filter (Global for dashboard) */}
-        <div className="flex items-center gap-4 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+        {/* Date Range Filter */}
+        <div className="flex items-center justify-between rounded-2xl border border-gray-100 bg-white px-5 py-4 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-violet-500 to-purple-600">
+              <TrendingUp className="h-4 w-4 text-white" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-gray-800">Dashboard</p>
+              <p className="text-xs text-gray-400">{dateRangeLabel}</p>
+            </div>
+          </div>
           <div className="w-64">
             <DateRangePicker
               value={revenueRange}
@@ -196,57 +204,73 @@ export default function AdminDashboardPage() {
 
         {/* Platform Overview */}
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-          <div className="flex items-center gap-4 rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-            <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-blue-50">
-              <Users className="h-6 w-6 text-blue-600" />
-            </div>
-            <div>
-              <p className="text-sm font-medium text-gray-500">Người dùng tương tác</p>
-              <h4 className="text-2xl font-bold text-gray-900">{isLoading ? '-' : currentData?.totalUsers ?? '0'}</h4>
-            </div>
-          </div>
-          <div className="flex items-center gap-4 rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-            <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-emerald-50">
-              <UserPlus className="h-6 w-6 text-emerald-600" />
-            </div>
-            <div>
-              <p className="text-sm font-medium text-gray-500">Đăng ký mới</p>
-              <h4 className="text-2xl font-bold text-gray-900">{isLoading ? '-' : currentData?.newUsers ?? '0'}</h4>
+          <div className="group relative overflow-hidden rounded-2xl border border-gray-100 bg-white p-5 shadow-sm transition-all hover:shadow-md">
+            <div className="absolute -right-4 -top-4 h-24 w-24 rounded-full bg-blue-50 opacity-60 transition-transform group-hover:scale-110" />
+            <div className="relative flex items-center gap-4">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 shadow-lg shadow-blue-500/20">
+                <Users className="h-5 w-5 text-white" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-500">Người dùng tương tác</p>
+                <h4 className="text-2xl font-bold text-gray-900">{isLoading ? '-' : (currentData?.totalUsers ?? 0).toLocaleString('vi-VN')}</h4>
+              </div>
             </div>
           </div>
-          <div className="flex items-center gap-4 rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-            <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-purple-50">
-              <BookOpen className="h-6 w-6 text-purple-600" />
+          <div className="group relative overflow-hidden rounded-2xl border border-gray-100 bg-white p-5 shadow-sm transition-all hover:shadow-md">
+            <div className="absolute -right-4 -top-4 h-24 w-24 rounded-full bg-emerald-50 opacity-60 transition-transform group-hover:scale-110" />
+            <div className="relative flex items-center gap-4">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 shadow-lg shadow-emerald-500/20">
+                <UserPlus className="h-5 w-5 text-white" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-500">Đăng ký mới</p>
+                <h4 className="text-2xl font-bold text-gray-900">{isLoading ? '-' : (currentData?.newUsers ?? 0).toLocaleString('vi-VN')}</h4>
+              </div>
             </div>
-            <div>
-              <p className="text-sm font-medium text-gray-500">Lượt làm đề</p>
-              <h4 className="text-2xl font-bold text-gray-900">{isLoading ? '-' : currentData?.totalTests ?? '0'}</h4>
+          </div>
+          <div className="group relative overflow-hidden rounded-2xl border border-gray-100 bg-white p-5 shadow-sm transition-all hover:shadow-md">
+            <div className="absolute -right-4 -top-4 h-24 w-24 rounded-full bg-purple-50 opacity-60 transition-transform group-hover:scale-110" />
+            <div className="relative flex items-center gap-4">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500 to-purple-600 shadow-lg shadow-purple-500/20">
+                <BookOpen className="h-5 w-5 text-white" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-500">Lượt làm đề</p>
+                <h4 className="text-2xl font-bold text-gray-900">{isLoading ? '-' : (currentData?.totalTests ?? 0).toLocaleString('vi-VN')}</h4>
+              </div>
             </div>
           </div>
         </div>
 
         {/* Revenue Section */}
-        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-          <div className="mb-6 flex items-center gap-3">
-            <Coins className="h-5 w-5 text-emerald-600" />
-            <h3 className="text-lg font-semibold text-gray-800">Doanh thu</h3>
+        <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
+          <div className="mb-6 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600">
+                <Coins className="h-4 w-4 text-white" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-800">Doanh thu</h3>
+            </div>
           </div>
 
-          <div className="mb-6 grid grid-cols-2 gap-4 md:grid-cols-4">
-            <div className="rounded-lg bg-emerald-50 p-4">
-              <p className="text-sm text-gray-600">Doanh thu</p>
-              <p className="text-xl font-bold text-emerald-600">
+          <div className="mb-6 grid grid-cols-2 gap-4">
+            <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 p-5 text-white">
+              <div className="absolute -right-6 -top-6 h-20 w-20 rounded-full bg-white/10" />
+              <p className="text-sm font-medium text-emerald-100">Tổng doanh thu</p>
+              <p className="mt-1 text-2xl font-bold">
                 {vndFormatter.format(currentData?.topupRevenue ?? 0)}
               </p>
             </div>
-            <div className="rounded-lg bg-blue-50 p-4">
-              <p className="text-sm text-gray-600">Giao dịch</p>
-              <p className="text-xl font-bold text-blue-600">{currentData?.topupCount ?? 0}</p>
+            <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 p-5 text-white">
+              <div className="absolute -right-6 -top-6 h-20 w-20 rounded-full bg-white/10" />
+              <p className="text-sm font-medium text-blue-100">Số giao dịch</p>
+              <p className="mt-1 text-2xl font-bold">{(currentData?.topupCount ?? 0).toLocaleString('vi-VN')}</p>
             </div>
           </div>
 
           {/* Revenue Chart */}
-          <div className="mt-6">
+          <div className="mt-4 rounded-xl bg-gray-50/50 p-4">
+            <h4 className="mb-4 text-sm font-medium text-gray-600">Biểu đồ doanh thu theo ngày</h4>
             {isLoading ? (
               <SkeletonCard className="h-80" />
             ) : hasError ? (
@@ -254,7 +278,7 @@ export default function AdminDashboardPage() {
             ) : chartData.length === 0 ? (
               <p className="py-12 text-center text-gray-500">Không có dữ liệu doanh thu trong khoảng thời gian này</p>
             ) : (
-              <div className="h-[400px]">
+              <div className="h-[380px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={chartData} margin={{ top: 20, right: 30, left: 0, bottom: 0 }}>
                     <defs>
@@ -263,7 +287,7 @@ export default function AdminDashboardPage() {
                         <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
                       </linearGradient>
                     </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
                     <XAxis
                       dataKey="date"
                       tick={{ fontSize: 12, fill: '#64748b' }}
@@ -284,7 +308,7 @@ export default function AdminDashboardPage() {
                       type="monotone"
                       dataKey="revenue"
                       stroke="#10b981"
-                      strokeWidth={2}
+                      strokeWidth={2.5}
                       fill="url(#colorRevenue)"
                       dot={false}
                       activeDot={{ r: 6, fill: '#10b981', stroke: '#fff', strokeWidth: 2 }}
@@ -293,7 +317,7 @@ export default function AdminDashboardPage() {
                       type="monotone"
                       dataKey="revenue"
                       stroke="#10b981"
-                      strokeWidth={2}
+                      strokeWidth={2.5}
                       dot={false}
                       activeDot={false}
                     />
@@ -304,11 +328,18 @@ export default function AdminDashboardPage() {
           </div>
         </div>
 
-        {/* Expert Work Detail Section */}
-        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-          <div className="mb-4 flex items-center gap-3">
-            <FileText className="h-5 w-5 text-orange-600" />
-            <h3 className="text-lg font-semibold text-gray-800">Số bài chấm</h3>
+        {/* Scoring Section */}
+        <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
+          <div className="mb-6 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-orange-500 to-rose-500 shadow-lg shadow-orange-500/20">
+                <FileText className="h-4 w-4 text-white" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-800">Số bài chấm</h3>
+                <p className="text-xs text-gray-400">Tổng: {totalJobs} bài</p>
+              </div>
+            </div>
           </div>
 
           {isLoading ? (
@@ -316,57 +347,112 @@ export default function AdminDashboardPage() {
           ) : hasError ? (
             <p className="py-12 text-center text-red-500">Không thể tải dữ liệu dashboard</p>
           ) : (
-            <div className="space-y-4">
-              {/* Summary Stats + Doughnut Chart */}
-              <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-                {/* 4 Metric Cards */}
-                <div className="grid grid-cols-2 gap-4 lg:col-span-2">
-                  <div className="rounded-lg bg-orange-50 p-4">
-                    <p className="text-sm font-medium text-gray-600">Expert Writing</p>
-                    <p className="text-2xl font-bold text-orange-600">{currentData?.expertWritingJobs ?? 0}</p>
-                  </div>
-                  <div className="rounded-lg bg-pink-50 p-4">
-                    <p className="text-sm font-medium text-gray-600">Expert Speaking</p>
-                    <p className="text-2xl font-bold text-pink-600">{currentData?.expertSpeakingJobs ?? 0}</p>
-                  </div>
-                  <div className="rounded-lg bg-blue-50 p-4">
-                    <p className="text-sm font-medium text-gray-600 flex items-center gap-1"><Bot className="h-3 w-3"/> AI Writing</p>
-                    <p className="text-2xl font-bold text-blue-600">{currentData?.aiWritingJobs ?? 0}</p>
-                  </div>
-                  <div className="rounded-lg bg-indigo-50 p-4">
-                    <p className="text-sm font-medium text-gray-600 flex items-center gap-1"><Bot className="h-3 w-3"/> AI Speaking</p>
-                    <p className="text-2xl font-bold text-indigo-600">{currentData?.aiSpeakingJobs ?? 0}</p>
+            <div className="space-y-6">
+              {/* Top row: 4 metric cards in a single row */}
+              <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+                <div className="group relative overflow-hidden rounded-2xl border border-orange-100 p-5 transition-all hover:shadow-lg hover:shadow-orange-100/50">
+                  <div className="absolute inset-0 bg-gradient-to-br from-orange-50 via-amber-50 to-orange-100/30" />
+                  <div className="absolute -right-3 -top-3 h-16 w-16 rounded-full bg-orange-200/30 transition-transform group-hover:scale-125" />
+                  <div className="relative">
+                    <div className="mb-3 flex items-center gap-2">
+                      <div className="flex h-6 w-6 items-center justify-center rounded-md bg-orange-500/10">
+                        <span className="inline-block h-2 w-2 rounded-full bg-orange-500" />
+                      </div>
+                      <p className="text-sm font-medium text-gray-600">Expert Writing</p>
+                    </div>
+                    <p className="text-3xl font-extrabold text-orange-600">{(currentData?.expertWritingJobs ?? 0).toLocaleString('vi-VN')}</p>
                   </div>
                 </div>
 
+<<<<<<< HEAD
                 {/* Doughnut Chart: Expert vs AI Revenue */}
                 <div className="flex flex-col items-center justify-center rounded-lg bg-gray-50 p-4">
                   <p className="mb-2 text-sm font-semibold text-gray-700">Tỉ trọng bài chấm</p>
+=======
+                <div className="group relative overflow-hidden rounded-2xl border border-pink-100 p-5 transition-all hover:shadow-lg hover:shadow-pink-100/50">
+                  <div className="absolute inset-0 bg-gradient-to-br from-pink-50 via-rose-50 to-pink-100/30" />
+                  <div className="absolute -right-3 -top-3 h-16 w-16 rounded-full bg-pink-200/30 transition-transform group-hover:scale-125" />
+                  <div className="relative">
+                    <div className="mb-3 flex items-center gap-2">
+                      <div className="flex h-6 w-6 items-center justify-center rounded-md bg-pink-500/10">
+                        <span className="inline-block h-2 w-2 rounded-full bg-pink-500" />
+                      </div>
+                      <p className="text-sm font-medium text-gray-600">Expert Speaking</p>
+                    </div>
+                    <p className="text-3xl font-extrabold text-pink-600">{(currentData?.expertSpeakingJobs ?? 0).toLocaleString('vi-VN')}</p>
+                  </div>
+                </div>
+
+                <div className="group relative overflow-hidden rounded-2xl border border-blue-100 p-5 transition-all hover:shadow-lg hover:shadow-blue-100/50">
+                  <div className="absolute inset-0 bg-gradient-to-br from-blue-50 via-sky-50 to-blue-100/30" />
+                  <div className="absolute -right-3 -top-3 h-16 w-16 rounded-full bg-blue-200/30 transition-transform group-hover:scale-125" />
+                  <div className="relative">
+                    <div className="mb-3 flex items-center gap-2">
+                      <div className="flex h-6 w-6 items-center justify-center rounded-md bg-blue-500/10">
+                        <Bot className="h-3 w-3 text-blue-500" />
+                      </div>
+                      <p className="text-sm font-medium text-gray-600">AI Writing</p>
+                    </div>
+                    <p className="text-3xl font-extrabold text-blue-600">{(currentData?.aiWritingJobs ?? 0).toLocaleString('vi-VN')}</p>
+                  </div>
+                </div>
+
+                <div className="group relative overflow-hidden rounded-2xl border border-violet-100 p-5 transition-all hover:shadow-lg hover:shadow-violet-100/50">
+                  <div className="absolute inset-0 bg-gradient-to-br from-violet-50 via-indigo-50 to-violet-100/30" />
+                  <div className="absolute -right-3 -top-3 h-16 w-16 rounded-full bg-violet-200/30 transition-transform group-hover:scale-125" />
+                  <div className="relative">
+                    <div className="mb-3 flex items-center gap-2">
+                      <div className="flex h-6 w-6 items-center justify-center rounded-md bg-violet-500/10">
+                        <Bot className="h-3 w-3 text-violet-500" />
+                      </div>
+                      <p className="text-sm font-medium text-gray-600">AI Speaking</p>
+                    </div>
+                    <p className="text-3xl font-extrabold text-violet-600">{(currentData?.aiSpeakingJobs ?? 0).toLocaleString('vi-VN')}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Doughnut + Stacked Bar side by side */}
+              <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+                {/* Doughnut Chart */}
+                <div className="flex flex-col items-center justify-center rounded-2xl border border-gray-100 bg-gradient-to-br from-slate-50 to-gray-50 p-6">
+                  <p className="mb-4 text-sm font-semibold text-gray-700">Tỉ trọng doanh thu credit</p>
+>>>>>>> ae5b291 (ui: redesign admin dashboard for better visual polish)
                   {doughnutData.length > 0 ? (
-                    <div className="flex w-full flex-col items-center gap-2">
-                      <ResponsiveContainer width="100%" height={160}>
+                    <div className="flex w-full flex-col items-center gap-4">
+                      <ResponsiveContainer width="100%" height={180}>
                         <PieChart>
+                          <defs>
+                            <linearGradient id="expertGrad" x1="0" y1="0" x2="1" y2="1">
+                              <stop offset="0%" stopColor="#f97316" />
+                              <stop offset="100%" stopColor="#f59e0b" />
+                            </linearGradient>
+                            <linearGradient id="aiGrad" x1="0" y1="0" x2="1" y2="1">
+                              <stop offset="0%" stopColor="#3b82f6" />
+                              <stop offset="100%" stopColor="#6366f1" />
+                            </linearGradient>
+                          </defs>
                           <Pie
                             data={doughnutData}
                             dataKey="value"
                             nameKey="name"
                             cx="50%"
                             cy="50%"
-                            innerRadius={45}
-                            outerRadius={70}
+                            innerRadius={52}
+                            outerRadius={78}
                             paddingAngle={4}
-                            cornerRadius={4}
+                            cornerRadius={6}
                           >
-                            {doughnutData.map((entry, index) => (
-                              <Cell key={`cell-${index}`} fill={index === 0 ? '#f97316' : '#3b82f6'} />
+                            {doughnutData.map((_entry, index) => (
+                              <Cell key={`cell-${index}`} fill={`url(#${index === 0 ? 'expertGrad' : 'aiGrad'})`} />
                             ))}
                           </Pie>
                           <Tooltip
                             contentStyle={{
                               backgroundColor: 'white',
                               border: '1px solid #e5e7eb',
-                              borderRadius: '8px',
-                              boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
+                              borderRadius: '12px',
+                              boxShadow: '0 10px 25px -5px rgb(0 0 0 / 0.1)',
                             }}
                             formatter={(value: number, name: string, props: any) => {
                               const pct = props.payload.percent;
@@ -375,13 +461,13 @@ export default function AdminDashboardPage() {
                           />
                         </PieChart>
                       </ResponsiveContainer>
-                      <div className="flex gap-4 text-xs font-medium">
-                        <span className="flex items-center gap-1">
-                          <span className="inline-block h-3 w-3 rounded-sm bg-orange-500" />
+                      <div className="flex gap-6 text-sm font-medium">
+                        <span className="flex items-center gap-2">
+                          <span className="inline-block h-3 w-3 rounded-full bg-gradient-to-r from-orange-500 to-amber-500" />
                           Expert {doughnutData[0]?.percent}%
                         </span>
-                        <span className="flex items-center gap-1">
-                          <span className="inline-block h-3 w-3 rounded-sm bg-blue-500" />
+                        <span className="flex items-center gap-2">
+                          <span className="inline-block h-3 w-3 rounded-full bg-gradient-to-r from-blue-500 to-indigo-500" />
                           AI {doughnutData[1]?.percent}%
                         </span>
                       </div>
@@ -390,76 +476,72 @@ export default function AdminDashboardPage() {
                     <p className="py-8 text-center text-sm text-gray-400">Không có dữ liệu</p>
                   )}
                 </div>
-              </div>
 
-              {/* Expert Jobs Chart - Stacked Column */}
-              {stackedBarData.length > 0 && (
-                <div className="mt-6">
-                  <h4 className="mb-3 text-sm font-medium text-gray-700">
-                    Biểu đồ bài chấm theo ngày
-                  </h4>
-                  <div className="h-[300px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={stackedBarData} margin={{ top: 20, right: 30, left: 0, bottom: 0 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
-                        <XAxis
-                          dataKey="date"
-                          tick={{ fontSize: 12, fill: '#64748b' }}
-                          tickLine={false}
-                          axisLine={false}
-                          tickMargin={10}
-                        />
-                        <YAxis
-                          tick={{ fontSize: 12, fill: '#64748b' }}
-                          tickLine={false}
-                          axisLine={false}
-                          tickMargin={10}
-                        />
-                        <Tooltip
-                          contentStyle={{
-                            backgroundColor: 'white',
-                            border: '1px solid #e5e7eb',
-                            borderRadius: '8px',
-                            boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
-                          }}
-                          formatter={(value: number, name: string) => {
-                            const labels: Record<string, string> = {
-                              expWriting: 'Expert Writing',
-                              expSpeaking: 'Expert Speaking',
-                              aiWriting: 'AI Writing',
-                              aiSpeaking: 'AI Speaking',
-                            };
-                            return [`${value} bài`, labels[name] || name];
-                          }}
-                          labelFormatter={(label) => `Ngày: ${label}`}
-                        />
-                        <Legend
-                          formatter={(value: string) => {
-                            const labels: Record<string, string> = {
-                              expWriting: 'Expert Writing',
-                              expSpeaking: 'Expert Speaking',
-                              aiWriting: 'AI Writing',
-                              aiSpeaking: 'AI Speaking',
-                            };
-                            return labels[value] || value;
-                          }}
-                        />
-                        {/* All 4 series stacked on a single stackId */}
-                        <Bar dataKey="expWriting" stackId="all" name="Expert Writing" fill="#f97316" radius={[0, 0, 0, 0]} />
-                        <Bar dataKey="expSpeaking" stackId="all" name="Expert Speaking" fill="#ec4899" radius={[0, 0, 0, 0]} />
-                        <Bar dataKey="aiWriting" stackId="all" name="AI Writing" fill="#3b82f6" radius={[0, 0, 0, 0]} />
-                        <Bar dataKey="aiSpeaking" stackId="all" name="AI Speaking" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
-                      </BarChart>
-                    </ResponsiveContainer>
+                {/* Stacked Bar Chart */}
+                {stackedBarData.length > 0 && (
+                  <div className="rounded-2xl border border-gray-100 bg-gradient-to-br from-slate-50 to-gray-50 p-5 lg:col-span-2">
+                    <h4 className="mb-4 text-sm font-semibold text-gray-700">
+                      Biểu đồ bài chấm theo ngày
+                    </h4>
+                    <div className="h-[280px]">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={stackedBarData} margin={{ top: 10, right: 20, left: -10, bottom: 0 }}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
+                          <XAxis
+                            dataKey="date"
+                            tick={{ fontSize: 11, fill: '#94a3b8' }}
+                            tickLine={false}
+                            axisLine={false}
+                            tickMargin={10}
+                            interval="preserveStartEnd"
+                          />
+                          <YAxis
+                            tick={{ fontSize: 11, fill: '#94a3b8' }}
+                            tickLine={false}
+                            axisLine={false}
+                            tickMargin={8}
+                          />
+                          <Tooltip
+                            contentStyle={{
+                              backgroundColor: 'white',
+                              border: '1px solid #e5e7eb',
+                              borderRadius: '12px',
+                              boxShadow: '0 10px 25px -5px rgb(0 0 0 / 0.1)',
+                            }}
+                            formatter={(value: number, name: string) => {
+                              const labels: Record<string, string> = {
+                                expWriting: 'Expert Writing',
+                                expSpeaking: 'Expert Speaking',
+                                aiWriting: 'AI Writing',
+                                aiSpeaking: 'AI Speaking',
+                              };
+                              return [`${value} bài`, labels[name] || name];
+                            }}
+                            labelFormatter={(label) => `Ngày: ${label}`}
+                          />
+                          <Legend
+                            iconType="circle"
+                            iconSize={8}
+                            wrapperStyle={{ fontSize: '12px', paddingTop: '8px' }}
+                            formatter={(value: string) => {
+                              const labels: Record<string, string> = {
+                                expWriting: 'Expert Writing',
+                                expSpeaking: 'Expert Speaking',
+                                aiWriting: 'AI Writing',
+                                aiSpeaking: 'AI Speaking',
+                              };
+                              return labels[value] || value;
+                            }}
+                          />
+                          <Bar dataKey="expWriting" stackId="all" name="Expert Writing" fill="#f97316" radius={[0, 0, 0, 0]} />
+                          <Bar dataKey="expSpeaking" stackId="all" name="Expert Speaking" fill="#ec4899" radius={[0, 0, 0, 0]} />
+                          <Bar dataKey="aiWriting" stackId="all" name="AI Writing" fill="#3b82f6" radius={[0, 0, 0, 0]} />
+                          <Bar dataKey="aiSpeaking" stackId="all" name="AI Speaking" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
                   </div>
-                </div>
-              )}
-
-              {/* Date Range Info */}
-              <div className="mt-4 rounded-lg bg-gray-50 p-4">
-                <p className="text-sm text-gray-600">
-                  {new Date(revenueRange.startDate).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })} - {new Date(revenueRange.endDate).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })}
-                </p>
+                )}
               </div>
             </div>
           )}

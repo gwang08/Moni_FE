@@ -1,9 +1,11 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
 import { ChibiMascot, ChibiAnimationStyles } from '@/components/ui/chibi-mascot';
 import type { UserSubscriptionResponse } from '@/types/subscription.types';
+import { getServiceQuota, type ServiceQuotaResponse } from '@/lib/payment-api';
 
 /** AI unlimited cap used alongside quotaAi === -1. */
 const AI_UNLIMITED_CAP = 500;
@@ -86,36 +88,52 @@ export function WritingScoringOptionsDialog({
   onSkip,
   onBuyPackage,
 }: Props) {
+  const [aiQuota, setAiQuota] = useState<ServiceQuotaResponse | null>(null);
+
+  // Fetch quota every time dialog opens — ensures accurate free turn status
+  useEffect(() => {
+    if (open) {
+      getServiceQuota('AI_WRITING_SCORE').then(setAiQuota).catch(() => {});
+    }
+  }, [open]);
+
   // ── AI logic ──
+  // Priority: free daily turn → subscription quota → buy
+  const hasFreeToday = !aiQuota || !aiQuota.usedToday;
+  const hasSubQuota = activeSubscription && aiCoveredBySub(activeSubscription);
+
   let aiBadge: React.ReactNode;
   let aiDescription = 'Nhận kết quả trong 30 giây';
-  let aiHasQuota = false;
-  let aiHandler = onBuyPackage;
+  let aiHandler: () => void;
 
-  if (activeSubscription && aiCoveredBySub(activeSubscription)) {
+  if (hasFreeToday) {
+    aiBadge = <SubBadge label="Miễn phí 1 lượt/ngày" />;
+    aiDescription = hasSubQuota
+      ? 'Dùng lượt miễn phí (không trừ gói)'
+      : 'Lượt miễn phí hôm nay';
+    aiHandler = onAIScore;
+  } else if (hasSubQuota && activeSubscription) {
     const remaining =
       activeSubscription.remainAi === -1
         ? AI_UNLIMITED_CAP - activeSubscription.usedAi
         : activeSubscription.remainAi;
     aiBadge = <SubBadge label={`Trong gói · còn ${remaining} lượt`} />;
     aiDescription = `Dùng gói ${activeSubscription.planName}`;
-    aiHasQuota = true;
     aiHandler = onAIScore;
   } else {
     aiBadge = <NoQuotaBadge />;
-    aiDescription = 'Bạn chưa có lượt chấm AI';
+    aiDescription = 'Hết lượt miễn phí hôm nay';
+    aiHandler = onBuyPackage;
   }
 
   // ── Expert logic ──
   let expertBadge: React.ReactNode;
   let expertDescription = 'Giảng viên chấm và gửi feedback';
-  let expertHasQuota = false;
   let expertHandler = onBuyPackage;
 
   if (activeSubscription && activeSubscription.remainExpert > 0) {
     expertBadge = <SubBadge label={`Trong gói · còn ${activeSubscription.remainExpert} lượt`} />;
     expertDescription = `Dùng gói ${activeSubscription.planName}`;
-    expertHasQuota = true;
     expertHandler = onExpertScore;
   } else {
     expertBadge = <NoQuotaBadge />;

@@ -288,7 +288,7 @@ export function TargetScores() {
               <BarChart3 className="w-4 h-4 text-gray-500" />
               Trình độ hiện tại
             </h4>
-            {placementResult && (
+            {false && placementResult && (
               <button
                 onClick={handleReset}
                 disabled={resetting}

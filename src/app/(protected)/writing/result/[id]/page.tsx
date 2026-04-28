@@ -15,6 +15,7 @@ import { useWritingStore } from '@/store/writing-store';
 import { getWritingSubmissionDetail, type WritingSubmissionDetail } from '@/lib/ai-api';
 import { getMyActiveSubscription } from '@/lib/subscription-api';
 import type { UserSubscriptionResponse } from '@/types/subscription.types';
+import { getServiceQuota, type ServiceQuotaResponse } from '@/lib/payment-api';
 import type { WritingTaskType } from '@/types/writing.types';
 import { normalise } from '@/components/score-result/normalise';
 import { ResultHero } from '@/components/score-result/hero';
@@ -37,6 +38,7 @@ export default function WritingResultPage({ params }: Props) {
   const [loading, setLoading] = useState(true);
   const [essayOpen, setEssayOpen] = useState(true);
   const [activeSubscription, setActiveSubscription] = useState<UserSubscriptionResponse | null>(null);
+  const [aiQuota, setAiQuota] = useState<ServiceQuotaResponse | null>(null);
 
   const testIdStr = submission?.testId ? String(submission.testId) : '';
   const { testDetail } = useTestDetail(testIdStr);
@@ -56,6 +58,7 @@ export default function WritingResultPage({ params }: Props) {
   useEffect(() => {
     fetchSubmission();
     getMyActiveSubscription().then(setActiveSubscription).catch(() => {});
+    getServiceQuota('AI_WRITING_SCORE').then(setAiQuota).catch(() => {});
   }, [fetchSubmission]);
 
   const handleAiScore = async () => {
@@ -97,11 +100,13 @@ export default function WritingResultPage({ params }: Props) {
   const scored = normData !== null;
 
   const AI_UNLIMITED_CAP = 500;
-  const hasAiQuota = activeSubscription
+  const hasFreeToday = !aiQuota || !aiQuota.usedToday;
+  const hasSubQuota = activeSubscription
     ? activeSubscription.remainAi === -1
       ? activeSubscription.usedAi < AI_UNLIMITED_CAP
       : activeSubscription.remainAi > 0
     : false;
+  const hasAiQuota = hasFreeToday || hasSubQuota;
 
   const submittedDate = new Date(
     submission.submittedAt.includes('Z') ? submission.submittedAt : submission.submittedAt + 'Z',
@@ -231,11 +236,11 @@ export default function WritingResultPage({ params }: Props) {
                   Bắt đầu chấm điểm
                 </Button>
                 <span className="text-xs text-slate-500 font-medium">
-                  Còn{' '}
-                  {activeSubscription!.remainAi === -1
-                    ? AI_UNLIMITED_CAP - activeSubscription!.usedAi
-                    : activeSubscription!.remainAi}{' '}
-                  lượt chấm AI
+                  {hasFreeToday
+                    ? 'Miễn phí 1 lượt/ngày'
+                    : activeSubscription
+                      ? `Còn ${activeSubscription.remainAi === -1 ? AI_UNLIMITED_CAP - activeSubscription.usedAi : activeSubscription.remainAi} lượt chấm AI (gói ${activeSubscription.planName})`
+                      : ''}
                 </span>
               </div>
             ) : (

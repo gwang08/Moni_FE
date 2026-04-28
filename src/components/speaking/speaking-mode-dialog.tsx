@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { ArrowLeft, Search } from 'lucide-react';
+import { ArrowLeft, Search, Mic, GraduationCap, Sparkles, ShieldCheck } from 'lucide-react';
 import { getExpertsForSpeaking, createScoringSession } from '@/lib/expert-api';
 import { useAuthStore } from '@/store/auth-store';
 import { toast } from 'sonner';
@@ -14,7 +14,6 @@ import { SpeakingModeExpertInlineConfirm } from './speaking-mode-expert-inline-c
 import type { ExpertProfile } from '@/types/expert.types';
 import type { ServiceQuotaResponse } from '@/lib/payment-api';
 import type { UserSubscriptionResponse } from '@/types/subscription.types';
-import { formatVnd } from '@/lib/utils';
 
 /** AI unlimited cap: same constant as writing dialog. */
 const AI_UNLIMITED_CAP = 500;
@@ -95,70 +94,76 @@ export function SpeakingModeDialog({ open, testId, aiQuota = null, expertCost = 
           </DialogTitle>
         </DialogHeader>
 
-        {step === 1 && (
-          <div className="grid grid-cols-2 gap-4 mt-2">
-            {/* AI option */}
-            <button
-              onClick={onSelectAI}
-              className="flex flex-col items-center gap-3 p-5 rounded-2xl border-2 border-blue-200 bg-blue-50 hover:border-blue-400 hover:bg-blue-100 transition-all text-left"
-            >
-              <span className="text-4xl">🤖</span>
-              <div className="space-y-1 text-center">
-                <p className="font-semibold text-sm text-blue-900">Luyện tập với AI</p>
-                <p className="text-xs text-blue-700/70">Tự ghi âm và nhận phản hồi từ AI ngay lập tức</p>
-              </div>
-              {/* Subscription takes priority over free/pay-per-use display */}
-              {(() => {
-                const subCoversAi = activeSubscription && (
-                  activeSubscription.remainAi === -1
-                    ? activeSubscription.usedAi < AI_UNLIMITED_CAP
-                    : activeSubscription.remainAi > 0
-                );
-                if (subCoversAi && activeSubscription) {
-                  const rem = activeSubscription.remainAi === -1
-                    ? AI_UNLIMITED_CAP - activeSubscription.usedAi
-                    : activeSubscription.remainAi;
-                  return (
-                    <span className="text-xs font-semibold text-indigo-700 bg-indigo-100 border border-indigo-200 px-2 py-0.5 rounded-full">
-                      Trong gói · còn {rem} lượt
-                    </span>
-                  );
-                }
-                if (aiQuota == null) return null;
-                return aiQuota.usedToday ? (
-                  <span className="flex items-center gap-1 text-xs font-medium text-blue-800 bg-blue-200/60 px-2 py-0.5 rounded-full">
-                    {formatVnd(aiQuota.effectiveCost)}
+        {step === 1 && (() => {
+          const hasFreeToday = !aiQuota || !aiQuota.usedToday;
+          const subCoversAi = activeSubscription && (
+            activeSubscription.remainAi === -1
+              ? activeSubscription.usedAi < AI_UNLIMITED_CAP
+              : activeSubscription.remainAi > 0
+          );
+          const canUseAI = hasFreeToday || subCoversAi;
+          const hasExpertQuota = activeSubscription && activeSubscription.remainExpert > 0;
+
+          let aiBadge: React.ReactNode;
+          let aiBadgeColor = '';
+          if (hasFreeToday) {
+            aiBadge = 'Miễn phí 1 lượt/ngày';
+            aiBadgeColor = 'text-emerald-700 bg-emerald-50 border-emerald-200';
+          } else if (subCoversAi && activeSubscription) {
+            const rem = activeSubscription.remainAi === -1
+              ? AI_UNLIMITED_CAP - activeSubscription.usedAi
+              : activeSubscription.remainAi;
+            aiBadge = `Trong gói · còn ${rem} lượt`;
+            aiBadgeColor = 'text-indigo-700 bg-indigo-50 border-indigo-200';
+          } else {
+            aiBadge = 'Cần mua gói →';
+            aiBadgeColor = 'text-amber-700 bg-amber-50 border-amber-200';
+          }
+
+          return (
+            <div className="grid grid-cols-2 gap-4 mt-2">
+              {/* AI option */}
+              <button
+                onClick={canUseAI ? onSelectAI : () => { onClose(); router.push('/payment'); }}
+                className="group flex flex-col items-center gap-4 p-6 rounded-2xl border-2 border-teal-100 bg-gradient-to-b from-teal-50/80 to-white hover:border-teal-300 hover:shadow-lg hover:shadow-teal-100/50 transition-all"
+              >
+                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-teal-500 to-emerald-600 flex items-center justify-center shadow-lg shadow-teal-200/50 group-hover:scale-110 transition-transform">
+                  <Mic className="h-7 w-7 text-white" />
+                </div>
+                <div className="space-y-1 text-center">
+                  <p className="font-bold text-sm text-gray-900">Luyện tập với AI</p>
+                  <p className="text-xs text-gray-500 leading-relaxed">Tự ghi âm và nhận phản hồi từ AI ngay lập tức</p>
+                </div>
+                <span className={`text-[11px] font-semibold border px-2.5 py-1 rounded-full ${aiBadgeColor}`}>
+                  {aiBadge}
+                </span>
+              </button>
+
+              {/* Expert option */}
+              <button
+                onClick={hasExpertQuota ? handleGoToExpertList : () => { onClose(); router.push('/payment'); }}
+                className="group flex flex-col items-center gap-4 p-6 rounded-2xl border-2 border-orange-100 bg-gradient-to-b from-orange-50/80 to-white hover:border-orange-300 hover:shadow-lg hover:shadow-orange-100/50 transition-all"
+              >
+                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-orange-400 to-rose-500 flex items-center justify-center shadow-lg shadow-orange-200/50 group-hover:scale-110 transition-transform">
+                  <GraduationCap className="h-7 w-7 text-white" />
+                </div>
+                <div className="space-y-1 text-center">
+                  <p className="font-bold text-sm text-gray-900">Nói với Giảng viên</p>
+                  <p className="text-xs text-gray-500 leading-relaxed">Video call trực tiếp và được chấm bởi giảng viên</p>
+                </div>
+                {hasExpertQuota ? (
+                  <span className="text-[11px] font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200 px-2.5 py-1 rounded-full">
+                    Trong gói · còn {activeSubscription!.remainExpert} lượt
                   </span>
                 ) : (
-                  <span className="text-xs font-semibold text-emerald-700 bg-emerald-100 border border-emerald-200 px-2 py-0.5 rounded-full">
-                    Miễn phí
+                  <span className="text-[11px] font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-full">
+                    Cần mua gói →
                   </span>
-                );
-              })()}
-            </button>
-
-            {/* Expert option */}
-            <button
-              onClick={handleGoToExpertList}
-              className="flex flex-col items-center gap-3 p-5 rounded-2xl border-2 border-orange-200 bg-orange-50 hover:border-orange-400 hover:bg-orange-100 transition-all text-left"
-            >
-              <span className="text-4xl">👨‍🏫</span>
-              <div className="space-y-1 text-center">
-                <p className="font-semibold text-sm text-orange-900">Nói với Giảng viên</p>
-                <p className="text-xs text-orange-700/70">Video call trực tiếp và được chấm bởi giảng viên</p>
-              </div>
-              {activeSubscription && activeSubscription.remainExpert > 0 ? (
-                <span className="text-xs font-semibold text-indigo-700 bg-indigo-100 border border-indigo-200 px-2 py-0.5 rounded-full">
-                  Trong gói · còn {activeSubscription.remainExpert} lượt
-                </span>
-              ) : (
-                <span className="text-xs font-semibold text-orange-800 bg-orange-200/60 border border-orange-300 px-2 py-0.5 rounded-full">
-                  Cần mua gói
-                </span>
-              )}
-            </button>
-          </div>
-        )}
+                )}
+              </button>
+            </div>
+          );
+        })()}
 
         {step === 2 && (
           <div className="space-y-3 mt-1">

@@ -23,6 +23,7 @@ import { WritingFiltersPanel, type WritingFilters } from '@/components/practice/
 import { WRITING_TASK1_TYPE_CODES, WRITING_TASK2_TYPE_CODES } from '@/components/practice/writing-filter-constants';
 import type { Exercise, Skill, TestMode, TestType } from '@/types/practice.types';
 import { useLoginPrompt } from '@/hooks/use-login-prompt';
+import { useCompletedTestIds } from '@/hooks/use-completed-test-ids';
 import { LoginPromptDialog } from '@/components/auth/login-prompt-dialog';
 
 const SKILL_CONFIG = {
@@ -223,6 +224,14 @@ function PracticePage() {
   const { showPrompt, setShowPrompt, requireAuth } = useLoginPrompt();
 
   const completedExercises = usePracticeStore((state) => state.completedExercises);
+  // Source of truth từ backend (đa thiết bị, không bị reset khi clear cache).
+  // Local store giữ làm cache để hiện badge "Đã hoàn thành" tức thì sau submit.
+  const { data: completedFromBackend } = useCompletedTestIds();
+  const completedSet = useMemo(() => {
+    const s = new Set<string>(completedExercises);
+    completedFromBackend?.forEach((id) => s.add(id));
+    return s;
+  }, [completedExercises, completedFromBackend]);
   const { exercises, loading, error, page, totalPages, setPage, retry } = usePracticeExercises(activeSkill, activePassage, activeMode);
   const isAdminPreview = useAuthStore((state) => state.user?.role) === 'ADMIN';
 
@@ -268,9 +277,9 @@ function PracticePage() {
     // Filter completed/not — in-progress tests (active session) always show in "Bài chưa làm"
     if (!isAdminPreview) {
       if (showCompleted) {
-        list = list.filter((e) => completedExercises.includes(e.id) && !activeSessions.has(Number(e.id)));
+        list = list.filter((e) => completedSet.has(e.id) && !activeSessions.has(Number(e.id)));
       } else {
-        list = list.filter((e) => !completedExercises.includes(e.id) || activeSessions.has(Number(e.id)));
+        list = list.filter((e) => !completedSet.has(e.id) || activeSessions.has(Number(e.id)));
       }
     }
     if (searchQuery) {
@@ -284,7 +293,7 @@ function PracticePage() {
       return bActive - aActive;
     });
     return list;
-  }, [exercises, activeMode, activeTestType, activeQuestionType, activeSkill, activePassage, writingFilters.type, showCompleted, searchQuery, completedExercises, isAdminPreview, activeSessions]);
+  }, [exercises, activeMode, activeTestType, activeQuestionType, activeSkill, activePassage, writingFilters.type, showCompleted, searchQuery, completedSet, isAdminPreview, activeSessions]);
 
   const handleStartExercise = (exercise: Exercise) => {
     requireAuth(() => {
@@ -457,7 +466,7 @@ function PracticePage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
                 {filteredExercises.map((exercise) => {
                   const config = SKILL_CONFIG[exercise.skill];
-                  const isCompleted = completedExercises.includes(exercise.id);
+                  const isCompleted = completedSet.has(exercise.id);
                   const imgSrc = exercise.thumbnailUrl || DEFAULT_IMAGES[exercise.skill] || DEFAULT_IMAGES.reading;
                   const activeExam = activeSessions.get(Number(exercise.id));
                   const remainingMin = activeExam ? Math.floor(activeExam.remainingSeconds / 60) : 0;

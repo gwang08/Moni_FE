@@ -6,6 +6,8 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 export type WritingTaskType = 'TASK_1' | 'TASK_2';
 export type WritingEvaluationStatus = 'PENDING' | 'SUBMITTED' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | string;
 
+export type ScoringSessionStatus = 'QUEUED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED' | string;
+
 export interface WritingSubmission {
   submissionId: number;
   testId: number | null;
@@ -17,6 +19,8 @@ export interface WritingSubmission {
   evaluationStatus: WritingEvaluationStatus;
   submittedAt: string;
   overallBand?: number | null;
+  // Status of the linked ScoringSession (null if no expert session). Used by FE to gate cancel button.
+  scoringSessionStatus?: ScoringSessionStatus | null;
 }
 
 export interface WritingSubmissionDetail {

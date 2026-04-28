@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Menu, X, ShoppingCart } from 'lucide-react';
 import { UserAvatarDropdown } from '@/components/layout/user-avatar-dropdown';
+import { NotificationBell } from '@/components/layout/notification-bell';
 import { getDueReview } from '@/lib/vocab-api';
 import { Badge } from '@/components/ui/badge';
 import { useAuthStore } from '@/store/auth-store';
@@ -113,6 +114,7 @@ export function InnerNavbar() {
               Mua gói
             </Link>
           )}
+          {userRole === 'USER' && <NotificationBell />}
           <UserAvatarDropdown />
 
           <button

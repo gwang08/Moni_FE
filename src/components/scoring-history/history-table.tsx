@@ -253,11 +253,17 @@ function ActionsCell({
   }
 
   if (entry.status === 'PROCESSING') {
-    const canCancel = entry.kind === 'writing' && !!entry.writingSubmissionId && !!onCancelExpert;
+    // Chỉ cho huỷ khi session vẫn QUEUED (giảng viên chưa nhận).
+    // Khi giảng viên đã nhận → status = IN_PROGRESS → backend sẽ reject, ẩn nút luôn cho UX rõ ràng.
+    const canCancel =
+      entry.kind === 'writing'
+      && !!entry.writingSubmissionId
+      && !!onCancelExpert
+      && entry.scoringSessionStatus === 'QUEUED';
     return (
       <div className={`flex gap-1.5 items-center ${justify}`}>
         <span className="text-[11px] text-slate-400 font-bold">Chờ kết quả…</span>
-        {canCancel && (
+        {canCancel ? (
           <button
             onClick={() => onCancelExpert!(entry.writingSubmissionId!)}
             className="px-2 py-1 rounded-md text-rose-600 border border-rose-200 bg-rose-50 text-[11.5px] font-bold inline-flex items-center gap-1 hover:bg-rose-100"
@@ -266,7 +272,9 @@ function ActionsCell({
             <X className="h-3 w-3" />
             Huỷ
           </button>
-        )}
+        ) : entry.kind === 'writing' && entry.scoringSessionStatus === 'IN_PROGRESS' ? (
+          <span className="text-[10.5px] text-slate-500 italic">Giảng viên đang chấm</span>
+        ) : null}
       </div>
     );
   }

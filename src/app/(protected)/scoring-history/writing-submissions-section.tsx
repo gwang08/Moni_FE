@@ -137,14 +137,19 @@ export function WritingSubmissionsSection({
                 <Button size="sm" variant="ghost" className="h-7 text-xs gap-1" onClick={onRefresh}>
                   <RefreshCw className="h-3 w-3" /> Làm mới
                 </Button>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="h-7 text-xs gap-1 text-red-600 hover:text-red-700 hover:bg-red-50"
-                  onClick={() => setCancelSubId(sub.submissionId)}
-                >
-                  <X className="h-3 w-3" /> Huỷ & chọn lại
-                </Button>
+                {/* Only allow cancel while session is QUEUED — once expert started (IN_PROGRESS), backend rejects */}
+                {sub.scoringSessionStatus === 'QUEUED' ? (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-7 text-xs gap-1 text-red-600 hover:text-red-700 hover:bg-red-50"
+                    onClick={() => setCancelSubId(sub.submissionId)}
+                  >
+                    <X className="h-3 w-3" /> Huỷ & chọn lại
+                  </Button>
+                ) : (
+                  <span className="text-[11px] text-gray-500 italic">Giảng viên đang chấm — không thể huỷ</span>
+                )}
               </>
             )}
             {sub.evaluationStatus === 'COMPLETED' && (

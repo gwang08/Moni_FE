@@ -72,19 +72,19 @@ export function ModeSelectionModal({ exercise, open, onOpenChange }: Props) {
     <>
       <ChibiAnimationStyles />
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-xs p-0 overflow-hidden border-0 rounded-3xl shadow-2xl" showCloseButton={false}>
+        <DialogContent className="sm:max-w-lg p-0 overflow-hidden border-0 rounded-3xl shadow-2xl" showCloseButton={false}>
           <VisuallyHidden><DialogTitle>{exercise.title}</DialogTitle></VisuallyHidden>
 
           {/* Header with chibi */}
-          <div className="bg-gradient-to-b from-orange-50 via-amber-50/50 to-white pt-5 pb-1 px-5">
+          <div className="bg-gradient-to-b from-orange-50 via-amber-50/50 to-white pt-6 pb-2 px-6">
             <ChibiMascot mood={activeSession ? 'excited' : 'thinking'} size={64} />
             <div className="text-center">
-              <h2 className="text-base font-bold text-gray-800 line-clamp-1">{exercise.title}</h2>
-              <p className="text-xs text-gray-400 mt-0.5">Chọn chế độ luyện tập</p>
+              <h2 className="text-lg font-bold text-gray-800 line-clamp-1">{exercise.title}</h2>
+              <p className="text-xs text-gray-400 mt-1">Chọn chế độ luyện tập</p>
             </div>
           </div>
 
-          <div className="px-4 pb-4 pt-1 space-y-2.5">
+          <div className="px-6 pb-6 pt-2 space-y-4">
             {/* Resume banner */}
             {checking && (
               <div className="flex items-center justify-center gap-2 py-2 text-xs text-gray-400">
@@ -112,25 +112,27 @@ export function ModeSelectionModal({ exercise, open, onOpenChange }: Props) {
               </button>
             )}
 
-            {/* Mode cards */}
-            <div className="grid grid-cols-2 gap-2">
+            {/* Mode cards — match speaking modal visual style */}
+            <div className="grid grid-cols-2 gap-4">
               {/* Practice */}
               <button
                 onClick={() => go('practice')}
-                className="flex flex-col items-center gap-1.5 p-3.5 rounded-2xl border-2 border-transparent bg-blue-50 hover:border-blue-300 transition-all group"
+                className="group flex flex-col items-center gap-4 p-6 rounded-2xl border-2 border-blue-100 bg-gradient-to-b from-blue-50/80 to-white hover:border-blue-300 hover:shadow-lg hover:shadow-blue-100/50 transition-all"
               >
-                <div className="p-2 rounded-xl bg-blue-500 text-white group-hover:scale-110 transition-transform shadow-sm">
-                  <BookOpen className="h-4 w-4" />
+                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-200/50 group-hover:scale-110 transition-transform">
+                  <BookOpen className="h-7 w-7 text-white" />
                 </div>
-                <span className="text-xs font-bold text-blue-700">Luyện tập</span>
-                <div className="text-[10px] text-blue-400 space-y-0.5">
-                  <div className="flex items-center gap-1">
-                    <Clock className="h-2.5 w-2.5" />
-                    Không giới hạn
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <HelpCircle className="h-2.5 w-2.5" />
-                    Có gợi ý
+                <div className="space-y-1 text-center">
+                  <p className="font-bold text-sm text-gray-900">Luyện tập</p>
+                  <div className="space-y-1 text-xs text-gray-500 leading-relaxed">
+                    <div className="flex items-center justify-center gap-1">
+                      <Clock className="h-3 w-3" />
+                      Không giới hạn
+                    </div>
+                    <div className="flex items-center justify-center gap-1">
+                      <HelpCircle className="h-3 w-3" />
+                      Có gợi ý
+                    </div>
                   </div>
                 </div>
               </button>
@@ -138,22 +140,24 @@ export function ModeSelectionModal({ exercise, open, onOpenChange }: Props) {
               {/* Exam */}
               <button
                 onClick={() => go('exam')}
-                className="flex flex-col items-center gap-1.5 p-3.5 rounded-2xl border-2 border-transparent bg-orange-50 hover:border-orange-300 transition-all group"
+                className="group flex flex-col items-center gap-4 p-6 rounded-2xl border-2 border-orange-100 bg-gradient-to-b from-orange-50/80 to-white hover:border-orange-300 hover:shadow-lg hover:shadow-orange-100/50 transition-all"
               >
-                <div className="p-2 rounded-xl bg-orange-500 text-white group-hover:scale-110 transition-transform shadow-sm">
-                  <GraduationCap className="h-4 w-4" />
+                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-orange-400 to-rose-500 flex items-center justify-center shadow-lg shadow-orange-200/50 group-hover:scale-110 transition-transform">
+                  <GraduationCap className="h-7 w-7 text-white" />
                 </div>
-                <span className="text-xs font-bold text-orange-700">Thi thử</span>
-                <div className="text-[10px] text-orange-400 space-y-0.5">
-                  {exercise.skill !== 'listening' && exercise.skill !== 'speaking' && (
-                    <div className="flex items-center gap-1">
-                      <Clock className="h-2.5 w-2.5" />
-                      {durationText ?? 'Có giới hạn'}
+                <div className="space-y-1 text-center">
+                  <p className="font-bold text-sm text-gray-900">Thi thử</p>
+                  <div className="space-y-1 text-xs text-gray-500 leading-relaxed">
+                    {exercise.skill !== 'listening' && exercise.skill !== 'speaking' && (
+                      <div className="flex items-center justify-center gap-1">
+                        <Clock className="h-3 w-3" />
+                        {durationText ?? 'Có giới hạn'}
+                      </div>
+                    )}
+                    <div className="flex items-center justify-center gap-1">
+                      <Ban className="h-3 w-3" />
+                      Không gợi ý
                     </div>
-                  )}
-                  <div className="flex items-center gap-1">
-                    <Ban className="h-2.5 w-2.5" />
-                    Không gợi ý
                   </div>
                 </div>
               </button>

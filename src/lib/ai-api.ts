@@ -150,6 +150,7 @@ export interface SpeakingSubmissionDetailResponse {
   submittedAt: string;
   audioTranscript?: string;
   audioUrl?: string; // JSON array of per-question audio URLs
+  audioDurationsMs?: string; // JSON array of per-question speaking duration (ms)
   test?: {
     id: number;
     title: string;

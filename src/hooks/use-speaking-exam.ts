@@ -247,8 +247,15 @@ export function useSpeakingExam() {
   );
 
   const sendTranscript = useCallback(
-    (partNumber: number, questionId: number, text: string, audioUrl?: string) => {
-      send({ type: 'transcript', partNumber, questionId, text, audioUrl: audioUrl || '' });
+    (partNumber: number, questionId: number, text: string, audioUrl?: string, durationMs?: number) => {
+      send({
+        type: 'transcript',
+        partNumber,
+        questionId,
+        text,
+        audioUrl: audioUrl || '',
+        durationMs: Math.max(0, durationMs ?? 0),
+      });
       setExamState('PROCESSING');
     },
     [send],
@@ -260,7 +267,13 @@ export function useSpeakingExam() {
   }, [send]);
 
   const stopSpeakingPart2 = useCallback(
-    (text: string, audioUrl?: string) => send({ type: 'stop_speaking_part2', text, audioUrl: audioUrl || '' }),
+    (text: string, audioUrl?: string, durationMs?: number) =>
+      send({
+        type: 'stop_speaking_part2',
+        text,
+        audioUrl: audioUrl || '',
+        durationMs: Math.max(0, durationMs ?? 0),
+      }),
     [send],
   );
 

@@ -185,15 +185,31 @@ export default function SpeakingExamPage({ params }: Props) {
   // Track if we already started listening for the current question
   const hasStartedMicForQuestionRef = useRef<number | null>(null);
 
+  // Mốc thời gian khi user bắt đầu nói cho câu hiện tại — để tính durationMs gửi backend.
+  const micStartTimeRef = useRef<number>(0);
+  const markMicStart = useCallback(() => {
+    micStartTimeRef.current = Date.now();
+  }, []);
+  const consumeMicDuration = useCallback(() => {
+    const start = micStartTimeRef.current;
+    micStartTimeRef.current = 0;
+    return start ? Date.now() - start : 0;
+  }, []);
+
   // ── Handlers (defined before timers so they can be passed) ──
   const handleStopPart2 = useCallback(async () => {
     const audioBlob = await sttRef.current.stopListening();
+    const durationMs = consumeMicDuration();
     let audioUrl = '';
     if (audioBlob) {
       audioUrl = await uploadAudioBlob(audioBlob);
     }
-    examRef.current.stopSpeakingPart2(sttRef.current.transcript || '[no response]', audioUrl);
-  }, []);
+    examRef.current.stopSpeakingPart2(
+      sttRef.current.transcript || '[no response]',
+      audioUrl,
+      durationMs,
+    );
+  }, [consumeMicDuration]);
 
   const handlePrepEnd = useCallback(() => {
     // AI speaks introduction before recording starts
@@ -207,6 +223,7 @@ export default function SpeakingExamPage({ params }: Props) {
       intro.onend = () => {
         examRef.current.startSpeakingPart2();
         sttRef.current.startListening();
+        markMicStart();
       };
 
       window.speechSynthesis.cancel();
@@ -215,8 +232,9 @@ export default function SpeakingExamPage({ params }: Props) {
       // Fallback: start immediately
       examRef.current.startSpeakingPart2();
       sttRef.current.startListening();
+      markMicStart();
     }
-  }, []);
+  }, [markMicStart]);
 
   // ── Auto-start AI intro for Cue Card ──────────────────────
   const isPrepActive = exam.examState === 'PART2_PREP' && !showPart2Intro;
@@ -234,6 +252,7 @@ export default function SpeakingExamPage({ params }: Props) {
     submittedQuestionRef.current = currentQ.questionId;
 
     const audioBlob = await sttRef.current.stopListening();
+    const durationMs = consumeMicDuration();
     let audioUrl = '';
     if (audioBlob) {
       audioUrl = await uploadAudioBlob(audioBlob);
@@ -243,9 +262,10 @@ export default function SpeakingExamPage({ params }: Props) {
       currentQ.partNumber,
       currentQ.questionId,
       sttRef.current.transcript || '[no response]',
-      audioUrl
+      audioUrl,
+      durationMs,
     );
-  }, []);
+  }, [consumeMicDuration]);
 
   // Reset guard when question changes
   useEffect(() => {
@@ -304,16 +324,18 @@ export default function SpeakingExamPage({ params }: Props) {
       if (hasStartedMicForQuestionRef.current !== qId && !sttRef.current.isListening) {
         hasStartedMicForQuestionRef.current = qId;
         sttRef.current.startListening();
+        markMicStart();
       }
     }
-  }, [exam.currentQuestion, exam.examState, recordingMode]);
+  }, [exam.currentQuestion, exam.examState, recordingMode, markMicStart]);
 
   // ── Manual mic handlers ───────────────────────────────────
   const handleManualStartMic = useCallback(() => {
     if (!sttRef.current.isListening) {
       sttRef.current.startListening();
+      markMicStart();
     }
-  }, []);
+  }, [markMicStart]);
 
   const handleManualStopMic = useCallback(() => {
     handleSubmitAnswer();

@@ -135,13 +135,24 @@ function buildEvaluationEvent(sub: SpeakingSubmissionDetailResponse): Evaluation
 }
 
 // ── Parse the raw transcript format to RecordedAnswer[] ──
-function parseTranscriptToRecordings(transcript: string, audioUrlsJson?: string): RecordedAnswer[] {
+function parseTranscriptToRecordings(
+  transcript: string,
+  audioUrlsJson?: string,
+  audioDurationsJson?: string,
+): RecordedAnswer[] {
   const recordings: RecordedAnswer[] = [];
 
   let audioUrls: (string | null)[] = [];
   if (audioUrlsJson) {
     try {
       audioUrls = JSON.parse(audioUrlsJson);
+    } catch { /* ignore */ }
+  }
+
+  let durations: number[] = [];
+  if (audioDurationsJson) {
+    try {
+      durations = JSON.parse(audioDurationsJson);
     } catch { /* ignore */ }
   }
 
@@ -166,6 +177,7 @@ function parseTranscriptToRecordings(transcript: string, audioUrlsJson?: string)
         questionText: topic,
         transcript: answer || '[Không có câu trả lời]',
         audioUrl: audioUrls[audioIdx] ?? '',
+        durationMs: durations[audioIdx] ?? 0,
       });
       audioIdx++;
     } else {
@@ -179,6 +191,7 @@ function parseTranscriptToRecordings(transcript: string, audioUrlsJson?: string)
             questionText: qMatch[1],
             transcript: qMatch[2].trim() || '[Không có câu trả lời]',
             audioUrl: audioUrls[audioIdx] ?? '',
+            durationMs: durations[audioIdx] ?? 0,
           });
           audioIdx++;
         }
@@ -240,7 +253,8 @@ export default function SpeakingResultPage({ params }: Props) {
     const evaluationEvent = buildEvaluationEvent(aiSubmission);
     const recordings = parseTranscriptToRecordings(
       aiSubmission.audioTranscript ?? '',
-      aiSubmission.audioUrl
+      aiSubmission.audioUrl,
+      aiSubmission.audioDurationsMs,
     );
     const testTitle = aiSubmission.test?.title ?? 'Speaking Test';
 

@@ -8,6 +8,8 @@ export interface RecordedAnswer {
   questionText: string;
   transcript: string;
   audioUrl: string;
+  /** Total speaking time for this answer in milliseconds. Optional vì khi load lại từ server không có. */
+  durationMs?: number;
 }
 
 export function useSessionRecorder(
@@ -22,6 +24,7 @@ export function useSessionRecorder(
   const chunksRef = useRef<Blob[]>([]);
   const recordingContextRef = useRef<{ part: number; questionText: string } | null>(null);
   const transcriptRef = useRef<string>('');
+  const startTimeRef = useRef<number>(0);
 
   // Always keep transcriptRef up to date
   useEffect(() => {
@@ -59,6 +62,7 @@ export function useSessionRecorder(
           const blob = new Blob(chunksRef.current, { type: mr.mimeType || 'audio/webm' });
           const url = URL.createObjectURL(blob);
           const ctx = recordingContextRef.current;
+          const durationMs = startTimeRef.current ? Date.now() - startTimeRef.current : 0;
 
           if (ctx && blob.size > 0) {
             setRecordings((prev) => [
@@ -68,11 +72,13 @@ export function useSessionRecorder(
                 questionText: ctx.questionText,
                 transcript: transcriptRef.current || '[Không nhận diện được giọng nói]',
                 audioUrl: url,
+                durationMs,
               },
             ]);
           }
         };
 
+        startTimeRef.current = Date.now();
         mr.start(500);
         mediaRecorderRef.current = mr;
         }).catch((e) => {

@@ -3,6 +3,7 @@
 import { ArrowDown, ArrowUp, RotateCcw, Sparkles, Wrench } from 'lucide-react';
 import type { CreditTransactionResponse } from '@/types/payment.types';
 import { formatDate } from '@/lib/format-date';
+import { formatVnd } from '@/lib/utils';
 
 interface Props {
   transactions: CreditTransactionResponse[];
@@ -53,15 +54,15 @@ const TYPE_META: Record<string, { label: string; tint: string; icon: React.Eleme
   },
 };
 
-// Cols: icon | loại | chi tiết | số lượt (quota) | thời gian
-const COLS = 'grid-cols-[40px_100px_1fr_140px_140px] gap-4';
+// Cols: icon | loại | chi tiết | số tiền | số lượt (quota) | thời gian
+const COLS = 'grid-cols-[40px_100px_1fr_100px_140px_140px] gap-4';
 
 export function TransactionsTable({ transactions }: Props) {
   if (transactions.length === 0) {
     return (
       <div className="rounded-2xl border-2 border-dashed border-slate-200 bg-white/60 p-16 text-center">
         <p className="text-[14px] font-bold text-slate-600">Chưa có giao dịch nào</p>
-        <p className="text-[12.5px] text-slate-400 mt-1 font-medium">Nạp tiền để bắt đầu dùng dịch vụ AI</p>
+        <p className="text-[12.5px] text-slate-400 mt-1 font-medium">Mua gói để bắt đầu dùng dịch vụ AI</p>
       </div>
     );
   }
@@ -72,6 +73,7 @@ export function TransactionsTable({ transactions }: Props) {
         <div></div>
         <div>Loại</div>
         <div>Chi tiết</div>
+        <div className="text-center">Số tiền</div>
         <div className="text-center">Số lượt</div>
         <div>Thời gian</div>
       </div>
@@ -88,29 +90,30 @@ export function TransactionsTable({ transactions }: Props) {
 function TransactionRow({ tx }: { tx: CreditTransactionResponse }) {
   const meta = TYPE_META[tx.paymentType] ?? TYPE_META.CONSUME;
   const Icon = meta.icon;
-  // Ưu tiên remark (mua sub "Mua Gói Standard · 99,000đ") → serviceName (chấm AI) → packageName (nạp VND)
   const detail =
     tx.remark ||
     tx.serviceName ||
     tx.packageName ||
     (tx.paymentType === 'TOPUP' ? 'Nạp tiền' : 'Giao dịch');
   const isSubPurchase = tx.paymentType === 'SUBSCRIPTION_PURCHASE';
+  const isConsume = tx.paymentType === 'CONSUME';
   const isQuotaConsume = !!tx.quotaType;
 
-  // Sub purchase: BE ghi remark "Mua Gói X · 2,000đ". Extract amount để hiện trong "Số tiền".
+  // Sub purchase: BE ghi remark "Mua Gói X · 2,000đ". Extract amount.
   const subPurchaseAmount = (() => {
     if (!isSubPurchase || !tx.remark) return null;
     const m = tx.remark.match(/·\s*([\d.,]+)đ/);
     return m ? m[1] + 'đ' : null;
   })();
 
-  // Quota consume: stacked hierarchy — "-1 lượt" trên, "80 → 79" dưới.
-  // Expert dùng màu tím để phân biệt với AI (indigo).
   const isExpertQuota = tx.quotaType === 'EXPERT';
   const quotaIsUnlimited = tx.quotaBefore === -1 || tx.quotaAfter === -1;
   const quotaBeforeAfterText = quotaIsUnlimited
     ? 'Không giới hạn'
     : `${tx.quotaBefore} → ${tx.quotaAfter} ${isExpertQuota ? 'GV' : 'AI'}`;
+
+  // Số tiền: ẩn cho loại CONSUME (chấm AI), hiện cho mua gói/nạp tiền/hoàn/điều chỉnh
+  const showAmount = !isConsume;
 
   return (
     <div>
@@ -123,7 +126,19 @@ function TransactionRow({ tx }: { tx: CreditTransactionResponse }) {
           {meta.label}
         </span>
         <div className="text-[13px] font-bold text-slate-900 truncate">{detail}</div>
-        {/* Số lượt — stacked: delta to, before→after nhỏ xám */}
+        {/* Số tiền */}
+        <span className={`text-center text-[13px] font-black tabular-nums ${
+          isSubPurchase ? 'text-indigo-600' : tx.delta > 0 ? 'text-emerald-600' : tx.delta < 0 ? 'text-rose-600' : 'text-slate-300'
+        }`}>
+          {showAmount
+            ? isSubPurchase
+              ? (subPurchaseAmount ?? '—')
+              : tx.delta !== 0
+                ? (tx.delta >= 0 ? '+' : '') + formatVnd(Math.abs(tx.delta))
+                : '—'
+            : '—'}
+        </span>
+        {/* Số lượt */}
         <div className="text-center">
           {isQuotaConsume ? (
             <>
@@ -166,6 +181,10 @@ function TransactionRow({ tx }: { tx: CreditTransactionResponse }) {
           ) : isSubPurchase ? (
             <div className="text-[14px] font-black tabular-nums text-indigo-600">
               {subPurchaseAmount ?? '—'}
+            </div>
+          ) : tx.delta !== 0 && showAmount ? (
+            <div className={`text-[14px] font-black tabular-nums ${tx.delta >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+              {(tx.delta >= 0 ? '+' : '') + formatVnd(Math.abs(tx.delta))}
             </div>
           ) : (
             <span className="text-slate-300 text-xs">—</span>

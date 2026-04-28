@@ -13,8 +13,12 @@ export interface SubmitPlacementRequest {
   listeningTestId: number;
   readingAnswers: PlacementAnswerItem[];
   listeningAnswers: PlacementAnswerItem[];
-  writingBand: number;
-  speakingBand: number;
+  writingTestId: number;
+  writingEssay: string;
+  writingTaskType: number;
+  writingStimulusId?: number;
+  speakingTestId: number;
+  speakingAudioBase64: string;
   targetBand: number;
   elapsedSeconds?: number;
 }

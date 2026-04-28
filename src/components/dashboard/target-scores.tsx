@@ -234,13 +234,6 @@ export function TargetScores() {
             {!editing ? (
               <>
                 <button
-                  onClick={handleAiClick}
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-full bg-emerald-50 hover:bg-emerald-100 text-emerald-600 text-xs font-bold transition-all"
-                >
-                  <Sparkles className="h-3.5 w-3.5" />
-                  AI gợi ý
-                </button>
-                <button
                   onClick={startEdit}
                   className="p-2 rounded-full hover:bg-emerald-50 text-gray-400 hover:text-emerald-500 transition-colors"
                   title="Chỉnh sửa mục tiêu"
@@ -295,7 +288,7 @@ export function TargetScores() {
               <BarChart3 className="w-4 h-4 text-gray-500" />
               Trình độ hiện tại
             </h4>
-            {placementResult && (
+            {false && placementResult && (
               <button
                 onClick={handleReset}
                 disabled={resetting}

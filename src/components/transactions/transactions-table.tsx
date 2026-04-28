@@ -3,7 +3,6 @@
 import { ArrowDown, ArrowUp, RotateCcw, Sparkles, Wrench } from 'lucide-react';
 import type { CreditTransactionResponse } from '@/types/payment.types';
 import { formatDate } from '@/lib/format-date';
-import { formatVnd } from '@/lib/utils';
 
 interface Props {
   transactions: CreditTransactionResponse[];
@@ -54,8 +53,8 @@ const TYPE_META: Record<string, { label: string; tint: string; icon: React.Eleme
   },
 };
 
-// Cols: icon | loại | chi tiết | số tiền VND | số lượt (quota) | thời gian
-const COLS = 'grid-cols-[40px_100px_1fr_100px_140px_140px] gap-4';
+// Cols: icon | loại | chi tiết | số lượt (quota) | thời gian
+const COLS = 'grid-cols-[40px_100px_1fr_140px_140px] gap-4';
 
 export function TransactionsTable({ transactions }: Props) {
   if (transactions.length === 0) {
@@ -73,7 +72,6 @@ export function TransactionsTable({ transactions }: Props) {
         <div></div>
         <div>Loại</div>
         <div>Chi tiết</div>
-        <div className="text-center">Số tiền</div>
         <div className="text-center">Số lượt</div>
         <div>Thời gian</div>
       </div>
@@ -97,7 +95,6 @@ function TransactionRow({ tx }: { tx: CreditTransactionResponse }) {
     tx.packageName ||
     (tx.paymentType === 'TOPUP' ? 'Nạp tiền' : 'Giao dịch');
   const isSubPurchase = tx.paymentType === 'SUBSCRIPTION_PURCHASE';
-  const isPositive = tx.delta >= 0;
   const isQuotaConsume = !!tx.quotaType;
 
   // Sub purchase: BE ghi remark "Mua Gói X · 2,000đ". Extract amount để hiện trong "Số tiền".
@@ -126,14 +123,6 @@ function TransactionRow({ tx }: { tx: CreditTransactionResponse }) {
           {meta.label}
         </span>
         <div className="text-[13px] font-bold text-slate-900 truncate">{detail}</div>
-        {/* Số tiền (VND only) */}
-        <span className={`text-center text-[13px] font-black tabular-nums ${isSubPurchase ? 'text-indigo-600' : isQuotaConsume ? 'text-slate-300' : isPositive ? 'text-emerald-600' : 'text-rose-600'}`}>
-          {isQuotaConsume
-            ? '—'
-            : isSubPurchase
-              ? (subPurchaseAmount ?? '—')
-              : (tx.delta >= 0 ? '+' : '') + formatVnd(Math.abs(tx.delta))}
-        </span>
         {/* Số lượt — stacked: delta to, before→after nhỏ xám */}
         <div className="text-center">
           {isQuotaConsume ? (
@@ -167,17 +156,20 @@ function TransactionRow({ tx }: { tx: CreditTransactionResponse }) {
           <div className="text-[11px] text-slate-500 font-semibold tabular-nums">{formatDate(tx.createdAt)}</div>
         </div>
         <div className="text-right shrink-0">
-          <div className={`text-[14px] font-black tabular-nums ${isSubPurchase ? 'text-indigo-600' : isQuotaConsume ? (isExpertQuota ? 'text-purple-600' : 'text-indigo-600') : isPositive ? 'text-emerald-600' : 'text-rose-600'}`}>
-            {isQuotaConsume
-              ? '-1 lượt'
-              : isSubPurchase
-                ? (subPurchaseAmount ?? '—')
-                : (isPositive ? '+' : '') + formatVnd(Math.abs(tx.delta))}
-          </div>
-          {isQuotaConsume && (
-            <div className="text-[10.5px] text-slate-400 font-semibold tabular-nums">{quotaBeforeAfterText}</div>
+          {isQuotaConsume ? (
+            <>
+              <div className={`text-[14px] font-black tabular-nums ${isExpertQuota ? 'text-purple-600' : 'text-indigo-600'}`}>
+                -1 lượt
+              </div>
+              <div className="text-[10.5px] text-slate-400 font-semibold tabular-nums">{quotaBeforeAfterText}</div>
+            </>
+          ) : isSubPurchase ? (
+            <div className="text-[14px] font-black tabular-nums text-indigo-600">
+              {subPurchaseAmount ?? '—'}
+            </div>
+          ) : (
+            <span className="text-slate-300 text-xs">—</span>
           )}
-
         </div>
       </div>
     </div>

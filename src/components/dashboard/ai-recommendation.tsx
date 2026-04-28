@@ -133,7 +133,7 @@ export function AiRecommendationDialog({ open, onOpenChange }: Props) {
               <div className="space-y-4">
                 {/* Analysis */}
                 <div className="bg-violet-50 border border-violet-100 rounded-xl p-4">
-                  <p className="text-sm text-gray-700 leading-relaxed">
+                  <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-line">
                     {recommendation.analysis}
                   </p>
                 </div>

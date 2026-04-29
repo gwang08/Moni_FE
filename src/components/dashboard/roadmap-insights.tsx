@@ -72,18 +72,16 @@ function getTagTypeLabel(tagType: string): string {
   return TAG_TYPE_LABELS[tagType] || tagType;
 }
 
-const CRITERIA_TAG_TYPES = new Set(['WRITING_CRITERIA', 'SPEAKING_CRITERIA']);
-
 function getSkillsForMetric(m: LearnerTagMetric): SkillTab[] {
-  // For criteria tags, always use tagType mapping (skill field may be wrong)
-  if (m.tagType && CRITERIA_TAG_TYPES.has(m.tagType) && TAG_TYPE_TO_SKILLS[m.tagType]) {
-    return TAG_TYPE_TO_SKILLS[m.tagType];
-  }
-  // For other tags (QUESTION_TYPE, etc.), use skill field to avoid cross-tab leaking
+  // Ưu tiên skill field — BE set chính xác cho mỗi flow (Speaking/Writing AI + Expert).
+  // Trước đây fallback sang tagType cho criteria tags vì skill "may be wrong",
+  // nhưng cách đó leak metric Writing (W_LR, W_GRA) vào tab Speaking khi
+  // tag bị seed với tagType=SPEAKING_CRITERIA dù skill=WRITING.
   if (m.skill) {
     const rawSkill = m.skill.toLowerCase() as SkillTab;
     return [rawSkill];
   }
+  // Fallback cho legacy metric không có skill: dùng tagType mapping
   if (m.tagType && TAG_TYPE_TO_SKILLS[m.tagType]) {
     return TAG_TYPE_TO_SKILLS[m.tagType];
   }

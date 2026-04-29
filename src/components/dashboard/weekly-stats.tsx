@@ -72,32 +72,32 @@ export function WeeklyStats() {
   const maxSkillCount = Math.max(1, ...SKILLS.map((s) => skills[s]));
 
   return (
-    <div className="bg-white rounded-3xl shadow-sm p-4 sm:p-6 h-full flex flex-col overflow-hidden min-w-0">
-      <div className="flex items-start justify-between mb-5 gap-2 flex-wrap">
-        <div className="flex items-center gap-3 min-w-0">
-          <div className="w-10 h-10 shrink-0 rounded-2xl bg-gray-100 flex items-center justify-center">
-            <BarChart3 className="w-5 h-5 text-pink-600" />
+    <div className="bg-white rounded-2xl sm:rounded-3xl shadow-sm p-3 sm:p-6 h-full flex flex-col overflow-hidden min-w-0">
+      <div className="flex items-start justify-between mb-3 sm:mb-5 gap-2 flex-wrap">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+          <div className="w-8 h-8 sm:w-10 sm:h-10 shrink-0 rounded-xl sm:rounded-2xl bg-gray-100 flex items-center justify-center">
+            <BarChart3 className="w-4 h-4 sm:w-5 sm:h-5 text-pink-600" />
           </div>
           <div className="min-w-0">
-            <h3 className="text-lg font-extrabold text-gray-900">Tuần này</h3>
-            <p className="text-xs text-gray-500 mt-0.5 truncate">Phân bổ bài luyện theo kỹ năng</p>
+            <h3 className="text-base sm:text-lg font-extrabold text-gray-900">Tuần này</h3>
+            <p className="text-[11px] sm:text-xs text-gray-500 mt-0.5 truncate">Phân bổ bài luyện theo kỹ năng</p>
           </div>
         </div>
-        <span className="text-[11px] sm:text-xs font-bold bg-emerald-50 text-emerald-600 px-2.5 sm:px-3 py-1 rounded-full whitespace-nowrap shrink-0">{label}</span>
+        <span className="text-[10px] sm:text-xs font-bold bg-emerald-50 text-emerald-600 px-2 sm:px-3 py-0.5 sm:py-1 rounded-full whitespace-nowrap shrink-0">{label}</span>
       </div>
 
-      <div className="space-y-4 flex-1">
+      <div className="space-y-2.5 sm:space-y-4 flex-1">
         {SKILLS.map((s) => {
           const count = skills[s];
           const style = SKILL_STYLE[s];
           const pct = (count / maxSkillCount) * 100;
           return (
             <div key={s}>
-              <div className="flex justify-between text-sm mb-1.5">
+              <div className="flex justify-between text-xs sm:text-sm mb-1 sm:mb-1.5">
                 <span className={`font-bold ${style.text}`}>{SKILL_LABELS[s]}</span>
                 <span className="font-extrabold text-gray-900">{count} <span className="font-medium text-gray-500">bài</span></span>
               </div>
-              <div className={`h-2.5 ${style.track} rounded-full overflow-hidden`}>
+              <div className={`h-2 sm:h-2.5 ${style.track} rounded-full overflow-hidden`}>
                 <div
                   className={`h-full ${style.fill} rounded-full transition-all duration-500`}
                   style={{ width: `${pct}%` }}
@@ -108,14 +108,14 @@ export function WeeklyStats() {
         })}
       </div>
 
-      <div className="mt-6 pt-5 border-t border-dashed border-gray-200 grid grid-cols-2 gap-2 sm:gap-3">
-        <div className="bg-emerald-50 rounded-2xl p-3 text-center min-w-0">
-          <div className="text-[11px] sm:text-xs font-bold text-emerald-600 uppercase tracking-wide truncate">Tổng bài</div>
-          <div className="text-xl sm:text-2xl font-extrabold text-gray-900 mt-0.5 truncate">{total}</div>
+      <div className="mt-4 sm:mt-6 pt-3 sm:pt-5 border-t border-dashed border-gray-200 grid grid-cols-2 gap-2 sm:gap-3">
+        <div className="bg-emerald-50 rounded-xl sm:rounded-2xl p-2 sm:p-3 text-center min-w-0">
+          <div className="text-[10px] sm:text-xs font-bold text-emerald-600 uppercase tracking-wide truncate">Tổng bài</div>
+          <div className="text-lg sm:text-2xl font-extrabold text-gray-900 mt-0.5 truncate">{total}</div>
         </div>
-        <div className="bg-gray-50 rounded-2xl p-3 text-center min-w-0">
-          <div className="text-[11px] sm:text-xs font-bold text-pink-600 uppercase tracking-wide truncate">Thời gian</div>
-          <div className="text-xl sm:text-2xl font-extrabold text-gray-900 mt-0.5 truncate">{formatMinutes(totalMinutes)}</div>
+        <div className="bg-gray-50 rounded-xl sm:rounded-2xl p-2 sm:p-3 text-center min-w-0">
+          <div className="text-[10px] sm:text-xs font-bold text-pink-600 uppercase tracking-wide truncate">Thời gian</div>
+          <div className="text-lg sm:text-2xl font-extrabold text-gray-900 mt-0.5 truncate">{formatMinutes(totalMinutes)}</div>
         </div>
       </div>
     </div>

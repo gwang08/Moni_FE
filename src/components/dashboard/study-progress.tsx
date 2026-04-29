@@ -124,8 +124,9 @@ export function StudyProgress() {
   }
 
   return (
-    <div className="bg-white rounded-3xl p-4 sm:p-6 shadow-sm h-full overflow-hidden">
+    <div className="bg-white rounded-2xl sm:rounded-3xl p-3 sm:p-6 shadow-sm h-full overflow-hidden">
       <style dangerouslySetInnerHTML={{__html: `
+        .react-calendar-heatmap { width: 100%; height: auto; display: block; }
         .react-calendar-heatmap text { font-size: 8px; fill: #94a3b8; font-weight: 600; }
         .react-calendar-heatmap .color-empty { fill: #f1f5f9; rx: 3; ry: 3; }
         .react-calendar-heatmap .color-scale-1 { fill: #ccfbf1; rx: 3; ry: 3; }
@@ -136,29 +137,29 @@ export function StudyProgress() {
         .react-calendar-heatmap rect:hover { stroke: #0d9488; stroke-width: 1.5px; }
       `}} />
 
-      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-5">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 sm:gap-3 mb-3 sm:mb-5">
         <div className="min-w-0">
-          <h3 className="text-lg font-extrabold text-gray-900">Hành trình nỗ lực</h3>
-          <p className="text-xs text-gray-500 mt-0.5">
+          <h3 className="text-base sm:text-lg font-extrabold text-gray-900">Hành trình nỗ lực</h3>
+          <p className="text-[11px] sm:text-xs text-gray-500 mt-0.5">
             Đã hoàn thành <span className="text-emerald-600 font-bold">{totalThisYear}</span> bài luyện trong năm {year}
           </p>
         </div>
 
-        <div className="flex items-center gap-2 flex-wrap shrink-0">
-          <div className="flex items-center gap-2 bg-emerald-50 px-3 py-1.5 rounded-full">
-            <Flame className="w-4 h-4 text-emerald-500" fill="#fb923c" />
-            <span className="text-xs font-bold text-emerald-700"><b className="text-base">{currentStreak}</b> ngày streak</span>
+        <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap shrink-0">
+          <div className="flex items-center gap-1.5 sm:gap-2 bg-emerald-50 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full">
+            <Flame className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-500" fill="#fb923c" />
+            <span className="text-[11px] sm:text-xs font-bold text-emerald-700"><b className="text-sm sm:text-base">{currentStreak}</b> ngày streak</span>
           </div>
-          <div className="flex items-center gap-2 bg-gray-50 px-3 py-1.5 rounded-full">
-            <Trophy className="w-4 h-4 text-gray-500" fill="#fbcfe8" />
-            <span className="text-xs font-bold text-pink-700"><b className="text-base">{totalThisWeek}</b> bài tuần này</span>
+          <div className="flex items-center gap-1.5 sm:gap-2 bg-gray-50 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full">
+            <Trophy className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-500" fill="#fbcfe8" />
+            <span className="text-[11px] sm:text-xs font-bold text-pink-700"><b className="text-sm sm:text-base">{totalThisWeek}</b> bài tuần này</span>
           </div>
         </div>
       </div>
 
       {/* Heatmap + floating tooltip in same relative container so coords align */}
-      <div ref={containerRef} className="relative overflow-x-auto pb-1">
-        <div className="min-w-[720px]">
+      <div ref={containerRef} className="relative pb-1">
+        <div className="w-full">
           <CalendarHeatmap
             startDate={new Date(year - 1, 11, 31)}
             endDate={new Date(year, 11, 31)}

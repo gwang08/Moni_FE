@@ -45,9 +45,22 @@ interface UseLiveCaptionsOptions {
   lang?: string;
   /** Called once per finalized local utterance. Use to persist to DB. */
   onLocalFinal?: (text: string, ts: number) => void;
+  /**
+   * Signal that the Daily call object is fully joined and ready to send/receive app messages.
+   * Required to (re-)attach the app-message listener AFTER the iframe initializes,
+   * since callRef.current is null at hook mount time.
+   */
+  callReady?: boolean;
 }
 
-export function useLiveCaptions({ callRef, userName, autoStart = true, lang = 'en-US', onLocalFinal }: UseLiveCaptionsOptions) {
+export function useLiveCaptions({
+  callRef,
+  userName,
+  autoStart = true,
+  lang = 'en-US',
+  onLocalFinal,
+  callReady = false,
+}: UseLiveCaptionsOptions) {
   const [captions, setCaptions] = useState<CaptionEntry[]>([]);
   const [broadcasting, setBroadcasting] = useState(false);
   const [supported] = useState<boolean>(isLiveCaptionsSupported());
@@ -58,7 +71,11 @@ export function useLiveCaptions({ callRef, userName, autoStart = true, lang = 'e
   const captionsMapRef = useRef<Map<string, CaptionEntry>>(new Map());
 
   // ---- Receive remote captions ----
+  // Depends on callReady (not callRef) — ref identity never changes, so without
+  // this flag the effect runs once at mount when callRef.current is still null,
+  // and the listener would never be attached → remote captions silently dropped.
   useEffect(() => {
+    if (!callReady) return;
     const call = callRef.current;
     if (!call) return;
 
@@ -79,7 +96,7 @@ export function useLiveCaptions({ callRef, userName, autoStart = true, lang = 'e
     return () => {
       call.off('app-message', onMessage);
     };
-  }, [callRef]);
+  }, [callRef, callReady]);
 
   // ---- Periodic prune of stale captions ----
   useEffect(() => {

@@ -64,6 +64,7 @@ export function DailyVideoCall({
     callRef,
     userName: userName || 'Participant',
     autoStart: enableCaptions && callReady,
+    callReady,
     onLocalFinal: sessionId
       ? (text, ts) => {
           transcriptQueueRef.current.push({ text, language: 'en-US', spokenAt: new Date(ts).toISOString() });

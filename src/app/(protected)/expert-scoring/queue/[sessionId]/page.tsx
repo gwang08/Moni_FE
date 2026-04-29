@@ -4,6 +4,7 @@ import { use, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { cancelScoringSession, getQueuePosition } from '@/lib/expert-api';
+import { useAuthStore } from '@/store/auth-store';
 import { toast } from 'sonner';
 import { Loader2, Clock, XCircle, Mic, Headphones, Volume2, Wifi, Lightbulb, MessageCircle } from 'lucide-react';
 
@@ -15,13 +16,16 @@ export default function QueueWaitingPage({ params }: Props) {
   const { sessionId } = use(params);
   const router = useRouter();
   const sessionIdNum = Number(sessionId);
+  const refreshProfile = useAuthStore((s) => s.refreshProfile);
 
   const [position, setPosition] = useState<number | null>(null);
   const [status, setStatus] = useState<string>('QUEUED');
   const [cancelling, setCancelling] = useState(false);
+  const cancellingRef = useRef(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const poll = async () => {
+    if (cancellingRef.current) return; // skip khi user đang huỷ — tránh trigger toast trùng
     try {
       const data = await getQueuePosition(sessionIdNum);
       setPosition(data.position);
@@ -53,13 +57,19 @@ export default function QueueWaitingPage({ params }: Props) {
 
   const handleCancel = async () => {
     setCancelling(true);
+    cancellingRef.current = true;
+    // Dừng polling NGAY để tránh tick chạy đồng thời trigger toast 'Phiên đã kết thúc' che toast.success
+    if (intervalRef.current) clearInterval(intervalRef.current);
     try {
       await cancelScoringSession(sessionIdNum);
+      // Refresh user profile để header cập nhật số lượt mới sau refund
+      await refreshProfile();
       toast.success('Đã huỷ phiên chấm — lượt đã được hoàn lại');
-      router.back();
+      // Delay nhỏ để toast render ổn định trước khi navigate (Toaster ở root layout)
+      setTimeout(() => router.push('/expert-scoring'), 250);
     } catch {
       toast.error('Không thể huỷ phiên, vui lòng thử lại');
-    } finally {
+      cancellingRef.current = false;
       setCancelling(false);
     }
   };

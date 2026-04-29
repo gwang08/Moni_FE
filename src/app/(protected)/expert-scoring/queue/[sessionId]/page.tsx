@@ -55,7 +55,7 @@ export default function QueueWaitingPage({ params }: Props) {
     setCancelling(true);
     try {
       await cancelScoringSession(sessionIdNum);
-      toast.success('Đã huỷ phiên chấm — credit đã được hoàn lại');
+      toast.success('Đã huỷ phiên chấm — lượt đã được hoàn lại');
       router.back();
     } catch {
       toast.error('Không thể huỷ phiên, vui lòng thử lại');

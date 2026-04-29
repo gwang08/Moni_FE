@@ -128,6 +128,12 @@ function TransactionRow({ tx }: { tx: CreditTransactionResponse }) {
     ? 'Không giới hạn'
     : `${tx.quotaBefore} → ${tx.quotaAfter} ${isExpertQuota ? 'GV' : 'AI'}`;
 
+  // Delta số lượt — dùng quotaAfter - quotaBefore để xác định +/- chính xác (REFUND là +, CONSUME là -)
+  const quotaDelta = quotaIsUnlimited ? 0 : (tx.quotaAfter ?? 0) - (tx.quotaBefore ?? 0);
+  const isRefund = tx.paymentType === 'REFUND' || quotaDelta > 0;
+  const quotaDeltaLabel = quotaDelta > 0 ? `+${quotaDelta} lượt` : `${quotaDelta} lượt`;
+  const quotaDeltaColor = isRefund ? 'text-blue-600' : isExpertQuota ? 'text-purple-600' : 'text-indigo-600';
+
   // Số tiền: ẩn cho loại CONSUME (chấm AI), hiện cho mua gói/nạp tiền/hoàn/điều chỉnh
   const showAmount = !isConsume;
 
@@ -160,8 +166,8 @@ function TransactionRow({ tx }: { tx: CreditTransactionResponse }) {
         <div className="text-center">
           {isQuotaConsume ? (
             <>
-              <div className={`text-[14px] font-black leading-none ${isExpertQuota ? 'text-purple-600' : 'text-indigo-600'}`}>
-                -1 lượt
+              <div className={`text-[14px] font-black leading-none ${quotaDeltaColor}`}>
+                {quotaDeltaLabel}
               </div>
               <div className="text-[10px] font-semibold text-slate-400 tabular-nums mt-1">
                 {quotaBeforeAfterText}
@@ -191,8 +197,8 @@ function TransactionRow({ tx }: { tx: CreditTransactionResponse }) {
         <div className="text-right shrink-0">
           {isQuotaConsume ? (
             <>
-              <div className={`text-[14px] font-black tabular-nums ${isExpertQuota ? 'text-purple-600' : 'text-indigo-600'}`}>
-                -1 lượt
+              <div className={`text-[14px] font-black tabular-nums ${quotaDeltaColor}`}>
+                {quotaDeltaLabel}
               </div>
               <div className="text-[10.5px] text-slate-400 font-semibold tabular-nums">{quotaBeforeAfterText}</div>
             </>

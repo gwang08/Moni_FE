@@ -428,7 +428,27 @@ export default function ExpertSessionPage({ params }: Props) {
             onJoined={() => setInCall(true)}
             onLeave={() => { if (inCall) router.push('/expert/dashboard'); }}
             enableRecording
-            onRecordingReady={(blob) => { recordingBlobRef.current = blob; }}
+            onRecordingReady={async (blob) => {
+              recordingBlobRef.current = blob;
+              // Upload ngay khi blob ready, không đợi submit eval — vì expert
+              // có thể đã submit eval trước khi call kết thúc (form và call
+              // hiển thị song song), lúc đó blob chưa có nên upload bị skip.
+              try {
+                const file = new File(
+                  [blob],
+                  `expert-recording-${sessionId}.webm`,
+                  { type: 'audio/webm' },
+                );
+                const url = await uploadMedia(file);
+                await apiClient.post(
+                  `/api/v1/expert/sessions/${sessionId}/recording`,
+                  { expertRecordingUrl: url },
+                  true,
+                );
+              } catch (err) {
+                console.error('Upload expert recording failed', err);
+              }
+            }}
             sessionId={Number(sessionId)}
             className="h-full"
           />

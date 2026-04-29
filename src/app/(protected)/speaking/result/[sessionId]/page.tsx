@@ -369,7 +369,7 @@ export default function SpeakingResultPage({ params }: Props) {
               <h3 className="text-[14px] font-extrabold text-slate-900">Phụ đề tự động</h3>
             </div>
             <div className="p-5">
-              <SessionTranscriptViewer sessionId={Number(session.id)} />
+              <SessionTranscriptViewer sessionId={Number(session.id)} myRole="LEARNER" />
             </div>
           </div>
         )}

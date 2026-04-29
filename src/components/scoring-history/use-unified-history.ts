@@ -6,7 +6,7 @@ import { getReadingBand, getListeningBand } from '@/lib/ielts-band';
 import type { ScoringSession } from '@/types/expert.types';
 
 export type HistoryKind = 'writing' | 'reading' | 'listening' | 'speaking';
-export type HistoryStatus = 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED';
+export type HistoryStatus = 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'CANCELLED';
 
 export interface HistoryEntry {
   id: string; // kind + sourceId (duy nhất)
@@ -42,7 +42,8 @@ function writingStatusFrom(raw: string): HistoryStatus {
 function sessionStatusFrom(raw: ScoringSession['status']): HistoryStatus {
   if (raw === 'COMPLETED') return 'COMPLETED';
   if (raw === 'IN_PROGRESS') return 'PROCESSING';
-  if (raw === 'CANCELLED') return 'FAILED';
+  // CANCELLED là user / scheduler huỷ chủ động — ko phải lỗi hệ thống.
+  if (raw === 'CANCELLED') return 'CANCELLED';
   return 'PENDING';
 }
 

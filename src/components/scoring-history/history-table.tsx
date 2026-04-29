@@ -32,6 +32,7 @@ const STATUS_META: Record<HistoryStatus, { label: string; tint: string }> = {
   PENDING: { label: 'Chưa chấm', tint: 'text-amber-700 bg-amber-50 border-amber-100' },
   PROCESSING: { label: 'Đang chấm', tint: 'text-indigo-700 bg-indigo-50 border-indigo-100' },
   FAILED: { label: 'Lỗi', tint: 'text-rose-700 bg-rose-50 border-rose-100' },
+  CANCELLED: { label: 'Đã huỷ', tint: 'text-slate-600 bg-slate-100 border-slate-200' },
 };
 
 function bandClass(b: number) {

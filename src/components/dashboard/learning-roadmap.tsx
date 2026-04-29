@@ -428,7 +428,7 @@ export function LearningRoadmap({ weekNumber }: { weekNumber?: number }) {
   const isTourActive = (tourStep >= 5 && tourStep <= 7) || tourStep === 12;
 
   return (
-    <div id="learning-roadmap-section" className={`bg-white rounded-2xl border border-gray-100 shadow-sm relative transition-all duration-500 ${isTourActive ? 'z-[60] ring-4 ring-emerald-500 shadow-2xl scale-[1.01]' : ''}`}>
+    <div id="learning-roadmap-section" className={`bg-white rounded-2xl border border-gray-100 shadow-sm relative transition-all duration-500 overflow-hidden ${isTourActive ? 'z-[60] ring-4 ring-emerald-500 shadow-2xl scale-[1.01]' : ''}`}>
 
       {/* Tour Step 12: New week plan intro */}
       {tourStep === 12 && (
@@ -521,23 +521,23 @@ export function LearningRoadmap({ weekNumber }: { weekNumber?: number }) {
       )}
 
       {/* Header */}
-      <div className="px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-emerald-50/50 to-gray-50/30">
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-xl bg-emerald-100">
+      <div className="px-4 sm:px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-emerald-50/50 to-gray-50/30">
+        <div className="flex items-start sm:items-center justify-between gap-3 flex-wrap">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="p-2 rounded-xl bg-emerald-100 shrink-0">
               <BookOpen className="h-5 w-5 text-emerald-600" />
             </div>
-            <div>
+            <div className="min-w-0">
               <h2 className="text-base font-bold text-gray-800">
                 Lộ trình tuần {plan.weekNumber}
                 <span className="text-xs font-normal text-gray-400 ml-2">Tháng {plan.monthCycle}</span>
               </h2>
-              <p className="text-[11px] text-gray-400">
+              <p className="text-[11px] text-gray-400 truncate">
                 {plan.weekStartDate} – {plan.weekEndDate}
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 shrink-0">
             {verdict && VerdictIcon && (
               <div className={`flex items-center gap-1 ${verdict.color}`}>
                 <VerdictIcon className="h-3.5 w-3.5" />
@@ -550,8 +550,8 @@ export function LearningRoadmap({ weekNumber }: { weekNumber?: number }) {
       </div>
 
       {/* Weekly Grid */}
-      <div className="px-6 py-4">
-        <div className="grid grid-cols-7 gap-2">
+      <div className="px-4 sm:px-6 py-4 overflow-x-auto">
+        <div className="grid grid-cols-7 gap-1.5 sm:gap-2 min-w-[560px]">
           {/* Day headers */}
           {Array.from({ length: 7 }, (_, i) => {
             const dayNum = i + 1;
@@ -605,7 +605,7 @@ export function LearningRoadmap({ weekNumber }: { weekNumber?: number }) {
 
       {/* Today Completed Banner */}
       {plan.todayCompleted && plan.suggestVocabulary && (
-        <div className="mx-6 mb-4 rounded-xl bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 px-4 py-3 flex items-center justify-between">
+        <div className="mx-4 sm:mx-6 mb-4 rounded-xl bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 px-4 py-3 flex items-center justify-between gap-3 flex-wrap">
           <div className="flex items-center gap-2">
             <Sparkles className="h-4 w-4 text-emerald-600" />
             <div>
@@ -624,7 +624,7 @@ export function LearningRoadmap({ weekNumber }: { weekNumber?: number }) {
 
       {/* Monthly Assessment Banner */}
       {plan.monthlyAssessmentPending && (
-        <div className="mx-6 mb-4 rounded-xl bg-gradient-to-r from-emerald-50 to-emerald-50 border border-emerald-200 px-4 py-3 flex items-center justify-between">
+        <div className="mx-4 sm:mx-6 mb-4 rounded-xl bg-gradient-to-r from-emerald-50 to-emerald-50 border border-emerald-200 px-4 py-3 flex items-center justify-between gap-3 flex-wrap">
           <div className="flex items-center gap-2">
             <Trophy className="h-5 w-5 text-emerald-600" />
             <div>
@@ -642,7 +642,7 @@ export function LearningRoadmap({ weekNumber }: { weekNumber?: number }) {
       )}
 
       {/* Legend */}
-      <div className="px-6 pb-4 flex items-center gap-4 flex-wrap">
+      <div className="px-4 sm:px-6 pb-4 flex items-center gap-3 sm:gap-4 flex-wrap">
         {(Object.entries(SKILL_STYLE) as [RoadmapSkill, typeof SKILL_STYLE.READING][]).map(([skill, style]) => (
           <div key={skill} className="flex items-center gap-1">
             <div className={`h-2 w-2 rounded-full ${style.dot}`} />

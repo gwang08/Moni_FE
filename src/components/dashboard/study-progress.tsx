@@ -124,7 +124,7 @@ export function StudyProgress() {
   }
 
   return (
-    <div className="bg-white rounded-3xl p-6 shadow-sm h-full">
+    <div className="bg-white rounded-3xl p-4 sm:p-6 shadow-sm h-full overflow-hidden">
       <style dangerouslySetInnerHTML={{__html: `
         .react-calendar-heatmap text { font-size: 8px; fill: #94a3b8; font-weight: 600; }
         .react-calendar-heatmap .color-empty { fill: #f1f5f9; rx: 3; ry: 3; }
@@ -137,14 +137,14 @@ export function StudyProgress() {
       `}} />
 
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-5">
-        <div>
+        <div className="min-w-0">
           <h3 className="text-lg font-extrabold text-gray-900">Hành trình nỗ lực</h3>
           <p className="text-xs text-gray-500 mt-0.5">
             Đã hoàn thành <span className="text-emerald-600 font-bold">{totalThisYear}</span> bài luyện trong năm {year}
           </p>
         </div>
 
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-2 flex-wrap shrink-0">
           <div className="flex items-center gap-2 bg-emerald-50 px-3 py-1.5 rounded-full">
             <Flame className="w-4 h-4 text-emerald-500" fill="#fb923c" />
             <span className="text-xs font-bold text-emerald-700"><b className="text-base">{currentStreak}</b> ngày streak</span>

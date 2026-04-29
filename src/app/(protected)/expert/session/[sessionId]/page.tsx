@@ -415,7 +415,7 @@ export default function ExpertSessionPage({ params }: Props) {
                     <p className="text-[10.5px] text-gray-500">Tra cứu nhanh nội dung học viên đã nói</p>
                   </div>
                 </div>
-                <SessionTranscriptViewer sessionId={Number(sessionId)} />
+                <SessionTranscriptViewer sessionId={Number(sessionId)} myRole="EXPERT" />
               </div>
             )}
           </div>

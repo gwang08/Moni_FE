@@ -289,7 +289,7 @@ export default function AdminScoringSessionsPage() {
               )}
             </DialogTitle>
           </DialogHeader>
-          {transcriptSession && <SessionTranscriptViewer sessionId={transcriptSession.id} />}
+          {transcriptSession && <SessionTranscriptViewer sessionId={transcriptSession.id} myRole="ADMIN" />}
         </DialogContent>
       </Dialog>
     </div>

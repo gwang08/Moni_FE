@@ -69,6 +69,10 @@ export function useLiveCaptions({
   const recognitionRef = useRef<any>(null);
   const wantBroadcastRef = useRef<boolean>(false);
   const captionsMapRef = useRef<Map<string, CaptionEntry>>(new Map());
+  // True when Daily reports a remote participant as the active speaker.
+  // We use this to suppress local broadcasts caused by mic echo of remote audio,
+  // which would otherwise be tagged with the local user's name.
+  const remoteIsActiveRef = useRef<boolean>(false);
 
   // ---- Receive remote captions ----
   // Depends on callReady (not callRef) — ref identity never changes, so without
@@ -92,9 +96,22 @@ export function useLiveCaptions({
       setCaptions(Array.from(captionsMapRef.current.values()));
     };
 
+    // Track whether the active speaker (per Daily) is local vs remote.
+    // Local broadcasts are suppressed while a remote is the active speaker
+    // to avoid mic-echo cross-tagging (expert's voice picked up by learner's mic).
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const onActiveSpeaker = (evt: any) => {
+      const activeId = evt?.activeSpeaker?.peerId;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const localId = (call as any).participants?.()?.local?.session_id;
+      remoteIsActiveRef.current = !!activeId && !!localId && activeId !== localId;
+    };
+
     call.on('app-message', onMessage);
+    call.on('active-speaker-change', onActiveSpeaker);
     return () => {
       call.off('app-message', onMessage);
+      call.off('active-speaker-change', onActiveSpeaker);
     };
   }, [callRef, callReady]);
 
@@ -123,6 +140,9 @@ export function useLiveCaptions({
     const call = callRef.current;
     const trimmed = text.trim();
     if (!call || !trimmed) return;
+    // Suppress when a remote participant is currently the active speaker —
+    // any text we transcribed is almost certainly mic echo of their voice.
+    if (remoteIsActiveRef.current) return;
     const ts = Date.now();
     const msg: CaptionMessage = { type: 'caption', text: trimmed, isFinal, userName, ts };
     try {

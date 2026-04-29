@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { DailyVideoCall } from '@/components/video/daily-video-call';
 import { getQueuePosition } from '@/lib/expert-api';
 import { apiClient } from '@/lib/api-client';
-import { uploadMedia } from '@/lib/admin-api';
+import { uploadUserMedia } from '@/lib/media-api';
 import { useAuthStore } from '@/store/auth-store';
 import { toast } from 'sonner';
 import { ArrowLeft, Loader2, Star } from 'lucide-react';
@@ -87,24 +87,26 @@ export default function ExpertCallPage({ params }: Props) {
     return () => { if (statusPollRef.current) clearInterval(statusPollRef.current); };
   }, [inCall, sessionId]);
 
-  // Fire-and-forget: upload recording in background; attaches later via PATCH if user already rated
+  // Fire-and-forget: upload recording in background qua user-scope endpoint;
+  // attach via PATCH nếu user đã rate trước khi upload xong.
   useEffect(() => {
     if (!recordingReady || !recordingBlobRef.current || recordingUrlRef.current) return;
     const blob = recordingBlobRef.current;
     const sid = sessionId;
     setUploadingRecording(true);
-    const file = new File([blob], `recording-${sid}.webm`, { type: 'audio/webm' });
-    uploadMedia(file)
+    uploadUserMedia(blob, `recording-${sid}.webm`)
       .then((url) => {
         recordingUrlRef.current = url;
-        // If user already rated & navigated away, attach via PATCH so the backend stores the URL
         if (hasRatedRef.current) {
           apiClient
             .patch(`/api/v1/scoring-sessions/${sid}/recording`, { recordingUrl: url }, true)
-            .catch(() => { /* non-fatal */ });
+            .catch((err) => console.error('PATCH recordingUrl failed', err));
         }
       })
-      .catch(() => { /* non-fatal */ })
+      .catch((err) => {
+        console.error('Recording upload failed', err);
+        toast.error('Không lưu được bản ghi audio — bạn có thể bỏ qua đánh giá.');
+      })
       .finally(() => setUploadingRecording(false));
   }, [recordingReady, sessionId]);
 

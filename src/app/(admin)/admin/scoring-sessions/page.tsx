@@ -1,14 +1,16 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { Headphones, Loader2, Star } from 'lucide-react';
+import { Captions, Headphones, Loader2, Star } from 'lucide-react';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { apiClient } from '@/lib/api-client';
 import type { ApiResponse } from '@/types/auth.types';
 import type { ScoringSession } from '@/types/expert.types';
 import { toast } from 'sonner';
+import { SessionTranscriptViewer } from '@/components/video/session-transcript-viewer';
 
 type SessionStatus = ScoringSession['status'];
 
@@ -64,6 +66,7 @@ function StarRating({ rating }: { rating?: number }) {
 export default function AdminScoringSessionsPage() {
   const [sessions, setSessions] = useState<ScoringSession[]>([]);
   const [loading, setLoading] = useState(true);
+  const [transcriptSession, setTranscriptSession] = useState<ScoringSession | null>(null);
 
   const today = useMemo(() => new Date(), []);
   const defaultFromDate = useMemo(() => {
@@ -228,34 +231,67 @@ export default function AdminScoringSessionsPage() {
                 <th className="px-4 py-3 text-left font-medium text-muted-foreground">Trạng thái</th>
                 <th className="px-4 py-3 text-left font-medium text-muted-foreground">Thời gian nộp/chấm</th>
                 <th className="px-4 py-3 text-left font-medium text-muted-foreground">Đánh giá</th>
+                <th className="px-4 py-3 text-left font-medium text-muted-foreground">Phụ đề</th>
               </tr>
             </thead>
             <tbody className="divide-y">
-              {filtered.map((session) => (
-                <tr key={session.id} className="transition-colors hover:bg-muted/30">
-                  <td className="px-4 py-3 font-mono text-xs text-muted-foreground">
-                    <Link href={`/admin/scoring-sessions/${session.id}`} className="font-medium text-blue-600 hover:underline">
-                      #{session.id}
-                    </Link>
-                  </td>
-                  <td className="px-4 py-3 font-medium">{session.skill}</td>
-                  <td className="px-4 py-3 text-muted-foreground">{session.userDisplayName || '-'}</td>
-                  <td className="px-4 py-3 text-muted-foreground">{session.expertDisplayName || '-'}</td>
-                  <td className="px-4 py-3">
-                    <Badge className={STATUS_CLASS[session.status]}>{STATUS_LABEL[session.status]}</Badge>
-                  </td>
-                  <td className="px-4 py-3 text-muted-foreground">
-                    {formatDateTime(getSessionMoment(session))}
-                  </td>
-                  <td className="px-4 py-3">
-                    <StarRating rating={session.userRating} />
-                  </td>
-                </tr>
-              ))}
+              {filtered.map((session) => {
+                const isSpeaking = (session.skill || '').toUpperCase() === 'SPEAKING';
+                return (
+                  <tr key={session.id} className="transition-colors hover:bg-muted/30">
+                    <td className="px-4 py-3 font-mono text-xs text-muted-foreground">
+                      <Link href={`/admin/scoring-sessions/${session.id}`} className="font-medium text-blue-600 hover:underline">
+                        #{session.id}
+                      </Link>
+                    </td>
+                    <td className="px-4 py-3 font-medium">{session.skill}</td>
+                    <td className="px-4 py-3 text-muted-foreground">{session.userDisplayName || '-'}</td>
+                    <td className="px-4 py-3 text-muted-foreground">{session.expertDisplayName || '-'}</td>
+                    <td className="px-4 py-3">
+                      <Badge className={STATUS_CLASS[session.status]}>{STATUS_LABEL[session.status]}</Badge>
+                    </td>
+                    <td className="px-4 py-3 text-muted-foreground">
+                      {formatDateTime(getSessionMoment(session))}
+                    </td>
+                    <td className="px-4 py-3">
+                      <StarRating rating={session.userRating} />
+                    </td>
+                    <td className="px-4 py-3">
+                      {isSpeaking ? (
+                        <button
+                          type="button"
+                          onClick={() => setTranscriptSession(session)}
+                          className="inline-flex items-center gap-1.5 rounded-md border border-blue-200 bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700 transition-colors hover:bg-blue-100"
+                        >
+                          <Captions className="h-3.5 w-3.5" />
+                          Xem
+                        </button>
+                      ) : (
+                        <span className="text-xs text-gray-300">-</span>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
       )}
+
+      <Dialog open={transcriptSession !== null} onOpenChange={(open) => { if (!open) setTranscriptSession(null); }}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Captions className="h-4 w-4 text-blue-600" />
+              Phụ đề phiên #{transcriptSession?.id}
+              {transcriptSession?.userDisplayName && (
+                <span className="text-sm font-normal text-gray-500">— {transcriptSession.userDisplayName}</span>
+              )}
+            </DialogTitle>
+          </DialogHeader>
+          {transcriptSession && <SessionTranscriptViewer sessionId={transcriptSession.id} />}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

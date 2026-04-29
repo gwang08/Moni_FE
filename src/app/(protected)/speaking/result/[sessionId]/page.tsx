@@ -3,7 +3,8 @@
 import { use, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Loader2, Calendar, UserCheck, Headphones, Sparkles, BookOpen } from 'lucide-react';
+import { ArrowLeft, Loader2, Calendar, UserCheck, Headphones, Sparkles, BookOpen, Captions } from 'lucide-react';
+import { SessionTranscriptViewer } from '@/components/video/session-transcript-viewer';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { getMySessions, getSessionEvaluation } from '@/lib/expert-api';
@@ -356,6 +357,19 @@ export default function SpeakingResultPage({ params }: Props) {
               {session?.expertRecordingUrl && (
                 <RecordingCard label="Giảng viên" emoji="🎧" src={session.expertRecordingUrl} />
               )}
+            </div>
+          </div>
+        )}
+
+        {/* Phụ đề tự động — đặc thù của Speaking */}
+        {session?.id && (
+          <div className="rounded-2xl bg-white border border-slate-100 shadow-sm overflow-hidden">
+            <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2">
+              <Captions className="h-4 w-4 text-violet-600" />
+              <h3 className="text-[14px] font-extrabold text-slate-900">Phụ đề tự động</h3>
+            </div>
+            <div className="p-5">
+              <SessionTranscriptViewer sessionId={Number(session.id)} />
             </div>
           </div>
         )}

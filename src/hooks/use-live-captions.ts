@@ -73,6 +73,11 @@ export function useLiveCaptions({
   // We use this to suppress local broadcasts caused by mic echo of remote audio,
   // which would otherwise be tagged with the local user's name.
   const remoteIsActiveRef = useRef<boolean>(false);
+  // Timestamp of the most recent remote caption received via app-message.
+  // Used as a secondary echo gate: when the local mic transcribes within ~1.5s
+  // after a remote caption arrives, it's almost certainly echo of remote speech.
+  // This gate is more reliable than active-speaker-change in Daily iframe mode.
+  const lastRemoteCaptionAtRef = useRef<number>(0);
 
   // ---- Receive remote captions ----
   // Depends on callReady (not callRef) — ref identity never changes, so without
@@ -86,6 +91,8 @@ export function useLiveCaptions({
     const onMessage = (evt: DailyEventObjectAppMessage | undefined) => {
       const data = evt?.data as CaptionMessage | undefined;
       if (!data || data.type !== 'caption' || typeof data.text !== 'string') return;
+      // Mark time of remote caption — drives the echo gate in broadcast()
+      lastRemoteCaptionAtRef.current = Date.now();
       const entry: CaptionEntry = {
         userName: data.userName || 'Speaker',
         text: data.text,
@@ -140,9 +147,14 @@ export function useLiveCaptions({
     const call = callRef.current;
     const trimmed = text.trim();
     if (!call || !trimmed) return;
-    // Suppress when a remote participant is currently the active speaker —
-    // any text we transcribed is almost certainly mic echo of their voice.
-    if (remoteIsActiveRef.current) return;
+    // Echo suppression — two complementary gates:
+    // 1. Daily's active-speaker-change tells us if remote is currently speaking.
+    // 2. If we received a remote caption within the last ~1.5s, our local Speech API
+    //    is almost certainly transcribing echo of that same remote speech.
+    // Either signal is enough to skip — false positives (suppressing real local speech)
+    // are rare in turn-taking conversations and far less harmful than mis-attribution.
+    const recentRemoteCaption = Date.now() - lastRemoteCaptionAtRef.current < 1500;
+    if (remoteIsActiveRef.current || recentRemoteCaption) return;
     const ts = Date.now();
     const msg: CaptionMessage = { type: 'caption', text: trimmed, isFinal, userName, ts };
     try {

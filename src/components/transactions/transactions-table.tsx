@@ -32,7 +32,7 @@ const TYPE_META: Record<string, { label: string; tint: string; icon: React.Eleme
     iconColor: 'text-rose-600',
   },
   REFUND: {
-    label: 'Hoàn tiền',
+    label: 'Hoàn lượt',
     tint: 'text-blue-700 bg-blue-50 border-blue-100',
     icon: RotateCcw,
     iconBg: 'bg-blue-50 border-blue-100',

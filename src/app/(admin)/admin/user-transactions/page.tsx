@@ -23,14 +23,14 @@ const TYPE_CONFIG: Record<string, { label: string; color: string }> = {
   SUBSCRIPTION_PURCHASE: { label: 'Mua gói', color: 'bg-green-100 text-green-700' },
   TOPUP: { label: 'Nạp tiền', color: 'bg-green-100 text-green-700' },
   CONSUME: { label: 'Thanh toán', color: 'bg-orange-100 text-orange-700' },
-  REFUND: { label: 'Hoàn tiền', color: 'bg-blue-100 text-blue-700' },
+  REFUND: { label: 'Hoàn lượt', color: 'bg-blue-100 text-blue-700' },
 };
 
 const TYPE_FILTERS = [
   { value: 'ALL', label: 'Tất cả' },
   { value: 'SUBSCRIPTION_PURCHASE', label: 'Mua gói' },
   { value: 'CONSUME', label: 'Thanh toán' },
-  { value: 'REFUND', label: 'Hoàn tiền' },
+  { value: 'REFUND', label: 'Hoàn lượt' },
 ];
 
 const PAGE_SIZE = 10;

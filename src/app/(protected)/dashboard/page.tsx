@@ -203,7 +203,7 @@ export default function DashboardPage() {
   const firstName = userName?.split(' ').pop() ?? 'bạn';
 
   return (
-    <div className="min-h-screen bg-gray-50 relative">
+    <div className="min-h-screen bg-gray-50 relative overflow-x-hidden">
       {tourStep > 0 && (tourStep <= 7 || tourStep === 10) && hasRoadmapSub === true && (
         <div className="fixed inset-x-0 bottom-0 top-14 bg-black/60 z-30 transition-opacity duration-300 flex flex-col items-center justify-center">
           {tourStep === 4 && (
@@ -324,32 +324,32 @@ export default function DashboardPage() {
             ) : hasRoadmapSub === true ? (
               <div className="space-y-6">
                 {availableWeeks.length > 0 && (
-                  <div className="flex items-center justify-between bg-white px-6 py-4 rounded-3xl shadow-sm">
-                    <div className="flex items-center gap-3">
-                      <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center text-white shadow-md shadow-emerald-500/20">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-white px-4 sm:px-6 py-4 rounded-3xl shadow-sm">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-11 h-11 shrink-0 rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center text-white shadow-md shadow-emerald-500/20">
                         <Map className="w-5 h-5" />
                       </div>
-                      <div>
-                        <div className="text-sm font-extrabold text-gray-900">Chọn tuần học tập</div>
-                        <div className="text-xs text-gray-500">Xem lại lộ trình các tuần trước</div>
+                      <div className="min-w-0">
+                        <div className="text-sm font-extrabold text-gray-900 truncate">Chọn tuần học tập</div>
+                        <div className="text-xs text-gray-500 truncate">Xem lại lộ trình các tuần trước</div>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 shrink-0">
                       <button
                         onClick={() => {
                           const curIdx = availableWeeks.findIndex(w => w.week === selectedWeek);
                           if (curIdx < availableWeeks.length - 1) setSelectedWeek(availableWeeks[curIdx + 1].week);
                         }}
                         disabled={availableWeeks.findIndex(w => w.week === selectedWeek) >= availableWeeks.length - 1}
-                        className="w-10 h-10 rounded-full bg-emerald-50 text-emerald-700 hover:bg-emerald-100 disabled:opacity-30 disabled:hover:bg-gray-50 transition-all flex items-center justify-center"
+                        className="w-9 h-9 sm:w-10 sm:h-10 shrink-0 rounded-full bg-emerald-50 text-emerald-700 hover:bg-emerald-100 disabled:opacity-30 disabled:hover:bg-gray-50 transition-all flex items-center justify-center"
                       >
                         <ChevronLeft className="w-5 h-5" />
                       </button>
                       <select
                         value={selectedWeek}
                         onChange={(e) => setSelectedWeek(Number(e.target.value))}
-                        className="bg-emerald-50 border-0 text-emerald-700 text-sm rounded-full px-4 py-2 outline-none font-bold min-w-[160px] cursor-pointer hover:bg-emerald-100 transition-colors"
+                        className="flex-1 sm:flex-none min-w-0 sm:min-w-[160px] bg-emerald-50 border-0 text-emerald-700 text-sm rounded-full px-3 sm:px-4 py-2 outline-none font-bold cursor-pointer hover:bg-emerald-100 transition-colors"
                       >
                         {availableWeeks.map(w => (<option key={w.week} value={w.week}>{w.label}</option>))}
                       </select>
@@ -359,7 +359,7 @@ export default function DashboardPage() {
                           if (curIdx > 0) setSelectedWeek(availableWeeks[curIdx - 1].week);
                         }}
                         disabled={availableWeeks.findIndex(w => w.week === selectedWeek) <= 0}
-                        className="w-10 h-10 rounded-full bg-emerald-50 text-emerald-700 hover:bg-emerald-100 disabled:opacity-30 disabled:hover:bg-gray-50 transition-all flex items-center justify-center"
+                        className="w-9 h-9 sm:w-10 sm:h-10 shrink-0 rounded-full bg-emerald-50 text-emerald-700 hover:bg-emerald-100 disabled:opacity-30 disabled:hover:bg-gray-50 transition-all flex items-center justify-center"
                       >
                         <ChevronRight className="w-5 h-5" />
                       </button>

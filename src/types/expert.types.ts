@@ -41,6 +41,8 @@ export interface ScoringSession {
   expertRecordingUrl?: string;
   userRating?: number;
   userComment?: string | null;
+  /** Overall band from expert evaluation; only populated when status is COMPLETED. */
+  overallBand?: number | null;
 }
 
 export interface ExpertEvaluation {

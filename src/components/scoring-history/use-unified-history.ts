@@ -111,6 +111,7 @@ export function useUnifiedHistory() {
         kind,
         title: s.testTitle || s.stimulusTitle || `${isSpeaking ? 'Speaking' : 'Writing'} với Giảng viên`,
         subtitle: s.expertDisplayName ? `GV ${s.expertDisplayName}` : undefined,
+        band: typeof s.overallBand === 'number' && s.overallBand > 0 ? s.overallBand : undefined,
         status: sessionStatusFrom(s.status),
         date: s.createdAt || s.startedAt || '',
         href,

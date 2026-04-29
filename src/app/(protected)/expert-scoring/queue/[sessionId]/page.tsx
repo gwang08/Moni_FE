@@ -2,6 +2,7 @@
 
 import { use, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { cancelScoringSession, getQueuePosition } from '@/lib/expert-api';
 import { useAuthStore } from '@/store/auth-store';
@@ -17,6 +18,7 @@ export default function QueueWaitingPage({ params }: Props) {
   const router = useRouter();
   const sessionIdNum = Number(sessionId);
   const refreshProfile = useAuthStore((s) => s.refreshProfile);
+  const queryClient = useQueryClient();
 
   const [position, setPosition] = useState<number | null>(null);
   const [status, setStatus] = useState<string>('QUEUED');
@@ -62,8 +64,10 @@ export default function QueueWaitingPage({ params }: Props) {
     if (intervalRef.current) clearInterval(intervalRef.current);
     try {
       await cancelScoringSession(sessionIdNum);
-      // Refresh user profile để header cập nhật số lượt mới sau refund
+      // Refresh user profile + invalidate subscription query để dropdown
+      // số lượt cập nhật ngay không cần reload trang.
       await refreshProfile();
+      queryClient.invalidateQueries({ queryKey: ['my-active-subscription'] });
       toast.success('Đã huỷ phiên chấm — lượt đã được hoàn lại');
       // Delay nhỏ để toast render ổn định trước khi navigate (Toaster ở root layout)
       setTimeout(() => router.push('/expert-scoring'), 250);

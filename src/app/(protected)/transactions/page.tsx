@@ -102,7 +102,7 @@ export default function TransactionsPage() {
               <ShoppingCart className="h-4 w-4 text-indigo-500" />
             </div>
             <div className="mt-1 text-[28px] font-black text-indigo-600">
-              {transactions.filter((t) => t.paymentType === 'SUBSCRIPTION_PURCHASE').length}
+              {countByType('SUBSCRIPTION_PURCHASE')}
             </div>
           </div>
           <div className="rounded-2xl bg-white border border-slate-100 shadow-sm p-5">

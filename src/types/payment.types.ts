@@ -19,7 +19,10 @@ export interface PaymentInitResponse {
 
 export interface PaymentResponse {
   id: number;
-  packageId: number;
+  packageId: number | null;
+  packageName?: string | null;
+  subscriptionPlanId?: number | null;
+  subscriptionPlanName?: string | null;
   txnCode: string;
   amount: number;
   updatedAt: string;

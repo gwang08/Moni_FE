@@ -1,6 +1,6 @@
 'use client';
 
-import { ArrowDown, ArrowUp, RotateCcw, Sparkles, Wrench } from 'lucide-react';
+import { ArrowDown, ArrowUp, RotateCcw, Sparkles, Wrench, Clock, XCircle } from 'lucide-react';
 import type { CreditTransactionResponse } from '@/types/payment.types';
 import { formatDate } from '@/lib/format-date';
 import { formatVnd } from '@/lib/utils';
@@ -51,6 +51,20 @@ const TYPE_META: Record<string, { label: string; tint: string; icon: React.Eleme
     icon: Wrench,
     iconBg: 'bg-amber-50 border-amber-100',
     iconColor: 'text-amber-600',
+  },
+  PENDING_PAYMENT: {
+    label: 'Chờ thanh toán',
+    tint: 'text-orange-700 bg-orange-50 border-orange-100',
+    icon: Clock,
+    iconBg: 'bg-orange-50 border-orange-100',
+    iconColor: 'text-orange-600',
+  },
+  EXPIRED_PAYMENT: {
+    label: 'Hết hạn',
+    tint: 'text-gray-700 bg-gray-50 border-gray-100',
+    icon: XCircle,
+    iconBg: 'bg-gray-50 border-gray-100',
+    iconColor: 'text-gray-600',
   },
 };
 
@@ -106,6 +120,8 @@ function TransactionRow({ tx }: { tx: CreditTransactionResponse }) {
     return m ? m[1] + 'đ' : null;
   })();
 
+  const isPendingExpired = tx.paymentType === 'PENDING_PAYMENT' || tx.paymentType === 'EXPIRED_PAYMENT';
+
   const isExpertQuota = tx.quotaType === 'EXPERT';
   const quotaIsUnlimited = tx.quotaBefore === -1 || tx.quotaAfter === -1;
   const quotaBeforeAfterText = quotaIsUnlimited
@@ -128,14 +144,16 @@ function TransactionRow({ tx }: { tx: CreditTransactionResponse }) {
         <div className="text-[13px] font-bold text-slate-900 truncate">{detail}</div>
         {/* Số tiền */}
         <span className={`text-center text-[13px] font-black tabular-nums ${
-          isSubPurchase ? 'text-indigo-600' : tx.delta > 0 ? 'text-emerald-600' : tx.delta < 0 ? 'text-rose-600' : 'text-slate-300'
+          isSubPurchase ? 'text-indigo-600' : isPendingExpired ? (tx.paymentType === 'PENDING_PAYMENT' ? 'text-orange-600' : 'text-gray-500') : tx.delta > 0 ? 'text-emerald-600' : tx.delta < 0 ? 'text-rose-600' : 'text-slate-300'
         }`}>
           {showAmount
             ? isSubPurchase
               ? (subPurchaseAmount ?? '—')
-              : tx.delta !== 0
-                ? (tx.delta >= 0 ? '+' : '') + formatVnd(Math.abs(tx.delta))
-                : '—'
+              : isPendingExpired
+                ? formatVnd(tx.delta)
+                : tx.delta !== 0
+                  ? (tx.delta >= 0 ? '+' : '') + formatVnd(Math.abs(tx.delta))
+                  : '—'
             : '—'}
         </span>
         {/* Số lượt */}
@@ -181,6 +199,10 @@ function TransactionRow({ tx }: { tx: CreditTransactionResponse }) {
           ) : isSubPurchase ? (
             <div className="text-[14px] font-black tabular-nums text-indigo-600">
               {subPurchaseAmount ?? '—'}
+            </div>
+          ) : isPendingExpired ? (
+            <div className={`text-[14px] font-black tabular-nums ${tx.paymentType === 'PENDING_PAYMENT' ? 'text-orange-600' : 'text-gray-500'}`}>
+              {formatVnd(tx.delta)}
             </div>
           ) : tx.delta !== 0 && showAmount ? (
             <div className={`text-[14px] font-black tabular-nums ${tx.delta >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>

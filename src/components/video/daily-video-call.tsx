@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from 'react';
 import DailyIframe, { DailyCall } from '@daily-co/daily-js';
 import { Loader2, VideoOff } from 'lucide-react';
 import { useCallRecorder } from '@/hooks/use-call-recorder';
+import { useLiveCaptions } from '@/hooks/use-live-captions';
+import { LiveCaptionsOverlay } from './live-captions-overlay';
 
 interface DailyVideoCallProps {
   roomUrl: string;
@@ -14,6 +16,8 @@ interface DailyVideoCallProps {
   onRecordingReady?: (blob: Blob) => void;
   /** Ref to expose stopRecording so parent can stop recording externally */
   stopRecordingRef?: React.MutableRefObject<(() => void) | null>;
+  /** Enable live captions overlay (Web Speech API + Daily app-message). Default true. */
+  enableCaptions?: boolean;
   className?: string;
 }
 
@@ -25,11 +29,19 @@ export function DailyVideoCall({
   enableRecording = false,
   onRecordingReady,
   stopRecordingRef,
+  enableCaptions = true,
   className = '',
 }: DailyVideoCallProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const callRef = useRef<DailyCall | null>(null);
   const [state, setState] = useState<'loading' | 'joined' | 'error' | 'left'>('loading');
+  const [callReady, setCallReady] = useState(false);
+
+  const captions = useLiveCaptions({
+    callRef,
+    userName: userName || 'Participant',
+    autoStart: enableCaptions && callReady,
+  });
 
   const { startRecording, stopRecording, recordingBlob } = useCallRecorder();
 
@@ -62,6 +74,7 @@ export function DailyVideoCall({
 
     frame.on('joined-meeting', () => {
       setState('joined');
+      setCallReady(true);
       onJoined?.();
       if (enableRecording) {
         startRecording();
@@ -137,6 +150,14 @@ export function DailyVideoCall({
         </div>
       )}
       <div ref={containerRef} className="w-full h-full" />
+      {enableCaptions && state === 'joined' && (
+        <LiveCaptionsOverlay
+          captions={captions.captions}
+          enabled={captions.broadcasting}
+          supported={captions.supported}
+          onToggle={captions.toggle}
+        />
+      )}
     </div>
   );
 }

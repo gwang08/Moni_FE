@@ -80,10 +80,10 @@ export default function QueueWaitingPage({ params }: Props) {
   ];
 
   return (
-    <div className="min-h-[calc(100vh-56px)] bg-gradient-to-br from-slate-50 via-white to-indigo-50/30 px-4 py-8">
-      <div className="w-full max-w-3xl mx-auto space-y-6">
-        {/* Status Card */}
-        <div className="rounded-3xl border border-gray-100 bg-white shadow-xl shadow-gray-100/50 overflow-hidden">
+    <div className="min-h-[calc(100vh-56px)] bg-gradient-to-br from-slate-50 via-white to-indigo-50/30 px-4 py-6 lg:py-8 lg:flex lg:items-center">
+      <div className="w-full max-w-6xl mx-auto grid gap-5 lg:gap-6 lg:grid-cols-2 lg:items-start">
+        {/* Status Card — col 1 */}
+        <div className="rounded-3xl border border-gray-100 bg-white shadow-xl shadow-gray-100/50 overflow-hidden lg:sticky lg:top-6">
           <div className="bg-gradient-to-br from-indigo-500 to-purple-600 px-6 pt-8 pb-7 text-center text-white relative overflow-hidden">
             <div className="absolute -top-10 -right-10 w-40 h-40 rounded-full bg-white/10 blur-2xl" />
             <div className="absolute -bottom-12 -left-12 w-48 h-48 rounded-full bg-purple-300/20 blur-3xl" />
@@ -140,6 +140,8 @@ export default function QueueWaitingPage({ params }: Props) {
           </div>
         </div>
 
+        {/* Col 2 — Checklist + Tips */}
+        <div className="space-y-5 lg:space-y-6">
         {/* Preparation Checklist */}
         <div className="rounded-3xl border border-gray-100 bg-white shadow-sm p-6">
           <div className="flex items-center gap-2.5 mb-4">
@@ -185,6 +187,7 @@ export default function QueueWaitingPage({ params }: Props) {
               </li>
             ))}
           </ul>
+        </div>
         </div>
       </div>
     </div>

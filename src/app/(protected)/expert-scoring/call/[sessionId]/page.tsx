@@ -269,6 +269,7 @@ export default function ExpertCallPage({ params }: Props) {
             enableRecording
             onRecordingReady={handleRecordingReady}
             stopRecordingRef={stopRecordingRef}
+            sessionId={Number(sessionId)}
             className="h-full"
           />
         )}

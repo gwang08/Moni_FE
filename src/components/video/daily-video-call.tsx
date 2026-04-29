@@ -1,11 +1,12 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import DailyIframe, { DailyCall } from '@daily-co/daily-js';
 import { Loader2, VideoOff } from 'lucide-react';
 import { useCallRecorder } from '@/hooks/use-call-recorder';
 import { useLiveCaptions } from '@/hooks/use-live-captions';
 import { LiveCaptionsOverlay } from './live-captions-overlay';
+import { appendSessionTranscripts, type TranscriptCreateEntry } from '@/lib/session-transcripts-api';
 
 interface DailyVideoCallProps {
   roomUrl: string;
@@ -18,8 +19,12 @@ interface DailyVideoCallProps {
   stopRecordingRef?: React.MutableRefObject<(() => void) | null>;
   /** Enable live captions overlay (Web Speech API + Daily app-message). Default true. */
   enableCaptions?: boolean;
+  /** Scoring session ID — when provided, finalized captions are batch-uploaded for review/audit. */
+  sessionId?: number;
   className?: string;
 }
+
+const TRANSCRIPT_FLUSH_INTERVAL_MS = 5000;
 
 export function DailyVideoCall({
   roomUrl,
@@ -30,6 +35,7 @@ export function DailyVideoCall({
   onRecordingReady,
   stopRecordingRef,
   enableCaptions = true,
+  sessionId,
   className = '',
 }: DailyVideoCallProps) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -37,11 +43,43 @@ export function DailyVideoCall({
   const [state, setState] = useState<'loading' | 'joined' | 'error' | 'left'>('loading');
   const [callReady, setCallReady] = useState(false);
 
+  // Buffer of finalized local captions awaiting upload
+  const transcriptQueueRef = useRef<TranscriptCreateEntry[]>([]);
+
+  const flushTranscripts = useCallback(async () => {
+    if (!sessionId) return;
+    const batch = transcriptQueueRef.current;
+    if (batch.length === 0) return;
+    transcriptQueueRef.current = [];
+    try {
+      await appendSessionTranscripts(sessionId, batch);
+    } catch (err) {
+      // Re-queue on failure so we don't lose captions
+      transcriptQueueRef.current = [...batch, ...transcriptQueueRef.current];
+      console.warn('[transcripts] flush failed, will retry next tick:', err);
+    }
+  }, [sessionId]);
+
   const captions = useLiveCaptions({
     callRef,
     userName: userName || 'Participant',
     autoStart: enableCaptions && callReady,
+    onLocalFinal: sessionId
+      ? (text, ts) => {
+          transcriptQueueRef.current.push({ text, language: 'en-US', spokenAt: new Date(ts).toISOString() });
+        }
+      : undefined,
   });
+
+  // Periodic flush + flush on unmount
+  useEffect(() => {
+    if (!sessionId) return;
+    const id = setInterval(flushTranscripts, TRANSCRIPT_FLUSH_INTERVAL_MS);
+    return () => {
+      clearInterval(id);
+      flushTranscripts();
+    };
+  }, [sessionId, flushTranscripts]);
 
   const { startRecording, stopRecording, recordingBlob } = useCallRecorder();
 
@@ -85,6 +123,8 @@ export function DailyVideoCall({
     frame.on('left-meeting', () => {
       setState('left');
       if (enableRecording) stopRecording();
+      // Flush any remaining captions before unmount cleanup
+      flushTranscripts();
       onLeave?.();
     });
 

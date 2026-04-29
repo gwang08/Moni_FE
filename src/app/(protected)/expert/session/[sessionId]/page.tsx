@@ -8,7 +8,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { DailyVideoCall } from '@/components/video/daily-video-call';
-import { Send, Loader2, FileText, PenLine } from 'lucide-react';
+import { Send, Loader2, FileText, PenLine, Captions } from 'lucide-react';
+import { SessionTranscriptViewer } from '@/components/video/session-transcript-viewer';
 import { apiClient } from '@/lib/api-client';
 import { uploadMedia } from '@/lib/admin-api';
 import { getWritingSubmissionDetail } from '@/lib/ai-api';
@@ -394,12 +395,27 @@ export default function ExpertSessionPage({ params }: Props) {
               </div>
             ) : null}
             {!session?.recordingUrl && !session?.expertRecordingUrl && (
-              <div className="flex flex-col items-center justify-center h-full text-center py-16 px-4">
+              <div className="flex flex-col items-center justify-center text-center py-12 px-4">
                 <div className="h-16 w-16 rounded-2xl bg-gray-200/60 flex items-center justify-center mb-4">
                   <FileText className="h-7 w-7 text-gray-400" />
                 </div>
                 <p className="text-[13.5px] font-semibold text-gray-600">Không có bản ghi</p>
                 <p className="text-[11.5px] text-gray-400 mt-1 max-w-xs">Phiên này không có bản ghi âm. Xem chi tiết đánh giá ở bên phải.</p>
+              </div>
+            )}
+
+            {(session?.skill || '').toUpperCase() === 'SPEAKING' && sessionId && (
+              <div className="rounded-2xl bg-white border border-gray-200 p-4 shadow-sm">
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="h-7 w-7 rounded-lg bg-violet-50 flex items-center justify-center">
+                    <Captions className="h-3.5 w-3.5 text-violet-600" />
+                  </span>
+                  <div>
+                    <p className="text-[12.5px] font-bold text-gray-800">Phụ đề tự động phiên này</p>
+                    <p className="text-[10.5px] text-gray-500">Tra cứu nhanh nội dung học viên đã nói</p>
+                  </div>
+                </div>
+                <SessionTranscriptViewer sessionId={Number(sessionId)} />
               </div>
             )}
           </div>
@@ -413,6 +429,7 @@ export default function ExpertSessionPage({ params }: Props) {
             onLeave={() => { if (inCall) router.push('/expert/dashboard'); }}
             enableRecording
             onRecordingReady={(blob) => { recordingBlobRef.current = blob; }}
+            sessionId={Number(sessionId)}
             className="h-full"
           />
         </div>

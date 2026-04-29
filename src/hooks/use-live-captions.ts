@@ -43,9 +43,11 @@ interface UseLiveCaptionsOptions {
   autoStart?: boolean;
   /** Recognition language. Default 'en-US'. */
   lang?: string;
+  /** Called once per finalized local utterance. Use to persist to DB. */
+  onLocalFinal?: (text: string, ts: number) => void;
 }
 
-export function useLiveCaptions({ callRef, userName, autoStart = true, lang = 'en-US' }: UseLiveCaptionsOptions) {
+export function useLiveCaptions({ callRef, userName, autoStart = true, lang = 'en-US', onLocalFinal }: UseLiveCaptionsOptions) {
   const [captions, setCaptions] = useState<CaptionEntry[]>([]);
   const [broadcasting, setBroadcasting] = useState(false);
   const [supported] = useState<boolean>(isLiveCaptionsSupported());
@@ -95,18 +97,27 @@ export function useLiveCaptions({ callRef, userName, autoStart = true, lang = 'e
     return () => clearInterval(id);
   }, []);
 
+  const onLocalFinalRef = useRef(onLocalFinal);
+  useEffect(() => {
+    onLocalFinalRef.current = onLocalFinal;
+  }, [onLocalFinal]);
+
   const broadcast = useCallback((text: string, isFinal: boolean) => {
     const call = callRef.current;
-    if (!call || !text.trim()) return;
-    const msg: CaptionMessage = { type: 'caption', text: text.trim(), isFinal, userName, ts: Date.now() };
+    const trimmed = text.trim();
+    if (!call || !trimmed) return;
+    const ts = Date.now();
+    const msg: CaptionMessage = { type: 'caption', text: trimmed, isFinal, userName, ts };
     try {
       call.sendAppMessage(msg, '*');
     } catch {
       // call may not be in joined state yet
     }
-    // Also reflect locally so the speaker sees their own caption
+    // Reflect locally so the speaker sees their own caption
     captionsMapRef.current.set(userName, { ...msg, userName });
     setCaptions(Array.from(captionsMapRef.current.values()));
+    // Persist hook for parent (DB upload)
+    if (isFinal) onLocalFinalRef.current?.(trimmed, ts);
   }, [callRef, userName]);
 
   const stopBroadcast = useCallback(() => {

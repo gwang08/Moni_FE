@@ -101,7 +101,7 @@ function SlotCard({ slot, onClick, locked }: { slot: DailySlotResponse; onClick:
       <button
         onClick={onClick}
         disabled={isDisabled}
-        className={`w-full rounded-xl border px-2.5 py-2 text-left transition-all relative overflow-hidden ${
+        className={`w-full rounded-lg sm:rounded-xl border px-1.5 sm:px-2.5 py-1.5 sm:py-2 text-left transition-all relative overflow-hidden ${
           isDone
             ? `${style.bg} ${style.border} opacity-100 shadow-sm hover:shadow-md cursor-pointer`
             : locked
@@ -111,24 +111,27 @@ function SlotCard({ slot, onClick, locked }: { slot: DailySlotResponse; onClick:
                 : 'bg-gray-50 border-gray-100 opacity-60 cursor-not-allowed'
         }`}
       >
-        <div className="flex items-center gap-1.5 mb-1 pr-4">
+        <div className="flex items-center gap-1 sm:gap-1.5 mb-0.5 sm:mb-1 pr-0 sm:pr-4">
           <div className={`h-1.5 w-1.5 rounded-full flex-shrink-0 ${isDone ? 'bg-green-500' : locked ? 'bg-gray-300' : style.dot}`} />
-          <span className={`text-[10px] font-bold tracking-tight uppercase truncate ${isDone ? 'text-green-700' : locked ? 'text-gray-400' : style.text}`}>
-            {slot.skill}
+          {/* Mobile: ký tự đầu skill (R/L/W/S/V) — Desktop: full skill */}
+          <span className={`text-[9px] sm:text-[10px] font-bold tracking-tight uppercase truncate ${isDone ? 'text-green-700' : locked ? 'text-gray-400' : style.text}`}>
+            <span className="sm:hidden">{slot.skill.charAt(0)}</span>
+            <span className="hidden sm:inline">{slot.skill}</span>
           </span>
           {isAssessment && (
-            <span className="text-[8px] font-black uppercase bg-amber-100 text-amber-700 px-1 py-0.5 rounded-sm flex-shrink-0">
+            <span className="hidden sm:inline-block text-[8px] font-black uppercase bg-amber-100 text-amber-700 px-1 py-0.5 rounded-sm flex-shrink-0">
               Test
             </span>
           )}
         </div>
-        
-        <p className={`text-[10px] leading-tight truncate ${locked && !isDone ? 'text-gray-300' : 'text-gray-500'}`} title={formattedTitle}>
+
+        {/* Title chỉ hiện trên sm+ — mobile quá hẹp để đọc */}
+        <p className={`hidden sm:block text-[10px] leading-tight truncate ${locked && !isDone ? 'text-gray-300' : 'text-gray-500'}`} title={formattedTitle}>
           {formattedTitle}
         </p>
 
         {/* Status Icons - Absolutely positioned for perfect alignment */}
-        <div className="absolute right-1.5 top-2 flex items-center">
+        <div className="absolute right-1 sm:right-1.5 top-1.5 sm:top-2 flex items-center">
           {locked && !isDone && <Lock className="h-2.5 w-2.5 text-gray-300" />}
           {isDone && <Check className="h-3 w-3 text-green-600" />}
         </div>
@@ -550,18 +553,20 @@ export function LearningRoadmap({ weekNumber }: { weekNumber?: number }) {
       </div>
 
       {/* Weekly Grid */}
-      <div className="px-4 sm:px-6 py-4 overflow-x-auto">
-        <div className="grid grid-cols-7 gap-1.5 sm:gap-2 min-w-[560px]">
+      <div className="px-2 sm:px-6 py-4">
+        <div className="grid grid-cols-7 gap-1 sm:gap-2">
           {/* Day headers */}
           {Array.from({ length: 7 }, (_, i) => {
             const dayNum = i + 1;
             const daySlots = slotsByDay.get(dayNum) ?? [];
             // Build label from slot date or plan start date
             const slotDate = daySlots.length > 0 ? daySlots[0].slotDate : null;
-            let dayLabel = `N${dayNum}`;
+            let dayShort = `N${dayNum}`; // mobile: chỉ tên thứ
+            let dayLabel = `N${dayNum}`; // desktop: thứ + ngày
             if (slotDate) {
               const d = new Date(slotDate);
               const wd = WEEKDAY_SHORT[d.getDay()];
+              dayShort = wd;
               dayLabel = `${wd} ${d.getDate()}/${d.getMonth() + 1}`;
             }
             const isToday = slotDate === today;
@@ -570,9 +575,9 @@ export function LearningRoadmap({ weekNumber }: { weekNumber?: number }) {
             const isDay7 = dayNum === 7;
 
             return (
-              <div key={dayNum} className="text-center">
+              <div key={dayNum} className="text-center min-w-0">
                 <div
-                  className={`text-[11px] font-semibold mb-2 py-1 rounded-md ${
+                  className={`text-[10px] sm:text-[11px] font-semibold mb-1.5 sm:mb-2 py-1 rounded-md ${
                     isToday
                       ? 'bg-emerald-500 text-white'
                       : allDone
@@ -582,9 +587,10 @@ export function LearningRoadmap({ weekNumber }: { weekNumber?: number }) {
                           : 'text-gray-500'
                   }`}
                 >
-                  {dayLabel}
+                  <span className="sm:hidden">{dayShort}</span>
+                  <span className="hidden sm:inline">{dayLabel}</span>
                 </div>
-                <div className="space-y-1.5">
+                <div className="space-y-1 sm:space-y-1.5">
                   {daySlots.map((slot) => (
                     <SlotCard
                       key={slot.id}

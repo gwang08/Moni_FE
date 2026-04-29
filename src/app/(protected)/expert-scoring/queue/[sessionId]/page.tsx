@@ -30,6 +30,9 @@ export default function QueueWaitingPage({ params }: Props) {
     if (cancellingRef.current) return; // skip khi user đang huỷ — tránh trigger toast trùng
     try {
       const data = await getQueuePosition(sessionIdNum);
+      // Check lại sau await: nếu user đã bấm huỷ trong lúc API in-flight,
+      // bỏ qua toàn bộ side effects (toast/redirect) — handleCancel sẽ tự lo.
+      if (cancellingRef.current) return;
       setPosition(data.position);
       setStatus(data.status);
 

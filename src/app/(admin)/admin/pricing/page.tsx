@@ -59,24 +59,8 @@ export default function AdminPricingPage() {
   return (
     <div>
       <AdminHeader title="Quản lý gói dịch vụ" />
-      <div className="p-6 grid grid-cols-1 md:grid-cols-12 gap-6 max-w-7xl mx-auto">
-        {/* Sticky anchor nav */}
-        <aside className="md:col-span-3">
-          <nav className="bg-white rounded-xl border shadow-sm p-2 space-y-0.5 sticky top-6 hidden md:block">
-            <a href="#packages" className="flex items-center gap-2 px-3 py-2 text-sm rounded-lg text-gray-600 hover:bg-emerald-50 hover:text-emerald-600 border-l-2 border-transparent hover:border-emerald-500 transition-all">
-              <Package className="h-4 w-4" />
-              Gói lượt chấm
-            </a>
-            <a href="#subscriptions" className="flex items-center gap-2 px-3 py-2 text-sm rounded-lg text-gray-600 hover:bg-indigo-50 hover:text-indigo-600 border-l-2 border-transparent hover:border-indigo-500 transition-all">
-              <Sparkles className="h-4 w-4" />
-              Gói lộ trình
-            </a>
-          </nav>
-        </aside>
-
-        {/* Stacked sections */}
-        <div className="md:col-span-9 space-y-6 scroll-smooth">
-          <section id="packages" className="bg-white rounded-xl border shadow-sm overflow-hidden scroll-mt-6">
+      <div className="p-6 max-w-5xl mx-auto space-y-6">
+        <section id="packages" className="bg-white rounded-xl border shadow-sm overflow-hidden">
             <div className="px-5 py-3 bg-gray-50 border-b flex items-center gap-2">
               <Package className="h-4 w-4 text-emerald-500" />
               <h3 className="font-bold text-sm">Gói lượt chấm</h3>
@@ -86,7 +70,7 @@ export default function AdminPricingPage() {
             </div>
           </section>
 
-          <section id="subscriptions" className="bg-white rounded-xl border shadow-sm overflow-hidden scroll-mt-6">
+          <section id="subscriptions" className="bg-white rounded-xl border shadow-sm overflow-hidden">
             <div className="px-5 py-3 bg-gray-50 border-b flex items-center gap-2">
               <Sparkles className="h-4 w-4 text-indigo-500" />
               <h3 className="font-bold text-sm">Gói lộ trình</h3>
@@ -95,7 +79,6 @@ export default function AdminPricingPage() {
               <SubscriptionsTab />
             </div>
           </section>
-        </div>
       </div>
     </div>
   );

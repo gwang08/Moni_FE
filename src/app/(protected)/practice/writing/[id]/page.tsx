@@ -86,6 +86,11 @@ export default function WritingExercisePage({ params }: Props) {
   const [activeSubscription, setActiveSubscription] = useState<UserSubscriptionResponse | null>(null);
   const [confirmSubmitOpen, setConfirmSubmitOpen] = useState(false);
   const [expertCost, setExpertCost] = useState<number | null>(null);
+  const [isAnimationFinished, setIsAnimationFinished] = useState(false);
+
+  const handleAnimationComplete = useCallback(() => {
+    setIsAnimationFinished(true);
+  }, []);
 
   // Khi không có lượt chấm: chuyển user sang trang mua gói
   const handleBuyPackage = useCallback(() => {
@@ -241,10 +246,20 @@ export default function WritingExercisePage({ params }: Props) {
     setConfirmSubmitOpen(true);
   }, [isSubmitting, submitted]);
 
+  // Redirect to result only when BOTH grading is done and animation is finished
+  useEffect(() => {
+    if (submitted && !isGrading && isAnimationFinished && submissionId) {
+      router.push(`/writing/result/${submissionId}`);
+    }
+  }, [submitted, isGrading, isAnimationFinished, submissionId, router]);
+
   // Grade handler
   const handleGrade = useCallback(() => {
     const stimulus = testDetail?.stimuli[activeStimulusIdx];
     if (!testDetail || !stimulus) return;
+    
+    setIsAnimationFinished(false);
+
     const taskType: WritingTaskType = testDetail.section === 1 ? 1 : 2;
     const prompt = stimulus.content || testDetail.description || FALLBACK_PROMPT;
     const answer = stripHtml(content);
@@ -262,9 +277,8 @@ export default function WritingExercisePage({ params }: Props) {
           completeSlot(Number(slotId), Math.round(band * 10), 90).catch(() => {});
         }
       }
-      if (submissionId) router.push(`/writing/result/${submissionId}`);
     });
-  }, [testDetail, activeStimulusIdx, content, submissionId, submitForGrading, refreshProfile, router, slotId, queryClient]);
+  }, [testDetail, activeStimulusIdx, content, submissionId, submitForGrading, refreshProfile, slotId, queryClient]);
 
   // ===== EARLY RETURNS AFTER ALL HOOKS =====
 
@@ -335,7 +349,7 @@ export default function WritingExercisePage({ params }: Props) {
           submissionId={submissionId}
           expertCost={expertCost}
         />
-        <WritingScoringProgressDialog open={isGrading} />
+        <WritingScoringProgressDialog open={isGrading} onComplete={handleAnimationComplete} />
         <ConfirmDialog
           open={confirmSubmitOpen}
           onOpenChange={setConfirmSubmitOpen}
@@ -394,7 +408,7 @@ export default function WritingExercisePage({ params }: Props) {
         submissionId={submissionId}
         expertCost={expertCost}
       />
-      <WritingScoringProgressDialog open={isGrading} />
+      <WritingScoringProgressDialog open={isGrading} onComplete={handleAnimationComplete} />
 
       <ConfirmDialog
         open={exitOpen}

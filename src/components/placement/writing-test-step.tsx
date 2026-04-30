@@ -24,6 +24,10 @@ export function WritingTestStep({ testDetail, essay, onEssayChange, onComplete, 
   const minWords = testDetail.section === 1 ? 150 : 250;
 
   const handleSubmit = () => {
+    if (wordCount === 0) {
+      setShowConfirm(true);
+      return;
+    }
     if (wordCount < 50) {
       setShowConfirm(true);
       return;
@@ -118,17 +122,28 @@ export function WritingTestStep({ testDetail, essay, onEssayChange, onComplete, 
         {showConfirm && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
             <div className="bg-white rounded-2xl shadow-2xl p-6 max-w-sm space-y-4">
-              <h3 className="font-bold text-gray-900 text-lg">Bài viết quá ngắn</h3>
+              <h3 className="font-bold text-gray-900 text-lg">
+                {wordCount === 0 ? 'Bạn chưa viết gì' : 'Bài viết quá ngắn'}
+              </h3>
               <p className="text-sm text-gray-600">
-                Bài viết của bạn chỉ có <span className="font-bold text-orange-600">{wordCount}</span> từ.
-                Bạn nên viết ít nhất <span className="font-bold">{minWords}</span> từ để có kết quả chính xác hơn.
+                {wordCount === 0 ? (
+                  <>
+                    Bạn chưa viết bài. Nếu bỏ qua, điểm Writing sẽ là <span className="font-bold text-red-600">0.0</span>.
+                    Bạn nên viết ít nhất <span className="font-bold">{minWords}</span> từ để có kết quả chính xác.
+                  </>
+                ) : (
+                  <>
+                    Bài viết của bạn chỉ có <span className="font-bold text-orange-600">{wordCount}</span> từ.
+                    Bạn nên viết ít nhất <span className="font-bold">{minWords}</span> từ để có kết quả chính xác hơn.
+                  </>
+                )}
               </p>
               <div className="flex justify-end gap-2 pt-2">
                 <Button variant="outline" onClick={() => setShowConfirm(false)} className="rounded-xl">
-                  Viết thêm
+                  {wordCount === 0 ? 'Quay lại viết' : 'Viết thêm'}
                 </Button>
                 <Button onClick={onComplete} className="rounded-xl bg-orange-600 hover:bg-orange-700 text-white">
-                  Nộp bài
+                  {wordCount === 0 ? 'Bỏ qua' : 'Nộp bài'}
                 </Button>
               </div>
             </div>

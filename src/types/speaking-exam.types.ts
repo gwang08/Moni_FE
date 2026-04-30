@@ -22,6 +22,7 @@ export interface QuestionEvent {
   questionId: number;
   text: string;
   isFollowUp: boolean;
+  questionIndex?: number;
 }
 
 export interface CueCardEvent {

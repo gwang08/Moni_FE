@@ -17,11 +17,48 @@ export function ExamProgressBar({ currentPart, currentQuestionIndex, partConfig 
     const total = finalConfig.part1 + finalConfig.part2 + finalConfig.part3;
     let completed = 0;
     if (part === 0) { completed = 0; }
-    else if (part === 1) { completed = qIdx; }
-    else if (part === 2) { completed = finalConfig.part1 + qIdx; }
-    else if (part === 3) { completed = finalConfig.part1 + finalConfig.part2 + qIdx; }
+    else if (part === 1) { 
+      completed = Math.min(qIdx, finalConfig.part1); 
+    }
+    else if (part === 2) { 
+      completed = finalConfig.part1 + Math.min(qIdx, finalConfig.part2); 
+    }
+    else if (part === 3) { 
+      completed = finalConfig.part1 + finalConfig.part2 + Math.min(qIdx, finalConfig.part3); 
+    }
     else { completed = total; }
-    return (completed / total) * 100;
+    return Math.min((completed / total) * 100, 100);
+  };
+
+  const renderDots = (partNumber: number, expectedCount: number) => {
+    // If the actual index is higher than expected, we show up to the actual index
+    const actualCount = (currentPart === partNumber && currentQuestionIndex >= expectedCount) 
+      ? currentQuestionIndex + 1 
+      : expectedCount;
+
+    return (
+      <div className="flex gap-1.5 flex-wrap">
+        {Array.from({ length: actualCount }).map((_, idx) => {
+          const isActive = currentPart === partNumber && idx === currentQuestionIndex;
+          const isCompleted = currentPart === partNumber && idx < currentQuestionIndex;
+
+          return (
+            <div
+              key={idx}
+              className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-medium shrink-0 transition-all ${
+                isActive
+                  ? 'border-2 border-[#16a34a] bg-white text-[#16a34a] scale-110 shadow-sm'
+                  : isCompleted
+                  ? 'border border-[#16a34a] bg-[#16a34a] text-white'
+                  : 'border border-gray-200 bg-white text-gray-300'
+              }`}
+            >
+              {idx + 1}
+            </div>
+          );
+        })}
+      </div>
+    );
   };
 
   return (
@@ -76,27 +113,7 @@ export function ExamProgressBar({ currentPart, currentQuestionIndex, partConfig 
                 >
                   Part 1
                 </span>
-                <div className="flex gap-1.5">
-                  {Array.from({ length: finalConfig.part1 }).map((_, idx) => {
-                    const isActive = currentPart === 1 && idx === currentQuestionIndex;
-                    const isCompleted = currentPart === 1 && idx < currentQuestionIndex;
-
-                    return (
-                      <div
-                        key={idx}
-                        className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-medium shrink-0 ${
-                          isActive
-                            ? 'border-2 border-[#16a34a] bg-white text-[#16a34a]'
-                            : isCompleted
-                            ? 'border border-[#16a34a] bg-[#16a34a] text-white'
-                            : 'border border-gray-200 bg-white text-gray-300'
-                        }`}
-                      >
-                        {idx + 1}
-                      </div>
-                    );
-                  })}
-                </div>
+                {renderDots(1, finalConfig.part1)}
               </div>
 
               {currentPart > 1 && (
@@ -125,15 +142,7 @@ export function ExamProgressBar({ currentPart, currentQuestionIndex, partConfig 
                 >
                   Part 2
                 </span>
-                <div
-                  className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-medium shrink-0 ${
-                    currentPart === 2
-                      ? 'border-2 border-[#16a34a] bg-white text-[#16a34a]'
-                      : 'border border-gray-200 bg-white text-gray-300'
-                  }`}
-                >
-                  1
-                </div>
+                {renderDots(2, finalConfig.part2)}
               </div>
               
               {currentPart > 2 && (
@@ -162,27 +171,7 @@ export function ExamProgressBar({ currentPart, currentQuestionIndex, partConfig 
                 >
                   Part 3
                 </span>
-                <div className="flex gap-1.5">
-                  {Array.from({ length: finalConfig.part3 }).map((_, idx) => {
-                    const isActive = currentPart === 3 && idx === currentQuestionIndex;
-                    const isCompleted = currentPart === 3 && idx < currentQuestionIndex;
-
-                    return (
-                      <div
-                        key={idx}
-                        className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-medium shrink-0 ${
-                          isActive
-                            ? 'border-2 border-[#16a34a] bg-white text-[#16a34a]'
-                            : isCompleted
-                            ? 'border border-[#16a34a] bg-[#16a34a] text-white'
-                            : 'border border-gray-200 bg-white text-gray-300'
-                        }`}
-                      >
-                        {idx + 1}
-                      </div>
-                    );
-                  })}
-                </div>
+                {renderDots(3, finalConfig.part3)}
               </div>
               
               {currentPart > 3 && (

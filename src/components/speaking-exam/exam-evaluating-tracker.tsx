@@ -4,7 +4,11 @@ import { useState, useEffect } from 'react';
 import { CheckCircle2, Bot } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-export function ExamEvaluatingTracker() {
+interface Props {
+  onComplete?: () => void;
+}
+
+export function ExamEvaluatingTracker({ onComplete }: Props) {
   const steps = [
     'Xử lý bản ghi tiếng nói (STT)...',
     'Bóc băng và làm sạch Transcript...',
@@ -19,16 +23,22 @@ export function ExamEvaluatingTracker() {
   const [currentStep, setCurrentStep] = useState(0);
 
   useEffect(() => {
-    // 25 seconds total max expected, divide by 8 steps approx 3 seconds per step
     const interval = setInterval(() => {
       setCurrentStep((prev) => {
         if (prev < steps.length - 1) return prev + 1;
+        
+        // When we reach the last step, clear interval and trigger completion
+        clearInterval(interval);
+        if (onComplete) {
+          // Give a small delay for the last step to be "seen" as completed
+          setTimeout(onComplete, 1000);
+        }
         return prev;
       });
-    }, 3200);
+    }, 2500); // 2.5s per step * 8 steps = 20s total
 
     return () => clearInterval(interval);
-  }, [steps.length]);
+  }, [steps.length, onComplete]);
 
   return (
     <div className="w-full max-w-md mx-auto p-8 bg-white rounded-[24px] shadow-sm border border-gray-100">

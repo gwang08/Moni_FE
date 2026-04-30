@@ -33,6 +33,8 @@ export function useSpeakingExam() {
   const [resumedQuestionIndex, setResumedQuestionIndex] = useState<number | undefined>();
   const [cueCard, setCueCard] = useState<CueCardEvent | null>(null);
   const [evaluation, setEvaluation] = useState<EvaluationEvent | null>(null);
+  const [isEvaluationReady, setIsEvaluationReady] = useState(false);
+  const [isAnimationFinished, setIsAnimationFinished] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hasPendingAudio, setHasPendingAudio] = useState(false);
   const [isAudioPlaying, setIsAudioPlaying] = useState(false);
@@ -154,11 +156,13 @@ export function useSpeakingExam() {
 
         case 'evaluating':
           setExamState('EVALUATING');
+          setIsEvaluationReady(false);
+          setIsAnimationFinished(false);
           break;
 
         case 'evaluation':
           setEvaluation(msg);
-          setExamState('COMPLETED');
+          setIsEvaluationReady(true);
           break;
 
         case 'error':
@@ -293,6 +297,17 @@ export function useSpeakingExam() {
     pausePlaybackRef.current = paused;
   }, []);
 
+  // Sync COMPLETED state when both conditions are met
+  useEffect(() => {
+    if (isEvaluationReady && isAnimationFinished && examState === 'EVALUATING') {
+      setExamState('COMPLETED');
+    }
+  }, [isEvaluationReady, isAnimationFinished, examState]);
+
+  const completeAnimation = useCallback(() => {
+    setIsAnimationFinished(true);
+  }, []);
+
   const playPendingAudio = useCallback(() => {
     if (hasPendingAudio) {
       if (pendingTextRef.current) {
@@ -333,6 +348,7 @@ export function useSpeakingExam() {
     endExam,
     disconnect,
     setPausePlayback,
-    playPendingAudio
+    playPendingAudio,
+    completeAnimation
   };
 }

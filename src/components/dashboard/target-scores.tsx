@@ -106,17 +106,27 @@ export function TargetScores() {
     setEditing(true);
   };
 
+  const isValidIeltsBand = (val: number) =>
+    !isNaN(val) && val >= 0 && val <= 9 && val % 0.5 === 0;
+
   const saveEdit = async () => {
     const newScores: Record<SkillKey, number> = { reading: 0, listening: 0, writing: 0, speaking: 0 };
+    const errors: string[] = [];
     SKILLS.forEach((skill) => {
-      const val = parseFloat(draft[skill]);
-      if (!isNaN(val) && val >= 0 && val <= 9) {
-        newScores[skill] = val;
-        setTargetScore(skill, val);
+      const raw = draft[skill].trim();
+      if (!raw) return;
+      const val = parseFloat(raw);
+      if (!isValidIeltsBand(val)) {
+        errors.push(SKILL_LABELS[skill]);
       } else {
-        setTargetScore(skill, 0);
+        newScores[skill] = val;
       }
     });
+    if (errors.length > 0) {
+      toast.error(`${errors.join(', ')}: Điểm IELTS phải từ 0 đến 9, bước 0.5 (VD: 6.0, 6.5, 7.0)`);
+      return;
+    }
+    SKILLS.forEach((skill) => setTargetScore(skill, newScores[skill]));
     setEditing(false);
     const overall = calculateOverallScore(newScores);
 
@@ -218,7 +228,13 @@ export function TargetScores() {
       if (stillPending) return;
       sessionStorage.removeItem('triggerAiRecommendation');
       aiTriggerFiredRef.current = true;
-      setShowAiDialog(true);
+
+      const currentTargetOverall = calculateOverallScore(targetScores) || 0;
+      const diff = currentTargetOverall - placementResult.overallBand;
+      // Chỉ gợi ý nếu gap từ 1.5 trở lên (quá xa) hoặc target thấp hơn current (không hợp lý)
+      if (diff >= 1.5 || diff < 0) {
+        setShowAiDialog(true);
+      }
     };
 
     if (!tourPendingState) {
@@ -321,16 +337,28 @@ export function TargetScores() {
           <div className="grid grid-cols-2 gap-3">
             {SKILLS.map((skill) => {
               const theme = SKILL_THEME[skill];
+              const raw = draft[skill].trim();
+              const val = raw ? parseFloat(raw) : NaN;
+              const hasError = raw !== '' && !isValidIeltsBand(val);
               return (
-                <div key={skill} className={`rounded-2xl ${theme.bg} p-3`}>
-                  <p className={`text-xs font-bold mb-1 ${theme.text}`}>{SKILL_LABELS[skill]}</p>
+                <div key={skill} className={`rounded-2xl ${hasError ? 'bg-red-50 ring-1 ring-red-200' : theme.bg} p-3 transition-colors`}>
+                  <p className={`text-xs font-bold mb-1 ${hasError ? 'text-red-600' : theme.text}`}>{SKILL_LABELS[skill]}</p>
                   <input
                     type="number" min="0" max="9" step="0.5"
                     value={draft[skill]}
                     onChange={(e) => setDraft((d) => ({ ...d, [skill]: e.target.value }))}
+                    onBlur={() => {
+                      const v = parseFloat(draft[skill]);
+                      if (!isNaN(v)) {
+                        const clamped = Math.min(9, Math.max(0, v));
+                        const rounded = Math.round(clamped * 2) / 2;
+                        setDraft((d) => ({ ...d, [skill]: String(rounded) }));
+                      }
+                    }}
                     placeholder="0–9"
-                    className="w-full text-lg font-extrabold bg-white rounded-xl px-3 py-1.5 border-0 outline-none focus:ring-2 focus:ring-emerald-300"
+                    className={`w-full text-lg font-extrabold bg-white rounded-xl px-3 py-1.5 border-0 outline-none focus:ring-2 ${hasError ? 'focus:ring-red-300 text-red-700' : 'focus:ring-emerald-300'}`}
                   />
+                  {hasError && <p className="text-[10px] text-red-500 mt-1">0–9, bước 0.5</p>}
                 </div>
               );
             })}

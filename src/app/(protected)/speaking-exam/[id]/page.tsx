@@ -126,6 +126,7 @@ export default function SpeakingExamPage({ params }: Props) {
     if (exam.currentQuestion) {
       const part = exam.currentQuestion.partNumber;
       const qId = exam.currentQuestion.questionId;
+      const qIndex = exam.currentQuestion.questionIndex;
 
       if (exam.resumedQuestionIndex !== undefined) {
         setCurrentPart(part);
@@ -146,13 +147,21 @@ export default function SpeakingExamPage({ params }: Props) {
             }
           } else {
             // Continuation of same part
-            setCurrentQuestionIndex((prev) => prev + 1);
+            if (qIndex !== undefined) {
+              setCurrentQuestionIndex(qIndex);
+            } else {
+              setCurrentQuestionIndex((prev) => prev + 1);
+            }
           }
           return part;
         });
+      } else if (qIndex !== undefined) {
+        // Even if we've seen this question ID before (e.g. effect re-ran), 
+        // sync the index if the backend provided it
+        setCurrentQuestionIndex(qIndex);
       }
     }
-  }, [exam.currentQuestion?.questionId, exam.resumedQuestionIndex, exam.clearResumedQuestionIndex]);
+  }, [exam.currentQuestion?.questionId, exam.currentQuestion?.questionIndex, exam.resumedQuestionIndex, exam.clearResumedQuestionIndex]);
 
   // When Part 2 starts (from backend cue_card event), show intro and update progress bar
   useEffect(() => {
@@ -579,7 +588,7 @@ export default function SpeakingExamPage({ params }: Props) {
 
     return (
       <PageShell>
-        <ExamEvaluatingTracker />
+        <ExamEvaluatingTracker onComplete={exam.completeAnimation} />
       </PageShell>
     );
   }

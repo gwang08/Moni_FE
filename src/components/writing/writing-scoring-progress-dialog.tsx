@@ -8,29 +8,41 @@ import { Check } from 'lucide-react';
 
 interface Props {
   open: boolean;
+  onComplete?: () => void;
 }
 
 const STEPS = [
   { label: 'Đang phân tích cấu trúc bài viết...', delay: 0 },
-  { label: 'Đánh giá Task Achievement...', delay: 5000 },
-  { label: 'Đánh giá Coherence & Cohesion...', delay: 10000 },
-  { label: 'Đánh giá Lexical Resource...', delay: 15000 },
-  { label: 'Đánh giá Grammatical Range...', delay: 20000 },
-  { label: 'Áp dụng Rule Engine...', delay: 25000 },
-  { label: 'Tổng hợp nhận xét & feedback...', delay: 50000 },
+  { label: 'Đánh giá Task Achievement...', delay: 3500 },
+  { label: 'Đánh giá Coherence & Cohesion...', delay: 7000 },
+  { label: 'Đánh giá Lexical Resource...', delay: 10500 },
+  { label: 'Đánh giá Grammatical Range...', delay: 14000 },
+  { label: 'Áp dụng Rule Engine...', delay: 17500 },
+  { label: 'Tổng hợp nhận xét & feedback...', delay: 21000 },
 ];
 
-export function WritingScoringProgressDialog({ open }: Props) {
+export function WritingScoringProgressDialog({ open, onComplete }: Props) {
   const [currentStep, setCurrentStep] = useState(0);
 
   useEffect(() => {
-    if (!open) { setCurrentStep(0); return; }
+    if (!open) { 
+      setCurrentStep(0); 
+      return; 
+    }
+    
     const timers = STEPS.map((step, i) => {
       if (i === 0) return null;
-      return setTimeout(() => setCurrentStep(i), step.delay);
+      return setTimeout(() => {
+        setCurrentStep(i);
+        // If it's the last step, wait for its own visual "duration" then complete
+        if (i === STEPS.length - 1 && onComplete) {
+          setTimeout(onComplete, 2500);
+        }
+      }, step.delay);
     }).filter(Boolean) as ReturnType<typeof setTimeout>[];
+    
     return () => timers.forEach(clearTimeout);
-  }, [open]);
+  }, [open, onComplete]);
 
   return (
     <>

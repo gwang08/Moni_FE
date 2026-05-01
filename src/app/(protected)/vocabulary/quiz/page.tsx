@@ -89,7 +89,7 @@ export default function QuizPage() {
       const startTime = Date.now();
       const res = await getVocabQuiz(slotId);
 
-      if (!res?.isHistory && res?.questions?.length > 0) {
+      if (!res?.isHistory && res?.questions && res.questions.length > 0) {
         const elapsed = Date.now() - startTime;
         if (elapsed < 9000) {
           await new Promise(resolve => setTimeout(resolve, 9000 - elapsed));
@@ -103,7 +103,7 @@ export default function QuizPage() {
             router.back();
           } else {
             toast.success('Tuyệt vời! Bạn không có từ vựng nào cần ôn tập hôm nay.');
-            completeSlot(slotId, 0, 0, [], [], { source: 'roadmap_ai', autoCompleted: true })
+            completeSlot(slotId, 0, 0, [], [], { source: 'roadmap_ai', questions: [] })
               .then(() => {
                 router.back();
               })
@@ -113,7 +113,7 @@ export default function QuizPage() {
           }
         } else {
           toast.error('Không tìm thấy từ vựng cho bài kiểm tra này.');
-          setScreen('setup');
+          router.push('/vocabulary');
         }
         return;
       }
@@ -180,7 +180,7 @@ export default function QuizPage() {
       const res = await generateQuiz(params.count, params.source, undefined, params.band, params.topic);
 
       const elapsed = Date.now() - startTime;
-      if (res?.questions?.length > 0 && elapsed < 9000) {
+      if (res?.questions && res.questions.length > 0 && elapsed < 9000) {
         await new Promise(resolve => setTimeout(resolve, 9000 - elapsed));
       }
 

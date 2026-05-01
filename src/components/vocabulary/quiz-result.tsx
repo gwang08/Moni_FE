@@ -32,7 +32,7 @@ function getScoreMessage(pct: number): string {
 }
 
 function getScoreGradient(pct: number): string {
-  if (pct >= 80) return 'from-emerald-400 to-teal-500';
+  if (pct >= 80) return 'from-teal-400 to-teal-500';
   if (pct >= 50) return 'from-amber-400 to-orange-500';
   return 'from-rose-400 to-red-500';
 }
@@ -43,15 +43,13 @@ export function QuizResult({ score, total, wrongAnswers, onRetry, onBack }: Quiz
   const wrong = total - score;
 
   return (
-    <div className="space-y-6">
+    <div className={`grid grid-cols-1 ${wrongAnswers.length > 0 ? 'lg:grid-cols-[400px_1fr]' : ''} gap-8 items-start`}>
       <ChibiAnimationStyles />
 
+      <div className="space-y-6 lg:sticky lg:top-8">
       {/* Score hero card */}
       <div className="relative rounded-3xl border border-gray-100 bg-gradient-to-b from-gray-50/80 via-white to-white p-8 shadow-lg shadow-gray-100/40 text-center space-y-5 overflow-hidden">
-        {/* Background accent ring */}
-        <div className="absolute inset-0 flex items-center justify-center opacity-[0.03] pointer-events-none">
-          <div className="w-64 h-64 rounded-full border-[32px] border-current" />
-        </div>
+
 
         <ChibiMascot mood={getScoreMood(percentage)} size={80} />
 
@@ -76,8 +74,8 @@ export function QuizResult({ score, total, wrongAnswers, onRetry, onBack }: Quiz
               <linearGradient id="scoreGradient" x1="0%" y1="0%" x2="100%" y2="0%">
                 {percentage >= 80 ? (
                   <>
-                    <stop offset="0%" stopColor="#34d399" />
-                    <stop offset="100%" stopColor="#14b8a6" />
+                    <stop offset="0%" stopColor="#2dd4bf" />
+                    <stop offset="100%" stopColor="#0d9488" />
                   </>
                 ) : percentage >= 50 ? (
                   <>
@@ -100,69 +98,78 @@ export function QuizResult({ score, total, wrongAnswers, onRetry, onBack }: Quiz
         </div>
 
         {/* Stats row */}
-        <div className="grid grid-cols-2 gap-3 max-w-xs mx-auto">
-          <div className="flex items-center gap-2.5 rounded-xl bg-emerald-50 border border-emerald-100 px-4 py-3">
-            <CheckCircle2 className="h-5 w-5 text-emerald-500 flex-shrink-0" />
-            <div className="text-left">
-              <p className="text-lg font-extrabold text-emerald-600">{correct}</p>
-              <p className="text-[11px] font-medium text-emerald-400">Đúng</p>
+        <div className="grid grid-cols-2 gap-4 max-w-[280px] mx-auto mt-4">
+          <div className="flex flex-col items-center justify-center rounded-2xl bg-teal-50/80 border border-teal-100 py-4 shadow-sm">
+            <p className="text-3xl font-black text-teal-600">{correct}</p>
+            <div className="flex items-center gap-1.5 text-teal-600 mt-1">
+              <CheckCircle2 className="h-3.5 w-3.5" />
+              <span className="text-xs font-bold uppercase tracking-wider">Đúng</span>
             </div>
           </div>
-          <div className="flex items-center gap-2.5 rounded-xl bg-red-50 border border-red-100 px-4 py-3">
-            <XCircle className="h-5 w-5 text-red-400 flex-shrink-0" />
-            <div className="text-left">
-              <p className="text-lg font-extrabold text-red-500">{wrong}</p>
-              <p className="text-[11px] font-medium text-red-300">Sai</p>
+          <div className="flex flex-col items-center justify-center rounded-2xl bg-rose-50/80 border border-rose-100 py-4 shadow-sm">
+            <p className="text-3xl font-black text-rose-500">{wrong}</p>
+            <div className="flex items-center gap-1.5 text-rose-500 mt-1">
+              <XCircle className="h-3.5 w-3.5" />
+              <span className="text-xs font-bold uppercase tracking-wider">Sai</span>
             </div>
           </div>
         </div>
       </div>
 
+      {/* Actions */}
+      <div className="flex gap-3 pt-2">
+        <Button variant="outline" className="flex-1 rounded-2xl h-12 font-bold" onClick={onBack}>
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Quay lại
+        </Button>
+        <Button className="flex-1 rounded-2xl h-12 bg-teal-600 hover:bg-teal-700 font-bold" onClick={onRetry}>
+          <RotateCcw className="h-4 w-4 mr-2" />
+          Chơi lại
+        </Button>
+      </div>
+      </div>
+
       {/* Wrong answers */}
       {wrongAnswers.length > 0 && (
-        <div className="space-y-3">
-          <h3 className="font-semibold text-gray-800 flex items-center gap-2 text-sm">
-            <XCircle className="h-4 w-4 text-red-400" />
-            Câu trả lời sai ({wrongAnswers.length})
+        <div className="space-y-4 lg:pl-4">
+          <h3 className="font-bold text-gray-800 flex items-center gap-2 text-base">
+            <XCircle className="h-5 w-5 text-rose-500" />
+            Đánh giá câu trả lời sai
           </h3>
-          <div className="space-y-2.5">
+          <div className="space-y-4 max-h-[calc(100vh-140px)] overflow-y-auto pr-2 pb-8">
             {wrongAnswers.map(({ question, selectedIndex }, i) => (
-              <div key={i} className="rounded-2xl border border-red-100 bg-gradient-to-r from-red-50/80 to-white p-4 space-y-2.5">
-                <p className="text-sm font-semibold text-gray-800 leading-relaxed">{question.prompt}</p>
-                <div className="flex flex-col gap-1.5 text-xs">
-                  <div className="flex items-start gap-2">
-                    <span className="inline-flex items-center gap-1 rounded-lg bg-red-100 text-red-600 font-semibold px-2 py-0.5 flex-shrink-0">
-                      <XCircle className="h-3 w-3" /> Bạn chọn
-                    </span>
-                    <span className="text-red-600 font-medium">{question.options[selectedIndex]}</span>
+              <div key={i} className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm space-y-3">
+                <p className="text-sm font-semibold text-gray-800 leading-relaxed pb-3 border-b border-gray-100">{question.prompt}</p>
+                
+                <div className="space-y-2 pt-1">
+                  <div className="flex items-center justify-between p-3 rounded-xl border border-rose-100 bg-rose-50/50">
+                    <div className="flex items-center gap-2">
+                      <XCircle className="h-4 w-4 text-rose-500" />
+                      <span className="text-xs font-bold text-rose-700 uppercase tracking-wide">Bạn chọn</span>
+                    </div>
+                    <span className="text-sm text-rose-800 font-semibold">{question.options[selectedIndex]}</span>
                   </div>
-                  <div className="flex items-start gap-2">
-                    <span className="inline-flex items-center gap-1 rounded-lg bg-emerald-100 text-emerald-700 font-semibold px-2 py-0.5 flex-shrink-0">
-                      <CheckCircle2 className="h-3 w-3" /> Đúng
-                    </span>
-                    <span className="text-emerald-700 font-medium">{question.options[question.correctIndex]}</span>
+
+                  <div className="flex items-center justify-between p-3 rounded-xl border border-teal-100 bg-teal-50/50">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-teal-500" />
+                      <span className="text-xs font-bold text-teal-700 uppercase tracking-wide">Đáp án đúng</span>
+                    </div>
+                    <span className="text-sm text-teal-800 font-semibold">{question.options[question.correctIndex]}</span>
                   </div>
-                  {question.explanation && (
-                    <p className="text-gray-500 italic mt-1 pl-1 border-l-2 border-gray-200 ml-1">{question.explanation}</p>
-                  )}
                 </div>
+
+                {question.explanation && (
+                  <div className="mt-4 p-3 rounded-xl bg-gray-50 text-xs text-gray-600 leading-relaxed">
+                    <span className="font-bold text-gray-700 mr-1.5">Giải thích:</span>
+                    {question.explanation}
+                  </div>
+                )}
               </div>
             ))}
           </div>
         </div>
       )}
-
-      {/* Actions */}
-      <div className="flex gap-3 pt-2">
-        <Button variant="outline" className="flex-1 rounded-xl h-11" onClick={onBack}>
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Quay lại
-        </Button>
-        <Button className="flex-1 rounded-xl h-11 bg-emerald-600 hover:bg-emerald-700" onClick={onRetry}>
-          <RotateCcw className="h-4 w-4 mr-2" />
-          Chơi lại
-        </Button>
-      </div>
     </div>
   );
 }

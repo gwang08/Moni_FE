@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { QuizSetup } from '@/components/vocabulary/quiz-setup';
 import { QuizQuestionCard } from '@/components/vocabulary/quiz-question-card';
 import { QuizResult } from '@/components/vocabulary/quiz-result';
 import { generateQuiz } from '@/lib/vocab-api';
@@ -17,7 +16,7 @@ import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { QuizGeneratingDialog } from '@/components/vocabulary/quiz-generating-dialog';
 import { X } from 'lucide-react';
 
-type Screen = 'setup' | 'quiz' | 'result';
+type Screen = 'quiz' | 'result';
 
 interface WrongAnswer {
   question: QuizQuestion;
@@ -26,8 +25,8 @@ interface WrongAnswer {
 
 export default function QuizPage() {
   const router = useRouter();
-  const [screen, setScreen] = useState<Screen>('setup');
-  const [loading, setLoading] = useState(false);
+  const [screen, setScreen] = useState<Screen>('quiz');
+  const [loading, setLoading] = useState(true);
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
   const [currentIdx, setCurrentIdx] = useState(0);
   const [score, setScore] = useState(0);
@@ -52,11 +51,15 @@ export default function QuizPage() {
 
   useEffect(() => {
     const slotIdx = searchParams.get('slotId');
-    if (slotIdx && !initialized.current) {
+    if (!initialized.current) {
       initialized.current = true;
-      const sId = parseInt(slotIdx);
-      setActiveSlotId(sId);
-      loadRoadmapQuiz(sId);
+      if (slotIdx) {
+        const sId = parseInt(slotIdx);
+        setActiveSlotId(sId);
+        loadRoadmapQuiz(sId);
+      } else {
+        handleStart({ source: 'saved', count: 10 });
+      }
     }
   }, [searchParams]);
 
@@ -83,14 +86,35 @@ export default function QuizPage() {
     }
 
     try {
+      const startTime = Date.now();
       const res = await getVocabQuiz(slotId);
+
+      if (!res?.isHistory && res?.questions?.length > 0) {
+        const elapsed = Date.now() - startTime;
+        if (elapsed < 9000) {
+          await new Promise(resolve => setTimeout(resolve, 9000 - elapsed));
+        }
+      }
+
       if (!res || !res.questions.length) {
-        if (res?.isHistory) {
-          toast.error('Lịch sử của bài quiz này không khả dụng (do hoàn thành trước lúc tính năng lịch sử ra mắt).');
+        if (slotId) {
+          if (res?.isHistory) {
+            toast.info('Bài kiểm tra này không có dữ liệu lịch sử hoặc không có từ vựng nào cần ôn.');
+            router.back();
+          } else {
+            toast.success('Tuyệt vời! Bạn không có từ vựng nào cần ôn tập hôm nay.');
+            completeSlot(slotId, 0, 0, [], [], { source: 'roadmap_ai', autoCompleted: true })
+              .then(() => {
+                router.back();
+              })
+              .catch(() => {
+                router.back();
+              });
+          }
         } else {
           toast.error('Không tìm thấy từ vựng cho bài kiểm tra này.');
+          setScreen('setup');
         }
-        setScreen('setup');
         return;
       }
       if (res.isHistory) {
@@ -116,7 +140,7 @@ export default function QuizPage() {
       setScreen('quiz');
     } catch (err) {
       toast.error('Lỗi khi tải bài thi từ vựng');
-      setScreen('setup');
+      router.push('/vocabulary');
     } finally {
       setLoading(false);
     }
@@ -152,9 +176,17 @@ export default function QuizPage() {
     }
 
     try {
+      const startTime = Date.now();
       const res = await generateQuiz(params.count, params.source, undefined, params.band, params.topic);
+
+      const elapsed = Date.now() - startTime;
+      if (res?.questions?.length > 0 && elapsed < 9000) {
+        await new Promise(resolve => setTimeout(resolve, 9000 - elapsed));
+      }
+
       if (!res.questions.length) {
-        toast.error('Không đủ từ vựng để tạo quiz. Hãy thêm từ hoặc đổi nguồn.');
+        toast.error('Không đủ từ vựng đã lưu để tạo bài kiểm tra. Hãy lưu thêm từ nhé.');
+        router.push('/vocabulary');
         return;
       }
       setQuestions(res.questions);
@@ -221,13 +253,18 @@ export default function QuizPage() {
   const handleRetry = () => {
     const key = activeSlotId ? `vocab_quiz_${activeSlotId}` : 'vocab_quiz_freestyle';
     localStorage.removeItem(key);
-    setScreen('setup');
     setQuestions([]);
     setCurrentIdx(0);
     setScore(0);
     setWrongAnswers([]);
     setCorrectWords([]);
     setIncorrectWords([]);
+
+    if (activeSlotId) {
+      loadRoadmapQuiz(activeSlotId);
+    } else {
+      handleStart({ source: 'saved', count: 10 });
+    }
   };
 
   const forceExit = () => {
@@ -237,7 +274,7 @@ export default function QuizPage() {
   };
 
   return (
-    <div className="max-w-xl mx-auto px-4 py-8">
+    <div className={`mx-auto px-4 py-8 ${screen === 'quiz' ? 'max-w-xl' : 'max-w-5xl'}`}>
       <ConfirmDialog
         open={showExitDialog}
         onOpenChange={setShowExitDialog}
@@ -257,7 +294,6 @@ export default function QuizPage() {
               <ArrowLeft className="h-4 w-4" />
             </Button>
           )}
-          <h1 className="font-semibold text-gray-900">Trắc nghiệm</h1>
         </div>
         {screen === 'quiz' && (
           <Button variant="ghost" size="icon" className="hover:bg-red-50 text-gray-400 hover:text-red-500 rounded-full" onClick={() => setShowExitDialog(true)}>
@@ -267,10 +303,6 @@ export default function QuizPage() {
       </div>
 
       <QuizGeneratingDialog open={loading} />
-
-      {!loading && screen === 'setup' && (
-        <QuizSetup onStart={handleStart} loading={loading} />
-      )}
 
       {!loading && screen === 'quiz' && questions.length > 0 && (
         <QuizQuestionCard

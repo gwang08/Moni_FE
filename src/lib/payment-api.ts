@@ -12,9 +12,11 @@ import type {
 } from '@/types/payment.types';
 import type { ApiResponse } from '@/types/auth.types';
 
-// These endpoints return bare arrays (no ApiResponse wrapper)
+// These endpoints return bare arrays or ApiResponse wrapper
 export async function getPackages(): Promise<PackagePricingResponse[]> {
-  return apiClient.get<PackagePricingResponse[]>('/packages', true);
+  const response = await apiClient.get<PackagePricingResponse[] | ApiResponse<PackagePricingResponse[]>>('/packages', true);
+  if (Array.isArray(response)) return response;
+  return response.result ?? [];
 }
 
 export async function getPackageById(id: string): Promise<PackagePricingResponse> {
@@ -60,11 +62,15 @@ export async function getPaymentStatus(paymentId: string): Promise<PaymentRespon
 }
 
 export async function getPayments(): Promise<PaymentResponse[]> {
-  return apiClient.get<PaymentResponse[]>('/payments', true);
+  const response = await apiClient.get<PaymentResponse[] | ApiResponse<PaymentResponse[]>>('/payments', true);
+  if (Array.isArray(response)) return response;
+  return response.result ?? [];
 }
 
 export async function getCreditTransactions(): Promise<CreditTransactionResponse[]> {
-  return apiClient.get<CreditTransactionResponse[]>('/credit-transactions', true);
+  const response = await apiClient.get<CreditTransactionResponse[] | ApiResponse<CreditTransactionResponse[]>>('/credit-transactions', true);
+  if (Array.isArray(response)) return response;
+  return response.result ?? [];
 }
 
 export async function getCreditTransactionById(id: string): Promise<CreditTransactionResponse> {
@@ -72,7 +78,9 @@ export async function getCreditTransactionById(id: string): Promise<CreditTransa
 }
 
 export async function getServices(): Promise<ServicePricingResponse[]> {
-  return apiClient.get<ServicePricingResponse[]>('/services', true);
+  const response = await apiClient.get<ServicePricingResponse[] | ApiResponse<ServicePricingResponse[]>>('/services', true);
+  if (Array.isArray(response)) return response;
+  return response.result ?? [];
 }
 
 export async function getServiceById(id: string): Promise<ServicePricingResponse> {

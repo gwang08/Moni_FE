@@ -58,7 +58,7 @@ const navGroups: NavGroup[] = [
       { href: '/admin/tests', label: 'Phần thi', icon: FileText },
       { href: '/admin/full-tests', label: 'Bài thi', icon: ClipboardList },
       { href: '/admin/tags', label: 'Nhãn', icon: Tag },
-      { href: '/admin/placement-config', label: 'Placement Config', icon: ClipboardList },
+      { href: '/admin/placement-config', label: 'Bài thi đầu vào', icon: ClipboardList },
     ],
   },
   {
@@ -66,14 +66,14 @@ const navGroups: NavGroup[] = [
     items: [
       { href: '/admin/prompts', label: 'AI Prompts', icon: FileText }, // Changed BrainCircuit to FileText as placeholder
       { href: '/admin/scoring-sessions', label: 'Chấm điểm', icon: Headphones },
-      { href: '/admin/experts', label: 'Quản lý chuyên gia', icon: GraduationCap },
+      { href: '/admin/experts', label: 'Chuyên gia', icon: GraduationCap },
     ],
   },
   {
     label: 'Người dùng & Tài chính',
     items: [
       { href: '/admin/users', label: 'Người dùng', icon: Users },
-      { href: '/admin/pricing', label: 'Quản lý dịch vụ', icon: BadgeDollarSign },
+      { href: '/admin/pricing', label: 'Gói dịch vụ', icon: BadgeDollarSign },
       { href: '/admin/user-transactions', label: 'Giao dịch', icon: ReceiptText },
     ],
   },

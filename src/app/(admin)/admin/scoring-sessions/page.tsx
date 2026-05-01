@@ -11,6 +11,7 @@ import type { ApiResponse } from '@/types/auth.types';
 import type { ScoringSession } from '@/types/expert.types';
 import { toast } from 'sonner';
 import { SessionTranscriptViewer } from '@/components/video/session-transcript-viewer';
+import { DateRangePicker } from '@/components/ui/date-range-picker';
 
 type SessionStatus = ScoringSession['status'];
 
@@ -78,14 +79,10 @@ export default function AdminScoringSessionsPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [skillFilter, setSkillFilter] = useState('ALL');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
-  const [fromDate, setFromDate] = useState(formatDateInput(defaultFromDate));
-  const [toDate, setToDate] = useState(formatDateInput(today));
-
-  const [appliedSearchTerm, setAppliedSearchTerm] = useState('');
-  const [appliedSkillFilter, setAppliedSkillFilter] = useState('ALL');
-  const [appliedStatusFilter, setAppliedStatusFilter] = useState('ALL');
-  const [appliedFromDate, setAppliedFromDate] = useState(formatDateInput(defaultFromDate));
-  const [appliedToDate, setAppliedToDate] = useState(formatDateInput(today));
+  const [dateRange, setDateRange] = useState({
+    startDate: formatDateInput(defaultFromDate),
+    endDate: formatDateInput(today),
+  });
 
   useEffect(() => {
     apiClient
@@ -104,12 +101,12 @@ export default function AdminScoringSessionsPage() {
   }, [sessions]);
 
   const filtered = useMemo(() => {
-    const start = appliedFromDate ? new Date(`${appliedFromDate}T00:00:00`).getTime() : null;
-    const end = appliedToDate ? new Date(`${appliedToDate}T23:59:59`).getTime() : null;
+    const start = dateRange.startDate ? new Date(`${dateRange.startDate}T00:00:00`).getTime() : null;
+    const end = dateRange.endDate ? new Date(`${dateRange.endDate}T23:59:59`).getTime() : null;
 
     return sessions.filter((session) => {
-      const needle = appliedSearchTerm.toLowerCase();
-      const matchSearch = appliedSearchTerm
+      const needle = searchTerm.toLowerCase();
+      const matchSearch = searchTerm
         ? [
             session.userDisplayName || '',
             session.expertDisplayName || '',
@@ -117,8 +114,8 @@ export default function AdminScoringSessionsPage() {
             session.skill || '',
           ].some((value) => value.toLowerCase().includes(needle))
         : true;
-      const matchSkill = appliedSkillFilter === 'ALL' ? true : session.skill === appliedSkillFilter;
-      const matchStatus = appliedStatusFilter === 'ALL' ? true : session.status === appliedStatusFilter;
+      const matchSkill = skillFilter === 'ALL' ? true : session.skill === skillFilter;
+      const matchStatus = statusFilter === 'ALL' ? true : session.status === statusFilter;
 
       let matchDate = true;
       const moment = getSessionMoment(session);
@@ -130,7 +127,7 @@ export default function AdminScoringSessionsPage() {
 
       return matchSearch && matchSkill && matchStatus && matchDate;
     });
-  }, [sessions, appliedSearchTerm, appliedSkillFilter, appliedStatusFilter, appliedFromDate, appliedToDate]);
+  }, [sessions, searchTerm, skillFilter, statusFilter, dateRange]);
 
   return (
     <div className="space-y-6 p-6">
@@ -144,18 +141,24 @@ export default function AdminScoringSessionsPage() {
         </div>
       </div>
 
-      <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-        <div className="flex flex-wrap items-end gap-3">
+      <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm mb-4">
+        <div className="flex flex-wrap items-center gap-3">
           <Input
             placeholder="Tìm theo thí sinh, giám khảo, ID..."
             value={searchTerm}
             onChange={(event) => setSearchTerm(event.target.value)}
-            className="max-w-xs"
+            className="max-w-xs h-10"
           />
+          <div className="min-w-[280px]">
+            <DateRangePicker
+              value={dateRange}
+              onChange={setDateRange}
+            />
+          </div>
           <select
             value={skillFilter}
             onChange={(event) => setSkillFilter(event.target.value)}
-            className="h-9 w-40 rounded-md border border-input bg-background px-3 text-sm"
+            className="h-10 w-40 rounded-md border border-input bg-background px-3 text-sm"
           >
             <option value="ALL">Tất cả kỹ năng</option>
             {availableSkills.map((skill) => (
@@ -167,7 +170,7 @@ export default function AdminScoringSessionsPage() {
           <select
             value={statusFilter}
             onChange={(event) => setStatusFilter(event.target.value)}
-            className="h-9 w-40 rounded-md border border-input bg-background px-3 text-sm"
+            className="h-10 w-40 rounded-md border border-input bg-background px-3 text-sm"
           >
             <option value="ALL">Tất cả trạng thái</option>
             <option value="QUEUED">Chờ xử lý</option>
@@ -175,40 +178,14 @@ export default function AdminScoringSessionsPage() {
             <option value="COMPLETED">Hoàn thành</option>
             <option value="CANCELLED">Đã huỷ</option>
           </select>
-          <label className="flex flex-col gap-1">
-            <span className="text-xs text-gray-500">Từ ngày</span>
-            <input
-              type="date"
-              value={fromDate}
-              onChange={(event) => setFromDate(event.target.value)}
-              className="h-9 rounded-md border border-input bg-background px-3 text-sm"
-            />
-          </label>
-          <label className="flex flex-col gap-1">
-            <span className="text-xs text-gray-500">Đến ngày</span>
-            <input
-              type="date"
-              value={toDate}
-              onChange={(event) => setToDate(event.target.value)}
-              className="h-9 rounded-md border border-input bg-background px-3 text-sm"
-            />
-          </label>
-          <button
-            type="button"
-            onClick={() => {
-              setAppliedSearchTerm(searchTerm.trim());
-              setAppliedSkillFilter(skillFilter);
-              setAppliedStatusFilter(statusFilter);
-              setAppliedFromDate(fromDate);
-              setAppliedToDate(toDate);
-            }}
-            className="h-9 rounded-md bg-blue-600 px-4 text-sm font-medium text-white transition-colors hover:bg-blue-700"
-          >
-            Tìm kiếm
-          </button>
-          <span className="self-center text-sm text-muted-foreground">{filtered.length} phiên</span>
         </div>
       </div>
+
+      {!loading && (
+        <p className="mb-3 text-sm text-gray-500 font-medium">
+          Có {filtered.length} phiên chấm
+        </p>
+      )}
 
       {loading ? (
         <div className="flex justify-center py-16">

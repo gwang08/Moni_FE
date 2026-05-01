@@ -139,7 +139,7 @@ function HighlightSegment({
             <Info className="h-3 w-3" />
           </button>
         </DialogTrigger>
-        <DialogContent className="max-w-xl p-0 gap-0 overflow-hidden rounded-3xl border border-slate-100 shadow-2xl">
+        <DialogContent showCloseButton={false} className="max-w-xl p-0 gap-0 overflow-hidden rounded-3xl border border-slate-100 shadow-2xl">
           <div className="bg-slate-50 px-6 py-4 border-b border-slate-100 flex items-center justify-between">
             <Badge variant="secondary" className="bg-teal-50 text-teal-700 border border-teal-100/50 hover:bg-teal-100 font-bold tracking-wide px-3">
               {info.criterion}

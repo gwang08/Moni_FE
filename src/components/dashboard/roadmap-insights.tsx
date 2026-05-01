@@ -347,15 +347,18 @@ export function RoadmapInsights({ weekNumber }: { weekNumber?: number }) {
     fetchInsights();
   }, [weekNumber]);
 
-  // Auto-fetch AI summary when week > 1 (has previous week data to analyze)
+  // Auto-fetch AI summary
   useEffect(() => {
-    if (weekNumber && weekNumber > 1 && !aiSummary && !aiSummaryLoading) {
+    if (!aiSummary && !aiSummaryLoading) {
       fetchAiSummary();
     }
-  }, [weekNumber, aiSummary, aiSummaryLoading, fetchAiSummary]);
+  }, [aiSummary, aiSummaryLoading, fetchAiSummary]);
 
   useEffect(() => {
-    const handler = () => fetchInsights();
+    const handler = () => {
+      fetchInsights();
+      setAiSummary(null); // Clear state to trigger re-fetching of AI summary
+    };
     window.addEventListener('roadmap-updated', handler);
     return () => {
       window.removeEventListener('roadmap-updated', handler);

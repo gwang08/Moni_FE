@@ -6,7 +6,7 @@ import {
   BookOpen, Check, Clock, Lock, TrendingUp, TrendingDown, Minus, Trophy,
   Sparkles, ArrowRight,
 } from 'lucide-react';
-import { getWeeklyPlan, startVocabLearning, submitVocabLearning } from '@/lib/roadmap-api';
+import { getWeeklyPlan, startVocabLearning, submitVocabLearning, getVocabQuiz } from '@/lib/roadmap-api';
 import { getReadingBand, getListeningBand } from '@/lib/ielts-band';
 import { SkeletonCard } from '@/components/ui/skeleton';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
@@ -301,10 +301,19 @@ export function LearningRoadmap({ weekNumber }: { weekNumber?: number }) {
     );
   }
 
-  const handleSlotClick = (slot: DailySlotResponse) => {
+  const handleSlotClick = async (slot: DailySlotResponse) => {
     if (slot.status === 'DONE') {
       if (slot.skill === 'VOCABULARY' && slot.taskType === 'VOCAB_TEST') {
-        router.push(`/vocabulary/quiz?slotId=${slot.id}`);
+        try {
+          const res = await getVocabQuiz(slot.id);
+          if (!res || !res.questions.length) {
+            toast.info('Bài kiểm tra này không có dữ liệu lịch sử hoặc không có từ vựng nào cần ôn.');
+          } else {
+            router.push(`/vocabulary/quiz?slotId=${slot.id}`);
+          }
+        } catch (e) {
+          toast.error('Lỗi khi tải dữ liệu bài kiểm tra.');
+        }
         return;
       }
       if (slot.skill === 'VOCABULARY' && slot.taskType === 'VOCAB_LEARN') {

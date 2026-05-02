@@ -5,7 +5,6 @@ import { Plus, Pencil, Trash2 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { AdminHeader } from '@/components/admin/admin-header';
 import { TagFormDialog } from '@/components/admin/tag-form-dialog';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { getTags, deleteTag } from '@/lib/admin-api';
@@ -45,7 +44,6 @@ export default function AdminTagsPage() {
 
   return (
     <div>
-      <AdminHeader title="Quản lý Tags" />
       <div className="p-6">
         <div className="flex justify-between items-center mb-6">
           <p className="text-sm text-gray-500">Quản lý các tags phân loại bài thi</p>

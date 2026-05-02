@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ShieldBan, Users, Search, ChevronRight } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { AdminHeader } from '@/components/admin/admin-header';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
@@ -46,7 +45,6 @@ export default function AdminUsersPage() {
 
   return (
     <div>
-      <AdminHeader title="Quản lý người dùng" description={`${users.length} học viên trong hệ thống`} />
 
       <div className="p-6 space-y-4">
         {/* Search */}

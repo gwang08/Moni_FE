@@ -88,8 +88,11 @@ export default function WritingExercisePage({ params }: Props) {
   const [expertCost, setExpertCost] = useState<number | null>(null);
   const [isAnimationFinished, setIsAnimationFinished] = useState(false);
 
+  const [showProgressDialog, setShowProgressDialog] = useState(false);
+
   const handleAnimationComplete = useCallback(() => {
     setIsAnimationFinished(true);
+    setShowProgressDialog(false);
   }, []);
 
   // Khi không có lượt chấm: chuyển user sang trang mua gói
@@ -259,6 +262,7 @@ export default function WritingExercisePage({ params }: Props) {
     if (!testDetail || !stimulus) return;
     
     setIsAnimationFinished(false);
+    setShowProgressDialog(true);
 
     const taskType: WritingTaskType = testDetail.section === 1 ? 1 : 2;
     const prompt = stimulus.content || testDetail.description || FALLBACK_PROMPT;
@@ -267,6 +271,11 @@ export default function WritingExercisePage({ params }: Props) {
       taskType, question: prompt, answer,
       stimulusId: stimulus.id, submissionId: submissionId ?? undefined,
     }).then(() => {
+      // If grading failed, close progress dialog immediately
+      if (useWritingStore.getState().gradingError) {
+        setShowProgressDialog(false);
+        return;
+      }
       refreshProfile();
       // Invalidate subscription query → banner trong user menu refresh quota ngay.
       queryClient.invalidateQueries({ queryKey: ['my-active-subscription'] });
@@ -349,7 +358,7 @@ export default function WritingExercisePage({ params }: Props) {
           submissionId={submissionId}
           expertCost={expertCost}
         />
-        <WritingScoringProgressDialog open={isGrading} onComplete={handleAnimationComplete} />
+        <WritingScoringProgressDialog open={showProgressDialog} onComplete={handleAnimationComplete} />
         <ConfirmDialog
           open={confirmSubmitOpen}
           onOpenChange={setConfirmSubmitOpen}
@@ -408,7 +417,7 @@ export default function WritingExercisePage({ params }: Props) {
         submissionId={submissionId}
         expertCost={expertCost}
       />
-      <WritingScoringProgressDialog open={isGrading} onComplete={handleAnimationComplete} />
+      <WritingScoringProgressDialog open={showProgressDialog} onComplete={handleAnimationComplete} />
 
       <ConfirmDialog
         open={exitOpen}

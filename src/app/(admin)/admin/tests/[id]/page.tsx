@@ -4,7 +4,6 @@ import { useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowLeft } from 'lucide-react';
-import { AdminHeader } from '@/components/admin/admin-header';
 import { SkeletonPage } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { getTestDetail } from '@/lib/tests-api';
@@ -64,7 +63,6 @@ export default function TestDetailPage() {
 
   return (
     <div className="flex min-h-screen flex-col bg-gray-50">
-      <AdminHeader title="Chi tiết bài thi" />
       <div className="flex-1 p-4 overflow-y-auto pb-20">
         {isLoading ? (
           <SkeletonPage />

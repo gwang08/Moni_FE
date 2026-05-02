@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { AdminHeader } from '@/components/admin/admin-header';
 import { TestImportStep1, type BasicInfo } from '@/components/admin/test-import-step1-basic-info';
 import { TestImportStep2Writing } from '@/components/admin/test-import-step2-writing';
 import { TestImportStep2Speaking } from '@/components/admin/test-import-step2-speaking';
@@ -201,7 +200,6 @@ export default function TestImportPage() {
   if (isReadingOrListening && step === 2) {
     return (
       <div className="flex h-screen flex-col overflow-hidden">
-        <AdminHeader title="Tạo bài thi mới" />
         <div className="shrink-0 px-6 pt-6">
           <StepIndicator step={step} skill={skill} />
         </div>
@@ -223,7 +221,6 @@ export default function TestImportPage() {
 
   return (
     <div>
-      <AdminHeader title="Tạo bài thi mới" />
       <div className="p-6 max-w-3xl">
         <StepIndicator step={step} skill={skill} />
 

@@ -9,7 +9,6 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { AdminHeader } from '@/components/admin/admin-header';
 import { getAvailableStimuli, getFullTestById, updateFullTest } from '@/lib/admin-full-test-api';
 import type { FullTestResponse } from '@/lib/admin-full-test-api';
 import { toast } from 'sonner';
@@ -174,7 +173,6 @@ export default function FullTestDetailPage() {
   if (isLoading) {
     return (
       <div className="flex-1 flex flex-col">
-        <AdminHeader title="Chi tiết Full Test" />
         <div className="flex-1 p-6 space-y-4">
           <Skeleton className="h-10 w-full" />
           <Skeleton className="h-32 w-full" />
@@ -187,7 +185,6 @@ export default function FullTestDetailPage() {
   if (error || !fullTest) {
     return (
       <div className="flex-1 flex flex-col">
-        <AdminHeader title="Chi tiết Full Test" />
         <div className="flex-1 p-6">
           <div className="text-center py-16 text-gray-400">
             <BookOpen className="h-16 w-16 mx-auto mb-4 opacity-50" />
@@ -205,8 +202,6 @@ export default function FullTestDetailPage() {
 
   return (
     <div className="flex-1 flex flex-col">
-      <AdminHeader title="Chi tiết Full Test" />
-
       <div className="flex-1 p-6 space-y-6">
         <div className="flex items-center justify-between">
           <Button variant="outline" onClick={() => router.back()}>

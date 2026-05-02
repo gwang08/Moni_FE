@@ -4,7 +4,6 @@ import { useMemo, useState, useEffect, useCallback } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
 import { SkeletonTable } from '@/components/ui/skeleton';
-import { AdminHeader } from '@/components/admin/admin-header';
 import { getAdminCreditTransactions } from '@/lib/admin-api';
 import { formatDate } from '@/lib/format-date';
 import { useQuery } from '@tanstack/react-query';
@@ -133,7 +132,6 @@ export default function AdminUserTransactionsPage() {
 
   return (
     <div>
-      <AdminHeader title="Giao dịch" />
       <div className="space-y-6 p-6">
         <div className="flex flex-wrap items-center gap-3">
           <div className="flex min-w-[300px] flex-1">

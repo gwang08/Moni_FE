@@ -8,7 +8,6 @@ import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { AdminHeader } from '@/components/admin/admin-header';
 import {
   ADMIN_TEST_SKILL_BADGES,
   ADMIN_TEST_STATUS_LABELS,
@@ -216,7 +215,6 @@ export default function AdminTestsPage() {
 
   return (
     <div>
-      <AdminHeader title="Quản lí phần thi" />
       <div className="p-6">
         <div className="flex justify-between items-center mb-4">
           <div className="inline-block px-4 py-2 text-sm font-medium rounded-lg" style={{ backgroundColor: '#dcebfe' }}>

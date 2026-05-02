@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, FileText, Search, X } from 'lucide-react';
-import { AdminHeader } from '@/components/admin/admin-header';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -168,8 +167,6 @@ export default function AdminFullTestCreatePage() {
 
   return (
     <div className="flex-1 flex flex-col">
-      <AdminHeader title="Tạo Full Test" />
-
       <div className="flex-1 p-6 space-y-6">
         <div>
           <Button variant="outline" size="sm" onClick={() => router.push('/admin/full-tests')}>

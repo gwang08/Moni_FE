@@ -6,7 +6,6 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Plus, Shuffle, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { AdminHeader } from '@/components/admin/admin-header';
 import { FullTestAutoDialog } from '@/components/admin/full-test-auto-dialog';
 import {
   ADMIN_TEST_SKILL_BADGES,
@@ -66,7 +65,6 @@ export default function AdminFullTestsPage() {
 
   return (
     <div className="flex-1 flex flex-col">
-      <AdminHeader title="Quản lý bài thi" />
 
       <div className="flex-1 p-6 space-y-4">
         <div className="flex items-center justify-end">

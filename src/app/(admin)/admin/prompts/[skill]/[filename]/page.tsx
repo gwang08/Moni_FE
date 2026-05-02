@@ -17,7 +17,6 @@ import {
   Edit3,
   Tag,
 } from 'lucide-react';
-import { AdminHeader } from '@/components/admin/admin-header';
 import {
   getPromptDetail,
   getPromptVersionContent,
@@ -133,8 +132,6 @@ export default function PromptEditorPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      <AdminHeader title="Quản lý AI Prompts" />
-
       <div className="flex-1 flex flex-col max-w-7xl w-full mx-auto px-4 py-6 gap-6">
         {/* Breadcrumb + header */}
         <div className="flex items-start justify-between gap-4">

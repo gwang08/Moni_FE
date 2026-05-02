@@ -4,7 +4,6 @@ import { useEffect, useState, useRef } from 'react';
 import { Loader2, Plus, Pencil, Package, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { AdminHeader } from '@/components/admin/admin-header';
 import { PackageFormDialog } from '@/components/admin/package-form-dialog';
 import { SubscriptionPlanFormDialog } from '@/components/admin/subscription-plan-form-dialog';
 import { SkeletonTable } from '@/components/ui/skeleton';
@@ -58,7 +57,6 @@ function ToggleSwitch({
 export default function AdminPricingPage() {
   return (
     <div>
-      <AdminHeader title="Quản lý gói dịch vụ" />
       <div className="p-6 max-w-5xl mx-auto space-y-6">
         <section id="packages" className="bg-white rounded-xl border shadow-sm overflow-hidden">
             <div className="px-5 py-3 bg-gray-50 border-b flex items-center gap-2">

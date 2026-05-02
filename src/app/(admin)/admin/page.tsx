@@ -5,7 +5,6 @@ import { BookOpen, Bot, Coins, FileText, TrendingUp, UserPlus, Users } from 'luc
 import { SkeletonCard } from '@/components/ui/skeleton';
 import { useQuery } from '@tanstack/react-query';
 import { getAdminRevenueDashboard } from '@/lib/admin-api';
-import { AdminHeader } from '@/components/admin/admin-header';
 import { DateRangePicker } from '@/components/ui/date-range-picker';
 import {
   LineChart,
@@ -181,7 +180,6 @@ export default function AdminDashboardPage() {
 
   return (
     <div>
-      <AdminHeader title="Tổng quan" />
       <div className="space-y-6 p-6">
         {/* Date Range Filter */}
         <div className="flex items-center justify-between rounded-2xl border border-gray-100 bg-white px-5 py-4 shadow-sm">

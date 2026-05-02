@@ -4,7 +4,6 @@ import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 import { BookOpen, Mic, ChevronRight, Tag, RefreshCw, CheckCircle2, Clock, Eye, Map } from 'lucide-react';
-import { AdminHeader } from '@/components/admin/admin-header';
 import { listAllPrompts, type PromptInfo } from '@/lib/admin-api';
 
 const SKILL_META: Record<string, { label: string; icon: typeof BookOpen; color: string; bg: string }> = {
@@ -86,8 +85,6 @@ export default function AdminPromptsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <AdminHeader title="Quản lý AI Prompts" />
-
       <div className="max-w-6xl mx-auto px-4 py-8 space-y-8">
         {/* Header */}
         <div className="flex items-center justify-between">

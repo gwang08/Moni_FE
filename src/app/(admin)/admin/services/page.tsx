@@ -4,7 +4,6 @@ import { useEffect, useState, useRef } from 'react';
 import { Loader2, Plus, Pencil, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { AdminHeader } from '@/components/admin/admin-header';
 import { ServiceFormDialog } from '@/components/admin/service-form-dialog';
 import { toast } from 'sonner';
 import { getServices, deleteService } from '@/lib/payment-api';
@@ -58,7 +57,6 @@ export default function AdminServicesPage() {
 
   return (
     <div>
-      <AdminHeader title="Quản lý Dịch vụ" />
       <div className="p-6">
         <div className="flex justify-between items-center mb-6">
           <p className="text-sm text-gray-500">Quản lý các dịch vụ và chi phí credits tương ứng</p>

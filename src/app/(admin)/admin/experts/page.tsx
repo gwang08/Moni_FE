@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { AdminHeader } from '@/components/admin/admin-header';
 import { ExpertFormDialog } from '@/components/admin/expert-form-dialog';
 import { getAdminExperts, updateExpertAccountStatus } from '@/lib/admin-expert-api';
 import { toast } from 'sonner';
@@ -74,27 +73,22 @@ export default function AdminExpertsPage() {
 
   return (
     <div>
-      <AdminHeader
-        title="Quản lý giám khảo"
-        description={`${experts.length} giám khảo trong hệ thống`}
-        actions={
+
+      <div className="p-6 space-y-4">
+        <div className="flex justify-between items-center">
+          <div className="relative max-w-sm">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Tìm giám khảo theo tên hoặc email..."
+              className="pl-9 h-9"
+            />
+          </div>
           <Button onClick={() => setShowForm(true)} className="h-9 rounded-xl bg-gray-900 hover:bg-gray-800 text-sm px-4">
             <Plus className="h-4 w-4 mr-1.5" />
             Tạo giám khảo
           </Button>
-        }
-      />
-
-      <div className="p-6 space-y-4">
-        {/* Search */}
-        <div className="relative max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-          <Input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Tìm giám khảo theo tên hoặc email..."
-            className="pl-9 h-9"
-          />
         </div>
 
         {loading && experts.length === 0 ? (

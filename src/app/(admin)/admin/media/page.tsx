@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { AdminHeader } from '@/components/admin/admin-header';
 import { MediaUploadZone } from '@/components/admin/media-upload-zone';
 import { MediaFileCard } from '@/components/admin/media-file-card';
 
@@ -18,7 +17,6 @@ export default function AdminMediaPage() {
 
   return (
     <div>
-      <AdminHeader title="Quản lý Media" />
       <div className="p-6">
         <MediaUploadZone onUploaded={handleUploaded} />
 

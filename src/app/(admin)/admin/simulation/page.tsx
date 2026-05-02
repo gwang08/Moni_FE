@@ -35,7 +35,7 @@ export default function SimulationPage() {
     method: 'POST' | 'GET' = 'POST'
   ) => {
     if (!userId.trim()) {
-      toast.error('Vui lòng nhập User ID (credential ID)');
+      toast.error('Vui lòng nhập email người dùng');
       return;
     }
     setLoading(action);
@@ -79,21 +79,18 @@ export default function SimulationPage() {
           </div>
         </div>
 
-        {/* User ID Input */}
+        {/* User Email Input */}
         <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 mb-6">
           <label className="block text-sm font-bold text-gray-700 mb-2">
-            User Credential ID
+            Email người dùng
           </label>
           <input
-            type="text"
+            type="email"
             value={userId}
             onChange={(e) => setUserId(e.target.value)}
-            placeholder="Nhập credential ID của user cần test (VD: f320eb6c-...)"
+            placeholder="Nhập email của user cần test (VD: user@example.com)"
             className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-violet-500 focus:border-transparent outline-none transition-all bg-gray-50 focus:bg-white"
           />
-          <p className="mt-2 text-xs text-gray-400">
-            Lấy từ bảng <code className="bg-gray-100 px-1 rounded">user_credentials.id</code> trong database
-          </p>
         </div>
 
         {/* Action Cards */}
@@ -325,7 +322,7 @@ export default function SimulationPage() {
           <div className="space-y-2 text-xs text-violet-700 leading-relaxed">
             <p><strong>Luồng test cơ bản:</strong></p>
             <ol className="list-decimal pl-4 space-y-1">
-              <li>Nhập User Credential ID vào ô phía trên</li>
+              <li>Nhập email người dùng vào ô phía trên</li>
               <li>Click <strong>Complete Week</strong> → hoàn thành toàn bộ slot với điểm ngẫu nhiên</li>
               <li>Click <strong>Evaluate & Next</strong> → đánh giá tuần, tính verdict (IMPROVED/STABLE/DECLINED), sinh tuần mới</li>
               <li>Reload dashboard để xem tuần mới với độ khó đã được điều chỉnh</li>

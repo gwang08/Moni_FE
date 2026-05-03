@@ -73,7 +73,7 @@ export function ExamEvaluationResult({ evaluation, recordings, title }: Props) {
   const timeString = formatSpeakingTime(totalSeconds);
 
   return (
-    <div className="w-full max-w-[1000px] mx-auto font-sans relative">
+    <div className="w-full max-w-[1100px] mx-auto font-sans relative">
 
       {/* ── CARD CONTAINER ── */}
       <div className="bg-white rounded-[24px] shadow-[0_10px_40px_-10px_rgba(0,0,0,0.08)] flex flex-col md:flex-row gap-6 p-6 md:p-8 mb-10 border border-gray-100">
@@ -151,16 +151,16 @@ export function ExamEvaluationResult({ evaluation, recordings, title }: Props) {
 
               return (
                 <div key={key} className="bg-white rounded-[20px] border border-gray-100 shadow-sm p-5 flex flex-col hover:shadow-md transition duration-300">
-                  <div className="flex justify-between items-center mb-3 gap-2">
-                    <div className="flex items-center gap-2 flex-1 min-w-0">
-                      <div className={`p-1.5 shrink-0 rounded-md bg-gray-50 border border-gray-100 ${meta.color}`}>
-                        <Icon className="w-3.5 h-3.5" />
-                      </div>
-                      <span className="text-[10px] font-bold text-gray-700 tracking-wider uppercase truncate">
-                        {meta.label}
-                      </span>
+                  <div className="flex items-center gap-2 mb-1">
+                    <div className={`p-1.5 shrink-0 rounded-md bg-gray-50 border border-gray-100 ${meta.color}`}>
+                      <Icon className="w-3.5 h-3.5" />
                     </div>
-                    <span className={`text-[22px] font-bold shrink-0 ${meta.color}`}>
+                    <span className="text-[10px] font-bold text-gray-700 tracking-wider uppercase leading-tight">
+                      {meta.label}
+                    </span>
+                  </div>
+                  <div className="mb-3">
+                    <span className={`text-[28px] font-bold ${meta.color}`}>
                       {Number(score).toFixed(1)}
                     </span>
                   </div>

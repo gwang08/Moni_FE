@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Play, Mic, PauseCircle, CheckCircle } from 'lucide-react';
+import { Play, Mic, PauseCircle, CheckCircle, Lightbulb, ChevronDown, ChevronUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface Props {
@@ -54,6 +54,7 @@ interface CueCardWithNoteProps {
   speakTimer?: number;
   isListening?: boolean;
   onStopSpeaking?: () => void;
+  hintText?: string | null;
 }
 
 export function ExamPart2CueCardWithNote({ 
@@ -63,7 +64,8 @@ export function ExamPart2CueCardWithNote({
   onSkipPrep,
   speakTimer = 0,
   isListening,
-  onStopSpeaking
+  onStopSpeaking,
+  hintText,
 }: CueCardWithNoteProps) {
   const [note, setNote] = useState('');
 
@@ -168,6 +170,7 @@ export function ExamPart2CueCardWithNote({
         <div className="bg-[#fbbf24] px-4 py-3 text-center text-[15px] font-bold text-[#2d3748] shadow-sm shrink-0">
           Note
         </div>
+        {hintText && <Part2HintSection hintText={hintText} />}
         <div className="flex-1 p-4">
           <textarea
             value={note}
@@ -177,6 +180,33 @@ export function ExamPart2CueCardWithNote({
           />
         </div>
       </div>
+    </div>
+  );
+}
+
+function Part2HintSection({ hintText }: { hintText: string }) {
+  const [collapsed, setCollapsed] = useState(true);
+  return (
+    <div className="border-b border-amber-200 bg-amber-50/80 shrink-0">
+      <button
+        onClick={() => setCollapsed(!collapsed)}
+        className="flex w-full items-center justify-between gap-2 px-4 py-2.5 text-left"
+      >
+        <div className="flex items-center gap-1.5">
+          <Lightbulb className="h-3.5 w-3.5 text-amber-600" />
+          <span className="text-xs font-bold text-amber-800">Gợi ý</span>
+        </div>
+        {collapsed ? (
+          <ChevronDown className="h-3.5 w-3.5 text-amber-500" />
+        ) : (
+          <ChevronUp className="h-3.5 w-3.5 text-amber-500" />
+        )}
+      </button>
+      {!collapsed && (
+        <div className="px-4 pb-3">
+          <p className="whitespace-pre-line text-xs leading-relaxed text-amber-900/80">{hintText}</p>
+        </div>
+      )}
     </div>
   );
 }

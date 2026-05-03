@@ -1,13 +1,15 @@
 'use client';
 
 import { forwardRef, useImperativeHandle, useMemo, useState } from 'react';
-import { Loader2, Save } from 'lucide-react';
+import { Loader2, Save, Sparkles } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { updateQuestion } from '@/lib/admin-api';
+import { apiClient } from '@/lib/api-client';
 import type { TestDetailResponse } from '@/types/test.types';
+import type { ApiResponse } from '@/types/auth.types';
 
 interface Props {
   test: TestDetailResponse;
@@ -93,6 +95,32 @@ export const TestEditSpeakingContent = forwardRef<TestEditSpeakingContentHandle,
         ...patch,
       },
     }));
+  };
+
+  const [generatingHint, setGeneratingHint] = useState<number | null>(null);
+
+  const generateHint = async (questionId: number, questionText: string) => {
+    if (!questionText.trim()) {
+      toast.error('Câu hỏi trống, không thể tạo gợi ý');
+      return;
+    }
+    setGeneratingHint(questionId);
+    try {
+      const res = await apiClient.post<ApiResponse<{ hint: string }>>(
+        '/api/v1/admin/questions/generate-hint',
+        { question: questionText },
+        true
+      );
+      const hint = res.result?.hint;
+      if (hint) {
+        updateEdit(questionId, { sample: hint });
+        toast.success('Đã tạo gợi ý bằng AI');
+      }
+    } catch {
+      toast.error('Tạo gợi ý AI thất bại');
+    } finally {
+      setGeneratingHint(null);
+    }
   };
 
   const handleSaveAll = async (silent = false) => {
@@ -209,6 +237,20 @@ export const TestEditSpeakingContent = forwardRef<TestEditSpeakingContentHandle,
                         onChange={(e) => updateEdit(q.id, { content: e.target.value })}
                         className="h-8 flex-1 text-sm"
                       />
+                      <button
+                        type="button"
+                        onClick={() => generateHint(q.id, edit.content)}
+                        disabled={generatingHint !== null}
+                        className="flex items-center gap-1 rounded-lg border border-violet-200 bg-violet-50 px-2 py-1 text-[11px] font-semibold text-violet-600 hover:bg-violet-100 transition-colors disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
+                        title="Tạo gợi ý bằng AI"
+                      >
+                        {generatingHint === q.id ? (
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                        ) : (
+                          <Sparkles className="h-3 w-3" />
+                        )}
+                        AI gợi ý
+                      </button>
                     </div>
                     <textarea
                       value={edit.sample}

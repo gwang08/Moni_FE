@@ -11,6 +11,7 @@ import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
 import { Clock, BookOpen, HelpCircle, GraduationCap, Play, Loader2, Ban } from 'lucide-react';
 import { ChibiMascot, ChibiAnimationStyles } from '@/components/ui/chibi-mascot';
 import { getActiveSession, type ExamSession } from '@/lib/exam-api';
+import { toMinutes } from '@/lib/duration-utils';
 import type { Exercise } from '@/types/practice.types';
 
 interface Props {
@@ -66,7 +67,7 @@ export function ModeSelectionModal({ exercise, open, onOpenChange }: Props) {
     onOpenChange(false);
   };
 
-  const durationText = exercise.duration ? formatDuration(exercise.duration) : null;
+  const durationText = exercise.duration ? formatDuration(toMinutes(exercise.duration)) : null;
 
   return (
     <>

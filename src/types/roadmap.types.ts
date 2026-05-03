@@ -79,7 +79,6 @@ export interface WeeklyPlanResponse {
   weekStartDate: string;
   weekEndDate: string;
   status: 'ACTIVE' | 'COMPLETED';
-  difficultyLevel: number;
   weeklyAccuracy: number | null;
   completionRate: number | null;
   performanceVerdict: PerformanceVerdict | null;

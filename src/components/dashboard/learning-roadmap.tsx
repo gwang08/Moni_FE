@@ -54,23 +54,6 @@ const VERDICT_CONFIG: Record<PerformanceVerdict, { icon: typeof TrendingUp; labe
   DECLINED: { icon: TrendingDown, label: 'Cần cải thiện', color: 'text-red-500' },
 };
 
-function DifficultyBar({ level }: { level: number }) {
-  const filled = Math.round(level * 5);
-  return (
-    <div className="flex items-center gap-1">
-      <span className="text-[10px] text-gray-400 mr-1">Độ khó</span>
-      {Array.from({ length: 5 }, (_, i) => (
-        <div
-          key={i}
-          className={`h-2 w-3 rounded-sm transition-colors ${
-            i < filled ? 'bg-gradient-to-r from-emerald-400 to-gray-400' : 'bg-gray-200'
-          }`}
-        />
-      ))}
-    </div>
-  );
-}
-
 function convertToBand(score: number, total: number, skill?: string): string {
   if (total === 0) return '0.0';
   if (skill === 'READING') return getReadingBand(score, total).toFixed(1);
@@ -553,7 +536,6 @@ export function LearningRoadmap({ weekNumber }: { weekNumber?: number }) {
                 <span className="text-xs font-medium">{verdict.label}</span>
               </div>
             )}
-            <DifficultyBar level={plan.difficultyLevel} />
           </div>
         </div>
       </div>

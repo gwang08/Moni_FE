@@ -179,7 +179,6 @@ export function TabOverview({ attempts, writing, sessions, insights, weeklyPlan 
                 <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${weekProgress}%` }} />
               </div>
               <div className="mt-4 text-xs text-gray-500 space-y-1">
-                <Row label="Độ khó" value={weeklyPlan.difficultyLevel.toFixed(1)} />
                 <Row label="Accuracy" value={weeklyPlan.weeklyAccuracy != null ? `${Math.round(weeklyPlan.weeklyAccuracy * 100)}%` : '—'} />
                 <Row label="Verdict" value={weeklyPlan.performanceVerdict ?? '—'} />
               </div>

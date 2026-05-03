@@ -95,6 +95,7 @@ export default function SpeakingExamPage({ params }: Props) {
   // Fetch test info to dynamically configure progress bar questions length
   const [partConfig, setPartConfig] = useState<Record<number, number>>({ 1: 12, 2: 1, 3: 6 });
   const [testTitle, setTestTitle] = useState('IELTS Speaking Test');
+  const [hintMap, setHintMap] = useState<Record<number, string>>({});
 
   useEffect(() => {
     import('@/lib/tests-api').then(({ getPublicTestDetail }) => {
@@ -115,6 +116,18 @@ export default function SpeakingExamPage({ params }: Props) {
           2: config[2],
           3: config[3],
         });
+        // Build hint map from question explanations
+        const hints: Record<number, string> = {};
+        test.stimuli.forEach((st: any) => {
+          st.questionGroups?.forEach((g: any) => {
+            g.questions?.forEach((q: any) => {
+              if (q.id && q.explanation?.text) {
+                hints[q.id] = q.explanation.text;
+              }
+            });
+          });
+        });
+        setHintMap(hints);
       }).catch(e => console.error('Failed to fetch test details', e));
     });
   }, [id]);
@@ -162,6 +175,11 @@ export default function SpeakingExamPage({ params }: Props) {
       }
     }
   }, [exam.currentQuestion?.questionId, exam.currentQuestion?.questionIndex, exam.resumedQuestionIndex, exam.clearResumedQuestionIndex]);
+
+  // Derive current hint for manual mode
+  const currentHint = recordingMode === 'manual' && exam.currentQuestion
+    ? hintMap[exam.currentQuestion.questionId] ?? null
+    : null;
 
   // When Part 2 starts (from backend cue_card event), show intro and update progress bar
   useEffect(() => {
@@ -508,6 +526,7 @@ export default function SpeakingExamPage({ params }: Props) {
           recordingMode={recordingMode}
           onManualStartMic={handleManualStartMic}
           onManualStopMic={handleManualStopMic}
+          hintText={currentHint}
         />
       </PageShell>
     );
@@ -552,6 +571,7 @@ export default function SpeakingExamPage({ params }: Props) {
           speakTimer={timers.speakTimer}
           isListening={stt.isListening}
           onStopSpeaking={handleStopPart2}
+          hintText={recordingMode === 'manual' && exam.cueCard.questionId ? hintMap[exam.cueCard.questionId] ?? null : null}
         />
       </PageShell>
     );

@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Eye, Mic, MicOff } from 'lucide-react';
 import type { QuestionEvent } from '@/types/speaking-exam.types';
 import type { RecordingMode } from './exam-guide-screen';
+import { ExamHintPanel } from './exam-hint-panel';
 
 interface Props {
   question: QuestionEvent;
@@ -14,6 +15,7 @@ interface Props {
   recordingMode: RecordingMode;
   onManualStartMic: () => void;
   onManualStopMic: () => void;
+  hintText?: string | null;
 }
 
 export function ExamQuestionDisplay({
@@ -25,33 +27,37 @@ export function ExamQuestionDisplay({
   recordingMode,
   onManualStartMic,
   onManualStopMic,
+  hintText,
 }: Props) {
   const [showQuestion, setShowQuestion] = useState(showQuestionAlways);
   const [timeLeft, setTimeLeft] = useState(45); // 45s per question
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const isManual = recordingMode === 'manual';
 
   // Reset state when question changes
   useEffect(() => {
     setShowQuestion(showQuestionAlways);
     setTimeLeft(45);
 
-    // Start countdown when question arrives
-    timerRef.current = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev <= 1) {
-          // Time's up, auto submit
-          if (timerRef.current) clearInterval(timerRef.current);
-          onSubmitAnswer();
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
+    // Only start countdown in auto mode
+    if (!isManual) {
+      timerRef.current = setInterval(() => {
+        setTimeLeft((prev) => {
+          if (prev <= 1) {
+            if (timerRef.current) clearInterval(timerRef.current);
+            onSubmitAnswer();
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
 
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [question.questionId, showQuestionAlways, onSubmitAnswer]);
+  }, [question.questionId, showQuestionAlways, onSubmitAnswer, isManual]);
 
   const formatTime = (s: number) => {
     const m = Math.floor(s / 60);
@@ -59,12 +65,11 @@ export function ExamQuestionDisplay({
     return `${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
   };
 
-  const isManual = recordingMode === 'manual';
   const waitingForMic = isManual && !isAudioPlaying && !isListening;
   const manualRecording = isManual && isListening;
 
-  return (
-    <div className="relative flex min-h-[60vh] flex-col rounded-lg border border-gray-200 bg-white">
+  const questionCard = (
+    <div className="relative flex min-h-[60vh] flex-1 flex-col rounded-lg border border-gray-200 bg-white">
       {/* Part header */}
       <div className="border-b border-gray-100 bg-[#f0f7ff] py-4 text-center">
         <h2 className="text-lg font-bold text-blue-700">Part {question.partNumber}</h2>
@@ -135,19 +140,32 @@ export function ExamQuestionDisplay({
         )}
       </div>
 
-      {/* Timer at bottom */}
-      <div className="flex justify-center border-t border-gray-100 py-4">
-        <div
-          className={`flex items-center gap-2 rounded-full border px-6 py-2 ${
-            timeLeft <= 10
-              ? 'border-red-300 bg-red-50 text-red-600'
-              : 'border-red-200 bg-red-50/50 text-red-500'
-          }`}
-        >
-          <span className="h-2.5 w-2.5 rounded bg-red-400" />
-          <span className="text-sm font-medium">Time limit {formatTime(timeLeft)}</span>
+      {/* Timer at bottom — hidden in manual mode */}
+      {!isManual && (
+        <div className="flex justify-center border-t border-gray-100 py-4">
+          <div
+            className={`flex items-center gap-2 rounded-full border px-6 py-2 ${
+              timeLeft <= 10
+                ? 'border-red-300 bg-red-50 text-red-600'
+                : 'border-red-200 bg-red-50/50 text-red-500'
+            }`}
+          >
+            <span className="h-2.5 w-2.5 rounded bg-red-400" />
+            <span className="text-sm font-medium">Time limit {formatTime(timeLeft)}</span>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
+
+  if (hintText) {
+    return (
+      <div className="flex gap-4 items-start">
+        {questionCard}
+        <ExamHintPanel hintText={hintText} />
+      </div>
+    );
+  }
+
+  return questionCard;
 }

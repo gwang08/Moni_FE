@@ -844,7 +844,7 @@ export const TestEditContentTab = forwardRef<TestEditContentHandle, Props>(funct
   };
 
   if (test.skill === 'WRITING') return <TestEditWritingContent ref={writingContentRef} test={test} />;
-  if (test.skill === 'SPEAKING') return <TestEditSpeakingContent test={test} onBeforeSaveBasicInfo={onBeforeSaveBasicInfo} />;
+  if (test.skill === 'SPEAKING') return <TestEditSpeakingContent ref={speakingContentRef} test={test} onBeforeSaveBasicInfo={onBeforeSaveBasicInfo} />;
 
   if (!stimulus) return <p className="py-8 text-center text-gray-400">Bai thi chua co noi dung</p>;
   const totalQuestions = stimulus.questionGroups.reduce((sum, group) => sum + group.questions.length, 0);

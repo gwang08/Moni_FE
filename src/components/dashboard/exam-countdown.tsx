@@ -15,7 +15,7 @@ function getDaysRemaining(examDate: string | null): number | null {
   const target = new Date(examDate);
   target.setHours(0, 0, 0, 0);
   const diff = target.getTime() - now.getTime();
-  if (diff < 0) return 0;
+  if (diff < 0) return -1; // past date
   return Math.ceil(diff / (1000 * 60 * 60 * 24));
 }
 
@@ -111,11 +111,13 @@ export function ExamCountdown() {
         </div>
 
         <div className="relative">
-          {daysRemaining !== null ? (
+          {daysRemaining !== null && daysRemaining >= 0 ? (
             <div className="flex items-baseline gap-2 mb-1">
               <span className="text-6xl font-extrabold tracking-tight leading-none">{daysRemaining}</span>
               <span className="text-lg opacity-90">ngày còn lại</span>
             </div>
+          ) : daysRemaining === -1 ? (
+            <div className="text-2xl font-extrabold mb-1 opacity-90">Ngày thi đã qua</div>
           ) : (
             <div className="text-3xl font-extrabold mb-1 opacity-90">Chưa đặt ngày thi</div>
           )}
@@ -124,6 +126,7 @@ export function ExamCountdown() {
             <input
               type="date"
               value={draft}
+              min={new Date().toISOString().split('T')[0]}
               onChange={(e) => setDraft(e.target.value)}
               className="mt-2 text-sm font-bold text-gray-800 bg-white rounded-xl px-3 py-1.5 outline-none focus:ring-2 focus:ring-white"
             />
@@ -131,7 +134,7 @@ export function ExamCountdown() {
             <p className="text-sm opacity-90 mb-5">Ngày dự thi: <b>{formatDisplayDate(examDate)}</b></p>
           )}
 
-          {daysRemaining !== null && !editing && (
+          {daysRemaining !== null && daysRemaining > 0 && !editing && (
             <div className="grid grid-cols-3 gap-2 mt-3">
               <div className="bg-white/15 backdrop-blur rounded-2xl p-3 text-center">
                 <div className="text-xl font-extrabold">{weeks}</div>
@@ -154,10 +157,16 @@ export function ExamCountdown() {
               Sắp đến ngày thi rồi! Cố lên nào!
             </div>
           )}
-          {daysRemaining === 0 && (
-            <div className="mt-4 flex items-center justify-center gap-2 text-xs font-bold bg-white text-red-600 rounded-2xl py-2 px-4">
+          {daysRemaining === 0 && !editing && (
+            <div className="mt-4 flex items-center justify-center gap-2 text-xs font-bold bg-white text-emerald-700 rounded-2xl py-2 px-4">
               <TargetIcon className="w-4 h-4" />
-              Hôm nay là ngày thi!
+              Hôm nay là ngày thi! Chúc bạn thi tốt!
+            </div>
+          )}
+          {daysRemaining === -1 && !editing && (
+            <div className="mt-4 flex items-center justify-center gap-2 text-xs font-bold bg-white/20 text-white rounded-2xl py-2 px-4">
+              <Pencil className="w-3.5 h-3.5" />
+              Hãy cập nhật ngày thi mới
             </div>
           )}
         </div>

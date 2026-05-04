@@ -11,7 +11,6 @@ import { SkeletonTable } from '@/components/ui/skeleton';
 import { formatDate } from '@/lib/format-date';
 import { approveLatePayment, getPayments, refundDuplicatePayment } from '@/lib/payment-api';
 import { formatVnd } from '@/lib/utils';
-import type { PaymentResponse } from '@/types/payment.types';
 
 function formatDateInput(date: Date): string {
   const year = date.getFullYear();
@@ -66,11 +65,13 @@ export default function AdminUserTransactionsPage() {
   const fromDateFromUrl = searchParams.get('fromDate') || formatDateInput(defaultFromDate);
   const toDateFromUrl = searchParams.get('toDate') || formatDateInput(today);
   const sortFromUrl = searchParams.get('sort') || 'desc';
+  const statusFromUrl = searchParams.get('status') || 'ALL';
 
   const [page, setPage] = useState(pageFromUrl);
   const [search, setSearch] = useState(searchFromUrl);
   const [debouncedSearch, setDebouncedSearch] = useState(searchFromUrl);
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>(sortFromUrl as 'asc' | 'desc');
+  const [statusFilter, setStatusFilter] = useState(statusFromUrl);
   const [dateRange, setDateRange] = useState({
     startDate: fromDateFromUrl,
     endDate: toDateFromUrl,
@@ -81,7 +82,7 @@ export default function AdminUserTransactionsPage() {
     (updates: Record<string, string | number | null>) => {
       const params = new URLSearchParams(searchParams.toString());
       Object.entries(updates).forEach(([key, value]) => {
-        if (value === null || value === '' || (key === 'sort' && value === 'desc')) {
+        if (value === null || value === '' || (key === 'sort' && value === 'desc') || (key === 'status' && value === 'ALL')) {
           params.delete(key);
         } else {
           params.set(key, String(value));
@@ -107,11 +108,12 @@ export default function AdminUserTransactionsPage() {
     setSearch(searchFromUrl);
     setDebouncedSearch(searchFromUrl);
     setSortOrder(sortFromUrl as 'asc' | 'desc');
+    setStatusFilter(statusFromUrl);
     setDateRange({
       startDate: fromDateFromUrl,
       endDate: toDateFromUrl,
     });
-  }, [pageFromUrl, searchFromUrl, fromDateFromUrl, toDateFromUrl, sortFromUrl]);
+  }, [pageFromUrl, searchFromUrl, fromDateFromUrl, toDateFromUrl, sortFromUrl, statusFromUrl]);
 
   const paymentsQuery = useQuery({
     queryKey: ['admin', 'payments'],

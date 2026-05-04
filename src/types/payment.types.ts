@@ -27,6 +27,10 @@ export interface PaymentResponse {
   amount: number;
   updatedAt: string;
   status: string;
+  createdAt?: string;
+  userId?: string | null;
+  userEmail?: string | null;
+  userFullName?: string | null;
 }
 
 export interface CreditTransactionResponse {

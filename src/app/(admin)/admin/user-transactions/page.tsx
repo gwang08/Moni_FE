@@ -5,11 +5,15 @@ import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
 import { SkeletonTable } from '@/components/ui/skeleton';
 import { getAdminCreditTransactions } from '@/lib/admin-api';
+import { getPayments } from '@/lib/payment-api';
 import { formatDate } from '@/lib/format-date';
+import { formatVnd } from '@/lib/utils';
 import { useQuery } from '@tanstack/react-query';
 import { DateRangePicker } from '@/components/ui/date-range-picker';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import type { PaymentResponse } from '@/types/payment.types';
+import type { CreditTransactionResponse } from '@/types/payment.types';
 
 function formatDateInput(date: Date): string {
   const year = date.getFullYear();
@@ -18,21 +22,36 @@ function formatDateInput(date: Date): string {
   return `${year}-${month}-${day}`;
 }
 
-const TYPE_CONFIG: Record<string, { label: string; color: string }> = {
-  SUBSCRIPTION_PURCHASE: { label: 'Mua gói', color: 'bg-green-100 text-green-700' },
-  TOPUP: { label: 'Nạp tiền', color: 'bg-green-100 text-green-700' },
-  CONSUME: { label: 'Thanh toán', color: 'bg-orange-100 text-orange-700' },
-  REFUND: { label: 'Hoàn lượt', color: 'bg-blue-100 text-blue-700' },
-};
-
-const TYPE_FILTERS = [
-  { value: 'ALL', label: 'Tất cả' },
-  { value: 'SUBSCRIPTION_PURCHASE', label: 'Mua gói' },
-  { value: 'CONSUME', label: 'Thanh toán' },
-  { value: 'REFUND', label: 'Hoàn lượt' },
-];
-
 const PAGE_SIZE = 10;
+
+function normalizeText(value: string | null | undefined) {
+  return (value || '').toLowerCase().trim();
+}
+
+function getPaymentLabel(payment: PaymentResponse) {
+  return payment.packageName || payment.subscriptionPlanName || '-';
+}
+
+function getPaymentKind(payment: PaymentResponse) {
+  const status = payment.status.toUpperCase();
+  if (status === 'REFUNDED' || status === 'REFUND') return 'Hoàn tiền';
+  if (payment.packageId != null || payment.subscriptionPlanId != null) return 'Thanh toán';
+  return 'Khác';
+}
+
+function getStatusConfig(status: string) {
+  const key = status.toUpperCase();
+  if (key === 'SUCCESS' || key === 'COMPLETED' || key === 'PAID') {
+    return { label: 'Thành công', color: 'bg-emerald-100 text-emerald-700' };
+  }
+  if (key === 'PENDING' || key === 'PROCESSING') {
+    return { label: 'Đang xử lý', color: 'bg-amber-100 text-amber-700' };
+  }
+  if (key === 'FAILED' || key === 'CANCELLED' || key === 'EXPIRED') {
+    return { label: 'Thất bại', color: 'bg-rose-100 text-rose-700' };
+  }
+  return { label: status, color: 'bg-gray-100 text-gray-700' };
+}
 
 export default function AdminUserTransactionsPage() {
   const router = useRouter();
@@ -48,15 +67,13 @@ export default function AdminUserTransactionsPage() {
 
   const pageFromUrl = parseInt(searchParams.get('page') || '1', 10);
   const searchFromUrl = searchParams.get('search') || '';
-  const typeFromUrl = searchParams.get('type') || 'ALL';
   const fromDateFromUrl = searchParams.get('fromDate') || formatDateInput(defaultFromDate);
   const toDateFromUrl = searchParams.get('toDate') || formatDateInput(today);
   const sortFromUrl = searchParams.get('sort') || 'desc';
 
   const [page, setPage] = useState(pageFromUrl);
-  const [userId, setUserId] = useState(searchFromUrl);
-  const [debouncedUserId, setDebouncedUserId] = useState(searchFromUrl);
-  const [paymentType, setPaymentType] = useState(typeFromUrl);
+  const [search, setSearch] = useState(searchFromUrl);
+  const [debouncedSearch, setDebouncedSearch] = useState(searchFromUrl);
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>(sortFromUrl as 'asc' | 'desc');
   const [dateRange, setDateRange] = useState({
     startDate: fromDateFromUrl,
@@ -67,7 +84,7 @@ export default function AdminUserTransactionsPage() {
     (updates: Record<string, string | number | null>) => {
       const params = new URLSearchParams(searchParams.toString());
       Object.entries(updates).forEach(([key, value]) => {
-        if (value === null || value === '' || (key === 'type' && value === 'ALL') || (key === 'sort' && value === 'desc')) {
+        if (value === null || value === '' || (key === 'sort' && value === 'desc')) {
           params.delete(key);
         } else {
           params.set(key, String(value));
@@ -80,48 +97,99 @@ export default function AdminUserTransactionsPage() {
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (debouncedUserId !== userId) {
-        setDebouncedUserId(userId);
-        updateUrl({ search: userId || null, page: 1 });
+      if (debouncedSearch !== search) {
+        setDebouncedSearch(search);
+        updateUrl({ search: search || null, page: 1 });
       }
     }, 500);
     return () => clearTimeout(timer);
-  }, [userId, debouncedUserId, updateUrl]);
+  }, [search, debouncedSearch, updateUrl]);
 
   useEffect(() => {
     setPage(pageFromUrl);
-    setUserId(searchFromUrl);
-    setDebouncedUserId(searchFromUrl);
-    setPaymentType(typeFromUrl);
+    setSearch(searchFromUrl);
+    setDebouncedSearch(searchFromUrl);
     setSortOrder(sortFromUrl as 'asc' | 'desc');
     setDateRange({
       startDate: fromDateFromUrl,
       endDate: toDateFromUrl,
     });
-  }, [pageFromUrl, searchFromUrl, typeFromUrl, fromDateFromUrl, toDateFromUrl, sortFromUrl]);
+  }, [pageFromUrl, searchFromUrl, fromDateFromUrl, toDateFromUrl, sortFromUrl]);
 
   const handlePageChange = (newPage: number) => {
     updateUrl({ page: newPage });
   };
 
   const { data = [], isLoading, error } = useQuery({
-    queryKey: ['admin', 'user-transactions', debouncedUserId, paymentType, dateRange],
+    queryKey: ['admin', 'payments'],
+    queryFn: () => getPayments(),
+  });
+
+  const { data: creditTransactions = [] } = useQuery({
+    queryKey: ['admin', 'credit-transactions', dateRange],
     queryFn: () =>
       getAdminCreditTransactions({
-        userId: debouncedUserId.trim() || undefined,
-        paymentType,
+        paymentType: 'SUBSCRIPTION_PURCHASE',
         fromDate: dateRange.startDate || undefined,
         toDate: dateRange.endDate || undefined,
       }),
   });
 
+  const transactionMetaByPaymentId = useMemo(() => {
+    return creditTransactions.reduce<Record<number, CreditTransactionResponse>>((acc, tx) => {
+      if (tx.paymentId != null && tx.paymentType === 'SUBSCRIPTION_PURCHASE') {
+        acc[tx.paymentId] = tx;
+      }
+      return acc;
+    }, {});
+  }, [creditTransactions]);
+
+  const filteredData = useMemo(() => {
+    const fromTs = new Date(`${dateRange.startDate}T00:00:00`).getTime();
+    const toTs = new Date(`${dateRange.endDate}T23:59:59.999`).getTime();
+    const query = normalizeText(debouncedSearch);
+
+    return data
+      .filter((payment) => payment.status === 'SUCCESS')
+      .map((payment) => {
+        const meta = transactionMetaByPaymentId[payment.id];
+        return {
+          ...payment,
+          userId: payment.userId ?? meta?.userId ?? null,
+          userEmail: payment.userEmail ?? meta?.userEmail ?? null,
+          userFullName: payment.userFullName ?? meta?.userFullName ?? null,
+        };
+      })
+      .filter((payment) => {
+        const ts = new Date(payment.updatedAt || payment.createdAt || '').getTime();
+        if (Number.isFinite(fromTs) && ts < fromTs) return false;
+        if (Number.isFinite(toTs) && ts > toTs) return false;
+
+        if (!query) return true;
+
+        const searchable = [
+          payment.userFullName,
+          payment.userEmail,
+          payment.txnCode,
+          payment.packageName,
+          payment.subscriptionPlanName,
+          payment.status,
+        ]
+          .map(normalizeText)
+          .join(' ');
+
+        return searchable.includes(query);
+      })
+      .filter((payment) => payment.packageId != null || payment.subscriptionPlanId != null);
+  }, [data, dateRange, debouncedSearch, transactionMetaByPaymentId]);
+
   const sortedData = useMemo(() => {
-    return [...data].sort((a, b) => {
-      const dateA = new Date(a.createdAt).getTime();
-      const dateB = new Date(b.createdAt).getTime();
+    return [...filteredData].sort((a, b) => {
+      const dateA = new Date(a.updatedAt || a.createdAt || '').getTime();
+      const dateB = new Date(b.updatedAt || b.createdAt || '').getTime();
       return sortOrder === 'desc' ? dateB - dateA : dateA - dateB;
     });
-  }, [data, sortOrder]);
+  }, [filteredData, sortOrder]);
 
   const totalElements = sortedData.length;
   const totalPages = Math.ceil(totalElements / PAGE_SIZE);
@@ -136,29 +204,11 @@ export default function AdminUserTransactionsPage() {
         <div className="flex flex-wrap items-center gap-3">
           <div className="flex min-w-[300px] flex-1">
             <Input
-              value={userId}
-              onChange={(event) => setUserId(event.target.value)}
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
               placeholder="Tìm kiếm"
               className="h-10"
             />
-          </div>
-
-          <div className="min-w-[160px]">
-            <select
-              value={paymentType}
-              onChange={(event) => {
-                const val = event.target.value;
-                setPaymentType(val);
-                updateUrl({ type: val, page: 1 });
-              }}
-              className="h-10 w-full rounded-md border border-gray-300 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              {TYPE_FILTERS.map((filter) => (
-                <option key={filter.value} value={filter.value}>
-                  {filter.label}
-                </option>
-              ))}
-            </select>
           </div>
 
           <div className="min-w-[280px]">
@@ -166,10 +216,10 @@ export default function AdminUserTransactionsPage() {
               value={dateRange}
               onChange={(range) => {
                 setDateRange(range);
-                updateUrl({ 
-                  fromDate: range.startDate, 
-                  toDate: range.endDate, 
-                  page: 1 
+                updateUrl({
+                  fromDate: range.startDate,
+                  toDate: range.endDate,
+                  page: 1,
                 });
               }}
             />
@@ -203,72 +253,46 @@ export default function AdminUserTransactionsPage() {
                   <tr>
                     <th className="px-4 py-3 text-left font-medium text-gray-600">Người dùng</th>
                     <th className="px-4 py-3 text-left font-medium text-gray-600">Email</th>
-                    <th className="px-4 py-3 text-left font-medium text-gray-600">Dịch vụ</th>
                     <th className="px-4 py-3 text-left font-medium text-gray-600">Gói mua</th>
-                    <th className="px-4 py-3 text-right font-medium text-gray-600">Giá tiền</th>
-                    <th className="px-4 py-3 text-right font-medium text-gray-600">Credit</th>
                     <th className="px-4 py-3 text-left font-medium text-gray-600">Loại</th>
+                    <th className="px-4 py-3 text-right font-medium text-gray-600">Số tiền</th>
+                    <th className="px-4 py-3 text-left font-medium text-gray-600">Trạng thái</th>
                     <th className="px-4 py-3 text-left font-medium text-gray-600">Thời gian</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {paginatedData.length === 0 ? (
                     <tr>
-                      <td colSpan={8} className="py-10 text-center text-gray-400">
+                      <td colSpan={7} className="py-10 text-center text-gray-400">
                         Không có giao dịch nào
                       </td>
                     </tr>
                   ) : (
-                    paginatedData.map((tx) => {
-                      const cfg = TYPE_CONFIG[tx.paymentType] ?? { label: tx.paymentType, color: 'bg-gray-100 text-gray-600' };
-                      
-                      let deltaDisplay = '';
-                      let deltaColor = '';
-                      
-                      if (tx.paymentType === 'CONSUME') {
-                        deltaDisplay = `-${Math.abs(tx.delta)}`;
-                        deltaColor = 'text-orange-600';
-                      } else if (tx.paymentType === 'SUBSCRIPTION_PURCHASE' || tx.paymentType === 'TOPUP') {
-                        deltaDisplay = `+${tx.delta}`;
-                        deltaColor = 'text-green-600';
-                      } else {
-                        deltaDisplay = tx.delta >= 0 ? `+${tx.delta}` : `${tx.delta}`;
-                        deltaColor = tx.delta >= 0 ? 'text-green-600' : 'text-red-500';
-                      }
-
-                      let packagePurchased = tx.packageName || '-';
-                      let priceStr = '-';
-
-                      if (tx.paymentType === 'SUBSCRIPTION_PURCHASE' && tx.remark) {
-                        const parts = tx.remark.split(' · ');
-                        if (parts.length === 2) {
-                          packagePurchased = parts[0].replace(/^Mua\s+/i, '');
-                          priceStr = parts[1];
-                        } else {
-                          packagePurchased = tx.remark;
-                        }
-                      }
+                    paginatedData.map((payment) => {
+                      const statusCfg = getStatusConfig(payment.status);
+                      const packageLabel = getPaymentLabel(payment);
+                      const kindLabel = getPaymentKind(payment);
+                      const timestamp = payment.updatedAt || payment.createdAt || '';
 
                       return (
-                        <tr key={tx.id} className="hover:bg-gray-50">
+                        <tr key={payment.id} className="hover:bg-gray-50">
                           <td className="px-4 py-3 font-medium text-gray-700">
-                            {tx.userFullName || '-'}
+                            {payment.userFullName || '-'}
                           </td>
                           <td className="px-4 py-3 text-gray-500">
-                            {tx.userEmail || tx.userId}
+                            {payment.userEmail || payment.userId || '-'}
                           </td>
-                          <td className="px-4 py-3 text-gray-700">{tx.serviceName || '-'}</td>
-                          <td className="px-4 py-3 text-gray-700">{packagePurchased}</td>
+                          <td className="px-4 py-3 text-gray-700">{packageLabel}</td>
+                          <td className="px-4 py-3 text-gray-700">{kindLabel}</td>
                           <td className="px-4 py-3 font-medium text-right text-emerald-600">
-                            {priceStr}
-                          </td>
-                          <td className={`px-4 py-3 font-bold tabular-nums text-right ${deltaColor}`}>
-                            {deltaDisplay}
+                            {formatVnd(payment.amount)}
                           </td>
                           <td className="px-4 py-3">
-                            <Badge className={cfg.color}>{cfg.label}</Badge>
+                            <Badge className={statusCfg.color}>{statusCfg.label}</Badge>
                           </td>
-                          <td className="px-4 py-3 text-xs text-gray-500">{formatDate(tx.createdAt)}</td>
+                          <td className="px-4 py-3 text-xs text-gray-500">
+                            {timestamp ? formatDate(timestamp) : '-'}
+                          </td>
                         </tr>
                       );
                     })
@@ -290,7 +314,7 @@ export default function AdminUserTransactionsPage() {
                 </Button>
 
                 {(() => {
-                  const pages = [];
+                  const pages: Array<number | string> = [];
                   if (totalPages <= 7) {
                     for (let i = 1; i <= totalPages; i++) pages.push(i);
                   } else {

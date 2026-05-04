@@ -15,6 +15,7 @@ import TableRow from '@tiptap/extension-table-row';
 import TableCell from '@tiptap/extension-table-cell';
 import TableHeader from '@tiptap/extension-table-header';
 import { RichTextToolbar } from '@/components/admin/rich-text-toolbar';
+import { ListeningTranscriptParagraph } from '@/components/admin/listening-transcript-paragraph';
 import type { StimulusRequest } from '@/types/admin.types';
 import { useEffect } from 'react';
 
@@ -41,9 +42,11 @@ interface Props {
 
 const EDITOR_EXTENSIONS = [
   StarterKit.configure({
+    paragraph: false,
     bulletList: { HTMLAttributes: { class: 'list-disc pl-6 space-y-1 my-2' } },
     orderedList: { HTMLAttributes: { class: 'list-decimal pl-6 space-y-1 my-2' } },
   }),
+  ListeningTranscriptParagraph,
   Placeholder.configure({ placeholder: 'Nhập nội dung đoạn văn / bài nghe...' }),
   Underline,
   Subscript,

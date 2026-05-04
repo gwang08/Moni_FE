@@ -167,21 +167,18 @@ export default function CheckoutPage() {
   const { refreshProfile } = useAuthStore();
   const queryClient = useQueryClient();
 
-  const returnUrl = usePaymentStore((s) => s.returnUrl);
-
   const handlePaymentSuccess = useCallback(
     () => {
       setStatus('completed');
       refreshProfile();
       // Invalidate subscription query so banner/scoring dialogs pick up new active sub immediately
       queryClient.invalidateQueries({ queryKey: ['my-active-subscription'] });
-      const redirectTo = returnUrl || '/transactions';
       setTimeout(() => {
         clear();
-        router.push(redirectTo);
+        router.replace('/dashboard');
       }, 2500);
     },
-    [clear, router, refreshProfile, returnUrl, queryClient]
+    [clear, router, refreshProfile, queryClient]
   );
 
   // SSE realtime listener + polling fallback

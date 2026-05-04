@@ -21,6 +21,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { RichTextToolbar } from '@/components/admin/rich-text-toolbar';
+import { ListeningTranscriptParagraph } from '@/components/admin/listening-transcript-paragraph';
 import { TestEditQuestionCard, type TestEditQuestionCardHandle } from '@/components/admin/test-edit-question-card';
 import { TestEditAddQuestionForm } from '@/components/admin/test-edit-add-question-form';
 import { TestEditMatchingHeadings, type TestEditMatchingHeadingsHandle } from '@/components/admin/test-edit-matching-headings';
@@ -100,7 +101,10 @@ function moveItem<T>(items: T[], from: number, to: number): T[] {
 }
 
 const EDITOR_EXTENSIONS = [
-  StarterKit,
+  StarterKit.configure({
+    paragraph: false,
+  }),
+  ListeningTranscriptParagraph,
   Placeholder.configure({ placeholder: 'Nhap noi dung de bai...' }),
   UnderlineExt,
   Subscript,

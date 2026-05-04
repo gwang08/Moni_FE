@@ -2,18 +2,16 @@
 
 import { useMemo, useState, useEffect, useCallback } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
-import { Badge } from '@/components/ui/badge';
-import { SkeletonTable } from '@/components/ui/skeleton';
-import { getAdminCreditTransactions } from '@/lib/admin-api';
-import { getPayments } from '@/lib/payment-api';
-import { formatDate } from '@/lib/format-date';
-import { formatVnd } from '@/lib/utils';
 import { useQuery } from '@tanstack/react-query';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { DateRangePicker } from '@/components/ui/date-range-picker';
 import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
+import { SkeletonTable } from '@/components/ui/skeleton';
+import { formatDate } from '@/lib/format-date';
+import { approveLatePayment, getPayments, refundDuplicatePayment } from '@/lib/payment-api';
+import { formatVnd } from '@/lib/utils';
 import type { PaymentResponse } from '@/types/payment.types';
-import type { CreditTransactionResponse } from '@/types/payment.types';
 
 function formatDateInput(date: Date): string {
   const year = date.getFullYear();
@@ -28,29 +26,35 @@ function normalizeText(value: string | null | undefined) {
   return (value || '').toLowerCase().trim();
 }
 
-function getPaymentLabel(payment: PaymentResponse) {
-  return payment.packageName || payment.subscriptionPlanName || '-';
-}
-
-function getPaymentKind(payment: PaymentResponse) {
-  const status = payment.status.toUpperCase();
-  if (status === 'REFUNDED' || status === 'REFUND') return 'Hoàn tiền';
-  if (payment.packageId != null || payment.subscriptionPlanId != null) return 'Thanh toán';
-  return 'Khác';
-}
-
 function getStatusConfig(status: string) {
   const key = status.toUpperCase();
-  if (key === 'SUCCESS' || key === 'COMPLETED' || key === 'PAID') {
+  if (key === 'SUCCESS' || key === 'LATE_SUCCESS') {
     return { label: 'Thành công', color: 'bg-emerald-100 text-emerald-700' };
   }
   if (key === 'PENDING' || key === 'PROCESSING') {
     return { label: 'Đang xử lý', color: 'bg-amber-100 text-amber-700' };
   }
+  if (key === 'LATE_PAYMENT') {
+    return { label: 'Chờ duyệt', color: 'bg-orange-100 text-orange-700' };
+  }
+  if (key === 'DUPLICATE') {
+    return { label: 'Trùng', color: 'bg-violet-100 text-violet-700' };
+  }
+  if (key === 'REFUNDED') {
+    return { label: 'Đã hoàn', color: 'bg-sky-100 text-sky-700' };
+  }
   if (key === 'FAILED' || key === 'CANCELLED' || key === 'EXPIRED') {
     return { label: 'Thất bại', color: 'bg-rose-100 text-rose-700' };
   }
   return { label: status, color: 'bg-gray-100 text-gray-700' };
+}
+
+function getPaymentKind(payment: PaymentResponse) {
+  const status = payment.status.toUpperCase();
+  if (status === 'LATE_PAYMENT' || status === 'LATE_SUCCESS') return 'Thanh toán trễ';
+  if (status === 'DUPLICATE' || status === 'REFUNDED') return 'Giao dịch trùng';
+  if (payment.packageId != null || payment.subscriptionPlanId != null) return 'Thanh toán';
+  return 'Khác';
 }
 
 export default function AdminUserTransactionsPage() {
@@ -79,6 +83,7 @@ export default function AdminUserTransactionsPage() {
     startDate: fromDateFromUrl,
     endDate: toDateFromUrl,
   });
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   const updateUrl = useCallback(
     (updates: Record<string, string | number | null>) => {
@@ -116,57 +121,27 @@ export default function AdminUserTransactionsPage() {
     });
   }, [pageFromUrl, searchFromUrl, fromDateFromUrl, toDateFromUrl, sortFromUrl]);
 
-  const handlePageChange = (newPage: number) => {
-    updateUrl({ page: newPage });
-  };
-
-  const { data = [], isLoading, error } = useQuery({
+  const paymentsQuery = useQuery({
     queryKey: ['admin', 'payments'],
     queryFn: () => getPayments(),
   });
 
-  const { data: creditTransactions = [] } = useQuery({
-    queryKey: ['admin', 'credit-transactions', dateRange],
-    queryFn: () =>
-      getAdminCreditTransactions({
-        paymentType: 'SUBSCRIPTION_PURCHASE',
-        fromDate: dateRange.startDate || undefined,
-        toDate: dateRange.endDate || undefined,
-      }),
-  });
+  const rows = paymentsQuery.data ?? [];
 
-  const transactionMetaByPaymentId = useMemo(() => {
-    return creditTransactions.reduce<Record<number, CreditTransactionResponse>>((acc, tx) => {
-      if (tx.paymentId != null && tx.paymentType === 'SUBSCRIPTION_PURCHASE') {
-        acc[tx.paymentId] = tx;
-      }
-      return acc;
-    }, {});
-  }, [creditTransactions]);
-
-  const filteredData = useMemo(() => {
+  const filteredRows = useMemo(() => {
     const fromTs = new Date(`${dateRange.startDate}T00:00:00`).getTime();
     const toTs = new Date(`${dateRange.endDate}T23:59:59.999`).getTime();
     const query = normalizeText(debouncedSearch);
 
-    return data
-      .filter((payment) => payment.status === 'SUCCESS')
-      .map((payment) => {
-        const meta = transactionMetaByPaymentId[payment.id];
-        return {
-          ...payment,
-          userId: payment.userId ?? meta?.userId ?? null,
-          userEmail: payment.userEmail ?? meta?.userEmail ?? null,
-          userFullName: payment.userFullName ?? meta?.userFullName ?? null,
-        };
-      })
+    return rows
       .filter((payment) => {
-        const ts = new Date(payment.updatedAt || payment.createdAt || '').getTime();
+        const ts = new Date(payment.createdAt || payment.updatedAt || '').getTime();
         if (Number.isFinite(fromTs) && ts < fromTs) return false;
         if (Number.isFinite(toTs) && ts > toTs) return false;
-
+        return true;
+      })
+      .filter((payment) => {
         if (!query) return true;
-
         const searchable = [
           payment.userFullName,
           payment.userEmail,
@@ -174,29 +149,59 @@ export default function AdminUserTransactionsPage() {
           payment.packageName,
           payment.subscriptionPlanName,
           payment.status,
+          String(payment.amount),
         ]
           .map(normalizeText)
           .join(' ');
-
         return searchable.includes(query);
-      })
-      .filter((payment) => payment.packageId != null || payment.subscriptionPlanId != null);
-  }, [data, dateRange, debouncedSearch, transactionMetaByPaymentId]);
+      });
+  }, [rows, dateRange, debouncedSearch]);
 
-  const sortedData = useMemo(() => {
-    return [...filteredData].sort((a, b) => {
-      const dateA = new Date(a.updatedAt || a.createdAt || '').getTime();
-      const dateB = new Date(b.updatedAt || b.createdAt || '').getTime();
+  const sortedRows = useMemo(() => {
+    return [...filteredRows].sort((a, b) => {
+      const dateA = new Date(a.createdAt || a.updatedAt || '').getTime();
+      const dateB = new Date(b.createdAt || b.updatedAt || '').getTime();
       return sortOrder === 'desc' ? dateB - dateA : dateA - dateB;
     });
-  }, [filteredData, sortOrder]);
+  }, [filteredRows, sortOrder]);
 
-  const totalElements = sortedData.length;
+  const totalElements = sortedRows.length;
   const totalPages = Math.ceil(totalElements / PAGE_SIZE);
-  const paginatedData = useMemo(() => {
+  const paginatedRows = useMemo(() => {
     const start = (page - 1) * PAGE_SIZE;
-    return sortedData.slice(start, start + PAGE_SIZE);
-  }, [sortedData, page]);
+    return sortedRows.slice(start, start + PAGE_SIZE);
+  }, [sortedRows, page]);
+
+  const handlePageChange = (newPage: number) => {
+    updateUrl({ page: newPage });
+  };
+
+  const refreshData = async () => {
+    await paymentsQuery.refetch();
+  };
+
+  const handleApproveLate = async (paymentId: number) => {
+    setActionLoading(`late-${paymentId}`);
+    try {
+      await approveLatePayment(paymentId);
+      await refreshData();
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleRefundDuplicate = async (paymentId: number) => {
+    setActionLoading(`duplicate-${paymentId}`);
+    try {
+      await refundDuplicatePayment(paymentId);
+      await refreshData();
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const isLoading = paymentsQuery.isLoading;
+  const hasError = Boolean(paymentsQuery.error);
 
   return (
     <div>
@@ -242,8 +247,8 @@ export default function AdminUserTransactionsPage() {
         </div>
 
         {isLoading ? (
-          <SkeletonTable rows={PAGE_SIZE} cols={6} />
-        ) : error ? (
+          <SkeletonTable rows={PAGE_SIZE} cols={8} />
+        ) : hasError ? (
           <p className="py-8 text-center text-red-500">Không thể tải danh sách giao dịch</p>
         ) : (
           <>
@@ -258,21 +263,25 @@ export default function AdminUserTransactionsPage() {
                     <th className="px-4 py-3 text-right font-medium text-gray-600">Số tiền</th>
                     <th className="px-4 py-3 text-left font-medium text-gray-600">Trạng thái</th>
                     <th className="px-4 py-3 text-left font-medium text-gray-600">Thời gian</th>
+                    <th className="px-4 py-3 text-left font-medium text-gray-600">Xử lý</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
-                  {paginatedData.length === 0 ? (
+                  {paginatedRows.length === 0 ? (
                     <tr>
-                      <td colSpan={7} className="py-10 text-center text-gray-400">
+                      <td colSpan={8} className="py-10 text-center text-gray-400">
                         Không có giao dịch nào
                       </td>
                     </tr>
                   ) : (
-                    paginatedData.map((payment) => {
+                    paginatedRows.map((payment) => {
                       const statusCfg = getStatusConfig(payment.status);
-                      const packageLabel = getPaymentLabel(payment);
                       const kindLabel = getPaymentKind(payment);
-                      const timestamp = payment.updatedAt || payment.createdAt || '';
+                      const timestamp = payment.createdAt || payment.updatedAt || '';
+                      const isActionLoading = actionLoading === `late-${payment.id}` || actionLoading === `duplicate-${payment.id}`;
+                      const status = payment.status.toUpperCase();
+                      const canApproveLate = status === 'LATE_PAYMENT';
+                      const canRefundDuplicate = status === 'DUPLICATE';
 
                       return (
                         <tr key={payment.id} className="hover:bg-gray-50">
@@ -282,7 +291,9 @@ export default function AdminUserTransactionsPage() {
                           <td className="px-4 py-3 text-gray-500">
                             {payment.userEmail || payment.userId || '-'}
                           </td>
-                          <td className="px-4 py-3 text-gray-700">{packageLabel}</td>
+                          <td className="px-4 py-3 text-gray-700">
+                            {payment.packageName || payment.subscriptionPlanName || '-'}
+                          </td>
                           <td className="px-4 py-3 text-gray-700">{kindLabel}</td>
                           <td className="px-4 py-3 font-medium text-right text-emerald-600">
                             {formatVnd(payment.amount)}
@@ -292,6 +303,29 @@ export default function AdminUserTransactionsPage() {
                           </td>
                           <td className="px-4 py-3 text-xs text-gray-500">
                             {timestamp ? formatDate(timestamp) : '-'}
+                          </td>
+                          <td className="px-4 py-3">
+                            {canApproveLate ? (
+                              <Button
+                                size="sm"
+                                onClick={() => handleApproveLate(payment.id)}
+                                disabled={isActionLoading}
+                                className="rounded-lg"
+                              >
+                                {isActionLoading ? 'Đang xử lý...' : 'Duyệt late'}
+                              </Button>
+                            ) : canRefundDuplicate ? (
+                              <Button
+                                size="sm"
+                                onClick={() => handleRefundDuplicate(payment.id)}
+                                disabled={isActionLoading}
+                                className="rounded-lg"
+                              >
+                                {isActionLoading ? 'Đang xử lý...' : 'Hoàn tiền'}
+                              </Button>
+                            ) : (
+                              <span className="text-xs text-gray-400">-</span>
+                            )}
                           </td>
                         </tr>
                       );
@@ -331,7 +365,11 @@ export default function AdminUserTransactionsPage() {
 
                   return pages.map((p, idx) => {
                     if (p === '...') {
-                      return <span key={`ellipsis-${idx}`} className="px-2 text-gray-400">...</span>;
+                      return (
+                        <span key={`ellipsis-${idx}`} className="px-2 text-gray-400">
+                          ...
+                        </span>
+                      );
                     }
                     return (
                       <Button

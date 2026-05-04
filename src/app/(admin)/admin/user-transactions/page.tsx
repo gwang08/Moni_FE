@@ -135,6 +135,14 @@ export default function AdminUserTransactionsPage() {
         return true;
       })
       .filter((payment) => {
+        if (!statusFilter || statusFilter === 'ALL') return true;
+        const s = payment.status.toUpperCase();
+        if (statusFilter === 'SUCCESS') return s === 'SUCCESS' || s === 'LATE_SUCCESS';
+        if (statusFilter === 'PENDING') return s === 'PENDING' || s === 'PROCESSING';
+        if (statusFilter === 'FAILED') return s === 'FAILED' || s === 'CANCELLED' || s === 'EXPIRED';
+        return s === statusFilter;
+      })
+      .filter((payment) => {
         if (!query) return true;
         const searchable = [
           payment.userFullName,
@@ -149,7 +157,7 @@ export default function AdminUserTransactionsPage() {
           .join(' ');
         return searchable.includes(query);
       });
-  }, [rows, dateRange, debouncedSearch]);
+  }, [rows, dateRange, debouncedSearch, statusFilter]);
 
   const sortedRows = useMemo(() => {
     return [...filteredRows].sort((a, b) => {
@@ -208,6 +216,26 @@ export default function AdminUserTransactionsPage() {
               placeholder="Tìm kiếm"
               className="h-10"
             />
+          </div>
+
+          <div className="min-w-[160px]">
+            <select
+              value={statusFilter}
+              onChange={(e) => {
+                const val = e.target.value;
+                setStatusFilter(val);
+                updateUrl({ status: val === 'ALL' ? null : val, page: 1 });
+              }}
+              className="h-10 w-full rounded-md border border-gray-300 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="ALL">Tất cả trạng thái</option>
+              <option value="SUCCESS">Thành công</option>
+              <option value="PENDING">Đang xử lý</option>
+              <option value="LATE_PAYMENT">Chờ duyệt</option>
+              <option value="DUPLICATE">Trùng</option>
+              <option value="REFUNDED">Đã hoàn</option>
+              <option value="FAILED">Thất bại</option>
+            </select>
           </div>
 
           <div className="min-w-[280px]">

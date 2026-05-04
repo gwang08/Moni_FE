@@ -49,14 +49,6 @@ function getStatusConfig(status: string) {
   return { label: status, color: 'bg-gray-100 text-gray-700' };
 }
 
-function getPaymentKind(payment: PaymentResponse) {
-  const status = payment.status.toUpperCase();
-  if (status === 'LATE_PAYMENT' || status === 'LATE_SUCCESS') return 'Thanh toán trễ';
-  if (status === 'DUPLICATE' || status === 'REFUNDED') return 'Giao dịch trùng';
-  if (payment.packageId != null || payment.subscriptionPlanId != null) return 'Thanh toán';
-  return 'Khác';
-}
-
 export default function AdminUserTransactionsPage() {
   const router = useRouter();
   const pathname = usePathname();
@@ -247,7 +239,7 @@ export default function AdminUserTransactionsPage() {
         </div>
 
         {isLoading ? (
-          <SkeletonTable rows={PAGE_SIZE} cols={8} />
+          <SkeletonTable rows={PAGE_SIZE} cols={7} />
         ) : hasError ? (
           <p className="py-8 text-center text-red-500">Không thể tải danh sách giao dịch</p>
         ) : (
@@ -259,7 +251,6 @@ export default function AdminUserTransactionsPage() {
                     <th className="px-4 py-3 text-left font-medium text-gray-600">Người dùng</th>
                     <th className="px-4 py-3 text-left font-medium text-gray-600">Email</th>
                     <th className="px-4 py-3 text-left font-medium text-gray-600">Gói mua</th>
-                    <th className="px-4 py-3 text-left font-medium text-gray-600">Loại</th>
                     <th className="px-4 py-3 text-right font-medium text-gray-600">Số tiền</th>
                     <th className="px-4 py-3 text-left font-medium text-gray-600">Trạng thái</th>
                     <th className="px-4 py-3 text-left font-medium text-gray-600">Thời gian</th>
@@ -269,14 +260,13 @@ export default function AdminUserTransactionsPage() {
                 <tbody className="divide-y divide-gray-100">
                   {paginatedRows.length === 0 ? (
                     <tr>
-                      <td colSpan={8} className="py-10 text-center text-gray-400">
+                      <td colSpan={7} className="py-10 text-center text-gray-400">
                         Không có giao dịch nào
                       </td>
                     </tr>
                   ) : (
                     paginatedRows.map((payment) => {
                       const statusCfg = getStatusConfig(payment.status);
-                      const kindLabel = getPaymentKind(payment);
                       const timestamp = payment.createdAt || payment.updatedAt || '';
                       const isActionLoading = actionLoading === `late-${payment.id}` || actionLoading === `duplicate-${payment.id}`;
                       const status = payment.status.toUpperCase();
@@ -294,7 +284,6 @@ export default function AdminUserTransactionsPage() {
                           <td className="px-4 py-3 text-gray-700">
                             {payment.packageName || payment.subscriptionPlanName || '-'}
                           </td>
-                          <td className="px-4 py-3 text-gray-700">{kindLabel}</td>
                           <td className="px-4 py-3 font-medium text-right text-emerald-600">
                             {formatVnd(payment.amount)}
                           </td>

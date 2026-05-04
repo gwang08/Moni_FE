@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowDown, ChevronLeft, ChevronRight, Sparkles, Map } from 'lucide-react';
 import { ChibiMascot } from '@/components/ui/chibi-mascot';
 import { useHydration } from '@/hooks/use-hydration';
@@ -23,6 +23,7 @@ import { getRoadmapSubscriptionStatus } from '@/lib/subscription-api';
 import { apiClient } from '@/lib/api-client';
 import { RoadmapPaywall } from '@/components/dashboard/roadmap-paywall';
 import { RoadmapReturningDialog } from '@/components/dashboard/roadmap-returning-dialog';
+import { FeatureHighlightTour, hasSeenFeatureHighlight } from '@/components/dashboard/feature-highlight-tour';
 import type { ApiResponse } from '@/types/auth.types';
 
 function DashboardSkeleton() {
@@ -59,7 +60,8 @@ export default function DashboardPage() {
   const setTargetScore = useUserStore((s) => s.setTargetScore);
   const setExamDate = useUserStore((s) => s.setExamDate);
   const refreshProfile = useAuthStore((s) => s.refreshProfile);
-  const { step: tourStep, setStep: setTourStep } = useTourStore();
+  const { tourType, step: tourStep, setTour, setStep: setTourStep, stopTour } = useTourStore();
+  const searchParams = useSearchParams();
   const [showPlacementDialog, setShowPlacementDialog] = useState(false);
   const fetchedRef = useRef(false);
 
@@ -110,7 +112,7 @@ export default function DashboardPage() {
         if (currentPlan && currentPlan.weekNumber > 1) {
           const tourKey = `newWeekTourDone_${currentPlan.weekNumber}`;
           if (!localStorage.getItem(tourKey)) {
-            setTimeout(() => setTourStep(10), 500);
+            setTimeout(() => setTour('new-week', 10), 500);
           }
         }
         return true;
@@ -147,48 +149,97 @@ export default function DashboardPage() {
       } catch { /* ignore */ }
     }
 
-    const shouldStartTour = !!sessionStorage.getItem('showRoadmapTour');
-    if (shouldStartTour) {
-      // Keep `showRoadmapTour` flag until tour actually completes — used by
-      // target-scores to defer auto-opening AI recommendation dialog until the
-      // tour is dismissed. Cleared by the tour-completion effect below.
-      // Reset tour immediately to clear stale step (e.g. step 3) while waiting for subscription check
+    // Determine which tour to trigger
+    const shouldStartSetupTour = searchParams.get('startSetupTour') === 'true';
+    const shouldStartRoadmapTour = !!sessionStorage.getItem('showRoadmapTour');
+    const shouldStartFeatureTour = !!sessionStorage.getItem('startFeatureTour');
+
+    // Clean up URL param without re-render
+    if (shouldStartSetupTour) {
+      window.history.replaceState({}, '', '/dashboard');
+    }
+    if (shouldStartFeatureTour) {
+      sessionStorage.removeItem('startFeatureTour');
+    }
+
+    if (shouldStartSetupTour || shouldStartRoadmapTour) {
+      // Setup tour or roadmap walkthrough — reset step while waiting for sub check
       setTourStep(0);
     } else {
       fetchPlacement();
     }
 
-    loadWeeks().then((hasSub) => {
-      if (!shouldStartTour) return;
-      if (hasSub) {
-        // User has subscription — start roadmap tour
-        setTimeout(() => setTourStep(4), 500);
-      } else {
-        // No subscription — scroll to paywall and focus on it
-        setTimeout(() => {
-          setTourStep(8);
+    loadWeeks().then(async (hasSub) => {
+      // Tour B: post-payment setup tour — user just bought subscription
+      if (shouldStartSetupTour && hasSub) {
+        // Check if user already has aim + placement result → skip setup steps
+        const cachedPlacement = useUserStore.getState().placementResult;
+        let placement = cachedPlacement;
+        if (!placement) {
+          try { placement = await getPlacementResult(); } catch { /* ignore */ }
+          if (placement) setPlacementResult(placement);
+        }
+        const scores = useUserStore.getState().targetScores;
+        const hasAim = scores.reading > 0 || scores.listening > 0 || scores.writing > 0 || scores.speaking > 0;
+
+        if (hasAim && placement) {
+          // User already set up — set AI recommendation trigger so it fires after tour
+          sessionStorage.setItem('triggerAiRecommendation', String(placement.id));
+          // Go straight to roadmap walkthrough (step 4)
+          setTimeout(() => setTour('setup', 4), 500);
+        } else if (hasAim && !placement) {
+          // Has aim but no placement — start at step 3 (placement test)
+          setTimeout(() => setTour('setup', 3), 500);
+        } else {
+          // Fresh user — full setup tour from step 1
+          setTimeout(() => setTour('setup', 1), 500);
+        }
+        return;
+      }
+
+      // Tour B: post-placement roadmap walkthrough (steps 4-7)
+      if (shouldStartRoadmapTour) {
+        if (hasSub) {
+          setTimeout(() => setTour('setup', 4), 500);
+        } else {
+          // No subscription — scroll to paywall
           setTimeout(() => {
-            document.getElementById('roadmap-paywall-section')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          }, 100);
-        }, 500);
+            setTour('setup', 8);
+            setTimeout(() => {
+              document.getElementById('roadmap-paywall-section')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, 100);
+          }, 500);
+        }
+        return;
+      }
+
+      // Tour A: feature highlight tour — triggered from navbar or first visit
+      if (shouldStartFeatureTour && !hasSub && !hasSeenFeatureHighlight()) {
+        setTimeout(() => setTour('feature', 1), 300);
+        return;
+      }
+
+      // Auto-trigger Tour A on first dashboard visit for users without sub
+      if (!hasSub && !hasSeenFeatureHighlight() && !shouldStartSetupTour) {
+        setTimeout(() => setTour('feature', 1), 500);
       }
     });
     fetchProfile();
     refreshProfile();
   }, [hydrated]);
 
-  // Detect tour completion: when tourStep transitions back to 0 after being active,
+  // Detect tour completion: when tourType transitions back to 'none' after being active,
   // clear the `showRoadmapTour` flag and notify other components (e.g. target-scores
   // waits for this to open the AI recommendation dialog).
   // Dispatch is deferred ~400ms so the user sees the tour overlay/ring fully disappear
   // before the AI dialog opens — prevents visual overlap reported by users.
   const tourActiveRef = useRef(false);
   useEffect(() => {
-    if (tourStep > 0) {
+    if (tourType !== 'none' && tourStep > 0) {
       tourActiveRef.current = true;
       return;
     }
-    if (tourActiveRef.current && tourStep === 0) {
+    if (tourActiveRef.current && tourType === 'none' && tourStep === 0) {
       tourActiveRef.current = false;
       if (typeof window !== 'undefined') {
         sessionStorage.removeItem('showRoadmapTour');
@@ -198,14 +249,27 @@ export default function DashboardPage() {
         return () => clearTimeout(t);
       }
     }
-  }, [tourStep]);
+  }, [tourType, tourStep]);
 
   const firstName = userName?.split(' ').pop() ?? 'bạn';
 
   return (
     <div className="min-h-screen bg-gray-50 relative overflow-x-hidden">
-      {tourStep > 0 && (tourStep <= 7 || tourStep === 10) && hasRoadmapSub === true && (
+      {/* Feature Highlight Tour (Tour A) — full-screen overlay, handled by its own component */}
+      {tourType === 'feature' && <FeatureHighlightTour />}
+
+      {/* Setup Tour (Tour B) — dark backdrop for steps 1-7 */}
+      {tourType === 'setup' && tourStep > 0 && tourStep <= 7 && hasRoadmapSub === true && (
         <div className="fixed inset-x-0 bottom-0 top-14 bg-black/60 z-30 transition-opacity duration-300 flex flex-col items-center justify-center">
+          {/* Skip tour button - always visible as safety escape */}
+          {tourStep !== 4 && (
+            <button
+              onClick={() => stopTour()}
+              className="fixed top-20 right-4 z-[80] px-3 py-1.5 rounded-lg bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white text-xs font-medium transition-all border border-white/20"
+            >
+              Bỏ qua
+            </button>
+          )}
           {tourStep === 4 && (
             <div className="flex flex-col items-center animate-in fade-in zoom-in-95 duration-500">
               <ChibiMascot mood="excited" size={160} />
@@ -226,36 +290,40 @@ export default function DashboardPage() {
               </button>
             </div>
           )}
-          {tourStep === 10 && (
-            <div className="flex flex-col items-center animate-in fade-in zoom-in-95 duration-500">
-              <ChibiMascot mood="excited" size={160} />
-              <h2 className="text-3xl font-extrabold text-white mt-6 mb-2 text-center text-shadow-lg">
-                Tuần mới bắt đầu rồi!
-              </h2>
-              <p className="text-white/90 text-lg mb-12 text-center max-w-md">
-                Cùng xem AI phân tích kết quả tuần trước nhé
-              </p>
-              <button
-                onClick={() => {
-                  document.getElementById('roadmap-insights-section')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                  setTimeout(() => setTourStep(11), 800);
-                }}
-                className="w-16 h-16 rounded-full bg-white text-emerald-600 flex items-center justify-center hover:bg-emerald-50 hover:scale-110 transition-all shadow-[0_0_40px_rgba(255,255,255,0.4)] animate-bounce"
-              >
-                <ArrowDown className="w-8 h-8" />
-              </button>
-            </div>
-          )}
         </div>
       )}
 
-      {/* Dim backdrop for paywall tour step 8 — sits below sticky header (z-50) */}
-      {tourStep === 8 && (
+      {/* Setup Tour step 8 — paywall focus */}
+      {tourType === 'setup' && tourStep === 8 && (
         <div className="fixed inset-x-0 bottom-0 top-14 bg-black/60 z-30 transition-opacity duration-300" />
       )}
 
-      {/* Dim backdrop for new-week tour steps 11-12 — sits below sticky header (z-50) */}
-      {(tourStep === 11 || tourStep === 12) && hasRoadmapSub === true && (
+      {/* New-week tour overlay (step 10) */}
+      {tourType === 'new-week' && tourStep === 10 && hasRoadmapSub === true && (
+        <div className="fixed inset-x-0 bottom-0 top-14 bg-black/60 z-30 transition-opacity duration-300 flex flex-col items-center justify-center">
+          <div className="flex flex-col items-center animate-in fade-in zoom-in-95 duration-500">
+            <ChibiMascot mood="excited" size={160} />
+            <h2 className="text-3xl font-extrabold text-white mt-6 mb-2 text-center text-shadow-lg">
+              Tuần mới bắt đầu rồi!
+            </h2>
+            <p className="text-white/90 text-lg mb-12 text-center max-w-md">
+              Cùng xem AI phân tích kết quả tuần trước nhé
+            </p>
+            <button
+              onClick={() => {
+                document.getElementById('roadmap-insights-section')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                setTimeout(() => setTourStep(11), 800);
+              }}
+              className="w-16 h-16 rounded-full bg-white text-emerald-600 flex items-center justify-center hover:bg-emerald-50 hover:scale-110 transition-all shadow-[0_0_40px_rgba(255,255,255,0.4)] animate-bounce"
+            >
+              <ArrowDown className="w-8 h-8" />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* New-week tour backdrop for steps 11-12 */}
+      {tourType === 'new-week' && (tourStep === 11 || tourStep === 12) && hasRoadmapSub === true && (
         <div className="fixed inset-x-0 bottom-0 top-14 bg-black/60 z-30 transition-opacity duration-300" />
       )}
 
@@ -301,8 +369,8 @@ export default function DashboardPage() {
 
             {/* Row 2 — Roadmap (personal insights + weekly plan) */}
             {hasRoadmapSub === false ? (
-              <div id="roadmap-paywall-section" className={`relative transition-all duration-300 ${tourStep === 8 ? 'z-50 ring-4 ring-emerald-400 shadow-2xl rounded-2xl' : ''}`}>
-                {tourStep === 8 && (
+              <div id="roadmap-paywall-section" className={`relative transition-all duration-300 ${tourType === 'setup' && tourStep === 8 ? 'z-50 ring-4 ring-emerald-400 shadow-2xl rounded-2xl' : ''}`}>
+                {tourType === 'setup' && tourStep === 8 && (
                   <div className="absolute -top-4 left-1/2 -translate-x-1/2 -translate-y-full w-80 bg-white p-4 rounded-2xl shadow-xl border border-emerald-100 z-50 animate-in fade-in slide-in-from-bottom-4">
                     <div className="flex gap-3 mb-2">
                       <ChibiMascot mood="excited" size={40} />
@@ -312,7 +380,7 @@ export default function DashboardPage() {
                       Moni đã phân tích xong trình độ của bạn! Hãy mua Gói Lộ Trình để AI lên kế hoạch học tập cá nhân hóa cho bạn nhé.
                     </p>
                     <button
-                      onClick={() => setTourStep(0)}
+                      onClick={() => stopTour()}
                       className="w-full flex items-center justify-center gap-1 bg-gray-100 hover:bg-gray-200 text-gray-700 py-1.5 rounded-lg text-xs font-semibold transition-colors"
                     >
                       Đã hiểu!

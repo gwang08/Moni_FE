@@ -113,8 +113,10 @@ export default function CheckoutPage() {
   const initCalled = useRef(false);
   useEffect(() => {
     // Need either a checkoutItem or legacy selectedPackage
+    // Skip redirect when payment already completed — clear() resets store state
+    // but we're already navigating to returnUrl
     if (!checkoutItem && !selectedPackage) {
-      router.replace('/payment');
+      if (status !== 'completed') router.replace('/payment');
       return;
     }
     if (initCalled.current) return;
@@ -162,7 +164,7 @@ export default function CheckoutPage() {
     };
     init();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [checkoutItem, selectedPackage, displayItem]);
+  }, [checkoutItem, selectedPackage, displayItem, status]);
 
   const { refreshProfile } = useAuthStore();
   const queryClient = useQueryClient();
@@ -173,9 +175,15 @@ export default function CheckoutPage() {
       refreshProfile();
       // Invalidate subscription query so banner/scoring dialogs pick up new active sub immediately
       queryClient.invalidateQueries({ queryKey: ['my-active-subscription'] });
+      // Read returnUrl directly from store at call time (not from closure)
+      // to avoid stale value from persist hydration race
+      const storeReturnUrl = usePaymentStore.getState().returnUrl;
+      const sessionReturnUrl = typeof window !== 'undefined' ? sessionStorage.getItem('payment-return-url') : null;
+      const redirectTo = storeReturnUrl || sessionReturnUrl || '/dashboard';
       setTimeout(() => {
         clear();
-        router.replace('/dashboard');
+        sessionStorage.removeItem('payment-return-url');
+        router.push(redirectTo);
       }, 2500);
     },
     [clear, router, refreshProfile, queryClient]

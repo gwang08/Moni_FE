@@ -1,15 +1,17 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { Menu, X, ShoppingCart } from 'lucide-react';
 import { UserAvatarDropdown } from '@/components/layout/user-avatar-dropdown';
 import { NotificationBell } from '@/components/layout/notification-bell';
 import { getDueReview } from '@/lib/vocab-api';
 import { Badge } from '@/components/ui/badge';
 import { useAuthStore } from '@/store/auth-store';
+import { useTourStore } from '@/store/tour-store';
+import { hasSeenFeatureHighlight } from '@/components/dashboard/feature-highlight-tour';
 
 const navLinks = [
   { label: 'Luyện Tập', href: '/practice' },
@@ -57,8 +59,25 @@ function VocabNavItem() {
 export function InnerNavbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const pathname = usePathname();
+  const router = useRouter();
   const userRole = useAuthStore((state) => state.user?.role);
-  
+  const setTour = useTourStore((s) => s.setTour);
+
+  const handleLoTrinhClick = useCallback((e: React.MouseEvent) => {
+    // Only trigger feature tour for regular users who haven't seen it
+    if (userRole !== 'USER' || hasSeenFeatureHighlight()) return;
+
+    const isDashboard = pathname === '/' || pathname === '/dashboard';
+    if (isDashboard) {
+      // Already on dashboard — start Tour A directly
+      e.preventDefault();
+      setTour('feature', 1);
+    } else {
+      // Navigating to dashboard — set flag so dashboard picks it up on mount
+      sessionStorage.setItem('startFeatureTour', '1');
+    }
+  }, [pathname, userRole, setTour]);
+
   // Filter out learner-specific links for ADMIN and EXPERT
   const filteredNavLinks = navLinks.filter((link) => {
     if (userRole === 'ADMIN' || userRole === 'EXPERT') {
@@ -93,6 +112,7 @@ export function InnerNavbar() {
               <Link
                 key={link.label}
                 href={link.href}
+                onClick={link.label === 'Lộ Trình' ? handleLoTrinhClick : undefined}
                 className={`text-sm font-medium transition-colors hover:text-primary ${
                   isActive ? 'text-primary' : 'text-gray-700'
                 }`}
@@ -136,7 +156,10 @@ export function InnerNavbar() {
               <Link
                 key={link.label}
                 href={link.href}
-                onClick={() => setMobileOpen(false)}
+                onClick={(e) => {
+                  setMobileOpen(false);
+                  if (link.label === 'Lộ Trình') handleLoTrinhClick(e);
+                }}
                 className={`block px-4 py-2.5 text-sm font-medium transition-colors ${
                   isActive ? 'text-primary bg-primary/5' : 'text-gray-700 hover:bg-gray-50'
                 }`}

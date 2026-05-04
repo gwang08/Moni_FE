@@ -80,7 +80,7 @@ export function TargetScores() {
   const placementResult = useUserStore((s) => s.placementResult);
   const clearPlacementResult = useUserStore((s) => s.clearPlacementResult);
 
-  const { step: tourStep, nextStep } = useTourStore();
+  const { tourType, step: tourStep, nextStep } = useTourStore();
   const [editing, setEditing] = useState(false);
   const [resetting, setResetting] = useState(false);
   const [generating, setGenerating] = useState(false);
@@ -142,7 +142,7 @@ export function TargetScores() {
       // Burnout warning toast removed per UX feedback — inline warning in
       // roadmap-insights still surfaces the same info contextually.
       window.dispatchEvent(new Event('roadmap-updated'));
-      if (tourStep === 1) nextStep();
+      if (tourType === 'setup' && tourStep === 1) nextStep();
     } catch { /* keep UI responsive */ }
   };
 
@@ -197,13 +197,14 @@ export function TargetScores() {
   // Render dialog với `open={showAiDialog && !tourPendingState}` → defense-in-depth.
   const [tourPendingState, setTourPendingState] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false;
-    return useTourStore.getState().step > 0 || !!sessionStorage.getItem('showRoadmapTour');
+    const store = useTourStore.getState();
+    return (store.tourType !== 'none' && store.step > 0) || !!sessionStorage.getItem('showRoadmapTour');
   });
 
   // Mark pending khi tour vào active step
   useEffect(() => {
-    if (tourStep > 0) setTourPendingState(true);
-  }, [tourStep]);
+    if (tourType !== 'none' && tourStep > 0) setTourPendingState(true);
+  }, [tourType, tourStep]);
 
   // Lắng nghe event hoàn tất tour để mở khoá
   useEffect(() => {
@@ -217,15 +218,29 @@ export function TargetScores() {
     if (!placementResult || !hasScores) return;
     if (aiTriggerFiredRef.current) return;
 
-    const fireIfReady = () => {
+    const fireIfReady = async () => {
       if (aiTriggerFiredRef.current) return;
       const triggerId = sessionStorage.getItem('triggerAiRecommendation');
       if (!triggerId || Number(triggerId) !== placementResult.id) return;
       // Re-check gate ngay lúc fire — phòng race nếu listener fire trong lúc tour vẫn pending
+      const store = useTourStore.getState();
       const stillPending =
-        useTourStore.getState().step > 0
+        (store.tourType !== 'none' && store.step > 0)
         || !!sessionStorage.getItem('showRoadmapTour');
       if (stillPending) return;
+
+      // Chỉ hiện AI gợi ý khi user đã mua gói lộ trình
+      try {
+        const { getRoadmapSubscriptionStatus } = await import('@/lib/subscription-api');
+        const status = await getRoadmapSubscriptionStatus();
+        if (!status.hasActiveSubscription) {
+          sessionStorage.removeItem('triggerAiRecommendation');
+          return;
+        }
+      } catch {
+        return;
+      }
+
       sessionStorage.removeItem('triggerAiRecommendation');
       aiTriggerFiredRef.current = true;
 
@@ -265,8 +280,8 @@ export function TargetScores() {
   };
 
   return (
-    <div className={`bg-white h-full relative transition-all duration-300 ${tourStep === 1 || tourStep === 3 ? 'z-50 ring-4 ring-emerald-400 shadow-2xl rounded-3xl' : 'rounded-3xl shadow-sm'}`}>
-      {tourStep === 1 && (
+    <div className={`bg-white h-full relative transition-all duration-300 ${tourType === 'setup' && (tourStep === 1 || tourStep === 3) ? 'z-50 ring-4 ring-emerald-400 shadow-2xl rounded-3xl' : 'rounded-3xl shadow-sm'}`}>
+      {tourType === 'setup' && tourStep === 1 && (
         <div className="absolute top-1/2 -translate-y-1/2 -right-6 translate-x-full w-64 bg-white p-4 rounded-2xl shadow-xl border border-emerald-100 z-50 animate-in fade-in slide-in-from-left-4">
           <div className="flex gap-3 mb-2">
             <ChibiMascot mood="excited" size={40} />
@@ -275,7 +290,7 @@ export function TargetScores() {
           <p className="text-sm text-gray-600">Hãy bắt đầu bằng cách nhập mục tiêu điểm số từng kỹ năng của bạn nhé. Nhấn vào cây bút để chỉnh sửa!</p>
         </div>
       )}
-      {tourStep === 3 && (
+      {tourType === 'setup' && tourStep === 3 && (
         <div className="absolute top-3/4 -translate-y-1/2 -right-6 translate-x-full w-64 bg-white p-4 rounded-2xl shadow-xl border border-emerald-100 z-50 animate-in fade-in slide-in-from-left-4">
           <div className="flex gap-3 mb-2">
             <ChibiMascot mood="excited" size={40} />
@@ -396,7 +411,7 @@ export function TargetScores() {
           {!placementResult ? (
             <div className="flex flex-col gap-2">
               <PlacementGenerateLoading open={generating} />
-              {(tourStep > 0 && tourStep < 3) ? (
+              {(tourType === 'setup' && tourStep > 0 && tourStep < 3) ? (
                 <div className="flex items-center gap-2 text-xs text-gray-600 bg-gray-50 px-3 py-2 rounded-2xl italic">
                   <Info className="w-4 h-4 shrink-0" />
                   <span>Đang trong quá trình thiết lập lộ trình...</span>
@@ -409,9 +424,9 @@ export function TargetScores() {
               ))}
               <button
                 onClick={handleStartTest}
-                disabled={generating || (tourStep > 0 ? tourStep !== 3 : !hasScores)}
+                disabled={generating || (tourType === 'setup' && tourStep > 0 ? tourStep !== 3 : !hasScores)}
                 className={`w-full text-center text-sm font-bold py-2.5 rounded-2xl transition-colors ${
-                  (tourStep > 0 ? tourStep !== 3 : !hasScores)
+                  (tourType === 'setup' && tourStep > 0 ? tourStep !== 3 : !hasScores)
                     ? 'text-gray-400 bg-gray-50 cursor-not-allowed'
                     : 'text-white bg-gradient-to-r from-emerald-500 to-gray-500 hover:shadow-lg hover:shadow-emerald-500/30'
                 } disabled:opacity-50`}

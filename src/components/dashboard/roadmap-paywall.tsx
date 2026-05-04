@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { Lock, CalendarCheck, Target, Brain, Award, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { usePaymentStore } from '@/store/payment-store';
 
 const FEATURES = [
   {
@@ -29,6 +30,7 @@ const FEATURES = [
 
 export function RoadmapPaywall() {
   const router = useRouter();
+  const setReturnUrl = usePaymentStore((s) => s.setReturnUrl);
 
   return (
     <div className="relative overflow-hidden rounded-2xl border-2 border-dashed border-gray-200 bg-gradient-to-br from-gray-50 via-white to-indigo-50/30">
@@ -81,7 +83,11 @@ export function RoadmapPaywall() {
         {/* CTA */}
         <div className="text-center">
           <Button
-            onClick={() => router.push('/payment')}
+            onClick={() => {
+              setReturnUrl('/dashboard?startSetupTour=true');
+              sessionStorage.setItem('payment-return-url', '/dashboard?startSetupTour=true');
+              router.push('/payment');
+            }}
             size="lg"
             className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl px-8 h-12 text-base font-semibold shadow-lg shadow-indigo-200"
           >

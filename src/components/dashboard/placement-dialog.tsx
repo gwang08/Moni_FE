@@ -21,13 +21,13 @@ interface Props {
 }
 
 export function PlacementDialog({ open, onOpenChange }: Props) {
-  const setStep = useTourStore((s) => s.setStep);
+  const setTour = useTourStore((s) => s.setTour);
   const [generating] = useState(false);
   const [skipForSession, setSkipForSession] = useState(false);
 
   const handleStartTour = () => {
     onOpenChange(false);
-    setStep(1);
+    setTour('setup', 1);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 

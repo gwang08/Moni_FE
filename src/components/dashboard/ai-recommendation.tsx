@@ -172,16 +172,38 @@ export function AiRecommendationDialog({ open, onOpenChange }: Props) {
             )}
 
             {!loading && !recommendation && (
-              <div className="flex flex-col items-center gap-3 py-8">
-                <ChibiMascot mood="thinking" size={64} />
-                <p className="text-sm text-gray-600">Bấm để bắt đầu phân tích</p>
-                <button
-                  onClick={handleGetRecommendation}
-                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-sm font-bold shadow-md shadow-emerald-500/30 hover:shadow-lg hover:from-emerald-600 hover:to-teal-600 transition-all"
-                >
-                  <Sparkles className="h-4 w-4" />
-                  Nhận gợi ý
-                </button>
+              <div className="flex flex-col items-center gap-1 py-6">
+                <ChibiMascot mood="worried" size={72} />
+
+                <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 mt-3 w-full">
+                  <div className="flex items-start gap-2.5">
+                    <div className="shrink-0 w-7 h-7 rounded-lg bg-amber-200 flex items-center justify-center mt-0.5">
+                      <Lightbulb className="w-4 h-4 text-amber-700" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-amber-900 mb-1">Mục tiêu hiện tại có thể quá sức</p>
+                      <p className="text-xs text-amber-800 leading-relaxed">
+                        Sau khi xem xét kết quả bài đánh giá đầu vào, hệ thống nhận thấy khoảng cách giữa trình độ hiện tại và mục tiêu bạn đặt khá lớn. Bạn có muốn nhận gợi ý mục tiêu phù hợp hơn từ AI không?
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex gap-2.5 w-full mt-4">
+                  <button
+                    onClick={() => onOpenChange(false)}
+                    className="flex-1 py-2.5 rounded-2xl text-sm font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 transition-colors"
+                  >
+                    Giữ nguyên
+                  </button>
+                  <button
+                    onClick={handleGetRecommendation}
+                    className="flex-[2] inline-flex items-center justify-center gap-2 py-2.5 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-sm font-bold shadow-md shadow-emerald-500/30 hover:shadow-lg hover:from-emerald-600 hover:to-teal-600 transition-all"
+                  >
+                    <Sparkles className="h-4 w-4" />
+                    Nhận gợi ý từ AI
+                  </button>
+                </div>
               </div>
             )}
 

@@ -59,7 +59,7 @@ export function LoginForm() {
       }
       toast.success('Đăng nhập thành công!');
       const role = getRoleFromToken(token);
-      const dest = role === 'ADMIN' ? '/admin' : role === 'EXPERT' ? '/expert/dashboard' : '/dashboard';
+      const dest = role === 'ADMIN' ? '/admin' : role === 'EXPERT' ? '/expert/dashboard' : '/practice';
       router.push(dest);
     } catch (err) {
       toast.error(formatApiError(err));

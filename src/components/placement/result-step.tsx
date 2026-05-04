@@ -124,60 +124,70 @@ export function ResultStep({
   };
 
   return (
-    <div className="flex flex-col items-center px-4 py-4">
-      <div className="w-full max-w-md space-y-4">
+    <div className="flex flex-col items-center px-4 py-6">
+      <div className="w-full max-w-md space-y-5">
 
-        {/* Header + Overall Band Card combined */}
-        <div className="relative bg-white rounded-2xl shadow-lg shadow-gray-200/50 border border-gray-100 overflow-hidden">
-          <div className="h-0.5 bg-gradient-to-r from-blue-500 via-teal-500 to-orange-500" />
+        {/* Header + Overall Band Card */}
+        <div className="relative rounded-2xl overflow-hidden shadow-xl">
+          {/* Gradient background */}
+          <div className="absolute inset-0 bg-gradient-to-br from-slate-800 via-slate-900 to-slate-950" />
+          {/* Decorative orbs */}
+          <div className="absolute -top-10 -right-10 w-40 h-40 rounded-full bg-teal-500/20 blur-2xl" />
+          <div className="absolute -bottom-10 -left-10 w-40 h-40 rounded-full bg-blue-500/15 blur-2xl" />
 
-          <div className="px-6 py-5">
+          <div className="relative px-6 pt-6 pb-7">
             {/* Badge */}
-            <div className="flex justify-center mb-3">
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-teal-50 text-teal-700 text-[11px] font-semibold">
-                <Trophy className="h-3 w-3" />
+            <div className="flex justify-center mb-5">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 backdrop-blur-sm text-white/90 text-xs font-medium border border-white/10">
+                <Trophy className="h-3.5 w-3.5 text-amber-400" />
                 Kết quả đánh giá trình độ
-                {result.isSelfAssessed && <span className="text-violet-500 ml-1">· Tự đánh giá</span>}
+                {result.isSelfAssessed && <span className="text-violet-300 ml-1">· Tự đánh giá</span>}
               </div>
             </div>
 
             {/* Gauge + Target row */}
-            <div className="flex items-center justify-center gap-6">
-              {/* Circular gauge - compact */}
-              <div className="relative w-28 h-28 shrink-0">
-                <svg viewBox="0 0 120 120" className="w-full h-full" style={{ transform: 'rotate(-90deg)' }}>
-                  <circle cx="60" cy="60" r="52" fill="none" stroke="#f3f4f6" strokeWidth="7" />
+            <div className="flex items-center justify-center gap-8">
+              {/* Circular gauge */}
+              <div className="relative w-32 h-32 shrink-0">
+                {/* Glow effect behind the ring */}
+                <div className="absolute inset-2 rounded-full bg-teal-400/10 blur-md" />
+                <svg viewBox="0 0 120 120" className="w-full h-full relative" style={{ transform: 'rotate(-90deg)' }}>
+                  <circle cx="60" cy="60" r="52" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="8" />
                   <circle
                     cx="60" cy="60" r="52" fill="none"
-                    stroke="url(#bandGradient)" strokeWidth="7" strokeLinecap="round"
+                    stroke="url(#bandGradient)" strokeWidth="8" strokeLinecap="round"
                     strokeDasharray={circumference} strokeDashoffset={strokeDashoffset}
                     className="transition-all duration-1000 ease-out"
+                    style={{ filter: 'drop-shadow(0 0 6px rgba(20, 184, 166, 0.4))' }}
                   />
                   <defs>
                     <linearGradient id="bandGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                      <stop offset="0%" stopColor="#14b8a6" />
-                      <stop offset="50%" stopColor="#0ea5e9" />
-                      <stop offset="100%" stopColor="#6366f1" />
+                      <stop offset="0%" stopColor="#2dd4bf" />
+                      <stop offset="50%" stopColor="#38bdf8" />
+                      <stop offset="100%" stopColor="#818cf8" />
                     </linearGradient>
                   </defs>
                 </svg>
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <span className={`text-3xl font-black tracking-tight ${getBandColor(result.overallBand)}`}>
+                  <span className="text-4xl font-black tracking-tight text-white">
                     {animatedBand.toFixed(1)}
                   </span>
-                  <span className="text-[10px] font-medium text-gray-400">
+                  <span className="text-[11px] font-medium text-white/50 mt-0.5">
                     {getBandLevel(result.overallBand)}
                   </span>
                 </div>
               </div>
 
               {/* Info column */}
-              <div className="space-y-2">
-                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Overall Band</p>
-                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gray-50 border border-gray-100">
-                  <Target className="h-3 w-3 text-teal-500" />
-                  <span className="text-xs font-semibold text-gray-600">
-                    Mục tiêu: <span className="text-teal-600">{result.targetBand.toFixed(1)}</span>
+              <div className="space-y-3">
+                <div>
+                  <p className="text-[10px] font-bold text-white/40 uppercase tracking-[0.15em] mb-1">Overall Band</p>
+                  <div className="h-px w-8 bg-gradient-to-r from-teal-400/60 to-transparent" />
+                </div>
+                <div className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white/10 backdrop-blur-sm border border-white/10">
+                  <Target className="h-3.5 w-3.5 text-teal-400" />
+                  <span className="text-sm font-semibold text-white/80">
+                    Mục tiêu: <span className="text-teal-300 font-bold">{result.targetBand.toFixed(1)}</span>
                   </span>
                 </div>
               </div>
@@ -185,8 +195,8 @@ export function ResultStep({
           </div>
         </div>
 
-        {/* Skill Breakdown - compact */}
-        <div className="grid grid-cols-2 gap-2.5">
+        {/* Skill Breakdown */}
+        <div className="grid grid-cols-2 gap-3">
           {SKILLS.map((skill) => {
             const band = getBandFromResult(result, skill.key);
             const reached = band >= result.targetBand;
@@ -199,50 +209,55 @@ export function ResultStep({
                 key={skill.key}
                 onClick={() => setSelectedSkill(skill.key)}
                 className={`
-                  rounded-xl border ${skill.border} ${skill.lightBg} p-3 space-y-1.5
-                  transition-all duration-200 hover:shadow-md hover:scale-[1.02] active:scale-[0.98]
-                  text-left cursor-pointer group
+                  relative rounded-2xl border ${skill.border} bg-white p-4 space-y-2.5
+                  transition-all duration-300 hover:shadow-lg hover:shadow-gray-200/60 hover:-translate-y-0.5
+                  active:scale-[0.98] text-left cursor-pointer group overflow-hidden
                 `}
               >
+                {/* Subtle gradient accent at top */}
+                <div className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${skill.gradient} opacity-80`} />
+
                 {/* Header */}
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5">
-                    <div className={`rounded-md p-1 bg-gradient-to-br ${skill.gradient}`}>
-                      <Icon className="h-3 w-3 text-white" />
+                  <div className="flex items-center gap-2">
+                    <div className={`rounded-lg p-1.5 bg-gradient-to-br ${skill.gradient} shadow-sm`}>
+                      <Icon className="h-3.5 w-3.5 text-white" />
                     </div>
-                    <span className={`text-[10px] font-bold ${skill.text} uppercase tracking-wider`}>
+                    <span className={`text-[11px] font-extrabold ${skill.text} uppercase tracking-wider`}>
                       {skill.label}
                     </span>
                   </div>
-                  <ChevronRight className="h-3.5 w-3.5 text-gray-300 group-hover:text-gray-500" />
+                  <ChevronRight className="h-4 w-4 text-gray-300 group-hover:text-gray-500 transition-colors" />
                 </div>
 
                 {/* Score */}
                 {notAttempted ? (
-                  <p className="text-lg font-bold text-gray-300">—</p>
+                  <p className="text-2xl font-bold text-gray-300">—</p>
                 ) : (
-                  <p className="text-xl font-black text-gray-900">{band.toFixed(1)}</p>
+                  <p className="text-2xl font-black text-gray-900">{band.toFixed(1)}</p>
                 )}
 
                 {/* Progress bar */}
-                {!notAttempted && (
-                  <div className="w-full h-1 bg-white/80 rounded-full overflow-hidden">
+                {!notAttempted ? (
+                  <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
                     <div
                       className={`h-full rounded-full transition-all duration-700 bg-gradient-to-r ${skill.gradient}`}
                       style={{ width: `${barPct}%` }}
                     />
                   </div>
+                ) : (
+                  <div className="w-full h-1.5 bg-gray-100 rounded-full" />
                 )}
 
                 {/* Status */}
                 {notAttempted ? (
-                  <p className="text-[11px] text-gray-400">Chưa làm bài</p>
+                  <p className="text-xs text-gray-400">Chưa làm bài</p>
                 ) : reached ? (
-                  <p className="text-[11px] font-semibold text-emerald-600 flex items-center gap-1">
-                    <CheckCircle2 className="h-2.5 w-2.5" /> Đạt mục tiêu
+                  <p className="text-xs font-semibold text-emerald-600 flex items-center gap-1">
+                    <CheckCircle2 className="h-3 w-3" /> Đạt mục tiêu
                   </p>
                 ) : (
-                  <p className="text-[11px] text-gray-500">
+                  <p className="text-xs text-gray-500">
                     Cần thêm <span className="font-bold text-red-500">{(result.targetBand - band).toFixed(1)}</span>
                   </p>
                 )}
@@ -258,7 +273,7 @@ export function ResultStep({
           })}
         </div>
 
-        <p className="text-center text-[11px] text-gray-400">
+        <p className="text-center text-xs text-gray-400">
           Bấm vào từng kỹ năng để xem chi tiết chấm điểm
         </p>
 
@@ -269,7 +284,7 @@ export function ResultStep({
             sessionStorage.setItem('triggerAiRecommendation', String(result.id));
             router.push('/dashboard');
           }}
-          className="w-full h-11 rounded-xl bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white font-semibold text-sm shadow-md shadow-teal-200/50 transition-all"
+          className="w-full h-12 rounded-2xl bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 text-white font-semibold text-sm shadow-lg shadow-teal-500/25 hover:shadow-teal-500/40 transition-all duration-300 hover:-translate-y-0.5 active:translate-y-0"
         >
           Bắt đầu lộ trình học
           <ArrowRight className="h-4 w-4 ml-2" />

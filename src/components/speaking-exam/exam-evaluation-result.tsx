@@ -316,8 +316,8 @@ export function ExamEvaluationResult({ evaluation, recordings, title }: Props) {
         onOpenChange={(open) => !open && setSelectedCriteria(null)}
       >
         {selectedCriteria && (
-          <DialogContent className="sm:max-w-md rounded-[24px] p-0 overflow-hidden border border-gray-100 shadow-2xl bg-white focus:outline-none">
-             <div className="px-8 pt-8 pb-6 flex items-end justify-between border-b border-gray-50">
+          <DialogContent className="sm:max-w-lg w-[95vw] rounded-[24px] p-0 overflow-hidden border border-gray-100 shadow-2xl bg-white focus:outline-none flex flex-col max-h-[80vh]">
+             <div className="shrink-0 px-8 pt-8 pb-6 flex items-end justify-between border-b border-gray-50">
                 <div>
                   <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">
                     Tiêu chí chấm điểm
@@ -334,7 +334,7 @@ export function ExamEvaluationResult({ evaluation, recordings, title }: Props) {
                 </div>
              </div>
 
-             <div className="px-8 py-6 min-h-[140px] flex flex-col text-left text-[14px] leading-relaxed text-gray-600 border-b border-gray-50 overflow-y-auto max-h-[60vh]">
+             <div className="flex-1 overflow-y-auto px-8 py-6 text-left text-[14px] leading-relaxed text-gray-600 border-b border-gray-50">
                <p className="mb-4">{CRITERIA_META[selectedCriteria].desc}</p>
                {evaluation.criteria && evaluation.criteria[CRITERION_KEY_MAP[selectedCriteria]] && (
                  <div className="space-y-4">
@@ -362,9 +362,9 @@ export function ExamEvaluationResult({ evaluation, recordings, title }: Props) {
                )}
              </div>
 
-             <div className="px-8 pb-8 pt-6">
-                <Button 
-                  onClick={() => setSelectedCriteria(null)} 
+             <div className="shrink-0 px-8 pb-8 pt-6">
+                <Button
+                  onClick={() => setSelectedCriteria(null)}
                   className="w-full bg-[#0f172a] hover:bg-black text-white py-6 rounded-2xl text-[11px] uppercase tracking-widest font-bold shadow-lg shadow-black/5"
                 >
                   Đóng Nhận Xét

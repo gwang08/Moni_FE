@@ -317,7 +317,8 @@ export function RoadmapInsights({ weekNumber }: { weekNumber?: number }) {
   const [activeSkill, setActiveSkill] = useState<SkillTab>('reading');
   const [aiSummary, setAiSummary] = useState<MetricAiSummary | null>(null);
   const [aiSummaryLoading, setAiSummaryLoading] = useState(false);
-  const { step: tourStep, setStep: setTourStep, stopTour } = useTourStore();
+  const [aiSummaryFetched, setAiSummaryFetched] = useState(false);
+  const { tourType, step: tourStep, setTour, setStep: setTourStep, stopTour } = useTourStore();
 
   const fetchAiSummary = useCallback(async () => {
     setAiSummaryLoading(true);
@@ -328,6 +329,7 @@ export function RoadmapInsights({ weekNumber }: { weekNumber?: number }) {
       setAiSummary(null);
     } finally {
       setAiSummaryLoading(false);
+      setAiSummaryFetched(true);
     }
   }, []);
 
@@ -347,17 +349,18 @@ export function RoadmapInsights({ weekNumber }: { weekNumber?: number }) {
     fetchInsights();
   }, [weekNumber]);
 
-  // Auto-fetch AI summary
+  // Auto-fetch AI summary (once)
   useEffect(() => {
-    if (!aiSummary && !aiSummaryLoading) {
+    if (!aiSummary && !aiSummaryLoading && !aiSummaryFetched) {
       fetchAiSummary();
     }
-  }, [aiSummary, aiSummaryLoading, fetchAiSummary]);
+  }, [aiSummary, aiSummaryLoading, aiSummaryFetched, fetchAiSummary]);
 
   useEffect(() => {
     const handler = () => {
       fetchInsights();
-      setAiSummary(null); // Clear state to trigger re-fetching of AI summary
+      setAiSummary(null);
+      setAiSummaryFetched(false); // Allow re-fetch after roadmap update
     };
     window.addEventListener('roadmap-updated', handler);
     return () => {
@@ -430,12 +433,12 @@ export function RoadmapInsights({ weekNumber }: { weekNumber?: number }) {
     );
   }
 
-  const isNewWeekTourActive = tourStep === 11;
+  const isNewWeekTourActive = tourType === 'new-week' && tourStep === 11;
 
   return (
     <div id="roadmap-insights-section" className={`rounded-2xl border border-gray-100 shadow-sm relative transition-all duration-500 ${isNewWeekTourActive ? 'z-[60] ring-4 ring-emerald-500 shadow-2xl scale-[1.01]' : 'overflow-hidden'}`}>
       {/* Tour Step 11: AI Summary spotlight - rendered as fixed overlay to avoid overflow-hidden clipping */}
-      {tourStep === 11 && (
+      {tourType === 'new-week' && tourStep === 11 && (
         <div className="fixed top-24 left-1/2 -translate-x-1/2 w-80 bg-white p-5 rounded-2xl shadow-2xl border border-emerald-100 z-[70] animate-in fade-in slide-in-from-bottom-4 duration-300">
           <div className="flex gap-3 mb-3">
             <ChibiMascot mood="thinking" size={48} />
@@ -450,7 +453,7 @@ export function RoadmapInsights({ weekNumber }: { weekNumber?: number }) {
           <button
             onClick={() => {
               document.getElementById('learning-roadmap-section')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-              setTimeout(() => setTourStep(12), 800);
+              setTimeout(() => setTour('new-week', 12), 800);
             }}
             className="w-full bg-gradient-to-r from-emerald-400 to-gray-400 hover:from-emerald-500 hover:to-gray-500 text-white py-2 rounded-xl text-sm font-bold shadow-md transition-all flex items-center justify-center gap-2"
           >
@@ -510,7 +513,7 @@ export function RoadmapInsights({ weekNumber }: { weekNumber?: number }) {
         )}
 
         {/* AI Summary Card */}
-        {(aiSummary || aiSummaryLoading || tourStep === 11) && (
+        {(aiSummary || aiSummaryLoading || (tourType === 'new-week' && tourStep === 11)) && (
           <div className="rounded-xl border border-emerald-200 bg-gradient-to-br from-emerald-50/80 to-white p-4">
             <div className="flex items-start gap-3 mb-3">
               <div className="flex-shrink-0 p-2 rounded-xl bg-emerald-100">

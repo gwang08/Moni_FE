@@ -28,7 +28,7 @@ function formatDisplayDate(dateStr: string | null): string {
 export function ExamCountdown() {
   const examDate = useUserStore((s) => s.examDate);
   const setExamDate = useUserStore((s) => s.setExamDate);
-  const { step: tourStep, nextStep } = useTourStore();
+  const { tourType, step: tourStep, nextStep } = useTourStore();
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState('');
   const [daysRemaining, setDaysRemaining] = useState<number | null>(null);
@@ -46,7 +46,7 @@ export function ExamCountdown() {
     if (draft) {
       apiClient.put<ApiResponse<unknown>>('/users/me', { examDate: draft }, true).catch(() => {});
     }
-    if (tourStep === 2) nextStep();
+    if (tourType === 'setup' && tourStep === 2) nextStep();
   };
 
   const cancelEdit = () => setEditing(false);
@@ -59,10 +59,10 @@ export function ExamCountdown() {
     <div
       id="exam-countdown-section"
       className={`relative h-full transition-all duration-300 ${
-        tourStep === 2 ? 'z-50 ring-4 ring-emerald-400 shadow-2xl rounded-3xl' : 'rounded-3xl shadow-lg shadow-emerald-500/20'
+        tourType === 'setup' && tourStep === 2 ? 'z-50 ring-4 ring-emerald-400 shadow-2xl rounded-3xl' : 'rounded-3xl shadow-lg shadow-emerald-500/20'
       }`}
     >
-      {tourStep === 2 && (
+      {tourType === 'setup' && tourStep === 2 && (
         <div className="absolute top-1/2 -translate-y-1/2 -left-6 -translate-x-full w-64 bg-white p-4 rounded-2xl shadow-xl border border-emerald-100 z-50 animate-in fade-in slide-in-from-right-4">
           <div className="flex gap-3 mb-2">
             <ChibiMascot mood="thinking" size={40} />

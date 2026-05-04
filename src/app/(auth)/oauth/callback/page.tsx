@@ -39,7 +39,7 @@ function OAuthCallbackContent() {
         await setAuth(token, expiryTime);
 
         const role = getRoleFromToken(token);
-        const dest = role === 'ADMIN' ? '/admin' : role === 'EXPERT' ? '/expert/dashboard' : '/dashboard';
+        const dest = role === 'ADMIN' ? '/admin' : role === 'EXPERT' ? '/expert/dashboard' : '/practice';
         router.replace(dest);
       } catch {
         router.replace('/login');

@@ -278,13 +278,13 @@ export default function AdminUserTransactionsPage() {
               <table className="w-full text-sm">
                 <thead className="border-b border-gray-200 bg-gray-50">
                   <tr>
-                    <th className="w-[14%] px-4 py-3 text-left font-medium text-gray-600">Người dùng</th>
-                    <th className="w-[18%] px-4 py-3 text-left font-medium text-gray-600">Email</th>
-                    <th className="w-[18%] px-4 py-3 text-left font-medium text-gray-600">Gói mua</th>
-                    <th className="w-[15%] pl-4 pr-8 py-3 text-right font-medium text-gray-600">Số tiền</th>
-                    <th className="w-[15%] px-4 py-3 text-left font-medium text-gray-600">Trạng thái</th>
-                    <th className="w-[14%] px-4 py-3 text-left font-medium text-gray-600">Thời gian</th>
-                    <th className="w-[6%] px-4 py-3 text-left font-medium text-gray-600">Xử lý</th>
+                    <th className="w-[14.28%] px-4 py-3 text-left font-medium text-gray-600">Người dùng</th>
+                    <th className="w-[14.28%] px-4 py-3 text-left font-medium text-gray-600">Email</th>
+                    <th className="w-[14.28%] px-4 py-3 text-left font-medium text-gray-600">Gói mua</th>
+                    <th className="w-[14.28%] px-4 py-3 text-left font-medium text-gray-600">Số tiền</th>
+                    <th className="w-[14.28%] px-4 py-3 text-left font-medium text-gray-600">Trạng thái</th>
+                    <th className="w-[14.28%] px-4 py-3 text-left font-medium text-gray-600">Thời gian</th>
+                    <th className="w-[14.28%] px-4 py-3 text-left font-medium text-gray-600">Xử lý</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">

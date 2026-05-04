@@ -61,10 +61,44 @@ export async function getPaymentStatus(paymentId: string): Promise<PaymentRespon
   return response.result;
 }
 
-export async function getPayments(): Promise<PaymentResponse[]> {
-  const response = await apiClient.get<PaymentResponse[] | ApiResponse<PaymentResponse[]>>('/payments', true);
+export async function getPayments(params?: {
+  status?: string;
+  userId?: string;
+  startDate?: string;
+  endDate?: string;
+}): Promise<PaymentResponse[]> {
+  const searchParams = new URLSearchParams();
+  if (params?.status) searchParams.set('status', params.status);
+  if (params?.userId) searchParams.set('userId', params.userId);
+  if (params?.startDate) searchParams.set('startDate', params.startDate);
+  if (params?.endDate) searchParams.set('endDate', params.endDate);
+  const query = searchParams.toString();
+  const response = await apiClient.get<PaymentResponse[] | ApiResponse<PaymentResponse[]>>(
+    `/payments${query ? `?${query}` : ''}`,
+    true
+  );
   if (Array.isArray(response)) return response;
   return response.result ?? [];
+}
+
+export async function approveLatePayment(paymentId: number): Promise<PaymentResponse> {
+  const response = await apiClient.post<ApiResponse<PaymentResponse>>(
+    `/api/v1/admin/payments/${paymentId}/approve-late`,
+    {},
+    true
+  );
+  if (!response.result) throw new Error('Failed to approve late payment');
+  return response.result;
+}
+
+export async function refundDuplicatePayment(paymentId: number): Promise<PaymentResponse> {
+  const response = await apiClient.post<ApiResponse<PaymentResponse>>(
+    `/api/v1/admin/payments/${paymentId}/refund-duplicate`,
+    {},
+    true
+  );
+  if (!response.result) throw new Error('Failed to refund duplicate payment');
+  return response.result;
 }
 
 export async function getCreditTransactions(): Promise<CreditTransactionResponse[]> {

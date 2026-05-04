@@ -25,12 +25,14 @@ export interface PaymentResponse {
   subscriptionPlanName?: string | null;
   txnCode: string;
   amount: number;
+  createdAt?: string;
   updatedAt: string;
   status: string;
-  createdAt?: string;
   userId?: string | null;
   userEmail?: string | null;
   userFullName?: string | null;
+  reviewedAt?: string | null;
+  reviewedBy?: string | null;
 }
 
 export interface CreditTransactionResponse {

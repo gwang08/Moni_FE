@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState } from 'react';
 import { ListeningQuestionMcq } from '@/components/listening/listening-question-mcq';
@@ -66,7 +66,7 @@ function MatchingQuestionReview({ question, displayPosition, selectedOption, cor
         <span className="text-slate-700 flex-1 min-w-[200px] font-medium">{question.content}</span>
         
         <div className="flex items-center gap-2">
-          {isSkipped ? (
+         {isSkipped ? (
             <div className="flex items-center gap-1.5">
                <span className="text-slate-400 font-bold">✕</span>
                <span className="text-slate-400 mx-1">→</span>
@@ -85,18 +85,14 @@ function MatchingQuestionReview({ question, displayPosition, selectedOption, cor
           )}
 
           {evidenceChunks.length > 0 && (
-            <div className="flex gap-1">
-              {evidenceChunks.map((chunk, i) => (
-                <button
-                  key={i}
-                  onClick={() => onLocateEvidence(chunk.trim(), offsets[i], startOffsets[i], endOffsets[i], startTimes[i])}
-                  className="p-1.5 hover:bg-slate-100 rounded-full transition-colors text-slate-900"
-                  title={evidenceChunks.length > 1 ? `Xem dẫn chứng ${i + 1}` : 'Xem dẫn chứng'}
-                >
-                  <TargetIcon className="h-4 w-4" />
-                </button>
-              ))}
-            </div>
+            <button
+              type="button"
+              onClick={() => onLocateEvidence(question.explanation?.evidence?.trim() || '', offsets[0], startOffsets[0], endOffsets[0], startTimes[0])}
+              className="p-1.5 hover:bg-slate-100 rounded-full transition-colors text-slate-900"
+              title={evidenceChunks.length > 1 ? `Xem dẫn chứng (${evidenceChunks.length})` : 'Xem dẫn chứng'}
+            >
+              <TargetIcon className="h-4 w-4" />
+            </button>
           )}
         </div>
       </div>
@@ -270,3 +266,4 @@ export function ListeningReviewPanel({ stimulus, answers, textAnswers = {}, onLo
     </div>
   );
 }
+

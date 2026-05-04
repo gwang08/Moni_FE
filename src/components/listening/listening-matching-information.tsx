@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useMemo, useState } from 'react';
 import { CheckCircle2, XCircle, Lightbulb } from 'lucide-react';
@@ -131,7 +131,7 @@ export function ListeningMatchingInformation({
                           ? <CheckCircle2 className="h-4 w-4 text-green-600" />
                           : <XCircle className="h-4 w-4 text-gray-700" />
                       ) : (
-                        <span className="text-xs text-gray-400">—</span>
+                        <span className="text-xs text-gray-400">â€”</span>
                       )}
                     </td>
                   )}
@@ -236,23 +236,18 @@ function ExplanationSection({ explanation, onLocateEvidence }: {
     <div className="mt-2 pt-2 border-t border-gray-100">
       <div className="flex items-center gap-2">
         {evidenceChunks.length > 0 && onLocateEvidence && (
-          <div className="flex gap-1">
-            {evidenceChunks.map((chunk, i) => (
-              <button
-                key={i}
-                type="button"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  onLocateEvidence?.(chunk.trim(), offsets[i], startOffsets[i], endOffsets[i], startTimes[i]);
-                }}
-                className="w-6 h-6 rounded-full flex items-center justify-center hover:bg-gray-100 transition-colors cursor-pointer"
-                title={evidenceChunks.length > 1 ? `Xem dẫn chứng ${i + 1}` : 'Xem dẫn chứng'}
-              >
-                <TargetIcon className="h-4 w-4 text-gray-900" strokeWidth={2} />
-              </button>
-            ))}
-          </div>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onLocateEvidence?.(explanation.evidence?.trim() || '', offsets[0], startOffsets[0], endOffsets[0], startTimes[0]);
+            }}
+            className="w-6 h-6 rounded-full flex items-center justify-center hover:bg-gray-100 transition-colors cursor-pointer"
+            title={evidenceChunks.length > 1 ? `Xem dẫn chứng (${evidenceChunks.length})` : 'Xem dẫn chứng'}
+          >
+            <TargetIcon className="h-4 w-4 text-gray-900" strokeWidth={2} />
+          </button>
         )}
         {explanation.text && (
           <button
@@ -279,3 +274,4 @@ function ExplanationSection({ explanation, onLocateEvidence }: {
     </div>
   );
 }
+

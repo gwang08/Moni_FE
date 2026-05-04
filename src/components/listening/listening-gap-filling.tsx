@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import { CheckCircle2, XCircle, Lightbulb, Eye } from 'lucide-react';
 import React, { useEffect, useRef, useState, useMemo, useId } from 'react';
 import { createPortal } from 'react-dom';
@@ -136,23 +136,18 @@ function ExamInlineGapInput({ questionId, userAnswer, submitted, correctAnswer, 
         {submitted && (
           <span className="inline-flex items-center gap-1 ml-1 shrink-0">
             {evidenceChunks.length > 0 && onLocateEvidence && (
-              <div className="flex gap-0.5">
-                {evidenceChunks.map((chunk, i) => (
-                  <button
-                    key={i}
-                    type="button"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      onLocateEvidence?.(chunk.trim(), offsets[i], startOffsets[i], endOffsets[i], startTimes[i]);
-                    }}
-                    className="w-6 h-6 rounded-full flex items-center justify-center hover:bg-gray-100 transition-colors cursor-pointer"
-                    title={evidenceChunks.length > 1 ? `Xem dẫn chứng ${i + 1}` : 'Xem dẫn chứng'}
-                  >
-                    <TargetIcon className="h-4 w-4 text-gray-900" strokeWidth={2} />
-                  </button>
-                ))}
-              </div>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onLocateEvidence?.(evidence?.trim() || '', offsets[0], startOffsets[0], endOffsets[0], startTimes[0]);
+                }}
+                className="w-6 h-6 rounded-full flex items-center justify-center hover:bg-gray-100 transition-colors cursor-pointer"
+                title={evidenceChunks.length > 1 ? `Xem dẫn chứng (${evidenceChunks.length})` : 'Xem dẫn chứng'}
+              >
+                <TargetIcon className="h-4 w-4 text-gray-900" strokeWidth={2} />
+              </button>
             )}
             {explanationText && (
               <button
@@ -477,7 +472,7 @@ export function ListeningGapFilling({
 
   const isDisabled = submitted || readOnly;
 
-  // ── NEW: If groupContent has placeholders, ALWAYS use ParagraphGapFilling for ALL questions ──
+  // â”€â”€ NEW: If groupContent has placeholders, ALWAYS use ParagraphGapFilling for ALL questions â”€â”€
   if (hasGroupContent) {
     return (
       <div className="space-y-4">
@@ -501,7 +496,7 @@ export function ListeningGapFilling({
     );
   }
 
-  // ── LEGACY: For groups without passage (just list of questions) ──
+  // â”€â”€ LEGACY: For groups without passage (just list of questions) â”€â”€
   if (examMode) {
     return (
       <div className="space-y-4">
@@ -580,3 +575,4 @@ export function ListeningGapFilling({
     </div>
   );
 }
+

@@ -68,6 +68,7 @@ export function ListeningQuestionMcq({
     const startOffsets = explanation?.startOffsets || [];
     const endOffsets = explanation?.endOffsets || [];
     const startTimes = explanation?.startTimes || [];
+    const evidence = explanation?.evidence?.trim() || '';
 
     // Review mode: Direct highlights on options (like Reading)
     return (
@@ -117,18 +118,14 @@ export function ListeningQuestionMcq({
         {/* Action Icons (Evidence & Explanation) */}
         <div className="mt-5 flex items-center gap-3">
           {evidenceChunks.length > 0 && onLocateEvidence && (
-            <div className="flex gap-1">
-              {evidenceChunks.map((chunk, i) => (
-                <button
-                  key={i}
-                  onClick={() => onLocateEvidence(chunk.trim(), offsets[i], startOffsets[i], endOffsets[i], startTimes[i])}
-                  className="flex items-center justify-center h-8 w-8 hover:bg-slate-100 rounded-full transition-colors text-slate-900 border border-slate-100 shadow-sm shrink-0"
-                  title={evidenceChunks.length > 1 ? `Xem dẫn chứng ${i + 1}` : 'Xem dẫn chứng'}
-                >
-                  <TargetIcon className="h-4.5 w-4.5" />
-                </button>
-              ))}
-            </div>
+            <button
+              type="button"
+              onClick={() => onLocateEvidence(evidence, offsets[0], startOffsets[0], endOffsets[0], startTimes[0])}
+              className="flex items-center justify-center h-8 w-8 hover:bg-slate-100 rounded-full transition-colors text-slate-900 border border-slate-100 shadow-sm shrink-0"
+              title={evidenceChunks.length > 1 ? `Xem dẫn chứng (${evidenceChunks.length})` : 'Xem dẫn chứng'}
+            >
+              <TargetIcon className="h-4.5 w-4.5" />
+            </button>
           )}
           {explanation?.text && (
             <button

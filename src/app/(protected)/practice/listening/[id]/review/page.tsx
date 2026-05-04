@@ -567,33 +567,7 @@ export default function ListeningReviewPage({ params }: Props) {
                 el.classList.remove('evidence-highlight', 'bg-yellow-100', 'ring-2', 'ring-yellow-400', 'text-green-700', 'font-bold');
               });
 
-              // Priority 1: Use startTime if provided
-              if (startTime !== undefined && startTime !== -1 && audio) {
-                audio.currentTime = Math.max(0, startTime);
-                void audio.play().catch(() => {});
-                
-                // If we also have offsets, we can try to highlight the exact segment
-                const transcriptSegments = Array.isArray(stimulus.transcript) ? stimulus.transcript : [];
-                if (transcriptSegments.length > 0) {
-                  // Find segment matching this startTime
-                  const segmentIdx = transcriptSegments.findIndex(seg => 
-                    Math.abs(Number(seg.startTime) - startTime) < 0.1
-                  );
-                  if (segmentIdx !== -1) {
-                    const segmentEl = container.querySelector<HTMLElement>(`[data-segment-idx="${segmentIdx}"]`);
-                    if (segmentEl) {
-                      segmentEl.classList.add('evidence-highlight', 'bg-yellow-100', 'ring-2', 'ring-yellow-400', 'text-green-700', 'font-bold');
-                      segmentEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                      return;
-                    }
-                  }
-                }
-              }
-
-              // Priority 2: Use heuristic matching (legacy or missing metadata)
               const chunks = splitEvidenceChunks(evidence);
-              if (chunks.length === 0) return;
-
               const transcriptSegments = Array.isArray(stimulus.transcript) ? stimulus.transcript : [];
               const matchedSegments = transcriptSegments.length > 0
                 ? findTranscriptMatches(transcriptSegments, chunks)
@@ -613,7 +587,13 @@ export default function ListeningReviewPage({ params }: Props) {
                 const activeElement = container.querySelector<HTMLElement>(`[data-segment-idx="${firstMatch.segmentIndex}"]`);
                 activeElement?.scrollIntoView({ behavior: 'smooth', block: 'center' });
 
-                if (audio && (startTime === undefined || startTime === -1)) {
+                if (audio) {
+                  if (startTime !== undefined && startTime !== -1) {
+                    audio.currentTime = Math.max(0, startTime);
+                    void audio.play().catch(() => {});
+                    return;
+                  }
+
                   const sTime = Number(firstSegment?.startTime);
                   if (Number.isFinite(sTime)) {
                     audio.currentTime = Math.max(0, sTime);
@@ -622,6 +602,26 @@ export default function ListeningReviewPage({ params }: Props) {
                 }
                 return;
               }
+
+              // Priority 2: exact startTime fallback when we could not map chunks to transcript nodes
+              if (startTime !== undefined && startTime !== -1 && audio) {
+                audio.currentTime = Math.max(0, startTime);
+                void audio.play().catch(() => {});
+
+                const segmentIdx = transcriptSegments.findIndex(seg =>
+                  Math.abs(Number(seg.startTime) - startTime) < 0.1
+                );
+                if (segmentIdx !== -1) {
+                  const segmentEl = container.querySelector<HTMLElement>(`[data-segment-idx="${segmentIdx}"]`);
+                  if (segmentEl) {
+                    segmentEl.classList.add('evidence-highlight', 'bg-yellow-100', 'ring-2', 'ring-yellow-400', 'text-green-700', 'font-bold');
+                    segmentEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    return;
+                  }
+                }
+              }
+
+              if (chunks.length === 0) return;
 
               // Fallback for HTML content or non-matched JSON segments
               const targets = container.querySelectorAll<HTMLElement>('p, li, span, div');

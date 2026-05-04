@@ -305,25 +305,25 @@ export default function AdminUserTransactionsPage() {
 
                       return (
                         <tr key={payment.id} className="hover:bg-gray-50">
-                          <td className="px-4 py-3 font-medium text-gray-700">
+                          <td className="w-[15%] px-4 py-3 font-medium text-gray-700 truncate max-w-0" title={payment.userFullName || ''}>
                             {payment.userFullName || '-'}
                           </td>
-                          <td className="px-4 py-3 text-gray-500">
+                          <td className="w-[20%] px-4 py-3 text-gray-500 truncate max-w-0" title={payment.userEmail || payment.userId || ''}>
                             {payment.userEmail || payment.userId || '-'}
                           </td>
-                          <td className="px-4 py-3 text-gray-700">
+                          <td className="w-[20%] px-4 py-3 text-gray-700 truncate max-w-0" title={payment.packageName || payment.subscriptionPlanName || ''}>
                             {payment.packageName || payment.subscriptionPlanName || '-'}
                           </td>
-                          <td className="px-4 py-3 font-medium text-right text-emerald-600">
+                          <td className="w-[12%] px-4 py-3 font-medium text-right text-emerald-600">
                             {formatVnd(payment.amount)}
                           </td>
-                          <td className="px-4 py-3">
+                          <td className="w-[12%] px-4 py-3">
                             <Badge className={statusCfg.color}>{statusCfg.label}</Badge>
                           </td>
-                          <td className="px-4 py-3 text-xs text-gray-500">
+                          <td className="w-[13%] px-4 py-3 text-xs text-gray-500">
                             {timestamp ? formatDate(timestamp) : '-'}
                           </td>
-                          <td className="px-4 py-3">
+                          <td className="w-[8%] px-4 py-3">
                             {canApproveLate ? (
                               <Button
                                 size="sm"

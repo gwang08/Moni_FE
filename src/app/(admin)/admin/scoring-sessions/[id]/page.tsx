@@ -159,7 +159,7 @@ export default function AdminScoringSessionDetailPage({ params }: Props) {
                 <Badge variant="outline">{session.skill}</Badge>
               </div>
               <p className="mt-1 text-sm text-muted-foreground">
-                {session.userDisplayName || 'Chưa có thí sinh'} · {session.expertDisplayName || 'Chưa có giám khảo'} ·{' '}
+                {session.userDisplayName || 'Chưa có thí sinh'} · {session.expertDisplayName || 'Chưa có giáo viên'} ·{' '}
                 {formatDateTime(currentMoment)}
               </p>
             </div>
@@ -192,7 +192,7 @@ export default function AdminScoringSessionDetailPage({ params }: Props) {
                   <p className="mt-1 font-medium">{session.skill}</p>
                 </div>
                 <div className="rounded-xl border bg-muted/20 p-3">
-                  <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Giám khảo</p>
+                  <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Giáo viên</p>
                   <p className="mt-1 font-medium">{session.expertDisplayName || '-'}</p>
                 </div>
                 <div className="rounded-xl border bg-muted/20 p-3">
@@ -221,7 +221,7 @@ export default function AdminScoringSessionDetailPage({ params }: Props) {
               <div className="space-y-2">
                 <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Bản ghi</p>
                 <RecordingBlock label="Người học" src={session.recordingUrl} />
-                <RecordingBlock label="Giám khảo" src={session.expertRecordingUrl} />
+                <RecordingBlock label="Giáo viên" src={session.expertRecordingUrl} />
                 {!session.recordingUrl && !session.expertRecordingUrl && (
                   <div className="rounded-xl border border-dashed bg-white p-4 text-sm text-muted-foreground">
                     Chưa có bản ghi.
@@ -307,7 +307,7 @@ export default function AdminScoringSessionDetailPage({ params }: Props) {
                     <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Thông tin thêm</p>
                     <div className="mt-3 grid gap-3 sm:grid-cols-2">
                       <div className="rounded-lg bg-muted/20 p-3">
-                        <p className="text-[11px] text-muted-foreground">Giám khảo</p>
+                        <p className="text-[11px] text-muted-foreground">Giáo viên</p>
                         <p className="mt-1 font-medium">{evaluation.expertName || session.expertDisplayName || '-'}</p>
                       </div>
                       <div className="rounded-lg bg-muted/20 p-3">

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, use } from 'react';
+import { useEffect, useState, use, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { ArrowLeft, Loader2, Camera, ImagePlus, X, Save, Star, MessageSquare, User, Briefcase, Award, Clock } from 'lucide-react';
+import { ArrowLeft, Loader2, Camera, ImagePlus, X, Save, Star, MessageSquare, User, Briefcase, Award, Clock, BarChart3, TimerReset } from 'lucide-react';
 import { getAdminExperts, updateExpert } from '@/lib/admin-expert-api';
 import { uploadMedia } from '@/lib/admin-api';
 import { apiClient } from '@/lib/api-client';
@@ -86,6 +86,42 @@ export default function AdminExpertDetailPage({ params }: PageProps) {
     }
   }, [expert]);
 
+  const stats = useMemo(() => {
+    let completedSessions = 0;
+    let speakingSessions = 0;
+    let writingSessions = 0;
+    let totalDurationMs = 0;
+    let durationCount = 0;
+
+    expertSessions.forEach(session => {
+      if (session.status === 'COMPLETED') {
+        completedSessions++;
+        if (session.skill === 'SPEAKING') speakingSessions++;
+        if (session.skill === 'WRITING') writingSessions++;
+
+        if (session.startedAt && session.endedAt) {
+          const start = new Date(session.startedAt.includes('Z') ? session.startedAt : `${session.startedAt}Z`).getTime();
+          const end = new Date(session.endedAt.includes('Z') ? session.endedAt : `${session.endedAt}Z`).getTime();
+          if (end > start) {
+            totalDurationMs += (end - start);
+            durationCount++;
+          }
+        }
+      }
+    });
+
+    const averageDurationMs = durationCount > 0 ? (totalDurationMs / durationCount) : 0;
+    const averageDurationMin = Math.round(averageDurationMs / 60000);
+
+    return {
+      total: expertSessions.length,
+      completed: completedSessions,
+      speaking: speakingSessions,
+      writing: writingSessions,
+      averageDurationMin
+    };
+  }, [expertSessions]);
+
   if (isLoading) {
     return (
       <div className="flex h-[400px] items-center justify-center">
@@ -97,7 +133,7 @@ export default function AdminExpertDetailPage({ params }: PageProps) {
   if (!expert) {
     return (
       <div className="p-8 text-center">
-        <p className="text-muted-foreground">Không tìm thấy giám khảo</p>
+        <p className="text-muted-foreground">Không tìm thấy giáo viên</p>
         <Button variant="link" onClick={() => router.back()}>Quay lại</Button>
       </div>
     );
@@ -144,14 +180,10 @@ export default function AdminExpertDetailPage({ params }: PageProps) {
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">{expert.displayName || 'Chuyên gia'}</h1>
+            <h1 className="text-2xl font-bold text-gray-900">{expert.displayName || 'Giáo viên'}</h1>
             <p className="text-sm text-gray-500">{expert.email || '-'}</p>
           </div>
         </div>
-        <Button onClick={handleSave} disabled={isSaving} className="h-10 rounded-xl px-5 bg-gray-900 hover:bg-gray-800 shadow-sm">
-          {isSaving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
-          Lưu thay đổi
-        </Button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
@@ -167,21 +199,7 @@ export default function AdminExpertDetailPage({ params }: PageProps) {
                     {(expert.displayName || 'X')[0]}
                   </AvatarFallback>
                 </Avatar>
-                <label className="absolute inset-0 flex items-center justify-center bg-black/40 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
-                  <Camera className="h-5 w-5" />
-                  <input
-                    type="file"
-                    className="hidden"
-                    accept="image/*"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) {
-                        setAvatarFile(file);
-                        setAvatarPreview(URL.createObjectURL(file));
-                      }
-                    }}
-                  />
-                </label>
+
                 {/* Status dot */}
                 <span className={`absolute bottom-1 right-1 h-4 w-4 rounded-full border-[3px] border-white ${statusColor}`} />
               </div>
@@ -222,6 +240,7 @@ export default function AdminExpertDetailPage({ params }: PageProps) {
           {/* Anchor nav */}
           <nav className="bg-white rounded-2xl border border-gray-100 shadow-sm p-2 space-y-0.5 sticky top-6 hidden md:block">
             {[
+              { href: '#stats', icon: BarChart3, label: 'Thống kê hiệu suất' },
               { href: '#info', icon: User, label: 'Thông tin chuyên môn' },
               { href: '#certs', icon: Award, label: 'Bằng cấp & Chứng chỉ' },
               { href: '#reviews', icon: MessageSquare, label: 'Đánh giá', count: sessionsWithReview.length },
@@ -243,8 +262,43 @@ export default function AdminExpertDetailPage({ params }: PageProps) {
           </nav>
         </aside>
 
-        {/* ── Right Col: Sections ── */}
         <div className="md:col-span-9 space-y-5 scroll-smooth">
+          {/* Performance Stats */}
+          <section id="stats" className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden scroll-mt-6">
+            <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-2.5">
+              <div className="p-1.5 rounded-lg bg-indigo-50">
+                <BarChart3 className="h-4 w-4 text-indigo-600" />
+              </div>
+              <h3 className="font-bold text-sm text-gray-800">Thống kê hiệu suất</h3>
+            </div>
+            <div className="p-6">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="rounded-xl border border-gray-100 p-4 bg-gray-50/50">
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Tiến độ</p>
+                  <div className="flex items-end gap-2">
+                    <span className="text-2xl font-bold text-gray-900">{stats.completed}</span>
+                    <span className="text-sm font-medium text-gray-400 mb-1">/ {stats.total} bài</span>
+                  </div>
+                </div>
+                <div className="rounded-xl border border-gray-100 p-4 bg-gray-50/50">
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Speaking</p>
+                  <p className="text-2xl font-bold text-blue-600">{stats.speaking} <span className="text-sm font-medium text-gray-400">bài</span></p>
+                </div>
+                <div className="rounded-xl border border-gray-100 p-4 bg-gray-50/50">
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Writing</p>
+                  <p className="text-2xl font-bold text-purple-600">{stats.writing} <span className="text-sm font-medium text-gray-400">bài</span></p>
+                </div>
+                <div className="rounded-xl border border-gray-100 p-4 bg-gray-50/50">
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Tốc độ trung bình</p>
+                  <div className="flex items-center gap-2">
+                    <TimerReset className="h-5 w-5 text-gray-400" />
+                    <span className="text-2xl font-bold text-gray-900">{stats.averageDurationMin > 0 ? stats.averageDurationMin : '-'} <span className="text-sm font-medium text-gray-400">phút</span></span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
           {/* Professional Info */}
           <section id="info" className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden scroll-mt-6">
             <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-2.5">
@@ -257,14 +311,14 @@ export default function AdminExpertDetailPage({ params }: PageProps) {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <Label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Tên hiển thị</Label>
-                  <Input value={form.displayName || ''} onChange={e => set('displayName', e.target.value)} className="h-10" />
+                  <Input value={form.displayName || ''} readOnly className="h-10 bg-gray-50 focus-visible:ring-0 cursor-default text-gray-700 font-medium" />
                 </div>
                 <div className="space-y-1.5">
                   <Label className="text-xs font-semibold text-gray-500 uppercase tracking-wide flex items-center gap-1.5">
                     <Clock className="h-3.5 w-3.5" />
                     Năm kinh nghiệm
                   </Label>
-                  <Input type="number" value={form.yearsExperience ?? 0} onChange={e => set('yearsExperience', parseInt(e.target.value) || 0)} className="h-10" />
+                  <Input type="number" value={form.yearsExperience ?? 0} readOnly className="h-10 bg-gray-50 focus-visible:ring-0 cursor-default text-gray-700 font-medium" />
                 </div>
               </div>
 
@@ -277,9 +331,9 @@ export default function AdminExpertDetailPage({ params }: PageProps) {
                       <Label className="text-[11px] text-gray-400 font-medium">{label}</Label>
                       <Input
                         type="number" step={0.5} min={0} max={9}
-                        className="text-center font-mono h-10 text-sm"
+                        className="text-center font-mono h-10 text-sm bg-gray-50 focus-visible:ring-0 cursor-default text-gray-700"
                         value={form[key] ?? 0}
-                        onChange={e => set(key, parseFloat(e.target.value) || 0)}
+                        readOnly
                       />
                     </div>
                   ))}
@@ -295,10 +349,10 @@ export default function AdminExpertDetailPage({ params }: PageProps) {
               <div className="space-y-1.5">
                 <Label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Giới thiệu bản thân</Label>
                 <textarea
-                  className="w-full min-h-[100px] rounded-xl border border-gray-200 p-3.5 text-sm focus:ring-2 focus:ring-indigo-100 focus:border-indigo-300 outline-none transition-all resize-none"
+                  className="w-full min-h-[100px] rounded-xl border border-gray-200 p-3.5 text-sm outline-none transition-all resize-none bg-gray-50 text-gray-700 cursor-default"
                   value={form.bio || ''}
-                  onChange={e => set('bio', e.target.value)}
-                  placeholder="Viết vài dòng giới thiệu về kinh nghiệm và kỹ năng..."
+                  readOnly
+                  placeholder="Giáo viên chưa cập nhật giới thiệu bản thân..."
                 />
               </div>
             </div>
@@ -313,24 +367,12 @@ export default function AdminExpertDetailPage({ params }: PageProps) {
                 </div>
                 <div>
                   <h3 className="font-bold text-sm text-gray-800">Bằng cấp & Chứng chỉ</h3>
-                  <p className="text-[11px] text-gray-400 mt-0.5">Tải lên bằng cấp, chứng chỉ IELTS để tăng độ tin cậy</p>
+                  <p className="text-[11px] text-gray-400 mt-0.5">Các chứng chỉ chuyên môn của giáo viên</p>
                 </div>
               </div>
-              <Button variant="outline" size="sm" onClick={() => document.getElementById('cert-upload')?.click()} className="h-8 text-xs rounded-lg">
-                <ImagePlus className="h-3.5 w-3.5 mr-1.5" />
-                Thêm ảnh
-              </Button>
-              <input
-                id="cert-upload" type="file" multiple className="hidden"
-                onChange={e => {
-                  const files = Array.from(e.target.files ?? []);
-                  setCertFiles(prev => [...prev, ...files]);
-                  setCertPreviews(prev => [...prev, ...files.map(f => URL.createObjectURL(f))]);
-                }}
-              />
             </div>
             <div className="p-6">
-              {existingCerts.length === 0 && certPreviews.length === 0 ? (
+              {existingCerts.length === 0 ? (
                 <div className="text-center py-10 border-2 border-dashed border-gray-200 rounded-xl">
                   <Award className="h-8 w-8 mx-auto text-gray-300 mb-2" />
                   <p className="text-sm text-gray-400">Chưa có chứng chỉ nào</p>
@@ -338,31 +380,8 @@ export default function AdminExpertDetailPage({ params }: PageProps) {
               ) : (
                 <div className="grid grid-cols-3 gap-4">
                   {existingCerts.map((url, i) => (
-                    <div key={i} className="relative group aspect-[4/3] rounded-xl border border-gray-100 overflow-hidden bg-gray-50 shadow-sm">
-                      <img src={url} alt="" className="w-full h-full object-cover" />
-                      <button
-                        onClick={() => setExistingCerts(prev => prev.filter((_, idx) => idx !== i))}
-                        className="absolute top-2 right-2 p-1.5 bg-black/60 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/80"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                    </div>
-                  ))}
-                  {certPreviews.map((url, i) => (
-                    <div key={`new-${i}`} className="relative group aspect-[4/3] rounded-xl border-2 border-dashed border-indigo-200 overflow-hidden bg-indigo-50/30">
-                      <img src={url} alt="" className="w-full h-full object-cover" />
-                      <div className="absolute top-2 left-2">
-                        <Badge className="text-[10px] bg-indigo-100 text-indigo-600 border-0">Mới</Badge>
-                      </div>
-                      <button
-                        onClick={() => {
-                          setCertFiles(prev => prev.filter((_, idx) => idx !== i));
-                          setCertPreviews(prev => prev.filter((_, idx) => idx !== i));
-                        }}
-                        className="absolute top-2 right-2 p-1.5 bg-black/60 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/80"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
+                    <div key={i} className="relative aspect-[4/3] rounded-xl border border-gray-100 overflow-hidden bg-gray-50 shadow-sm">
+                      <img src={url} alt="" className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" />
                     </div>
                   ))}
                 </div>

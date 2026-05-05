@@ -41,7 +41,7 @@ export default function AdminExpertsPage() {
       const data = await getAdminExperts();
       setExperts(data);
     } catch {
-      toast.error('Không thể tải danh sách giám khảo');
+      toast.error('Không thể tải danh sách giáo viên');
     } finally {
       setLoading(false);
     }
@@ -81,13 +81,13 @@ export default function AdminExpertsPage() {
             <Input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Tìm giám khảo theo tên hoặc email..."
+              placeholder="Tìm giáo viên theo tên hoặc email..."
               className="pl-9 h-9"
             />
           </div>
           <Button onClick={() => setShowForm(true)} className="h-9 rounded-xl bg-gray-900 hover:bg-gray-800 text-sm px-4">
             <Plus className="h-4 w-4 mr-1.5" />
-            Tạo giám khảo
+            Tạo giáo viên
           </Button>
         </div>
 
@@ -100,7 +100,7 @@ export default function AdminExpertsPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50/80">
-                  {['Giám khảo', 'Email', 'Band', 'Bài chấm', 'Đánh giá', 'Trạng thái'].map((h) => (
+                  {['Giáo viên', 'Email', 'Band', 'Bài chấm', 'Đánh giá', 'Trạng thái'].map((h) => (
                     <th key={h} className="px-4 py-3 text-left text-[11px] font-semibold text-gray-500 uppercase tracking-wide">
                       {h}
                     </th>
@@ -113,7 +113,7 @@ export default function AdminExpertsPage() {
                     <td colSpan={6} className="text-center py-12">
                       <GraduationCap className="h-8 w-8 mx-auto text-gray-200 mb-2" />
                       <p className="text-sm text-gray-400">
-                        {q ? 'Không tìm thấy giám khảo' : 'Chưa có giám khảo nào'}
+                        {q ? 'Không tìm thấy giáo viên' : 'Chưa có giáo viên nào'}
                       </p>
                     </td>
                   </tr>

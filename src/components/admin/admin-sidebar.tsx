@@ -19,8 +19,10 @@ import {
   KeyRound,
   FlaskConical,
   BadgeDollarSign,
+  BarChart3,
   type LucideIcon,
 } from 'lucide-react';
+import { ReportIcon } from '@/components/admin/report-icon';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
@@ -36,7 +38,7 @@ import { toast } from 'sonner';
 interface NavItem {
   href: string;
   label: string;
-  icon: LucideIcon;
+  icon: any; // Allow custom SVG components
   exact?: boolean;
 }
 
@@ -66,7 +68,8 @@ const navGroups: NavGroup[] = [
     items: [
       { href: '/admin/prompts', label: 'AI Prompts', icon: FileText }, // Changed BrainCircuit to FileText as placeholder
       { href: '/admin/scoring-sessions', label: 'Chấm điểm', icon: Headphones },
-      { href: '/admin/experts', label: 'Chuyên gia', icon: GraduationCap },
+      { href: '/admin/experts', label: 'Giáo viên', icon: GraduationCap },
+      { href: '/admin/reports', label: 'Báo cáo', icon: ReportIcon },
     ],
   },
   {

@@ -88,7 +88,7 @@ export default function AdminScoringSessionsPage() {
     apiClient
       .get<ApiResponse<ScoringSession[]>>('/api/v1/scoring-sessions/admin/all', true)
       .then((res) => setSessions(res.result ?? []))
-      .catch(() => toast.error('Không thể tải danh sách bài chấm của giám khảo'))
+      .catch(() => toast.error('Không thể tải danh sách bài chấm của giáo viên'))
       .finally(() => setLoading(false));
   }, []);
 
@@ -137,14 +137,14 @@ export default function AdminScoringSessionsPage() {
         </div>
         <div>
           <h1 className="text-2xl font-bold">Bài chấm</h1>
-          <p className="text-sm text-muted-foreground">Toàn bộ bài chấm điểm của giám khảo trong hệ thống</p>
+          <p className="text-sm text-muted-foreground">Toàn bộ bài chấm điểm của giáo viên trong hệ thống</p>
         </div>
       </div>
 
       <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm mb-4">
         <div className="flex flex-wrap items-center gap-3">
           <Input
-            placeholder="Tìm theo thí sinh, giám khảo, ID..."
+            placeholder="Tìm theo thí sinh, giáo viên, ID..."
             value={searchTerm}
             onChange={(event) => setSearchTerm(event.target.value)}
             className="max-w-xs h-10"
@@ -204,7 +204,7 @@ export default function AdminScoringSessionsPage() {
                 <th className="px-4 py-3 text-left font-medium text-muted-foreground">ID</th>
                 <th className="px-4 py-3 text-left font-medium text-muted-foreground">Kỹ năng</th>
                 <th className="px-4 py-3 text-left font-medium text-muted-foreground">Thí sinh</th>
-                <th className="px-4 py-3 text-left font-medium text-muted-foreground">Giám khảo</th>
+                <th className="px-4 py-3 text-left font-medium text-muted-foreground">Giáo viên</th>
                 <th className="px-4 py-3 text-left font-medium text-muted-foreground">Trạng thái</th>
                 <th className="px-4 py-3 text-left font-medium text-muted-foreground">Thời gian nộp/chấm</th>
                 <th className="px-4 py-3 text-left font-medium text-muted-foreground">Đánh giá</th>

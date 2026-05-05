@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
-import { BookOpen, Mic, ChevronRight, Tag, RefreshCw, CheckCircle2, Clock, Eye, Map } from 'lucide-react';
+import { BookOpen, Mic, ChevronRight, Tag, RefreshCw, CheckCircle2, Clock, Eye, Map, Compass } from 'lucide-react';
 import { listAllPrompts, type PromptInfo } from '@/lib/admin-api';
 
 const SKILL_META: Record<string, { label: string; icon: typeof BookOpen; color: string; bg: string }> = {
@@ -37,6 +37,12 @@ const SKILL_META: Record<string, { label: string; icon: typeof BookOpen; color: 
     color: 'text-orange-600',
     bg: 'bg-orange-50 border-orange-100',
   },
+  placement: {
+    label: 'Placement',
+    icon: Compass,
+    color: 'text-cyan-600',
+    bg: 'bg-cyan-50 border-cyan-100',
+  },
 };
 
 const FILENAME_LABELS: Record<string, string> = {
@@ -57,10 +63,11 @@ const FILENAME_LABELS: Record<string, string> = {
   'analyze_chart.txt': 'Vision — Chart/Process Analysis',
   'quiz_generation.txt': 'Vocab — AI Quiz Generation',
   'metric_summary.txt': 'Roadmap — AI Metric Summary',
+  'ai_recommend.txt': 'Placement — AI Recommendation',
 };
 
 export default function AdminPromptsPage() {
-  const [activeSkill, setActiveSkill] = useState<'all' | 'writing' | 'speaking' | 'vision' | 'vocab' | 'roadmap'>(
+  const [activeSkill, setActiveSkill] = useState<'all' | 'writing' | 'speaking' | 'vision' | 'vocab' | 'roadmap' | 'placement'>(
     'all'
   );
 
@@ -105,10 +112,10 @@ export default function AdminPromptsPage() {
 
         {/* Skill filter tabs */}
         <div className="flex gap-2 bg-white border border-gray-100 rounded-2xl p-1 shadow-sm w-fit overflow-x-auto max-w-full">
-          {(['all', 'writing', 'speaking', 'vision', 'vocab', 'roadmap'] as const).map((skill) => {
+          {(['all', 'writing', 'speaking', 'vision', 'vocab', 'roadmap', 'placement'] as const).map((skill) => {
             const labels: Record<string, string> = {
               all: 'Tất cả', writing: '📝 Writing', speaking: '🎙️ Speaking',
-              vision: '👁️ Vision', vocab: '🏷️ Vocab', roadmap: '🗺️ Roadmap',
+              vision: '👁️ Vision', vocab: '🏷️ Vocab', roadmap: '🗺️ Roadmap', placement: '🧭 Placement'
             };
             return (
               <button

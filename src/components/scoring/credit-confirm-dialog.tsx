@@ -59,14 +59,12 @@ export function CreditConfirmDialog({
           <div className="flex flex-col items-center gap-3 py-4">
             {/* Sad chibi mascot */}
             <div className="text-6xl select-none">😢</div>
-            <p className="text-destructive font-semibold text-center">Không đủ số dư!</p>
+            <p className="text-destructive font-semibold text-center">Không đủ lượt chấm!</p>
             <p className="text-sm text-muted-foreground text-center">
-              Bạn cần thêm{' '}
-              <span className="font-semibold text-foreground">{formatVnd(creditCost - currentBalance)}</span>{' '}
-              để sử dụng dịch vụ này.
+              Bạn cần mua thêm lượt để sử dụng dịch vụ này.
             </p>
             <Button asChild className="mt-1">
-              <Link href="/payment">Nạp tiền ngay →</Link>
+              <Link href="/payment">Mua gói ngay →</Link>
             </Button>
           </div>
         )}

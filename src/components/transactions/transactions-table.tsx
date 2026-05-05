@@ -11,18 +11,18 @@ interface Props {
 
 const TYPE_META: Record<string, { label: string; tint: string; icon: React.ElementType; iconBg: string; iconColor: string }> = {
   TOPUP: {
-    label: 'Nạp tiền',
-    tint: 'text-emerald-700 bg-emerald-50 border-emerald-100',
-    icon: ArrowDown,
-    iconBg: 'bg-emerald-50 border-emerald-100',
-    iconColor: 'text-emerald-600',
+    label: 'Mua gói',
+    tint: 'text-indigo-700 bg-indigo-50 border-indigo-100',
+    icon: Sparkles,
+    iconBg: 'bg-indigo-50 border-indigo-100',
+    iconColor: 'text-indigo-600',
   },
   LATE_PAYMENT_TOPUP: {
-    label: 'Nạp (trễ)',
-    tint: 'text-emerald-700 bg-emerald-50 border-emerald-100',
-    icon: ArrowDown,
-    iconBg: 'bg-emerald-50 border-emerald-100',
-    iconColor: 'text-emerald-600',
+    label: 'Mua gói (trễ)',
+    tint: 'text-indigo-700 bg-indigo-50 border-indigo-100',
+    icon: Sparkles,
+    iconBg: 'bg-indigo-50 border-indigo-100',
+    iconColor: 'text-indigo-600',
   },
   CONSUME: {
     label: 'Sử dụng',
@@ -108,16 +108,22 @@ function TransactionRow({ tx }: { tx: CreditTransactionResponse }) {
     tx.remark ||
     tx.serviceName ||
     tx.packageName ||
-    (tx.paymentType === 'TOPUP' ? 'Nạp tiền' : 'Giao dịch');
-  const isSubPurchase = tx.paymentType === 'SUBSCRIPTION_PURCHASE';
+    (tx.paymentType === 'TOPUP' ? 'Mua gói' : 'Giao dịch');
+  const isSubPurchase = tx.paymentType === 'SUBSCRIPTION_PURCHASE'
+    || tx.paymentType === 'TOPUP'
+    || tx.paymentType === 'LATE_PAYMENT_TOPUP';
   const isConsume = tx.paymentType === 'CONSUME';
   const isQuotaConsume = !!tx.quotaType;
 
-  // Sub purchase: BE ghi remark "Mua Gói X · 2,000đ". Extract amount.
+  // Mua gói: BE ghi remark "Mua Gói X · 2,000đ". Extract amount. Cho TOPUP cũ dùng delta.
   const subPurchaseAmount = (() => {
-    if (!isSubPurchase || !tx.remark) return null;
-    const m = tx.remark.match(/·\s*([\d.,]+)đ/);
-    return m ? m[1] + 'đ' : null;
+    if (!isSubPurchase) return null;
+    if (tx.remark) {
+      const m = tx.remark.match(/·\s*([\d.,]+)đ/);
+      if (m) return m[1] + 'đ';
+    }
+    if (tx.delta > 0) return formatVnd(tx.delta);
+    return null;
   })();
 
   const isPendingExpired = tx.paymentType === 'PENDING_PAYMENT' || tx.paymentType === 'EXPIRED_PAYMENT';
@@ -134,7 +140,7 @@ function TransactionRow({ tx }: { tx: CreditTransactionResponse }) {
   const quotaDeltaLabel = quotaDelta > 0 ? `+${quotaDelta} lượt` : `${quotaDelta} lượt`;
   const quotaDeltaColor = isRefund ? 'text-blue-600' : isExpertQuota ? 'text-purple-600' : 'text-indigo-600';
 
-  // Số tiền: ẩn cho loại CONSUME (chấm AI), hiện cho mua gói/nạp tiền/hoàn/điều chỉnh
+  // Số tiền: ẩn cho loại CONSUME (chấm AI), hiện cho mua gói/hoàn/điều chỉnh
   const showAmount = !isConsume;
 
   return (

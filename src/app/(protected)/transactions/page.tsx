@@ -34,9 +34,16 @@ export default function TransactionsPage() {
       .finally(() => setLoading(false));
   }, []);
 
+  const isPurchase = (type: string) =>
+    type === 'SUBSCRIPTION_PURCHASE' || type === 'TOPUP' || type === 'LATE_PAYMENT_TOPUP';
+
   const filtered = useMemo(() => {
     return transactions
-      .filter((tx) => typeFilter === 'ALL' || tx.paymentType === typeFilter)
+      .filter((tx) => {
+        if (typeFilter === 'ALL') return true;
+        if (typeFilter === 'SUBSCRIPTION_PURCHASE') return isPurchase(tx.paymentType);
+        return tx.paymentType === typeFilter;
+      })
       .sort((a, b) => {
         const ta = new Date(a.createdAt).getTime();
         const tb = new Date(b.createdAt).getTime();
@@ -49,16 +56,23 @@ export default function TransactionsPage() {
     for (const t of transactions) {
       if (t.delta < 0) {
         sum += Math.abs(t.delta);
-      } else if (t.paymentType === 'SUBSCRIPTION_PURCHASE' && t.remark) {
-        const m = t.remark.match(/·\s*([\d.,]+)đ/);
-        if (m) sum += Number(m[1].replace(/[.,]/g, ''));
+      } else if (isPurchase(t.paymentType)) {
+        if (t.remark) {
+          const m = t.remark.match(/·\s*([\d.,]+)đ/);
+          if (m) sum += Number(m[1].replace(/[.,]/g, ''));
+        } else if (t.delta > 0) {
+          sum += t.delta;
+        }
       }
     }
     return sum;
   }, [transactions]);
 
-  const countByType = (type: PaymentFilter) =>
-    type === 'ALL' ? transactions.length : transactions.filter((t) => t.paymentType === type).length;
+  const countByType = (type: PaymentFilter) => {
+    if (type === 'ALL') return transactions.length;
+    if (type === 'SUBSCRIPTION_PURCHASE') return transactions.filter((t) => isPurchase(t.paymentType)).length;
+    return transactions.filter((t) => t.paymentType === type).length;
+  };
 
   return (
     <div className="min-h-[calc(100vh-56px)] bg-slate-50">

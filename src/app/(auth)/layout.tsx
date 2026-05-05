@@ -19,7 +19,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           ? '/admin'
           : role === 'EXPERT'
             ? '/expert/dashboard'
-            : '/dashboard';
+            : '/practice';
       router.replace(dest);
       return;
     }

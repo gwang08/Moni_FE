@@ -3,7 +3,7 @@
 import { use, useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, FileText, Loader2, Sparkles, ChevronDown, ChevronUp, PenLine, Calendar } from 'lucide-react';
+import { ArrowLeft, FileText, Loader2, Sparkles, ChevronDown, ChevronUp, PenLine, Calendar, Clock } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -119,6 +119,11 @@ export default function WritingResultPage({ params }: Props) {
     minute: '2-digit',
   });
 
+  // Format elapsed time for display
+  const timeTakenText = submission.timeTakenSeconds != null
+    ? `${Math.floor(submission.timeTakenSeconds / 60)} phút ${submission.timeTakenSeconds % 60} giây`
+    : null;
+
   return (
     <div className="h-[calc(100vh-56px)] overflow-y-auto bg-slate-50">
       {/* Header */}
@@ -151,6 +156,7 @@ export default function WritingResultPage({ params }: Props) {
             metaItems={[
               { icon: <Calendar className="h-3.5 w-3.5" />, text: submittedDate },
               { icon: <FileText className="h-3.5 w-3.5" />, text: `${submission.wordCount} từ` },
+              ...(timeTakenText ? [{ icon: <Clock className="h-3.5 w-3.5" />, text: timeTakenText }] : []),
             ]}
           />
         )}

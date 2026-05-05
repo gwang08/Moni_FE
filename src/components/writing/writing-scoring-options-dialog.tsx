@@ -6,6 +6,7 @@ import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
 import { ChibiMascot, ChibiAnimationStyles } from '@/components/ui/chibi-mascot';
 import type { UserSubscriptionResponse } from '@/types/subscription.types';
 import { getServiceQuota, type ServiceQuotaResponse } from '@/lib/payment-api';
+import { Sparkles, GraduationCap, Clock, ChevronRight } from 'lucide-react';
 
 /** AI unlimited cap used alongside quotaAi === -1. */
 const AI_UNLIMITED_CAP = 500;
@@ -20,29 +21,32 @@ interface Props {
 }
 
 interface OptionCardProps {
-  icon: string;
+  icon: React.ReactNode;
   title: string;
   description: string;
   badge: React.ReactNode;
   onClick: () => void;
-  colorClass: string;
+  iconBg: string;
+  hoverBorder: string;
   disabled?: boolean;
 }
 
-function OptionCard({ icon, title, description, badge, onClick, colorClass, disabled }: OptionCardProps) {
+function OptionCard({ icon, title, description, badge, onClick, iconBg, hoverBorder, disabled }: OptionCardProps) {
   return (
     <button
       onClick={onClick}
       disabled={disabled}
-      className={`w-full text-left rounded-2xl border-2 p-3.5 transition-all group ${
+      className={`w-full text-left rounded-2xl border-2 p-3.5 transition-all duration-200 group ${
         disabled
           ? 'border-gray-100 bg-gray-50/60 opacity-60 cursor-not-allowed'
-          : `border-gray-100 hover:border-current hover:shadow-sm ${colorClass}`
+          : `border-gray-100 bg-white ${hoverBorder} hover:shadow-md`
       }`}
     >
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-3">
-          <span className={`text-2xl ${disabled ? 'opacity-50' : ''}`}>{icon}</span>
+          <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-transform duration-200 group-hover:scale-110 ${disabled ? 'opacity-50' : ''} ${iconBg}`}>
+            {icon}
+          </div>
           <div>
             <p className={`font-semibold text-sm ${disabled ? 'text-gray-500' : 'text-gray-800'}`}>{title}</p>
             <p className={`text-xs mt-0.5 ${disabled ? 'text-gray-400' : 'text-gray-500'}`}>
@@ -50,7 +54,12 @@ function OptionCard({ icon, title, description, badge, onClick, colorClass, disa
             </p>
           </div>
         </div>
-        {badge}
+        <div className="flex items-center gap-1.5 shrink-0">
+          {badge}
+          {!disabled && (
+            <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-gray-500 transition-colors" />
+          )}
+        </div>
       </div>
     </button>
   );
@@ -155,29 +164,32 @@ export function WritingScoringOptionsDialog({
 
           <div className="px-5 pb-5 pt-1 space-y-2.5">
             <OptionCard
-              icon="🤖"
+              icon={<Sparkles className="w-5 h-5 text-teal-600" />}
+              iconBg="bg-teal-50"
+              hoverBorder="hover:border-teal-300"
               title="Chấm AI ngay"
               description={aiDescription}
               badge={aiBadge}
               onClick={aiHandler}
-              colorClass="hover:text-teal-600"
             />
             <OptionCard
-              icon="👨‍🏫"
+              icon={<GraduationCap className="w-5 h-5 text-indigo-600" />}
+              iconBg="bg-indigo-50"
+              hoverBorder="hover:border-indigo-300"
               title="Gửi Giảng viên chấm"
               description={expertDescription}
               badge={expertBadge}
               onClick={expertHandler}
-              colorClass="hover:text-indigo-600"
             />
             {/* "Để sau" */}
             <OptionCard
-              icon="⏭️"
+              icon={<Clock className="w-5 h-5 text-gray-500" />}
+              iconBg="bg-gray-100"
+              hoverBorder="hover:border-gray-300"
               title="Để sau"
               description="Chấm sau trong lịch sử"
               badge={null}
               onClick={onSkip}
-              colorClass="hover:text-emerald-600"
             />
           </div>
         </DialogContent>

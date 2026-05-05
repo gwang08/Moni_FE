@@ -30,6 +30,7 @@ export interface WritingSubmissionDetail {
   taskType: WritingTaskType;
   essayContent: string;
   wordCount: number;
+  timeTakenSeconds: number | null;
   evaluationStatus: WritingEvaluationStatus;
   submittedAt: string;
   evaluation?: {
@@ -63,6 +64,7 @@ export async function submitWriting(params: {
   taskType: number;
   essayContent: string;
   wordCount: number;
+  timeTakenSeconds?: number;
 }): Promise<{ submissionId: number }> {
   const response = await apiClient.post<ApiResponse<{ submissionId: number }>>(
     '/api/v1/writing/submit',

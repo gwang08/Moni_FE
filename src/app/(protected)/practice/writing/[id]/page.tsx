@@ -105,7 +105,7 @@ export default function WritingExercisePage({ params }: Props) {
 
   // ===== ALL HOOKS BEFORE ANY EARLY RETURN =====
 
-  const { elapsed, formatted: elapsedTime } = useElapsedTimer(isGrading || isExamMode);
+  const { elapsed, formatted: elapsedTime } = useElapsedTimer(submitted || isGrading || isExamMode);
 
   const examSession = useExamSession(Number(id), isExamMode);
   const testDuration = toMinutes(testDetail?.duration);
@@ -218,6 +218,7 @@ export default function WritingExercisePage({ params }: Props) {
       taskType,
       essayContent: stripHtml(content),
       wordCount,
+      timeTakenSeconds: elapsed,
     })
       .then(async (result) => {
         setSubmissionId(result.submissionId);
@@ -236,7 +237,7 @@ export default function WritingExercisePage({ params }: Props) {
       .finally(() => {
         setIsSubmitting(false);
       });
-  }, [testDetail, activeStimulusIdx, isSubmitting, submitted, content, wordCount, id, markCompleted, slotId]);
+  }, [testDetail, activeStimulusIdx, isSubmitting, submitted, content, wordCount, elapsed, id, markCompleted, slotId]);
 
   // Sync ref
   useEffect(() => {

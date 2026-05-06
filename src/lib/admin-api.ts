@@ -22,6 +22,7 @@ import type {
   QuestionGroupRequest,
   QuestionRequest,
   AdminRevenueDashboardResponse,
+  AiHealthResponse,
 } from '@/types/admin.types';
 
 // Tags
@@ -305,6 +306,15 @@ export async function getAdminRevenueDashboard(params?: {
     true
   );
   if (!response.result) throw new Error('Failed to fetch admin revenue dashboard');
+  return response.result;
+}
+
+export async function getAiHealthDashboard(): Promise<AiHealthResponse> {
+  const response = await apiClient.get<ApiResponse<AiHealthResponse>>(
+    '/api/v1/admin/dashboard/ai-health',
+    true
+  );
+  if (!response.result) throw new Error('Failed to fetch AI health dashboard');
   return response.result;
 }
 

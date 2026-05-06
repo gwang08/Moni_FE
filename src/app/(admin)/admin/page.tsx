@@ -1,10 +1,10 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { BookOpen, Bot, Coins, FileText, TrendingUp, UserPlus, Users } from 'lucide-react';
+import { Activity, AlertTriangle, BookOpen, Bot, Clock, Coins, FileText, TrendingUp, UserPlus, Users } from 'lucide-react';
 import { SkeletonCard } from '@/components/ui/skeleton';
 import { useQuery } from '@tanstack/react-query';
-import { getAdminRevenueDashboard } from '@/lib/admin-api';
+import { getAdminRevenueDashboard, getAiHealthDashboard } from '@/lib/admin-api';
 import { DateRangePicker } from '@/components/ui/date-range-picker';
 import {
   LineChart,
@@ -82,6 +82,15 @@ export default function AdminDashboardPage() {
         fromDate: revenueRange.startDate,
         toDate: revenueRange.endDate,
       }),
+  });
+
+  const {
+    data: aiHealth,
+    isLoading: isAiHealthLoading,
+  } = useQuery({
+    queryKey: ['admin', 'dashboard', 'ai-health'],
+    queryFn: getAiHealthDashboard,
+    refetchInterval: 60_000,
   });
 
   const chartData = useMemo(() => {
@@ -534,6 +543,134 @@ export default function AdminDashboardPage() {
                     </div>
                   </div>
                 )}
+              </div>
+            </div>
+          )}
+        </div>
+        {/* AI System Health */}
+        <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
+          <div className="mb-6 flex items-center gap-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-cyan-500 to-blue-600">
+              <Activity className="h-4 w-4 text-white" />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-gray-800">AI System Health</h3>
+              <p className="text-xs text-gray-400">Theo dõi real-time, auto-refresh mỗi 60s</p>
+            </div>
+          </div>
+
+          {isAiHealthLoading ? (
+            <SkeletonCard className="h-40" />
+          ) : !aiHealth ? (
+            <p className="py-12 text-center text-gray-500">Không thể tải dữ liệu AI Health</p>
+          ) : (
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+              {/* Card 1: Tổng bài AI */}
+              <div className="group relative overflow-hidden rounded-2xl border border-cyan-100 p-5 transition-all hover:shadow-lg hover:shadow-cyan-100/50">
+                <div className="absolute inset-0 bg-gradient-to-br from-cyan-50 via-sky-50 to-cyan-100/30" />
+                <div className="absolute -right-3 -top-3 h-16 w-16 rounded-full bg-cyan-200/30 transition-transform group-hover:scale-125" />
+                <div className="relative">
+                  <div className="mb-3 flex items-center gap-2">
+                    <div className="flex h-6 w-6 items-center justify-center rounded-md bg-cyan-500/10">
+                      <Bot className="h-3 w-3 text-cyan-500" />
+                    </div>
+                    <p className="text-sm font-medium text-gray-600">Tổng bài AI</p>
+                  </div>
+                  <p className="text-3xl font-extrabold text-cyan-600">
+                    {aiHealth.totalAiEvaluations.toLocaleString('vi-VN')}
+                  </p>
+                  <div className="mt-2 flex gap-3 text-xs text-gray-500">
+                    <span>Writing: {aiHealth.writingEvaluations.toLocaleString('vi-VN')}</span>
+                    <span>Speaking: {aiHealth.speakingEvaluations.toLocaleString('vi-VN')}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Card 2: Tỉ lệ lỗi */}
+              <div className="group relative overflow-hidden rounded-2xl border border-red-100 p-5 transition-all hover:shadow-lg hover:shadow-red-100/50">
+                <div className="absolute inset-0 bg-gradient-to-br from-red-50 via-rose-50 to-red-100/30" />
+                <div className="absolute -right-3 -top-3 h-16 w-16 rounded-full bg-red-200/30 transition-transform group-hover:scale-125" />
+                <div className="relative">
+                  <div className="mb-3 flex items-center gap-2">
+                    <div className="flex h-6 w-6 items-center justify-center rounded-md bg-red-500/10">
+                      <AlertTriangle className="h-3 w-3 text-red-500" />
+                    </div>
+                    <p className="text-sm font-medium text-gray-600">Tỉ lệ lỗi hôm nay</p>
+                  </div>
+                  <div className="flex items-baseline gap-2">
+                    <p className="text-3xl font-extrabold text-red-600">
+                      {aiHealth.errorRateToday}%
+                    </p>
+                    {aiHealth.errorRateChange !== 0 && (
+                      <span className={`text-sm font-semibold ${aiHealth.errorRateChange > 0 ? 'text-red-500' : 'text-emerald-500'}`}>
+                        {aiHealth.errorRateChange > 0 ? '+' : ''}{aiHealth.errorRateChange}%
+                      </span>
+                    )}
+                  </div>
+                  <div className="mt-2 text-xs text-gray-500">
+                    <span>Hôm nay: {aiHealth.failedToday}/{aiHealth.totalToday} bài</span>
+                    <span className="mx-2">|</span>
+                    <span>Hôm qua: {aiHealth.failedYesterday}/{aiHealth.totalYesterday} bài</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Card 3: Latency */}
+              <div className="group relative overflow-hidden rounded-2xl border border-amber-100 p-5 transition-all hover:shadow-lg hover:shadow-amber-100/50">
+                <div className="absolute inset-0 bg-gradient-to-br from-amber-50 via-yellow-50 to-amber-100/30" />
+                <div className="absolute -right-3 -top-3 h-16 w-16 rounded-full bg-amber-200/30 transition-transform group-hover:scale-125" />
+                <div className="relative">
+                  <div className="mb-3 flex items-center gap-2">
+                    <div className="flex h-6 w-6 items-center justify-center rounded-md bg-amber-500/10">
+                      <Clock className="h-3 w-3 text-amber-500" />
+                    </div>
+                    <p className="text-sm font-medium text-gray-600">Latency TB hôm nay</p>
+                  </div>
+                  <p className="text-3xl font-extrabold text-amber-600">
+                    {aiHealth.avgLatencySeconds != null ? `${aiHealth.avgLatencySeconds}s` : 'N/A'}
+                  </p>
+                  <div className="mt-2 flex gap-3 text-xs text-gray-500">
+                    <span>Writing: {aiHealth.avgWritingLatencySeconds != null ? `${aiHealth.avgWritingLatencySeconds}s` : 'N/A'}</span>
+                    <span>Speaking: {aiHealth.avgSpeakingLatencySeconds != null ? `${aiHealth.avgSpeakingLatencySeconds}s` : 'N/A'}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Card 4: Alert Status */}
+              <div className={`group relative overflow-hidden rounded-2xl border p-5 transition-all hover:shadow-lg ${
+                aiHealth.alertActive
+                  ? 'border-red-200 hover:shadow-red-100/50'
+                  : 'border-emerald-100 hover:shadow-emerald-100/50'
+              }`}>
+                <div className={`absolute inset-0 ${
+                  aiHealth.alertActive
+                    ? 'bg-gradient-to-br from-red-50 via-rose-50 to-red-100/30'
+                    : 'bg-gradient-to-br from-emerald-50 via-green-50 to-emerald-100/30'
+                }`} />
+                <div className={`absolute -right-3 -top-3 h-16 w-16 rounded-full transition-transform group-hover:scale-125 ${
+                  aiHealth.alertActive ? 'bg-red-200/30' : 'bg-emerald-200/30'
+                }`} />
+                <div className="relative">
+                  <div className="mb-3 flex items-center gap-2">
+                    <div className={`flex h-6 w-6 items-center justify-center rounded-md ${
+                      aiHealth.alertActive ? 'bg-red-500/10' : 'bg-emerald-500/10'
+                    }`}>
+                      <AlertTriangle className={`h-3 w-3 ${aiHealth.alertActive ? 'text-red-500' : 'text-emerald-500'}`} />
+                    </div>
+                    <p className="text-sm font-medium text-gray-600">Alert Status</p>
+                  </div>
+                  {aiHealth.alertActive ? (
+                    <>
+                      <p className="text-2xl font-extrabold text-red-600">ALERT</p>
+                      <p className="mt-2 text-xs text-red-500">{aiHealth.alertMessage}</p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-2xl font-extrabold text-emerald-600">OK</p>
+                      <p className="mt-2 text-xs text-emerald-500">Hệ thống AI hoạt động bình thường</p>
+                    </>
+                  )}
+                </div>
               </div>
             </div>
           )}

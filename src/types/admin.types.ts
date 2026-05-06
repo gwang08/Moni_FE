@@ -216,3 +216,24 @@ export interface DailyExpertJobs {
   aiWritingJobs?: number;
   aiSpeakingJobs?: number;
 }
+
+export interface AiHealthResponse {
+  totalAiEvaluations: number;
+  writingEvaluations: number;
+  speakingEvaluations: number;
+
+  failedToday: number;
+  totalToday: number;
+  errorRateToday: number;
+  failedYesterday: number;
+  totalYesterday: number;
+  errorRateYesterday: number;
+  errorRateChange: number;
+
+  avgLatencySeconds: number | null;
+  avgWritingLatencySeconds: number | null;
+  avgSpeakingLatencySeconds: number | null;
+
+  alertActive: boolean;
+  alertMessage: string | null;
+}
